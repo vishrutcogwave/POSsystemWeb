@@ -74,7 +74,7 @@ function OrderingBoard() {
 
   const [openSessionModal, setOpenSessionModal] = useState(false);
   const [openKOTModal, setopenKOTModal] = useState(false);
-
+  const [cart, setCart] = useState<CartItem[]>([]);
   /* ---------- OPEN CORRECT MODAL ---------- */
 
   useEffect(() => {
@@ -85,10 +85,17 @@ function OrderingBoard() {
     }
   }, []);
 
-  /* ---------- ACTIVE BILL ---------- */
+  useEffect(() => {
+    if (!activeBillId) return;
 
-  const activeBill = kot.find((b) => b.id === activeBillId);
-  const cart = activeBill?.items || [];
+    setKot((prev) =>
+      prev.map((bill) =>
+        bill.id === activeBillId ? { ...bill, items: cart } : bill,
+      ),
+    );
+  }, [cart, activeBillId]);
+
+  /* ---------- ACTIVE BILL ---------- */
 
   /* ---------- FOOD FILTER ---------- */
 
@@ -105,45 +112,28 @@ function OrderingBoard() {
     const food = DUMMY_FOODS.find((f) => f.id === id);
     if (!food) return;
 
-    setKot((prev) =>
-      prev.map((bill) =>
-        bill.id === activeBillId
-          ? {
-              ...bill,
-              items: updateItems(bill.items, food),
-            }
-          : bill,
-      ),
-    );
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === id);
+      if (existing) {
+        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
+      }
+      return [
+        ...prev,
+        { id: food.id, name: food.name, price: food.price, qty: 1 },
+      ];
+    });
   };
-
   const increaseQty = (id: number) => {
-    setKot((prev) =>
-      prev.map((bill) =>
-        bill.id === activeBillId
-          ? {
-              ...bill,
-              items: bill.items.map((i) =>
-                i.id === id ? { ...i, qty: i.qty + 1 } : i,
-              ),
-            }
-          : bill,
-      ),
+    setCart((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
     );
   };
 
   const decreaseQty = (id: number) => {
-    setKot((prev) =>
-      prev.map((bill) =>
-        bill.id === activeBillId
-          ? {
-              ...bill,
-              items: bill.items
-                .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-                .filter((i) => i.qty > 0),
-            }
-          : bill,
-      ),
+    setCart((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0),
     );
   };
 
@@ -169,7 +159,7 @@ function OrderingBoard() {
         items={cart}
         onIncrease={increaseQty}
         onDecrease={decreaseQty}
-        onClear={() => {}}
+        onClear={() => setCart([])}
       />
 
       {/* -------- SESSION MODAL -------- */}
@@ -189,6 +179,7 @@ function OrderingBoard() {
 
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
+          setCart([]); // ✅ reset cart
           setOpenSessionModal(false);
         }}
       />
@@ -199,8 +190,12 @@ function OrderingBoard() {
         bills={kot}
         onClose={() => navigate("/NewOrder")}
         onSelectBill={(id) => {
+          const selectedBill = kot.find((b) => b.id === id);
+          if (selectedBill) {
+            setCart(selectedBill.items); // ✅ load items into cart
+          }
           setActiveBillId(id);
-          setopenKOTModal(false); // ❌ no waiter popup
+          setopenKOTModal(false);
         }}
         onNewBill={() => {
           setopenKOTModal(false);
@@ -214,14 +209,3 @@ function OrderingBoard() {
 export default OrderingBoard;
 
 /* ---------------- HELPERS ---------------- */
-
-function updateItems(items: CartItem[], food: any): CartItem[] {
-  const existing = items.find((i) => i.id === food.id);
-  if (existing) {
-    return items.map((i) => (i.id === food.id ? { ...i, qty: i.qty + 1 } : i));
-  }
-  return [
-    ...items,
-    { id: food.id, name: food.name, price: food.price, qty: 1 },
-  ];
-}
