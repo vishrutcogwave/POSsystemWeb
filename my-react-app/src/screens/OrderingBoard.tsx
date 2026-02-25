@@ -44,34 +44,32 @@ function OrderingBoard() {
 
   /* ---------- BILL STATES ---------- */
 
-const [kot, setKot] = useState<Bill[]>([
-  {
-    id: 1,
-    pax: 2,
-    waiter: "John Doe",
-    items: [
-      { id: 101, name: "Masala Tea", price: 15, qty: 2 },
-      { id: 102, name: "Idli", price: 30, qty: 1 },
-    ],
-  },
-  {
-    id: 2,
-    pax: 4,
-    waiter: "Sarah Wilson",
-    items: [
-      { id: 103, name: "Dosa", price: 50, qty: 2 },
-      { id: 104, name: "Coffee", price: 20, qty: 2 },
-    ],
-  },
-  {
-    id: 3,
-    pax: 1,
-    waiter: "Mike Johnson",
-    items: [
-      { id: 105, name: "Vada", price: 25, qty: 1 },
-    ],
-  },
-]);
+  const [kot, setKot] = useState<Bill[]>([
+    {
+      id: 1,
+      pax: 2,
+      waiter: "John Doe",
+      items: [
+        { id: 101, name: "Masala Tea", price: 15, qty: 2 },
+        { id: 102, name: "Idli", price: 30, qty: 1 },
+      ],
+    },
+    {
+      id: 2,
+      pax: 4,
+      waiter: "Sarah Wilson",
+      items: [
+        { id: 103, name: "Dosa", price: 50, qty: 2 },
+        { id: 104, name: "Coffee", price: 20, qty: 2 },
+      ],
+    },
+    {
+      id: 3,
+      pax: 1,
+      waiter: "Mike Johnson",
+      items: [{ id: 105, name: "Vada", price: 25, qty: 1 }],
+    },
+  ]);
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
 
   const [openSessionModal, setOpenSessionModal] = useState(false);
@@ -141,9 +139,7 @@ const [kot, setKot] = useState<Bill[]>([
           ? {
               ...bill,
               items: bill.items
-                .map((i) =>
-                  i.id === id ? { ...i, qty: i.qty - 1 } : i,
-                )
+                .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
                 .filter((i) => i.qty > 0),
             }
           : bill,
@@ -164,11 +160,7 @@ const [kot, setKot] = useState<Bill[]>([
       <main className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-4 gap-4">
           {foods.map((item) => (
-            <FoodCard
-              key={item.id}
-              {...item}
-              onAdd={handleAdd}
-            />
+            <FoodCard key={item.id} {...item} onAdd={handleAdd} />
           ))}
         </div>
       </main>
@@ -205,7 +197,7 @@ const [kot, setKot] = useState<Bill[]>([
       <KotModal
         isOpen={openKOTModal}
         bills={kot}
-        onClose={() => setopenKOTModal(false)}
+        onClose={() => navigate("/NewOrder")}
         onSelectBill={(id) => {
           setActiveBillId(id);
           setopenKOTModal(false); // ❌ no waiter popup
@@ -226,9 +218,10 @@ export default OrderingBoard;
 function updateItems(items: CartItem[], food: any): CartItem[] {
   const existing = items.find((i) => i.id === food.id);
   if (existing) {
-    return items.map((i) =>
-      i.id === food.id ? { ...i, qty: i.qty + 1 } : i,
-    );
+    return items.map((i) => (i.id === food.id ? { ...i, qty: i.qty + 1 } : i));
   }
-  return [...items, { id: food.id, name: food.name, price: food.price, qty: 1 }];
+  return [
+    ...items,
+    { id: food.id, name: food.name, price: food.price, qty: 1 },
+  ];
 }
