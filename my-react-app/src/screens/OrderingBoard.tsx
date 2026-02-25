@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import CategorySidebar from "../components/CategorySidebar";
@@ -7,39 +7,33 @@ import CartPanel from "../components/CartPanel";
 import TableSessionModal from "../components/TableSessionModal";
 
 import { type Category, type CartItem, DUMMY_FOODS } from "../utils";
+import KotModal from "../components/KotModal";
 
-/* ------------------ CATEGORIES ------------------ */
+/* ---------------- TYPES ---------------- */
+
+type Bill = {
+  id: number;
+  pax: number;
+  waiter: string;
+  items: CartItem[];
+};
+
+/* ---------------- CATEGORIES ---------------- */
 
 const dummyCategories: Category[] = [
   { id: 1, name: "Breakfast", image: "" },
   { id: 2, name: "Beverages", image: "" },
   { id: 3, name: "Snacks", image: "" },
   { id: 4, name: "Starters", image: "" },
-  { id: 5, name: "Soups", image: "" },
-  { id: 6, name: "Salads", image: "" },
-  { id: 7, name: "Main Course", image: "" },
-  { id: 8, name: "Rice & Biryani", image: "" },
-  { id: 9, name: "Breads", image: "" },
-  { id: 10, name: "Dosa", image: "" },
-  { id: 11, name: "Idli & Vada", image: "" },
-  { id: 12, name: "Chinese", image: "" },
-  { id: 13, name: "Tandoor", image: "" },
-  { id: 14, name: "Fast Food", image: "" },
-  { id: 15, name: "Burgers", image: "" },
-  { id: 16, name: "Pizzas", image: "" },
-  { id: 17, name: "Sandwiches", image: "" },
-  { id: 18, name: "Desserts", image: "" },
-  { id: 19, name: "Ice Creams", image: "" },
-  { id: 20, name: "Combos", image: "" },
+  { id: 5, name: "Main Course", image: "" },
 ];
 
-/* ------------------ COMPONENT ------------------ */
+/* ---------------- COMPONENT ---------------- */
 
 function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ SAFE: location.state can be null on refresh
   const tableData =
     (location.state as {
       tableNumber?: string;
@@ -47,107 +41,178 @@ function OrderingBoard() {
     }) || {};
 
   const [activeCategory, setActiveCategory] = useState(1);
-  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // ✅ Session handling (POS logic)
-  const [sessionStarted, setSessionStarted] = useState(
-    tableData.status !== "Available",
-  );
+  /* ---------- BILL STATES ---------- */
 
-  const [openModal, setOpenModal] = useState(tableData.status === "Available");
+const [kot, setKot] = useState<Bill[]>([
+  {
+    id: 1,
+    pax: 2,
+    waiter: "John Doe",
+    items: [
+      { id: 101, name: "Masala Tea", price: 15, qty: 2 },
+      { id: 102, name: "Idli", price: 30, qty: 1 },
+    ],
+  },
+  {
+    id: 2,
+    pax: 4,
+    waiter: "Sarah Wilson",
+    items: [
+      { id: 103, name: "Dosa", price: 50, qty: 2 },
+      { id: 104, name: "Coffee", price: 20, qty: 2 },
+    ],
+  },
+  {
+    id: 3,
+    pax: 1,
+    waiter: "Mike Johnson",
+    items: [
+      { id: 105, name: "Vada", price: 25, qty: 1 },
+    ],
+  },
+]);
+  const [activeBillId, setActiveBillId] = useState<number | null>(null);
 
-  /* ------------------ FOOD FILTER ------------------ */
+  const [openSessionModal, setOpenSessionModal] = useState(false);
+  const [openKOTModal, setopenKOTModal] = useState(false);
+
+  /* ---------- OPEN CORRECT MODAL ---------- */
+
+  useEffect(() => {
+    if (tableData.status === "Available") {
+      setOpenSessionModal(true);
+    } else {
+      setopenKOTModal(true);
+    }
+  }, []);
+
+  /* ---------- ACTIVE BILL ---------- */
+
+  const activeBill = kot.find((b) => b.id === activeBillId);
+  const cart = activeBill?.items || [];
+
+  /* ---------- FOOD FILTER ---------- */
 
   const foods = useMemo(
     () => DUMMY_FOODS.filter((f) => f.categoryId === activeCategory),
     [activeCategory],
   );
 
-  /* ------------------ CART ACTIONS ------------------ */
-const handelOnclose=()=>{
-  setOpenModal(false)
-  navigate("/NewOrder")
-  
-}
+  /* ---------- CART ACTIONS ---------- */
+
   const handleAdd = (id: number) => {
-    if (!sessionStarted) return; // ⛔ Block until session starts
+    if (!activeBillId) return;
 
     const food = DUMMY_FOODS.find((f) => f.id === id);
     if (!food) return;
 
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === id);
-      if (existing) {
-        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
-      }
-      return [...prev, { id, name: food.name, price: food.price, qty: 1 }];
-    });
+    setKot((prev) =>
+      prev.map((bill) =>
+        bill.id === activeBillId
+          ? {
+              ...bill,
+              items: updateItems(bill.items, food),
+            }
+          : bill,
+      ),
+    );
   };
 
   const increaseQty = (id: number) => {
-    setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
+    setKot((prev) =>
+      prev.map((bill) =>
+        bill.id === activeBillId
+          ? {
+              ...bill,
+              items: bill.items.map((i) =>
+                i.id === id ? { ...i, qty: i.qty + 1 } : i,
+              ),
+            }
+          : bill,
+      ),
     );
   };
 
   const decreaseQty = (id: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-        .filter((i) => i.qty > 0),
+    setKot((prev) =>
+      prev.map((bill) =>
+        bill.id === activeBillId
+          ? {
+              ...bill,
+              items: bill.items
+                .map((i) =>
+                  i.id === id ? { ...i, qty: i.qty - 1 } : i,
+                )
+                .filter((i) => i.qty > 0),
+            }
+          : bill,
+      ),
     );
   };
 
-  /* ------------------ UI ------------------ */
+  /* ---------- UI ---------- */
 
   return (
     <div className="flex pr-80 h-[calc(100vh-64px)]">
-      {/* LEFT SIDEBAR */}
       <CategorySidebar
         active={activeCategory}
         onSelect={setActiveCategory}
         categories={dummyCategories}
       />
 
-      {/* CENTER CONTENT */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {foods.map((item) => (
-              <FoodCard
-                key={item.id}
-                id={item.id}
-                name={item.name}
-                price={item.price}
-                image={item.image}
-                onAdd={handleAdd}
-              />
-            ))}
-          </div>
+      <main className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-4 gap-4">
+          {foods.map((item) => (
+            <FoodCard
+              key={item.id}
+              {...item}
+              onAdd={handleAdd}
+            />
+          ))}
         </div>
       </main>
 
-      {/* RIGHT CART */}
       <CartPanel
         items={cart}
         onIncrease={increaseQty}
         onDecrease={decreaseQty}
-        onClear={() => setCart([])}
+        onClear={() => {}}
       />
 
-      {/* SESSION MODAL */}
+      {/* -------- SESSION MODAL -------- */}
       <TableSessionModal
-        isOpen={openModal}
-        onClose={handelOnclose}
+        isOpen={openSessionModal}
+        onClose={() => {
+          setOpenSessionModal(false);
+          navigate("/NewOrder");
+        }}
         onStart={({ pax, waiter }) => {
-          console.log("Session Started", {
-            table: tableData.tableNumber,
+          const newBill: Bill = {
+            id: Date.now(),
             pax,
             waiter,
-          });
+            items: [],
+          };
 
-          setSessionStarted(true);
-          setOpenModal(false);
+          setKot((prev) => [...prev, newBill]);
+          setActiveBillId(newBill.id);
+          setOpenSessionModal(false);
+        }}
+      />
+
+      {/* -------- BILLS MODAL -------- */}
+      <KotModal
+        isOpen={openKOTModal}
+        bills={kot}
+        onClose={() => setopenKOTModal(false)}
+        onSelectBill={(id) => {
+          setActiveBillId(id);
+          setopenKOTModal(false); // ❌ no waiter popup
+        }}
+        onNewBill={() => {
+          setopenKOTModal(false);
+          setOpenSessionModal(true); // ✅ show pax + waiter
         }}
       />
     </div>
@@ -155,3 +220,15 @@ const handelOnclose=()=>{
 }
 
 export default OrderingBoard;
+
+/* ---------------- HELPERS ---------------- */
+
+function updateItems(items: CartItem[], food: any): CartItem[] {
+  const existing = items.find((i) => i.id === food.id);
+  if (existing) {
+    return items.map((i) =>
+      i.id === food.id ? { ...i, qty: i.qty + 1 } : i,
+    );
+  }
+  return [...items, { id: food.id, name: food.name, price: food.price, qty: 1 }];
+}
