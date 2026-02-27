@@ -18,21 +18,19 @@ export default function CartPanel({
   const total = subtotal + tax;
 
   return (
-    <aside className="
-  fixed right-0
-  top-[64px]
-  h-[calc(100vh-64px)]
-  w-80
-  bg-white
-  border-l
-  flex flex-col
-  z-20
-">
+    <aside
+      className="
+    w-full
+    lg:w-80 xl:w-80
+    h-full
+    bg-white
+    border-l
+    flex flex-col
+  "
+    >
       {/* HEADER – ALWAYS VISIBLE */}
       <div className="p-4 border-b flex justify-between items-center bg-white">
-        <h2 className="font-bold text-sm text-blue-700">
-          CURRENT ORDER
-        </h2>
+        <h2 className="font-bold text-sm text-blue-700">CURRENT ORDER</h2>
         <button
           onClick={onClear}
           className="text-red-500 text-xs font-semibold"
@@ -49,9 +47,7 @@ export default function CartPanel({
           items.map((item) => (
             <div key={item.id} className="border rounded-lg p-3">
               <div className="flex justify-between">
-                <span className="font-semibold text-sm">
-                  {item.name}
-                </span>
+                <span className="font-semibold text-sm">{item.name}</span>
                 <span className="font-bold text-sm">
                   ₹ {(item.price * item.qty).toFixed(2)}
                 </span>

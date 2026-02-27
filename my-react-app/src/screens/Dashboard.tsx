@@ -14,7 +14,7 @@ const Dashboard: React.FC = () => {
         <img
           src={bgDesktop}
           alt="Dashboard Background"
-          className="hidden md:block absolute inset-0 w-full h-full object-cover"
+          className="hidden md:block absolute inset-0 w-full h-full object-fill scale-100"
         />
 
         {/* Mobile Image */}
