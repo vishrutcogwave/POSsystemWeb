@@ -67,8 +67,8 @@ function OrderingBoard() {
 
     setKot((prev) =>
       prev.map((bill) =>
-        bill.id === activeBillId ? { ...bill, items: cart } : bill
-      )
+        bill.id === activeBillId ? { ...bill, items: cart } : bill,
+      ),
     );
   }, [cart, activeBillId]);
 
@@ -76,7 +76,7 @@ function OrderingBoard() {
 
   const foods = useMemo(
     () => DUMMY_FOODS.filter((f) => f.categoryId === activeCategory),
-    [activeCategory]
+    [activeCategory],
   );
 
   /* ---------- CART ACTIONS ---------- */
@@ -90,9 +90,7 @@ function OrderingBoard() {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {
-        return prev.map((i) =>
-          i.id === id ? { ...i, qty: i.qty + 1 } : i
-        );
+        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
       }
 
       return [
@@ -104,19 +102,15 @@ function OrderingBoard() {
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
-      prev.map((i) =>
-        i.id === id ? { ...i, qty: i.qty + 1 } : i
-      )
+      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
     );
   };
 
   const decreaseQty = (id: number) => {
     setCart((prev) =>
       prev
-        .map((i) =>
-          i.id === id ? { ...i, qty: i.qty - 1 } : i
-        )
-        .filter((i) => i.qty > 0)
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0),
     );
   };
 
@@ -124,16 +118,15 @@ function OrderingBoard() {
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] relative">
-
       {/* ---------- SIDEBAR ---------- */}
-   {/* Category Section */}
-<div className="w-full lg:w-auto">
-  <CategorySidebar
-    active={activeCategory}
-    onSelect={setActiveCategory}
-    categories={dummyCategories}
-  />
-</div>
+      {/* Category Section */}
+      <div className="w-full lg:w-auto">
+        <CategorySidebar
+          active={activeCategory}
+          onSelect={setActiveCategory}
+          categories={dummyCategories}
+        />
+      </div>
 
       {/* ---------- FOOD GRID ---------- */}
       <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
