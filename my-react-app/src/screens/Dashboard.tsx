@@ -1,15 +1,31 @@
-import bgimg from "../assets/Bgfordashboard.png"
+import bgDesktop from "../assets/Bgfordashboard.png";
+import bgMobile from "../assets/Bgfordashboardmobile.png";
 import DashboardHeader from "../components/DashboardHeader";
 
 const Dashboard: React.FC = () => {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
+      
       <DashboardHeader />
 
-      <div
-        className="flex-1 bg-cover bg-center bg-no-repeat relative"
-        style={{ backgroundImage: `url(${bgimg})` }}
-      >
+      <div className="flex-1 relative overflow-hidden">
+
+        {/* Desktop Image */}
+        <img
+          src={bgDesktop}
+          alt="Dashboard Background"
+          className="hidden md:block absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Mobile Image */}
+        <img
+          src={bgMobile}
+          alt="Dashboard Background Mobile"
+          className="block md:hidden absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Overlay */}
+
       </div>
     </div>
   );
