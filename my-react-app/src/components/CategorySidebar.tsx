@@ -18,10 +18,12 @@ export default function CategorySidebar({
         bg-[#0B1B34]
         text-white
         p-3
+        lg:h-full
+        flex-shrink-0
         overflow-x-auto lg:overflow-y-auto
       "
     >
-      {/* Container */}
+      {/* Category Container */}
       <div
         className="
           flex lg:flex-col
@@ -39,11 +41,13 @@ export default function CategorySidebar({
               className={`
                 flex flex-col md:flex-row items-center gap-1 md:gap-3
                 p-2 md:p-3
-                min-w-[80px] lg:w-full
+                min-w-[90px] lg:w-full
                 rounded-xl transition
-                ${isActive
-                  ? "bg-[#0576B2] text-white"
-                  : "bg-white/5 hover:bg-white/10"}
+                ${
+                  isActive
+                    ? "bg-[#0576B2] text-white"
+                    : "bg-white/5 hover:bg-white/10"
+                }
               `}
             >
               <img
