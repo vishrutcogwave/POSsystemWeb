@@ -5,9 +5,10 @@ import CategorySidebar from "../components/CategorySidebar";
 import FoodCard from "../components/FoodCard";
 import CartPanel from "../components/CartPanel";
 import TableSessionModal from "../components/TableSessionModal";
+import KotModal from "../components/KotModal";
+import { MobileCartButton } from "../components/MobileCartButton";
 
 import { type Category, type CartItem, DUMMY_FOODS } from "../utils";
-import KotModal from "../components/KotModal";
 
 /* ---------------- TYPES ---------------- */
 
@@ -28,8 +29,6 @@ const dummyCategories: Category[] = [
   { id: 5, name: "Main Course", image: "" },
 ];
 
-/* ---------------- COMPONENT ---------------- */
-
 function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,64 +43,40 @@ function OrderingBoard() {
 
   /* ---------- BILL STATES ---------- */
 
-  const [kot, setKot] = useState<Bill[]>([
-    {
-      id: 1,
-      pax: 2,
-      waiter: "John Doe",
-      items: [
-        { id: 101, name: "Masala Tea", price: 15, qty: 2 },
-        { id: 102, name: "Idli", price: 30, qty: 1 },
-      ],
-    },
-    {
-      id: 2,
-      pax: 4,
-      waiter: "Sarah Wilson",
-      items: [
-        { id: 103, name: "Dosa", price: 50, qty: 2 },
-        { id: 104, name: "Coffee", price: 20, qty: 2 },
-      ],
-    },
-    {
-      id: 3,
-      pax: 1,
-      waiter: "Mike Johnson",
-      items: [{ id: 105, name: "Vada", price: 25, qty: 1 }],
-    },
-  ]);
+  const [kot, setKot] = useState<Bill[]>([]);
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
 
   const [openSessionModal, setOpenSessionModal] = useState(false);
-  const [openKOTModal, setopenKOTModal] = useState(false);
+  const [openKOTModal, setOpenKOTModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+
   /* ---------- OPEN CORRECT MODAL ---------- */
 
   useEffect(() => {
     if (tableData.status === "Available") {
       setOpenSessionModal(true);
-    } else {
-      setopenKOTModal(true);
+    } else if (tableData.status === "Occupied") {
+      setOpenKOTModal(true);
     }
-  }, []);
+  }, [tableData.status]);
+
+  /* ---------- SYNC CART TO ACTIVE BILL ---------- */
 
   useEffect(() => {
     if (!activeBillId) return;
 
     setKot((prev) =>
       prev.map((bill) =>
-        bill.id === activeBillId ? { ...bill, items: cart } : bill,
-      ),
+        bill.id === activeBillId ? { ...bill, items: cart } : bill
+      )
     );
   }, [cart, activeBillId]);
-
-  /* ---------- ACTIVE BILL ---------- */
 
   /* ---------- FOOD FILTER ---------- */
 
   const foods = useMemo(
     () => DUMMY_FOODS.filter((f) => f.categoryId === activeCategory),
-    [activeCategory],
+    [activeCategory]
   );
 
   /* ---------- CART ACTIONS ---------- */
@@ -115,54 +90,79 @@ function OrderingBoard() {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === id);
       if (existing) {
-        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
+        return prev.map((i) =>
+          i.id === id ? { ...i, qty: i.qty + 1 } : i
+        );
       }
+
       return [
         ...prev,
         { id: food.id, name: food.name, price: food.price, qty: 1 },
       ];
     });
   };
+
   const increaseQty = (id: number) => {
     setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
+      prev.map((i) =>
+        i.id === id ? { ...i, qty: i.qty + 1 } : i
+      )
     );
   };
 
   const decreaseQty = (id: number) => {
     setCart((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-        .filter((i) => i.qty > 0),
+        .map((i) =>
+          i.id === id ? { ...i, qty: i.qty - 1 } : i
+        )
+        .filter((i) => i.qty > 0)
     );
   };
 
   /* ---------- UI ---------- */
 
   return (
-    <div className="flex pr-80 h-[calc(100vh-64px)]">
-      <CategorySidebar
-        active={activeCategory}
-        onSelect={setActiveCategory}
-        categories={dummyCategories}
-      />
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] relative">
 
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-4 gap-4">
+      {/* ---------- SIDEBAR ---------- */}
+   {/* Category Section */}
+<div className="w-full lg:w-auto">
+  <CategorySidebar
+    active={activeCategory}
+    onSelect={setActiveCategory}
+    categories={dummyCategories}
+  />
+</div>
+
+      {/* ---------- FOOD GRID ---------- */}
+      <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {foods.map((item) => (
             <FoodCard key={item.id} {...item} onAdd={handleAdd} />
           ))}
         </div>
       </main>
 
-      <CartPanel
-        items={cart}
-        onIncrease={increaseQty}
-        onDecrease={decreaseQty}
-        onClear={() => setCart([])}
+      {/* ---------- CART PANEL ---------- */}
+      <div className="hidden lg:block">
+        <CartPanel
+          items={cart}
+          onIncrease={increaseQty}
+          onDecrease={decreaseQty}
+          onClear={() => setCart([])}
+        />
+      </div>
+
+      {/* ---------- MOBILE CART ---------- */}
+      <MobileCartButton
+        cart={cart}
+        increaseQty={increaseQty}
+        decreaseQty={decreaseQty}
+        setCart={setCart}
       />
 
-      {/* -------- SESSION MODAL -------- */}
+      {/* ---------- SESSION MODAL ---------- */}
       <TableSessionModal
         isOpen={openSessionModal}
         onClose={() => {
@@ -179,27 +179,28 @@ function OrderingBoard() {
 
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
-          setCart([]); // ✅ reset cart
+          setCart([]);
           setOpenSessionModal(false);
         }}
       />
 
-      {/* -------- BILLS MODAL -------- */}
+      {/* ---------- KOT MODAL ---------- */}
       <KotModal
         isOpen={openKOTModal}
         bills={kot}
         onClose={() => navigate("/NewOrder")}
         onSelectBill={(id) => {
           const selectedBill = kot.find((b) => b.id === id);
-          if (selectedBill) {
-            setCart(selectedBill.items); // ✅ load items into cart
-          }
+          if (!selectedBill) return;
+
+          // Clone items to avoid reference issues
+          setCart(selectedBill.items.map((item) => ({ ...item })));
           setActiveBillId(id);
-          setopenKOTModal(false);
+          setOpenKOTModal(false);
         }}
         onNewBill={() => {
-          setopenKOTModal(false);
-          setOpenSessionModal(true); // ✅ show pax + waiter
+          setOpenKOTModal(false);
+          setOpenSessionModal(true);
         }}
       />
     </div>
@@ -207,5 +208,3 @@ function OrderingBoard() {
 }
 
 export default OrderingBoard;
-
-/* ---------------- HELPERS ---------------- */
