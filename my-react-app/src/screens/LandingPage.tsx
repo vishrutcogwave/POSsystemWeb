@@ -3,19 +3,23 @@ import AuthPage from "./AuthPage";
 import Header from "../components/Header";
 import NewOrder from "./NewOrder";
 import OrderingBoard from "./OrderingBoard";
+import Dashboard from "./Dashboard";
 
 function LandingPage() {
   const location = useLocation();
 
-  // hide header only on login page
-  const hideHeader = location.pathname === "/";
+  // Show header only on specific pages
+  const showHeader =
+    location.pathname === "/NewOrder" ||
+    location.pathname === "/OrderingBoard";
 
   return (
     <>
-      {!hideHeader && <Header />}
+      {showHeader && <Header />}
 
       <Routes>
         <Route path="/" element={<AuthPage />} />
+        <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/NewOrder" element={<NewOrder />} />
         <Route path="/OrderingBoard" element={<OrderingBoard />} />
       </Routes>

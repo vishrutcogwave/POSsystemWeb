@@ -21,7 +21,7 @@ const handleSave = () => {
 };
 
 const handelNavigate = () =>{
-navi("/NewOrder")
+navi("/Dashboard")
 }
 
   return (
