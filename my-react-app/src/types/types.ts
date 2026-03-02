@@ -1,6 +1,9 @@
-export interface User {
-  id: number;
+export interface LoginRequest {
   username: string;
-  email: string;
-  role: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  expiration: string;
 }

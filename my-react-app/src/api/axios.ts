@@ -6,6 +6,7 @@ const api = axios.create({
   },
 });
 
+// Attach baseURL and token dynamically
 api.interceptors.request.use((config) => {
   const baseURL =
     localStorage.getItem("baseUrl") || "https://localhost:5001/api";
@@ -13,7 +14,6 @@ api.interceptors.request.use((config) => {
   config.baseURL = baseURL;
 
   const token = localStorage.getItem("token");
-
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -21,12 +21,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle 401 globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem("token");
-      window.location.href = "/";
+      window.location.href = "/"; // redirect to login
     }
     return Promise.reject(error);
   }
