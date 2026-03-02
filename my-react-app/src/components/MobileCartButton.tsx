@@ -31,18 +31,20 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
       {open && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
           <div className="w-80 max-w-full bg-white h-full p-4 overflow-y-auto">
+             <button
+              onClick={() => setOpen(false)}
+              className="mt-4 w-full bg-gray-800 text-white py-2 rounded"
+            >
+              Close
+            </button>
+
             <CartPanel
               items={cart}
               onIncrease={increaseQty}
               onDecrease={decreaseQty}
               onClear={() => setCart([])}
             />
-            <button
-              onClick={() => setOpen(false)}
-              className="mt-4 w-full bg-gray-800 text-white py-2 rounded"
-            >
-              Close
-            </button>
+           
           </div>
         </div>
       )}
