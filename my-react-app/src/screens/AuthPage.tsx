@@ -6,13 +6,19 @@ import { useNavigate } from "react-router-dom";
 import { login } from "../api/services/auth.service";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
-
+import { getBranchesByUser } from "../api/services/products.service";
+import type { LoginRequest } from "../types/types";
+type Branch = {
+  branch_code: string;
+  branch_name: string;
+};
 export default function AuthPage() {
-  const [branch, setBranch] = useState("");
+  const [branch, setBranch] = useState<Branch | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [baseUrl, setBaseUrl] = useState("");
-  const [username, setUsername] = useState(""); // ✅ Added
-  const [password, setPassword] = useState(""); // ✅ Added
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -29,35 +35,59 @@ export default function AuthPage() {
     setIsOpen(false);
   };
 
-  // ✅ Login handler using useNavigate
-const handleLogin = async () => {
-  if (!username || !password) {
-    toast.error("Please enter username and password");
+const handleLoadBranches = async () => {
+  if (!username) {
+    toast.error("Enter username first");
     return;
   }
 
   try {
-    setLoading(true);
+    setLoading(true); // show full loader
 
-    const data = await login({ username, password });
+    const data = await getBranchesByUser(username);
 
-    console.log("Token:", data.token);
+    setBranches(data);
 
-    toast.success("Login successful");
-
-    navigate("/dashboard", { replace: true });
-
+    toast.success("Branches loaded");
   } catch (error) {
-    toast.error("Invalid username or password");
+    toast.error("Failed to load branches");
   } finally {
-    setLoading(false);
+    setLoading(false); // hide loader
   }
 };
 
+  const handleLogin = async () => {
+    if (!username || !password) {
+      toast.error("Please enter username and password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const payload: LoginRequest = {
+        username: username,
+        password: password,
+        branch_code: branch?.branch_code || "",
+      };
+      const data = await login(payload);
+
+      console.log("Token:", data.token);
+
+      toast.success("Login successful");
+
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      toast.error("Invalid username or password");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#0B0F19] text-white">
-      {/* LEFT SIDE (Image Section) */}
-          {loading && <Loader />}
+      {loading && <Loader />}
+
+      {/* LEFT SIDE */}
       <div className="relative hidden lg:flex lg:w-2/3">
         <img
           src={bgimg}
@@ -82,13 +112,12 @@ const handleLogin = async () => {
           </h1>
 
           <p className="mt-6 text-gray-300 max-w-md">
-            A comprehensive solution for modern hospitality. Streamline your
-            operations with our intuitive cloud-based platform.
+            A comprehensive solution for modern hospitality.
           </p>
         </div>
       </div>
 
-      {/* RIGHT SIDE (Form Section) */}
+      {/* RIGHT SIDE */}
       <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-md bg-[#111827]/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-gray-800">
           <p className="text-center text-xs tracking-widest text-blue-400 mb-8">
@@ -96,20 +125,28 @@ const handleLogin = async () => {
           </p>
 
           {/* Username */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="text-xs text-gray-400 tracking-wider">
               USER IDENTITY
             </label>
-            <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700 focus-within:border-blue-500">
+
+            <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700">
               <User size={18} className="text-gray-400" />
               <input
                 type="text"
                 placeholder="Username / ID"
                 className="bg-transparent outline-none ml-3 w-full text-sm"
-                value={username} // ✅ bind state
-                onChange={(e) => setUsername(e.target.value)} // ✅ update state
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
             </div>
+
+            <button
+              onClick={handleLoadBranches}
+              className="mt-2 text-xs bg-blue-600 px-3 py-1 rounded-lg hover:bg-blue-700"
+            >
+              Load Branch
+            </button>
           </div>
 
           {/* Password */}
@@ -117,14 +154,14 @@ const handleLogin = async () => {
             <label className="text-xs text-gray-400 tracking-wider">
               SECURE PASSWORD
             </label>
-            <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700 focus-within:border-blue-500">
+            <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700">
               <Lock size={18} className="text-gray-400" />
               <input
-                type="password"
+                type="text"
                 placeholder="••••••••"
                 className="bg-transparent outline-none ml-3 w-full text-sm"
-                value={password} // ✅ bind state
-                onChange={(e) => setPassword(e.target.value)} // ✅ update state
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
@@ -134,36 +171,46 @@ const handleLogin = async () => {
             <label className="text-xs text-gray-400 tracking-wider">
               OPERATING BRANCH
             </label>
+
             <div className="mt-2 relative">
               <select
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                className="w-full bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700 text-sm appearance-none focus:border-blue-500 outline-none"
+                value={branch?.branch_code || ""}
+                onChange={(e) => {
+                  const selected = branches.find(
+                    (b) => b.branch_code === e.target.value,
+                  );
+                  setBranch(selected || null);
+                }}
+                className="w-full bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700 text-sm appearance-none"
               >
                 <option value="">Select Location</option>
-                <option value="branch1">Branch 1</option>
-                <option value="branch2">Branch 2</option>
+
+                {branches.map((b: any) => (
+                  <option key={b.branch_code} value={b.branch_code}>
+                    {b.branch_name}
+                  </option>
+                ))}
               </select>
+
               <ChevronDown
                 size={18}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="flex items-center gap-4">
-            {/* Main Button */}
             <button
-              onClick={handleLogin} // ✅ call login handler
-              className="flex-1 bg-blue-600 hover:bg-blue-700 transition-all duration-300 py-3 rounded-xl font-semibold tracking-wide shadow-lg"
+              onClick={handleLogin}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold"
             >
               AUTHORIZE & SIGN IN
             </button>
 
-            {/* Settings Button */}
             <button
               onClick={() => setIsOpen(true)}
-              className="w-14 h-14 flex items-center justify-center rounded-xl bg-[#1F2937] border border-gray-700 hover:border-blue-500 transition-all duration-300"
+              className="w-14 h-14 flex items-center justify-center rounded-xl bg-[#1F2937] border border-gray-700"
             >
               <Settings size={20} className="text-gray-400" />
             </button>
@@ -174,31 +221,25 @@ const handleLogin = async () => {
       {/* Settings Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-6 shadow-2xl">
-            {/* Header */}
+          <div className="w-full max-w-md bg-[#111827] border border-gray-700 rounded-2xl p-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold">System Settings</h2>
               <button onClick={() => setIsOpen(false)}>
-                <X className="text-gray-400 hover:text-white" />
+                <X className="text-gray-400" />
               </button>
             </div>
 
-            {/* Base URL Input */}
-            <div className="mb-6">
-              <label className="text-sm text-gray-400">Base URL</label>
-              <input
-                type="text"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.example.com"
-                className="mt-2 w-full bg-[#1F2937] border border-gray-700 rounded-xl px-4 py-3 outline-none focus:border-blue-500"
-              />
-            </div>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://api.example.com"
+              className="w-full bg-[#1F2937] border border-gray-700 rounded-xl px-4 py-3 mb-4"
+            />
 
-            {/* Save Button */}
             <button
               onClick={handleSave}
-              className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold transition-all"
+              className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl"
             >
               Save Settings
             </button>

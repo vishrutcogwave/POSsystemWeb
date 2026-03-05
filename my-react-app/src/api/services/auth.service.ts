@@ -1,16 +1,13 @@
-import type { LoginRequest, LoginResponse } from "../../types/types";
+import type { LoginRequest } from "../../types/types";
 import api from "../axios";
 
-
-export const login = async (data: LoginRequest): Promise<LoginResponse> => {
-  const response = await api.post<LoginResponse>("/auth/login", data);
+export const login = async (data: LoginRequest): Promise<any> => {
+  const response = await api.post<any>("/api/POS/BtnSubmitLogin", data);
 
   // Save token for future API calls
-  localStorage.setItem("token", response.data.token);
+  localStorage.setItem("token", response.data.user.token);
+    localStorage.setItem("branch", data.branch_code);
 
   return response.data;
 };
 
-export const logout = (): void => {
-  localStorage.removeItem("token");
-};

@@ -24,13 +24,7 @@ export default function CategorySidebar({
       "
     >
       {/* Category Container */}
-      <div
-        className="
-          flex lg:flex-col
-          gap-3
-          whitespace-nowrap
-        "
-      >
+      <div className="flex lg:flex-col gap-3 whitespace-nowrap">
         {categories.map((cat) => {
           const isActive = active === cat.id;
 
@@ -43,12 +37,9 @@ export default function CategorySidebar({
                 p-2 md:p-3
                 min-w-[90px] lg:w-full
                 rounded-xl transition
-                ${
-                  isActive
-                    ? "bg-[#0576B2] text-white"
-                    : "bg-white/5 hover:bg-white/10"
-                }
+                ${isActive ? "bg-[#0576B2] text-white" : "bg-white/5 hover:bg-white/10"}
               `}
+              title={cat.name} // ← Tooltip with full name
             >
               <img
                 src={cat.image || FALLBACK_IMAGE}
@@ -60,7 +51,12 @@ export default function CategorySidebar({
                 alt={cat.name}
               />
 
-              <span className="text-xs md:text-sm font-semibold text-center md:text-left">
+              <span
+                className="
+                  text-xs md:text-sm font-semibold text-center md:text-left
+                  truncate max-w-[60px] md:max-w-[120px] lg:max-w-full
+                "
+              >
                 {cat.name}
               </span>
             </button>

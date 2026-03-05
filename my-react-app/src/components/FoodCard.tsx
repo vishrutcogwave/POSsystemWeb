@@ -4,21 +4,13 @@ type FoodCardProps = {
   id: number;
   name: string;
   price: number;
-  image?: string;
+  image?: string | null;
   onAdd: (id: number) => void;
 };
 
-
-
-export default function FoodCard({
-  id,
-  name,
-  price,
-  image,
-  onAdd,
-}: FoodCardProps) {
+export default function FoodCard({ id, name, price, image, onAdd }: FoodCardProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border">
+    <div   onClick={() => onAdd(id)} title={name} className="bg-white rounded-xl shadow-sm border">
       <img
         src={image || FALLBACK_IMAGE}
         onError={(e) => {
@@ -30,7 +22,7 @@ export default function FoodCard({
       />
 
       <div className="p-3">
-        <h3 className="text-sm font-semibold truncate">{name}</h3>
+        <h3  className="text-sm font-semibold truncate">{name}</h3>
 
         <div className="flex justify-between items-center mt-2">
           <span className="text-green-700 font-bold text-sm">
@@ -38,7 +30,7 @@ export default function FoodCard({
           </span>
 
           <button
-            onClick={() => onAdd(id)}
+          
             className="bg-[#026388] text-white px-3 py-1 text-xs rounded-lg"
           >
             Add

@@ -7,11 +7,13 @@ import CartPanel from "../components/CartPanel";
 import TableSessionModal from "../components/TableSessionModal";
 import KotModal from "../components/KotModal";
 import { MobileCartButton } from "../components/MobileCartButton";
+import Loader from "../components/Loader";
 
-import { type Category, type CartItem, DUMMY_FOODS } from "../utils";
+import { type Category, type CartItem } from "../utils";
+import { getItemCategoryList } from "../api/services/products.service";
+import { useItems } from "../context/ItemContext";
 
 /* ---------------- TYPES ---------------- */
-
 type Bill = {
   id: number;
   pax: number;
@@ -19,125 +21,138 @@ type Bill = {
   items: CartItem[];
 };
 
-/* ---------------- CATEGORIES ---------------- */
-
-const dummyCategories: Category[] = [
-  { id: 1, name: "Breakfast", image: "" },
-  { id: 2, name: "Beverages", image: "" },
-  { id: 3, name: "Snacks", image: "" },
-  { id: 4, name: "Starters", image: "" },
-  { id: 5, name: "Main Course", image: "" },
-];
-
 function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { items, loading } = useItems(); // Items from context
 
   const tableData =
-    (location.state as {
-      tableNumber?: string;
-      status?: "Available" | "Occupied";
-    }) || {};
+    (location.state as { tableNumber?: string; status?: "Available" | "Occupied" }) || {};
 
-  const [activeCategory, setActiveCategory] = useState(1);
+  /* ---------------- CATEGORY STATE ---------------- */
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(true);
 
-  /* ---------- BILL STATES ---------- */
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoryLoading(true);
+        const branch = localStorage.getItem("branch") || "";
+        const data = await getItemCategoryList(branch);
 
+        const mapped: Category[] = data.map((item: any) => ({
+          id: item.catCode,
+          name: item.catName.trim(),
+          image: item.thumbnail || "",
+        }));
+
+        setCategories(mapped);
+
+        if (mapped.length > 0) setActiveCategory(mapped[0].id);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setCategoryLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  /* ---------------- BILL STATES ---------------- */
   const [kot, setKot] = useState<Bill[]>([]);
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
-
   const [openSessionModal, setOpenSessionModal] = useState(false);
   const [openKOTModal, setOpenKOTModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  /* ---------- OPEN CORRECT MODAL ---------- */
-
+  /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
-    if (tableData.status === "Available") {
-      setOpenSessionModal(true);
-    } else if (tableData.status === "Occupied") {
-      setOpenKOTModal(true);
-    }
+    if (tableData.status === "Available") setOpenSessionModal(true);
+    else if (tableData.status === "Occupied") setOpenKOTModal(true);
   }, [tableData.status]);
 
-  /* ---------- SYNC CART TO ACTIVE BILL ---------- */
-
+  /* ---------------- SYNC CART ---------------- */
   useEffect(() => {
     if (!activeBillId) return;
 
     setKot((prev) =>
-      prev.map((bill) =>
-        bill.id === activeBillId ? { ...bill, items: cart } : bill,
-      ),
+      prev.map((bill) => (bill.id === activeBillId ? { ...bill, items: cart } : bill))
     );
   }, [cart, activeBillId]);
 
-  /* ---------- FOOD FILTER ---------- */
-
+  /* ---------------- FILTER ITEMS ---------------- */
   const foods = useMemo(
-    () => DUMMY_FOODS.filter((f) => f.categoryId === activeCategory),
-    [activeCategory],
+    () => items.filter((item) => item.catCode === activeCategory),
+    [items, activeCategory]
   );
 
-  /* ---------- CART ACTIONS ---------- */
-
-  const handleAdd = (id: number) => {
+  /* ---------------- CART ACTIONS ---------------- */
+  const handleAdd = (itemCode: number) => {
     if (!activeBillId) return;
 
-    const food = DUMMY_FOODS.find((f) => f.id === id);
+    const food = items.find((i) => i.itemCode === itemCode);
     if (!food) return;
 
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === id);
-      if (existing) {
-        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
-      }
+      const existing = prev.find((i) => i.id === itemCode);
+      if (existing) return prev.map((i) => (i.id === itemCode ? { ...i, qty: i.qty + 1 } : i));
 
       return [
         ...prev,
-        { id: food.id, name: food.name, price: food.price, qty: 1 },
+        {
+          id: food.itemCode,
+          name: food.itemName.trim(),
+          price: food.oidRate,
+          qty: 1,
+        },
       ];
     });
   };
 
   const increaseQty = (id: number) => {
-    setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
-    );
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)));
   };
 
   const decreaseQty = (id: number) => {
     setCart((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-        .filter((i) => i.qty > 0),
+      prev.map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i)).filter((i) => i.qty > 0)
     );
   };
 
-  /* ---------- UI ---------- */
+  /* ---------------- GLOBAL LOADER ---------------- */
+  if (loading || categoryLoading) return <Loader />;
 
+  /* ---------------- UI ---------------- */
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] relative">
-      {/* ---------- SIDEBAR ---------- */}
-      {/* Category Section */}
+      {/* SIDEBAR */}
       <div className="w-full lg:w-auto">
         <CategorySidebar
           active={activeCategory}
           onSelect={setActiveCategory}
-          categories={dummyCategories}
+          categories={categories}
         />
       </div>
 
-      {/* ---------- FOOD GRID ---------- */}
+      {/* FOOD GRID */}
       <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {foods.map((item) => (
-            <FoodCard key={item.id} {...item} onAdd={handleAdd} />
+            <FoodCard
+              key={item.itemCode}
+              id={item.itemCode}
+              name={item.itemName.trim()}
+              price={item.oidRate}
+              image={item.thumb || ""}
+              onAdd={handleAdd}
+            />
           ))}
         </div>
       </main>
 
-      {/* ---------- CART PANEL ---------- */}
+      {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
           items={cart}
@@ -147,7 +162,7 @@ function OrderingBoard() {
         />
       </div>
 
-      {/* ---------- MOBILE CART ---------- */}
+      {/* MOBILE CART */}
       <MobileCartButton
         cart={cart}
         increaseQty={increaseQty}
@@ -155,7 +170,7 @@ function OrderingBoard() {
         setCart={setCart}
       />
 
-      {/* ---------- SESSION MODAL ---------- */}
+      {/* SESSION MODAL */}
       <TableSessionModal
         isOpen={openSessionModal}
         onClose={() => {
@@ -163,21 +178,16 @@ function OrderingBoard() {
           navigate("/NewOrder");
         }}
         onStart={({ pax, waiter }) => {
-          const newBill: Bill = {
-            id: Date.now(),
-            pax,
-            waiter,
-            items: [],
-          };
-
+          const newBill: Bill = { id: Date.now(), pax, waiter, items: [] };
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
           setCart([]);
           setOpenSessionModal(false);
         }}
+        branchcode={localStorage.getItem("branch") || ""}
       />
 
-      {/* ---------- KOT MODAL ---------- */}
+      {/* KOT MODAL */}
       <KotModal
         isOpen={openKOTModal}
         bills={kot}
@@ -185,8 +195,6 @@ function OrderingBoard() {
         onSelectBill={(id) => {
           const selectedBill = kot.find((b) => b.id === id);
           if (!selectedBill) return;
-
-          // Clone items to avoid reference issues
           setCart(selectedBill.items.map((item) => ({ ...item })));
           setActiveBillId(id);
           setOpenKOTModal(false);

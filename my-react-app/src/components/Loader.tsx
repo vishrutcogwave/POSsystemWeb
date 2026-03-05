@@ -11,7 +11,7 @@ const Loader: React.FC = () => {
 
         {/* Text */}
         <p className="text-gray-300 text-xs sm:text-sm md:text-base">
-          Authenticating...
+          Loading...
         </p>
 
       </div>

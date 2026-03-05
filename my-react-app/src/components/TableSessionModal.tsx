@@ -1,23 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { getStewardList } from "../api/services/products.service";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   onStart: (data: { pax: number; waiter: string }) => void;
+  branchcode: string;
+};
+
+type Steward = {
+  stwCode: number;
+  posCode: string;
+  stwName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  mobNo: string;
 };
 
 const paxOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
-const waiters = [
-  "John Doe","Jane Smith","Mike Johnson","Sarah Wilson","David Brown",
-  "Emily Davis","Robert Miller","Olivia Taylor","Daniel Anderson","Sophia Thomas",
-  "James Jackson","Isabella White","William Harris","Ava Martin","Joseph Thompson",
-  
-];
-
-const TableSessionModal: React.FC<Props> = ({ isOpen, onClose, onStart }) => {
+const TableSessionModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  onStart,
+ 
+}) => {
   const [pax, setPax] = useState(2);
-  const [waiter, setWaiter] = useState("");
+  const [waiter, setWaiter] = useState<string>("");
+  const [stewards, setStewards] = useState<Steward[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchStewards = async () => {
+      try {
+        setLoading(true);
+        const data = await getStewardList(localStorage.getItem("branch")||"");
+        setStewards(data);
+      } catch (error) {
+        console.error("Error fetching steward list:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStewards();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -25,13 +55,13 @@ const TableSessionModal: React.FC<Props> = ({ isOpen, onClose, onStart }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-xl bg-white shadow-xl">
         
-        {/* HEADER (FIXED) */}
+        {/* HEADER */}
         <div className="flex items-center justify-between rounded-t-xl bg-blue-600 px-5 py-3 text-white">
           <h2 className="text-lg font-semibold">🍽️ Table - New Session</h2>
           <button onClick={onClose} className="text-xl font-bold">×</button>
         </div>
 
-        {/* BODY (SCROLLABLE) */}
+        {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
           {/* PAX */}
@@ -69,26 +99,30 @@ const TableSessionModal: React.FC<Props> = ({ isOpen, onClose, onStart }) => {
               SELECT WAITER
             </p>
 
-            <div className="max-h-48 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
-              {waiters.map((w) => (
-                <button
-                  key={w}
-                  onClick={() => setWaiter(w)}
-                  className={`rounded-lg border px-4 py-3 text-sm font-medium
-                    ${
-                      waiter === w
-                        ? "border-blue-600 bg-blue-50 text-blue-600"
-                        : "border-gray-300 text-gray-700"
-                    }`}
-                >
-                  {w}
-                </button>
-              ))}
-            </div>
+            {loading ? (
+              <p className="text-sm text-gray-500">Loading waiters...</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto grid grid-cols-2 gap-3 pr-1">
+                {stewards.map((steward) => (
+                  <button
+                    key={steward.stwCode}
+                    onClick={() => setWaiter(steward.stwName)}
+                    className={`rounded-lg border px-4 py-3 text-sm font-medium
+                      ${
+                        waiter === steward.stwName
+                          ? "border-blue-600 bg-blue-50 text-blue-600"
+                          : "border-gray-300 text-gray-700"
+                      }`}
+                  >
+                    {steward.stwName}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* FOOTER (FIXED) */}
+        {/* FOOTER */}
         <div className="flex items-center justify-between border-t px-6 py-4">
           <button
             onClick={onClose}
@@ -105,7 +139,6 @@ const TableSessionModal: React.FC<Props> = ({ isOpen, onClose, onStart }) => {
             START ORDER
           </button>
         </div>
-
       </div>
     </div>
   );
