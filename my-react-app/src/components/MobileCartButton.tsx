@@ -7,7 +7,7 @@ type MobileCartProps = {
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
-  onUpdateNote: (id: number, note: string) => void; 
+  onUpdateNote: (id: number) => void; // now triggers modal
 };
 
 export const MobileCartButton: React.FC<MobileCartProps> = ({
@@ -15,7 +15,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   increaseQty,
   decreaseQty,
   setCart,
-  onUpdateNote
+  onUpdateNote,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -32,22 +32,29 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
       {/* Drawer */}
       {open && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
-          <div className="w-80 max-w-full bg-white h-full p-4 overflow-y-auto">
-             <button
-              onClick={() => setOpen(false)}
-              className="mt-4 w-full bg-gray-800 text-white py-2 rounded"
-            >
-              Close
-            </button>
+          <div className="w-80 max-w-full bg-white h-full flex flex-col">
 
-            <CartPanel
-            onUpdateNote={onUpdateNote}
-              items={cart}
-              onIncrease={increaseQty}
-              onDecrease={decreaseQty}
-              onClear={() => setCart([])}
-            />
-           
+            {/* Close Button */}
+            <div className="p-4 border-b">
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full bg-gray-800 text-white py-2 rounded"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Cart Panel */}
+            <div className="flex-1 overflow-y-auto">
+              <CartPanel
+                items={cart}
+                onIncrease={increaseQty}
+                onDecrease={decreaseQty}
+                onClear={() => setCart([])}
+                onUpdateNote={onUpdateNote}
+              />
+            </div>
+
           </div>
         </div>
       )}

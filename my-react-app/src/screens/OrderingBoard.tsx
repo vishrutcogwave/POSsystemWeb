@@ -12,6 +12,7 @@ import Loader from "../components/Loader";
 import { type Category, type CartItem } from "../utils";
 import { getItemCategoryList } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
+import InstructionModal from "../components/InstructionModal";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -27,13 +28,25 @@ function OrderingBoard() {
   const { items, loading } = useItems(); // Items from context
 
   const tableData =
-    (location.state as { tableNumber?: string; status?: "Available" | "Occupied" }) || {};
+    (location.state as {
+      tableNumber?: string;
+      status?: "Available" | "Occupied";
+    }) || {};
 
   /* ---------------- CATEGORY STATE ---------------- */
+  const [kot, setKot] = useState<Bill[]>([]);
+  const [activeBillId, setActiveBillId] = useState<number | null>(null);
+  const [openSessionModal, setOpenSessionModal] = useState(false);
+  const [openKOTModal, setOpenKOTModal] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
   const [activeCategory, setActiveCategory] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(true);
-
+  const [instructionItemId, setInstructionItemId] = useState<number | null>(
+    null,
+  );
+  const [openInstructionModal, setOpenInstructionModal] = useState(false);
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -61,11 +74,6 @@ function OrderingBoard() {
   }, []);
 
   /* ---------------- BILL STATES ---------------- */
-  const [kot, setKot] = useState<Bill[]>([]);
-  const [activeBillId, setActiveBillId] = useState<number | null>(null);
-  const [openSessionModal, setOpenSessionModal] = useState(false);
-  const [openKOTModal, setOpenKOTModal] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
@@ -78,20 +86,19 @@ function OrderingBoard() {
     if (!activeBillId) return;
 
     setKot((prev) =>
-      prev.map((kots) => (kots.id === activeBillId ? { ...kots, items: cart } : kots))
+      prev.map((kots) =>
+        kots.id === activeBillId ? { ...kots, items: cart } : kots,
+      ),
     );
   }, [cart, activeBillId]);
   useEffect(() => {
-    console.log("kot",kot);
-    
-   
-  }, [kot])
-  
+    console.log("kot", kot);
+  }, [kot]);
 
   /* ---------------- FILTER ITEMS ---------------- */
   const foods = useMemo(
     () => items.filter((item) => item.catCode === activeCategory),
-    [items, activeCategory]
+    [items, activeCategory],
   );
 
   /* ---------------- CART ACTIONS ---------------- */
@@ -103,7 +110,10 @@ function OrderingBoard() {
 
     setCart((prev) => {
       const existing = prev.find((i) => i.id === itemCode);
-      if (existing) return prev.map((i) => (i.id === itemCode ? { ...i, qty: i.qty + 1 } : i));
+      if (existing)
+        return prev.map((i) =>
+          i.id === itemCode ? { ...i, qty: i.qty + 1 } : i,
+        );
 
       return [
         ...prev,
@@ -118,21 +128,26 @@ function OrderingBoard() {
   };
 
   const increaseQty = (id: number) => {
-    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)));
+    setCart((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i)),
+    );
   };
 
   const decreaseQty = (id: number) => {
     setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i)).filter((i) => i.qty > 0)
+      prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0),
     );
   };
 
   const updateCartNote = (id: number, note: string) => {
-  setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
-};
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
+  };
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
+  const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] relative">
@@ -164,25 +179,28 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
-        onUpdateNote={updateCartNote}
           items={cart}
           onIncrease={increaseQty}
           onDecrease={decreaseQty}
           onClear={() => setCart([])}
+          onUpdateNote={(id) => {
+            setInstructionItemId(id);
+            setOpenInstructionModal(true);
+          }}
         />
       </div>
 
       {/* MOBILE CART */}
       <MobileCartButton
-        onUpdateNote={updateCartNote}
-
         cart={cart}
         increaseQty={increaseQty}
         decreaseQty={decreaseQty}
         setCart={setCart}
-        
+        onUpdateNote={(id) => {
+          setInstructionItemId(id);
+          setOpenInstructionModal(true);
+        }}
       />
-
       {/* SESSION MODAL */}
       <TableSessionModal
         isOpen={openSessionModal}
@@ -215,6 +233,19 @@ function OrderingBoard() {
         onNewBill={() => {
           setOpenKOTModal(false);
           setOpenSessionModal(true);
+        }}
+      />
+
+      <InstructionModal
+        isOpen={openInstructionModal}
+        onClose={() => setOpenInstructionModal(false)}
+        existingNote={selectedItem?.note}
+        onSave={(note) => {
+          if (instructionItemId !== null) {
+            updateCartNote(instructionItemId, note);
+          }
+          setInstructionItemId(null);
+          setOpenInstructionModal(false);
         }}
       />
     </div>

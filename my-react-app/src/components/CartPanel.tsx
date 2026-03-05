@@ -24,7 +24,10 @@ export default function CartPanel({
       {/* HEADER – ALWAYS VISIBLE */}
       <div className="p-4 border-b flex justify-between items-center bg-white">
         <h2 className="font-bold text-sm text-blue-700">CURRENT ORDER</h2>
-        <button onClick={onClear} className="text-red-500 text-xs font-semibold">
+        <button
+          onClick={onClear}
+          className="text-red-500 text-xs font-semibold"
+        >
           CLEAR
         </button>
       </div>
@@ -46,7 +49,9 @@ export default function CartPanel({
 
               {/* Quantity Controls */}
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500">₹ {item.price.toFixed(2)}</span>
+                <span className="text-xs text-gray-500">
+                  ₹ {item.price.toFixed(2)}
+                </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onDecrease(item.id)}
@@ -65,13 +70,23 @@ export default function CartPanel({
               </div>
 
               {/* Special Instructions Input */}
-              <input
-                type="text"
-                placeholder="Add special instructions"
-                className="w-full border rounded px-2 py-1 text-xs"
-                value={item.note || ""}
-                onChange={(e) => onUpdateNote(item.id, e.target.value)}
-              />
+              {/* Special Instructions */}
+              <div className="flex justify-between items-center">
+                {item.note ? (
+                  <span className="text-xs text-gray-500 italic truncate max-w-[140px]">
+                    {item.note}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">No instruction</span>
+                )}
+
+                <button
+                  onClick={() => onUpdateNote(item.id, "")}
+                  className="text-xs text-blue-600 font-semibold"
+                >
+                  + Add
+                </button>
+              </div>
             </div>
           ))
         )}
