@@ -78,9 +78,15 @@ function OrderingBoard() {
     if (!activeBillId) return;
 
     setKot((prev) =>
-      prev.map((bill) => (bill.id === activeBillId ? { ...bill, items: cart } : bill))
+      prev.map((kots) => (kots.id === activeBillId ? { ...kots, items: cart } : kots))
     );
   }, [cart, activeBillId]);
+  useEffect(() => {
+    console.log("kot",kot);
+    
+   
+  }, [kot])
+  
 
   /* ---------------- FILTER ITEMS ---------------- */
   const foods = useMemo(
