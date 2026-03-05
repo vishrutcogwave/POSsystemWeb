@@ -166,4 +166,5 @@ export type CartItem = {
   name: string;
   price: number;
   qty: number;
+  note?: string; // new field for special instructions
 };

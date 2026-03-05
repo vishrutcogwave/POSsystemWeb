@@ -127,6 +127,9 @@ function OrderingBoard() {
     );
   };
 
+  const updateCartNote = (id: number, note: string) => {
+  setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
+};
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
@@ -161,6 +164,7 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+        onUpdateNote={updateCartNote}
           items={cart}
           onIncrease={increaseQty}
           onDecrease={decreaseQty}
@@ -170,10 +174,13 @@ function OrderingBoard() {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        onUpdateNote={updateCartNote}
+
         cart={cart}
         increaseQty={increaseQty}
         decreaseQty={decreaseQty}
         setCart={setCart}
+        
       />
 
       {/* SESSION MODAL */}

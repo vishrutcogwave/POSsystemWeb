@@ -5,6 +5,7 @@ type CartPanelProps = {
   onIncrease: (id: number) => void;
   onDecrease: (id: number) => void;
   onClear: () => void;
+  onUpdateNote: (id: number, note: string) => void; // NEW
 };
 
 export default function CartPanel({
@@ -12,29 +13,18 @@ export default function CartPanel({
   onIncrease,
   onDecrease,
   onClear,
+  onUpdateNote,
 }: CartPanelProps) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const tax = subtotal * 0.05;
   const total = subtotal + tax;
 
   return (
-    <aside
-      className="
-    w-full
-    lg:w-80 xl:w-80
-    h-full
-    bg-white
-    border-l
-    flex flex-col
-  "
-    >
+    <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
       {/* HEADER – ALWAYS VISIBLE */}
       <div className="p-4 border-b flex justify-between items-center bg-white">
         <h2 className="font-bold text-sm text-blue-700">CURRENT ORDER</h2>
-        <button
-          onClick={onClear}
-          className="text-red-500 text-xs font-semibold"
-        >
+        <button onClick={onClear} className="text-red-500 text-xs font-semibold">
           CLEAR
         </button>
       </div>
@@ -45,7 +35,8 @@ export default function CartPanel({
           <p className="text-gray-400 text-sm">Cart is empty</p>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="border rounded-lg p-3">
+            <div key={item.id} className="border rounded-lg p-3 space-y-2">
+              {/* Name + Total Price */}
               <div className="flex justify-between">
                 <span className="font-semibold text-sm">{item.name}</span>
                 <span className="font-bold text-sm">
@@ -53,11 +44,9 @@ export default function CartPanel({
                 </span>
               </div>
 
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-xs text-gray-500">
-                  ₹ {item.price.toFixed(2)}
-                </span>
-
+              {/* Quantity Controls */}
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">₹ {item.price.toFixed(2)}</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onDecrease(item.id)}
@@ -74,6 +63,15 @@ export default function CartPanel({
                   </button>
                 </div>
               </div>
+
+              {/* Special Instructions Input */}
+              <input
+                type="text"
+                placeholder="Add special instructions"
+                className="w-full border rounded px-2 py-1 text-xs"
+                value={item.note || ""}
+                onChange={(e) => onUpdateNote(item.id, e.target.value)}
+              />
             </div>
           ))
         )}

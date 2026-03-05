@@ -7,6 +7,7 @@ type MobileCartProps = {
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  onUpdateNote: (id: number, note: string) => void; 
 };
 
 export const MobileCartButton: React.FC<MobileCartProps> = ({
@@ -14,6 +15,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   increaseQty,
   decreaseQty,
   setCart,
+  onUpdateNote
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -39,6 +41,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             </button>
 
             <CartPanel
+            onUpdateNote={onUpdateNote}
               items={cart}
               onIncrease={increaseQty}
               onDecrease={decreaseQty}
