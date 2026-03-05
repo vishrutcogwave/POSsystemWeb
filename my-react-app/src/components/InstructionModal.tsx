@@ -14,6 +14,16 @@ const dummyInstructions = [
   "No garlic",
   "Extra cheese",
   "Less oil",
+  "No salt",
+  "Extra salt",
+  "Well cooked",
+  "Half cooked",
+  "Extra gravy",
+  "Dry",
+  "Less oil",
+  "More butter",
+  "No chilli",
+  "Extra chilli",
 ];
 
 const InstructionModal: React.FC<Props> = ({
@@ -24,7 +34,9 @@ const InstructionModal: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<string[]>([]);
   const [custom, setCustom] = useState("");
+  const [search, setSearch] = useState("");
 
+  /* ---------- PREFILL EXISTING NOTE ---------- */
   useEffect(() => {
     if (!isOpen) return;
 
@@ -42,6 +54,12 @@ const InstructionModal: React.FC<Props> = ({
     }
   }, [isOpen, existingNote]);
 
+  /* ---------- FILTER SEARCH ---------- */
+  const filteredInstructions = dummyInstructions.filter((inst) =>
+    inst.toLowerCase().includes(search.toLowerCase())
+  );
+
+  /* ---------- TOGGLE SELECT ---------- */
   const toggleInstruction = (value: string) => {
     if (selected.includes(value)) {
       setSelected(selected.filter((v) => v !== value));
@@ -50,6 +68,7 @@ const InstructionModal: React.FC<Props> = ({
     }
   };
 
+  /* ---------- SAVE ---------- */
   const handleSave = () => {
     const note = [...selected, custom].filter(Boolean).join(", ");
     onSave(note);
@@ -60,13 +79,24 @@ const InstructionModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
+
+        {/* HEADER */}
         <h2 className="font-semibold text-lg">Special Instructions</h2>
 
-        {/* Quick options */}
-        <div className="grid grid-cols-2 gap-2">
-          {dummyInstructions.map((inst) => (
+        {/* SEARCH */}
+        <input
+          type="text"
+          placeholder="Search instructions..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border rounded px-3 py-2 text-sm"
+        />
+
+        {/* INSTRUCTION LIST */}
+        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+          {filteredInstructions.map((inst, index) => (
             <button
-              key={inst}
+              key={inst + index}
               onClick={() => toggleInstruction(inst)}
               className={`border rounded-lg p-2 text-sm ${
                 selected.includes(inst)
@@ -79,7 +109,7 @@ const InstructionModal: React.FC<Props> = ({
           ))}
         </div>
 
-        {/* Custom instruction */}
+        {/* CUSTOM INPUT */}
         <input
           type="text"
           placeholder="Other instructions..."
@@ -88,9 +118,12 @@ const InstructionModal: React.FC<Props> = ({
           className="w-full border rounded px-3 py-2 text-sm"
         />
 
-        {/* Actions */}
+        {/* ACTION BUTTONS */}
         <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="text-gray-500 text-sm">
+          <button
+            onClick={onClose}
+            className="text-gray-500 text-sm"
+          >
             Cancel
           </button>
 
@@ -101,6 +134,7 @@ const InstructionModal: React.FC<Props> = ({
             Save
           </button>
         </div>
+
       </div>
     </div>
   );

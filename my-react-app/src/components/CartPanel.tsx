@@ -77,14 +77,14 @@ export default function CartPanel({
                     {item.note}
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-400">No instruction</span>
+                  <span className="text-xs text-gray-400"></span>
                 )}
 
                 <button
                   onClick={() => onUpdateNote(item.id, "")}
                   className="text-xs text-blue-600 font-semibold"
                 >
-                  + Add
+                  + Add Instuctions
                 </button>
               </div>
             </div>
