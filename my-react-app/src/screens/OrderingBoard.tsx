@@ -47,6 +47,10 @@ function OrderingBoard() {
     null,
   );
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
+  const [session, setSession] = useState<{
+    pax: number;
+    waiter: string;
+  } | null>(null);
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -160,21 +164,52 @@ function OrderingBoard() {
         />
       </div>
 
-      {/* FOOD GRID */}
-      <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-          {foods.map((item) => (
-            <FoodCard
-              key={item.itemCode}
-              id={item.itemCode}
-              name={item.itemName.trim()}
-              price={item.oidRate}
-              image={item.thumb || ""}
-              onAdd={handleAdd}
-            />
-          ))}
-        </div>
-      </main>
+      <div className="flex flex-col flex-1">
+        {/* SESSION INFO BAR - NOT SCROLLABLE */}
+        {/* SESSION INFO BAR */}
+        {session && (
+          <div className="flex items-center justify-between border-b bg-white px-3 sm:px-4 py-2 shadow-sm">
+            {/* LEFT SIDE INFO */}
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
+              <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+                🍽 Table {tableData.tableNumber}
+              </span>
+
+              <span className="flex items-center gap-1 bg-green-50 text-green-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+                👥 {session.pax} Pax
+              </span>
+
+              <span className="flex items-center gap-1 bg-purple-50 text-purple-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+                🧑‍🍳 {session.waiter}
+              </span>
+            </div>
+
+            {/* EDIT BUTTON */}
+            <button
+              onClick={() => setOpenSessionModal(true)}
+              className="flex items-center gap-1 rounded-md bg-blue-600 px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+            >
+              ✏ Edit
+            </button>
+          </div>
+        )}
+
+        {/* SCROLLABLE FOOD GRID */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {foods.map((item) => (
+              <FoodCard
+                key={item.itemCode}
+                id={item.itemCode}
+                name={item.itemName.trim()}
+                price={item.oidRate}
+                image={item.thumb || ""}
+                onAdd={handleAdd}
+              />
+            ))}
+          </div>
+        </main>
+      </div>
 
       {/* CART PANEL */}
       <div className="hidden lg:block">
@@ -204,12 +239,16 @@ function OrderingBoard() {
       {/* SESSION MODAL */}
       <TableSessionModal
         isOpen={openSessionModal}
+        initialPax={session?.pax}
+        initialWaiter={session?.waiter}
         onClose={() => {
           setOpenSessionModal(false);
           navigate("/NewOrder");
         }}
         onStart={({ pax, waiter }) => {
           const newBill: Bill = { id: Date.now(), pax, waiter, items: [] };
+
+          setSession({ pax, waiter });
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
           setCart([]);

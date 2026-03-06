@@ -6,6 +6,8 @@ type Props = {
   onClose: () => void;
   onStart: (data: { pax: number; waiter: string }) => void;
   branchcode: string;
+    initialPax?: number;
+  initialWaiter?: string;
 };
 
 type Steward = {
@@ -24,10 +26,12 @@ const TableSessionModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onStart,
+  initialPax,
+  initialWaiter
  
 }) => {
-  const [pax, setPax] = useState(2);
-  const [waiter, setWaiter] = useState<string>("");
+  const [pax, setPax] = useState(initialPax || 2);
+const [waiter, setWaiter] = useState(initialWaiter || "");
   const [stewards, setStewards] = useState<Steward[]>([]);
   const [loading, setLoading] = useState(false);
 
