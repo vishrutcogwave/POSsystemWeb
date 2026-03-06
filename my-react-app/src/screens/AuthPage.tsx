@@ -99,16 +99,16 @@ const handleLoadBranches = async () => {
         <div className="relative z-10 flex flex-col justify-center px-16">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-blue-600/20 rounded-xl">
-              <Shield className="text-blue-500" />
+              <Shield className="text-[#0576B2]" />
             </div>
-            <span className="tracking-widest text-blue-400 text-sm">
+            <span className="tracking-widest text-[#0576B2] text-sm">
               ENTERPRISE GRADE POS
             </span>
           </div>
 
           <h1 className="text-5xl font-bold leading-tight">
             Seamless <br />
-            <span className="text-blue-500">Management.</span>
+            <span className="text-[#0576B2]">Management.</span>
           </h1>
 
           <p className="mt-6 text-gray-300 max-w-md">
@@ -120,7 +120,7 @@ const handleLoadBranches = async () => {
       {/* RIGHT SIDE */}
       <div className="flex flex-1 items-center justify-center px-6 py-12">
         <div className="w-full max-w-md bg-[#111827]/80 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-gray-800">
-          <p className="text-center text-xs tracking-widest text-blue-400 mb-8">
+          <p className="text-center text-xs tracking-widest text-[#0576B2] mb-8">
             POWERED BY COGWAVE
           </p>
 
@@ -143,7 +143,7 @@ const handleLoadBranches = async () => {
 
             <button
               onClick={handleLoadBranches}
-              className="mt-2 text-xs bg-blue-600 px-3 py-1 rounded-lg hover:bg-blue-700"
+              className="mt-2 text-xs bg-[#0576B2] px-3 py-1 rounded-lg hover:bg-[#0576B2]"
             >
               Load Branch
             </button>
@@ -203,7 +203,7 @@ const handleLoadBranches = async () => {
           <div className="flex items-center gap-4">
             <button
               onClick={handleLogin}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-semibold"
+              className="flex-1 bg-[#0576B2] hover:bg-[#0576B2] py-3 rounded-xl font-semibold"
             >
               AUTHORIZE & SIGN IN
             </button>
@@ -239,7 +239,7 @@ const handleLoadBranches = async () => {
 
             <button
               onClick={handleSave}
-              className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl"
+              className="w-full bg-[#0576B2] hover:bg-[#0576B2] py-3 rounded-xl"
             >
               Save Settings
             </button>

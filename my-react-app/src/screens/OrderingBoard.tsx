@@ -39,6 +39,7 @@ function OrderingBoard() {
   const [openSessionModal, setOpenSessionModal] = useState(false);
   const [openKOTModal, setOpenKOTModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [activeCategory, setActiveCategory] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -100,10 +101,13 @@ function OrderingBoard() {
   }, [kot]);
 
   /* ---------------- FILTER ITEMS ---------------- */
-  const foods = useMemo(
-    () => items.filter((item) => item.catCode === activeCategory),
-    [items, activeCategory],
-  );
+  const foods = useMemo(() => {
+    return items
+      .filter((item) => item.catCode === activeCategory)
+      .filter((item) =>
+        item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+  }, [items, activeCategory, searchTerm]);
 
   /* ---------------- CART ACTIONS ---------------- */
   const handleAdd = (itemCode: number) => {
@@ -154,17 +158,18 @@ function OrderingBoard() {
   const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-64px)] relative">
-      {/* SIDEBAR */}
-      <div className="w-full lg:w-auto">
-        <CategorySidebar
-          active={activeCategory}
-          onSelect={setActiveCategory}
-          categories={categories}
-        />
-      </div>
+<div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
 
-      <div className="flex flex-col flex-1">
+  {/* SIDEBAR */}
+  <div className="w-full lg:w-auto flex-shrink-0">
+    <CategorySidebar
+      active={activeCategory}
+      onSelect={setActiveCategory}
+      categories={categories}
+    />
+  </div>
+
+  <div className="flex flex-col flex-1 min-h-0">
         {/* SESSION INFO BAR - NOT SCROLLABLE */}
         {/* SESSION INFO BAR */}
         {session && (
@@ -193,22 +198,30 @@ function OrderingBoard() {
             </button>
           </div>
         )}
-
+        <div className="mb-1">
+          <input
+            type="text"
+            placeholder="Search food..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring focus:border-blue-300"
+          />
+        </div>
         {/* SCROLLABLE FOOD GRID */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-            {foods.map((item) => (
-              <FoodCard
-                key={item.itemCode}
-                id={item.itemCode}
-                name={item.itemName.trim()}
-                price={item.oidRate}
-                image={item.thumb || ""}
-                onAdd={handleAdd}
-              />
-            ))}
-          </div>
-        </main>
+      <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-3 pb-20">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        {foods.map((item) => (
+          <FoodCard
+            key={item.itemCode}
+            id={item.itemCode}
+            name={item.itemName.trim()}
+            price={item.oidRate}
+            image={item.thumb || ""}
+            onAdd={handleAdd}
+          />
+        ))}
+      </div>
+    </main>
       </div>
 
       {/* CART PANEL */}
