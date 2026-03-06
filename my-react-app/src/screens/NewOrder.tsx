@@ -3,6 +3,7 @@ import Tabs from "../components/Tabs";
 import TableCard from "../components/TableCard";
 import { useNavigate } from "react-router-dom";
 import { getCombinedOutletAndTableMasterList } from "../api/services/products.service";
+import Loader from "../components/Loader";
 
 type Table = {
   tableNumber: string;
@@ -22,46 +23,49 @@ const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
   const [activeTab, setActiveTab] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || "",
-      );
+const fetchData = async () => {
+  setLoading(true);
+  try {
+    const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+      localStorage.getItem("branch") || "",
+    );
 
-      // Convert API response to tabs
-      const formattedTabs = data.map((outlet) => ({
-        id: outlet.oltCode.toString(),
-        label: outlet.oltName.trim(),
+    // Convert API response to tabs
+    const formattedTabs = data.map((outlet) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+    setTabs(formattedTabs);
+
+    // Convert API tables to table data
+    const tables: Record<string, Table[]> = {};
+    data.forEach((outlet) => {
+      tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
+        tableNumber: tbl.tblNo,
+        status: "Available",
       }));
-      setTabs(formattedTabs);
+    });
+    setTablesData(tables);
 
-      // Convert API tables to table data
-      const tables: Record<string, Table[]> = {};
-      data.forEach((outlet) => {
-        tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
-          tableNumber: tbl.tblNo,
-          status: "Available", // or add real status if backend has it
-        }));
-      });
-      setTablesData(tables);
-
-      // Set first tab as active by default and store in localStorage
-      if (formattedTabs.length > 0) {
-        const firstTabId = formattedTabs[0].id;
-        setActiveTab(firstTabId);
-        localStorage.setItem("activeOltCode", firstTabId); // 🔹 store selected OLT
-        window.dispatchEvent(new Event("storage")); // 🔹 trigger ItemContext re-fetch
-      }
-    } catch (error) {
-      console.error("Error fetching outlets and tables:", error);
+    if (formattedTabs.length > 0) {
+      const firstTabId = formattedTabs[0].id;
+      setActiveTab(firstTabId);
+      localStorage.setItem("activeOltCode", firstTabId);
+      window.dispatchEvent(new Event("storage"));
     }
-  };
+  } catch (error) {
+    console.error("Error fetching outlets and tables:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleTableClick = (table: Table) => {
     navigate("/OrderingBoard", {
@@ -81,6 +85,7 @@ const NewOrder: React.FC = () => {
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
+      {loading && <Loader />}
       {/* Tabs */}
       <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 

@@ -110,12 +110,12 @@ export default function CartPanel({
         </div>
 
         <div className="flex gap-2 mt-3">
-          <button className="flex-1 bg-orange-500 text-white py-2 rounded">
+          <button className="flex-1 bg-green-600 text-white py-2 rounded">
             KOT
           </button>
-          <button className="flex-1 bg-green-600 text-white py-2 rounded">
+          {/* <button className="flex-1 bg-green-600 text-white py-2 rounded">
             BILL
-          </button>
+          </button> */}
         </div>
       </div>
     </aside>
