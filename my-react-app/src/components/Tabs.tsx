@@ -27,8 +27,8 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
                 transition-all duration-200
                 ${
                   isActive
-                    ? "text-[#026388] border-b-2 border-[#026388] bg-[#026388]/10"
-                    : "text-gray-500 hover:text-[#026388] hover:bg-[#026388]/10"
+                    ? "text-[#0576B2] border-b-2 border-[#0576B2] bg-[#026388]/10"
+                    : "text-gray-500 hover:text-[#0576B2] hover:bg-[#026388]/10"
                 }
               `}
             >

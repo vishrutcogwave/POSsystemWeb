@@ -1,32 +1,31 @@
-
-
 import React from "react";
 
 type TableCardProps = {
   tableNumber: string | number;
   status: "Occupied" | "Available" | string;
   peopleCount?: number;
-  handleCardClick:()=>void
+  handleCardClick: () => void;
 };
 
 const TableCard: React.FC<TableCardProps> = ({
   tableNumber,
   status,
   peopleCount,
-  handleCardClick
+  handleCardClick,
 }) => {
   const statusStyles =
     status === "Occupied"
       ? "bg-orange-100 text-orange-600 border-orange-400"
       : status === "Available"
-      ? "bg-blue-100 text-blue-600 border-blue-400"
+      ? "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]"
       : "bg-gray-100 text-gray-600 border-gray-300";
 
   const fixedTime = "01:24:18";
   const fixedPrice = "₹ 1,250";
 
   return (
-    <div onClick={handleCardClick}
+    <div
+      onClick={handleCardClick}
       className={`relative ${statusStyles} border rounded-lg p-2 pt-7 flex flex-col items-center justify-center gap-1 sm:gap-2 transition hover:shadow-md active:scale-95 cursor-pointer`}
     >
       {/* Badge Row */}

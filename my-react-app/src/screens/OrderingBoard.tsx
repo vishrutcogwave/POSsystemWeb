@@ -168,10 +168,10 @@ function OrderingBoard() {
         {/* SESSION INFO BAR - NOT SCROLLABLE */}
         {/* SESSION INFO BAR */}
         {session && (
-          <div className="flex items-center justify-between border-b bg-white px-3 sm:px-4 py-2 shadow-sm">
+          <div className="flex items-center justify-between border-b bg-[#E0F0FA] px-3 sm:px-4 py-2 shadow-sm">
             {/* LEFT SIDE INFO */}
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
-              <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+              <span className="flex items-center gap-1 bg-blue-50 text-[#0576B2] px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
                 🍽 Table {tableData.tableNumber}
               </span>
 
@@ -187,7 +187,7 @@ function OrderingBoard() {
             {/* EDIT BUTTON */}
             <button
               onClick={() => setOpenSessionModal(true)}
-              className="flex items-center gap-1 rounded-md bg-blue-600 px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+              className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
             >
               ✏ Edit
             </button>

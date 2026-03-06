@@ -50,7 +50,7 @@ const KotModal: React.FC<Props> = ({
           {/* NEW BILL */}
           <button
             onClick={onNewBill}
-            className="rounded-lg border-2 border-dashed border-blue-500 p-4 text-blue-600 font-semibold"
+            className="rounded-lg border-2 border-dashed bg-[#0576B2] p-4 text-[#0576B2] font-semibold"
           >
             ➕ New Bill
           </button>

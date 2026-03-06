@@ -23,7 +23,7 @@ export default function CartPanel({
     <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
       {/* HEADER – ALWAYS VISIBLE */}
       <div className="p-4 border-b flex justify-between items-center bg-white">
-        <h2 className="font-bold text-sm text-blue-700">CURRENT ORDER</h2>
+        <h2 className="font-bold text-sm text-[#0576B2]">CURRENT ORDER</h2>
         <button
           onClick={onClear}
           className="text-red-500 text-xs font-semibold"
@@ -62,7 +62,7 @@ export default function CartPanel({
                   <span className="text-sm">{item.qty}</span>
                   <button
                     onClick={() => onIncrease(item.id)}
-                    className="w-6 h-6 bg-blue-600 text-white rounded"
+                    className="w-6 h-6 bg-[#0576B2] text-white rounded"
                   >
                     +
                   </button>
@@ -82,7 +82,7 @@ export default function CartPanel({
 
                 <button
                   onClick={() => onUpdateNote(item.id, "")}
-                  className="text-xs text-blue-600 font-semibold"
+                  className="text-xs text-[#0576B2] font-semibold"
                 >
                   + Add Instuctions
                 </button>

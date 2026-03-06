@@ -60,7 +60,7 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col rounded-xl bg-white shadow-xl">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between rounded-t-xl bg-blue-600 px-5 py-3 text-white">
+        <div className="flex items-center justify-between rounded-t-xl bg-[#0576B2] px-5 py-3 text-white">
           <h2 className="text-lg font-semibold">🍽️ Table - New Session</h2>
           <button onClick={onClose} className="text-xl font-bold">×</button>
         </div>
@@ -74,7 +74,7 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
               <span className="text-sm font-semibold text-gray-600">
                 NO. OF PEOPLE (PAX)
               </span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-600">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-[#0576B2]">
                 {pax} Selected
               </span>
             </div>
@@ -87,7 +87,7 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
                   className={`h-10 rounded-lg border text-sm font-semibold
                     ${
                       pax === p
-                        ? "bg-blue-600 text-white"
+                        ? "bg-[#0576B2] text-white"
                         : "border-gray-300 text-gray-700"
                     }`}
                 >
@@ -114,7 +114,7 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
                     className={`rounded-lg border px-4 py-3 text-sm font-medium
                       ${
                         waiter === steward.stwName
-                          ? "border-blue-600 bg-blue-50 text-blue-600"
+                          ? "border-[#0576B2] bg-blue-50 text-[#0576B2]"
                           : "border-gray-300 text-gray-700"
                       }`}
                   >
@@ -138,7 +138,7 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
           <button
             disabled={!waiter}
             onClick={() => onStart({ pax, waiter })}
-            className="rounded-lg bg-blue-500 px-8 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded-lg bg-[#0576B2] px-8 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             START ORDER
           </button>
