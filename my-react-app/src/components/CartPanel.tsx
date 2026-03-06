@@ -6,6 +6,8 @@ type CartPanelProps = {
   onDecrease: (id: number) => void;
   onClear: () => void;
   onUpdateNote: (id: number, note: string) => void; // NEW
+    onKOT: () => void; // NEW
+    kotLoading:boolean
 };
 
 export default function CartPanel({
@@ -14,6 +16,8 @@ export default function CartPanel({
   onDecrease,
   onClear,
   onUpdateNote,
+  onKOT,
+  kotLoading
 }: CartPanelProps) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const tax = subtotal * 0.05;
@@ -110,12 +114,10 @@ export default function CartPanel({
         </div>
 
         <div className="flex gap-2 mt-3">
-          <button className="flex-1 bg-green-600 text-white py-2 rounded">
-            KOT
+      
+          <button disabled={kotLoading} onClick={onKOT}  className="flex-1 bg-green-600 text-white py-2 rounded">
+          {kotLoading ? "Creating KOT..." : "KOT"}
           </button>
-          {/* <button className="flex-1 bg-green-600 text-white py-2 rounded">
-            BILL
-          </button> */}
         </div>
       </div>
     </aside>

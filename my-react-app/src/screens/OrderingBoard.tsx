@@ -10,9 +10,11 @@ import { MobileCartButton } from "../components/MobileCartButton";
 import Loader from "../components/Loader";
 
 import { type Category, type CartItem } from "../utils";
-import { getItemCategoryList } from "../api/services/products.service";
+import { createOrder, getItemCategoryList } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
+import { useActiveOLT } from "../context/ActiveOLTContext";
+import toast from "react-hot-toast";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -40,6 +42,7 @@ function OrderingBoard() {
   const [openKOTModal, setOpenKOTModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [kotLoading, setKotLoading] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -52,6 +55,10 @@ function OrderingBoard() {
     pax: number;
     waiter: string;
   } | null>(null);
+   const { activeOltName } = useActiveOLT(); // ✅ use context
+
+
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -152,24 +159,104 @@ function OrderingBoard() {
   const updateCartNote = (id: number, note: string) => {
     setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
   };
+
+
+
+const handleKOT = async () => {
+  if (!session || cart.length === 0) return;
+
+  setKotLoading(true); // ✅ start loader
+
+  const branch = localStorage.getItem("branch") || "";
+  const outlate = localStorage.getItem("activeOltCode") || "";
+
+  const payload = {
+    userCode: 3,
+    table: tableData.tableNumber || "",
+    subTable: "1",
+    outlet: outlate,
+    outletName: activeOltName,
+    waiter: "2",
+    waiterName: session.waiter,
+    pax: session.pax,
+    food: cart.map((i) => ({
+      id: i.id,
+      food: i.name,
+      code: i.id.toString(),
+      price: i.price,
+      qty: i.qty,
+      comment: i.note || "",
+      category: activeCategory || 0,
+      origQty: i.qty,
+    })),
+    total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
+    totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+    branch: branch,
+    type: "CASH",
+    ncCode: 0,
+    ncRemarks: "",
+    discount: 0,
+    discountType: "",
+    discountRemarks: "",
+    vRemarks: "1",
+    mode: "CASH",
+    subBillType: "DIRECT",
+    plan: "",
+    guestName: "adc",
+    guestCode: "234",
+    checkInNo: "",
+    kotMobileNo: "3456789021",
+    homeDelivary: {
+      guestCode: 0,
+      titleGn1: 0,
+      guestName: "",
+      dob: new Date().toISOString(),
+      address: "",
+      city: "",
+      phone: "",
+      email: "",
+      remarks: "",
+      lastModify: new Date().toISOString(),
+      discount: 0,
+      branch_code: branch,
+      isUpdate: 0,
+    },
+  };
+
+
+
+
+  try {
+    const res = await createOrder(payload);
+    console.log("KOT Created:", res);
+
+    setCart([]);
+    navigate("/NewOrder")
+    toast.success("KOT created successfully! ✅");
+  } catch (err) {
+    console.error("Failed to create KOT:", err);
+    toast.error("Failed to create KOT ❌");
+  } finally {
+    setKotLoading(false); // ✅ stop loader
+  }
+};
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
   const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
   return (
-<div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
+    <div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
+      {/* SIDEBAR */}
+      <div className="w-full lg:w-auto flex-shrink-0">
+        <CategorySidebar
+          active={activeCategory}
+          onSelect={setActiveCategory}
+          categories={categories}
+        />
+      </div>
 
-  {/* SIDEBAR */}
-  <div className="w-full lg:w-auto flex-shrink-0">
-    <CategorySidebar
-      active={activeCategory}
-      onSelect={setActiveCategory}
-      categories={categories}
-    />
-  </div>
-
-  <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-col flex-1 min-h-0">
         {/* SESSION INFO BAR - NOT SCROLLABLE */}
         {/* SESSION INFO BAR */}
         {session && (
@@ -208,47 +295,51 @@ function OrderingBoard() {
           />
         </div>
         {/* SCROLLABLE FOOD GRID */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-3 pb-20">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
-        {foods.map((item) => (
-          <FoodCard
-            key={item.itemCode}
-            id={item.itemCode}
-            name={item.itemName.trim()}
-            price={item.oidRate}
-            image={item.thumb || ""}
-            onAdd={handleAdd}
-          />
-        ))}
-      </div>
-    </main>
+        <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-3 pb-20">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {foods.map((item) => (
+              <FoodCard
+                key={item.itemCode}
+                id={item.itemCode}
+                name={item.itemName.trim()}
+                price={item.oidRate}
+                image={item.thumb || ""}
+                onAdd={handleAdd}
+              />
+            ))}
+          </div>
+        </main>
       </div>
 
       {/* CART PANEL */}
       <div className="hidden lg:block">
-        <CartPanel
-          items={cart}
-          onIncrease={increaseQty}
-          onDecrease={decreaseQty}
-          onClear={() => setCart([])}
-          onUpdateNote={(id) => {
-            setInstructionItemId(id);
-            setOpenInstructionModal(true);
-          }}
-        />
+       <CartPanel
+  items={cart}
+  onIncrease={increaseQty}
+  onDecrease={decreaseQty}
+  onClear={() => setCart([])}
+  onUpdateNote={(id) => {
+    setInstructionItemId(id);
+    setOpenInstructionModal(true);
+  }}
+  onKOT={handleKOT}
+  kotLoading={kotLoading} // ✅ pass loader state
+/>
       </div>
 
       {/* MOBILE CART */}
-      <MobileCartButton
-        cart={cart}
-        increaseQty={increaseQty}
-        decreaseQty={decreaseQty}
-        setCart={setCart}
-        onUpdateNote={(id) => {
-          setInstructionItemId(id);
-          setOpenInstructionModal(true);
-        }}
-      />
+     <MobileCartButton
+  cart={cart}
+  increaseQty={increaseQty}
+  decreaseQty={decreaseQty}
+  setCart={setCart}
+  onUpdateNote={(id) => {
+    setInstructionItemId(id);
+    setOpenInstructionModal(true);
+  }}
+  onKOT={handleKOT}
+  kotLoading={kotLoading} // ✅ pass loader state
+/>
       {/* SESSION MODAL */}
       <TableSessionModal
         isOpen={openSessionModal}

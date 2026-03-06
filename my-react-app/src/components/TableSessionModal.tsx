@@ -42,6 +42,8 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
       try {
         setLoading(true);
         const data = await getStewardList(localStorage.getItem("branch")||"");
+        console.log(data,"Waiter data");
+        
         setStewards(data);
       } catch (error) {
         console.error("Error fetching steward list:", error);

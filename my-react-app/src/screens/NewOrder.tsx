@@ -1,13 +1,15 @@
+// src/pages/NewOrder.tsx
 import React, { useEffect, useState } from "react";
 import Tabs from "../components/Tabs";
 import TableCard from "../components/TableCard";
 import { useNavigate } from "react-router-dom";
 import { getCombinedOutletAndTableMasterList } from "../api/services/products.service";
 import Loader from "../components/Loader";
+import { useActiveOLT } from "../context/ActiveOLTContext"; // ✅ import ActiveOLT context
 
 type Table = {
   tableNumber: string;
-  status: "Occupied" | "Available";
+  status: string;
   peopleCount?: number;
 };
 
@@ -16,6 +18,7 @@ type Outlet = {
   oltName: string;
   tables: {
     tblNo: string;
+    tableStatus:string
   }[];
 };
 
@@ -26,47 +29,53 @@ const NewOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const { activeOltCode, setActiveOLT } = useActiveOLT(); // ✅ use context
+
+  /* ---------------- FETCH OUTLETS & TABLES ---------------- */
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+          localStorage.getItem("branch") || ""
+        );
+
+        // Map API response to tabs
+        const formattedTabs = data.map((outlet) => ({
+          id: outlet.oltCode.toString(),
+          label: outlet.oltName.trim(),
+        }));
+        setTabs(formattedTabs);
+
+        // Map API tables
+        const tables: Record<string, any[]> = {};
+        data.forEach((outlet) => {
+          tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
+            tableNumber: tbl.tblNo,
+            status: tbl.tableStatus,
+          }));
+        });
+        setTablesData(tables);
+
+        // Set first tab as active if exists
+        if (formattedTabs.length > 0 && !activeOltCode) {
+          const firstTab = formattedTabs[0];
+          setActiveTab(firstTab.id);
+          setActiveOLT(firstTab.id, firstTab.label); // ✅ set context
+        } else if (activeOltCode) {
+          setActiveTab(activeOltCode); // restore last active tab from context
+        }
+      } catch (error) {
+        console.error("Error fetching outlets and tables:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
-  }, []);
+  }, [activeOltCode, setActiveOLT]);
 
-const fetchData = async () => {
-  setLoading(true);
-  try {
-    const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-      localStorage.getItem("branch") || "",
-    );
-
-    // Convert API response to tabs
-    const formattedTabs = data.map((outlet) => ({
-      id: outlet.oltCode.toString(),
-      label: outlet.oltName.trim(),
-    }));
-    setTabs(formattedTabs);
-
-    // Convert API tables to table data
-    const tables: Record<string, Table[]> = {};
-    data.forEach((outlet) => {
-      tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
-        tableNumber: tbl.tblNo,
-        status: "Available",
-      }));
-    });
-    setTablesData(tables);
-
-    if (formattedTabs.length > 0) {
-      const firstTabId = formattedTabs[0].id;
-      setActiveTab(firstTabId);
-      localStorage.setItem("activeOltCode", firstTabId);
-      window.dispatchEvent(new Event("storage"));
-    }
-  } catch (error) {
-    console.error("Error fetching outlets and tables:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  /* ---------------- NAVIGATE TO ORDERING BOARD ---------------- */
   const handleTableClick = (table: Table) => {
     navigate("/OrderingBoard", {
       state: {
@@ -76,16 +85,20 @@ const fetchData = async () => {
     });
   };
 
-  // When tab changes
+  /* ---------------- TAB CHANGE ---------------- */
   const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId); // Update active tab visually
-    localStorage.setItem("activeOltCode", tabId); // Store selected OLT for ItemContext
-    window.dispatchEvent(new Event("storage")); // trigger ItemContext re-fetch
+    const selectedTab = tabs.find((t) => t.id === tabId);
+    if (selectedTab) {
+      setActiveTab(selectedTab.id);
+      setActiveOLT(selectedTab.id, selectedTab.label); // ✅ update context
+    }
   };
 
+  /* ---------------- RENDER ---------------- */
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
+
       {/* Tabs */}
       <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 

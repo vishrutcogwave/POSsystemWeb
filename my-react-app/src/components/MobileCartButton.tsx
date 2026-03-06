@@ -8,6 +8,8 @@ type MobileCartProps = {
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   onUpdateNote: (id: number) => void; // now triggers modal
+      onKOT: () => void; // NEW
+        kotLoading:boolean
 };
 
 export const MobileCartButton: React.FC<MobileCartProps> = ({
@@ -16,6 +18,8 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   decreaseQty,
   setCart,
   onUpdateNote,
+  onKOT,
+  kotLoading
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -47,6 +51,8 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              kotLoading={kotLoading}
+              onKOT={onKOT}
                 items={cart}
                 onIncrease={increaseQty}
                 onDecrease={decreaseQty}

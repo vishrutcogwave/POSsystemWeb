@@ -60,3 +60,19 @@ export const getCombinedOltItemList = async (oltCode: string, branchCode: string
   });
   return response.data;
 };
+
+export const createOrder = async (orderData: any) => {
+  try {
+    const response = await api.post("api/POS/BtnSubmitposorder", orderData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Error creating order:", error.response?.data || error.message);
+    throw error;
+  }
+};
