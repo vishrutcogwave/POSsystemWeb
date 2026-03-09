@@ -275,14 +275,14 @@ waiterName: session.waiterName,
       totQty: cart.reduce((sum, i) => sum + i.qty, 0),
 
       branch: branch,
-      type: "CASH",
+      type: "K",
       ncCode: 0,
       ncRemarks: "",
       discount: 0,
       discountType: "",
       discountRemarks: "",
       vRemarks: "1",
-      mode: "CASH",
+      mode: "ADD",
       subBillType: "DIRECT",
       plan: "",
       guestName: "adc",
@@ -357,15 +357,29 @@ navigate("/NewOrder");
               <span className="flex items-center gap-1 bg-purple-50 text-purple-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
              🧑‍🍳 {session.waiterName}
               </span>
+                 {selectedSubTable && (
+        <span className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+        {selectedSubTable}
+        </span>
+      )}
             </div>
-
+  
             {/* EDIT BUTTON */}
+            {tableData.status === "Available"&&
             <button
               onClick={() => setOpenSessionModal(true)}
               className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
             >
               ✏ Edit
-            </button>
+            </button>}
+             {tableData.status === "Occupied"&&
+            <button
+              onClick={() => setOpenKOTModal(true)}
+              className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+            >
+              ✏ Edit
+            </button>}
+            
           </div>
         )}
         <div className="mb-1">
