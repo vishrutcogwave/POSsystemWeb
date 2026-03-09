@@ -500,6 +500,7 @@ navigate("/NewOrder");
         onNewBill={() => {
           const next = getNextSubTable(subTables); // generate next letter
           setSelectedSubTable(next);
+  setPastItems([]);
 
           setOpenKOTModal(false);
           setOpenSessionModal(true);
