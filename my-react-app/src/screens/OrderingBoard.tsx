@@ -79,31 +79,6 @@ function OrderingBoard() {
     setCategoryLoading(false);
   }, [items]);
 
-  // useEffect(() => {
-  //   const fetchCategories = async () => {
-  //     try {
-  //       setCategoryLoading(true);
-  //       const branch = localStorage.getItem("branch") || "";
-  //       const data = await getItemCategoryList(branch);
-
-  //       const mapped: Category[] = data.map((item: any) => ({
-  //         id: item.catCode,
-  //         name: item.catName.trim(),
-  //         image: item.thumbnail || "",
-  //       }));
-
-  //       setCategories(mapped);
-
-  //       if (mapped.length > 0) setActiveCategory(mapped[0].id);
-  //     } catch (error) {
-  //       console.error("Error fetching categories:", error);
-  //     } finally {
-  //       setCategoryLoading(false);
-  //     }
-  //   };
-
-  //   fetchCategories();
-  // }, []);
 
   /* ---------------- BILL STATES ---------------- */
 
@@ -194,7 +169,7 @@ function OrderingBoard() {
     const payload = {
       userCode: 3,
       table: tableData.tableNumber || "",
-      subTable: "1",
+      subTable: "A",
       outlet: outlate,
       outletName: activeOltName,
       waiter: "2",
