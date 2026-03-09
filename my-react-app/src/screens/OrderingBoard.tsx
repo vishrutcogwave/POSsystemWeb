@@ -84,21 +84,7 @@ const [session, setSession] = useState<{
     }
   };
 
-  // const fetchOldCart = async (sub: string) => {
-  //   try {
-  //     const outlet = localStorage.getItem("activeOltCode") || "";
-  //     const table = tableData.tableNumber || "";
-
-  //     const data = await getOldCart(table, outlet, sub);
-
-  //     setOldCartData(data); // store response only
-
-  //     console.log("Old Cart:", data);
-  //   } catch (err) {
-  //     console.error("Failed to fetch old cart", err);
-  //   }
-  // };
-const fetchOldCart = async (sub: string) => {
+  const fetchOldCart = async (sub: string) => {
   try {
     const outlet = localStorage.getItem("activeOltCode") || "";
     const table = tableData.tableNumber || "";
@@ -107,16 +93,19 @@ const fetchOldCart = async (sub: string) => {
 
     if (!data || data.length === 0) return;
 
-    const order = data[0];
+    // session info from first order
+    const first = data[0];
 
     setSession({
-      pax: order.pax,
-      waiterCode: String(order.waiter),
-      waiterName: order.waiterName,
+      pax: first.pax,
+      waiterCode: String(first.waiter),
+      waiterName: first.waiterName,
     });
 
-    // ✅ store old ordered items separately
-    const oldItems = order.food.map((f: any) => ({
+    // ✅ combine all food items from all KOTs
+    const allFoods = data.flatMap((order: any) => order.food);
+
+    const oldItems = allFoods.map((f: any) => ({
       id: f.itemCode,
       name: f.food.trim(),
       price: f.price,
@@ -125,10 +114,43 @@ const fetchOldCart = async (sub: string) => {
 
     setPastItems(oldItems);
 
+    console.log("All old items:", oldItems);
+
   } catch (err) {
     console.error("Failed to fetch old cart", err);
   }
 };
+// const fetchOldCart = async (sub: string) => {
+//   try {
+//     const outlet = localStorage.getItem("activeOltCode") || "";
+//     const table = tableData.tableNumber || "";
+
+//     const data = await getOldCart(table, outlet, sub);
+
+//     if (!data || data.length === 0) return;
+
+//     const order = data[0];
+
+//     setSession({
+//       pax: order.pax,
+//       waiterCode: String(order.waiter),
+//       waiterName: order.waiterName,
+//     });
+
+//     // ✅ store old ordered items separately
+//     const oldItems = order.food.map((f: any) => ({
+//       id: f.itemCode,
+//       name: f.food.trim(),
+//       price: f.price,
+//       qty: f.qty,
+//     }));
+
+//     setPastItems(oldItems);
+
+//   } catch (err) {
+//     console.error("Failed to fetch old cart", err);
+//   }
+// };
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   const getNextSubTable = (list: string[]) => {
