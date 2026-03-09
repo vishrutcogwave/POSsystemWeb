@@ -76,3 +76,39 @@ export const createOrder = async (orderData: any) => {
     throw error;
   }
 };
+
+export const getSubTables = async (outlet: string, tableno: string) => {
+  const response = await api.get(
+    "/api/POS/getsubtables",
+    {
+      params: {
+        outlet,
+        tableno,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const getOldCart = async (
+  tableno: string,
+  outlet: string,
+  subtable: string
+) => {
+  const response = await api.get("/api/POS/GetOldCart", {
+    params: {
+      tableno,
+      outlet,
+      subtable,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};

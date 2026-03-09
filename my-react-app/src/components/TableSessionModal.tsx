@@ -4,7 +4,7 @@ import { getStewardList } from "../api/services/products.service";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onStart: (data: { pax: number; waiter: string }) => void;
+onStart: (data: { pax: number; waiterCode: string; waiterName: string }) => void;
   branchcode: string;
     initialPax?: number;
   initialWaiter?: string;
@@ -30,8 +30,18 @@ const TableSessionModal: React.FC<Props> = ({
   initialWaiter
  
 }) => {
+  console.log("initialWaiter",initialWaiter);
+  
   const [pax, setPax] = useState(initialPax || 2);
 const [waiter, setWaiter] = useState(initialWaiter || "");
+
+useEffect(() => {
+  if (!isOpen) return;
+
+  if (initialPax) setPax(initialPax);
+  if (initialWaiter) setWaiter(initialWaiter);
+
+}, [initialPax, initialWaiter, isOpen]);
   const [stewards, setStewards] = useState<Steward[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -112,10 +122,10 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
                 {stewards.map((steward) => (
                   <button
                     key={steward.stwCode}
-                    onClick={() => setWaiter(steward.stwName)}
+                 onClick={() => setWaiter(String(steward.stwCode))}
                     className={`rounded-lg border px-4 py-3 text-sm font-medium
                       ${
-                        waiter === steward.stwName
+                    waiter === String(steward.stwCode)
                           ? "border-[#0576B2] bg-blue-50 text-[#0576B2]"
                           : "border-gray-300 text-gray-700"
                       }`}
@@ -139,7 +149,14 @@ const [waiter, setWaiter] = useState(initialWaiter || "");
 
           <button
             disabled={!waiter}
-            onClick={() => onStart({ pax, waiter })}
+           onClick={() =>
+  onStart({
+    pax,
+    waiterCode: waiter,
+    waiterName:
+      stewards.find((s) => String(s.stwCode) === waiter)?.stwName || "",
+  })
+}
             className="rounded-lg bg-[#0576B2] px-8 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             START ORDER

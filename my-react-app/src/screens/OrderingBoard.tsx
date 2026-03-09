@@ -12,7 +12,8 @@ import Loader from "../components/Loader";
 import { type Category, type CartItem } from "../utils";
 import {
   createOrder,
-  getItemCategoryList,
+  getOldCart,
+  getSubTables,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
@@ -40,6 +41,9 @@ function OrderingBoard() {
     }) || {};
 
   /* ---------------- CATEGORY STATE ---------------- */
+  const [subTables, setSubTables] = useState<string[]>([]);
+  const [pastItems, setPastItems] = useState<CartItem[]>([]);
+  const [selectedSubTable, setSelectedSubTable] = useState<string>("");
   const [kot, setKot] = useState<Bill[]>([]);
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
   const [openSessionModal, setOpenSessionModal] = useState(false);
@@ -47,7 +51,6 @@ function OrderingBoard() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [kotLoading, setKotLoading] = useState(false);
-
   const [activeCategory, setActiveCategory] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(true);
@@ -55,12 +58,87 @@ function OrderingBoard() {
     null,
   );
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
-  const [session, setSession] = useState<{
-    pax: number;
-    waiter: string;
-  } | null>(null);
+const [session, setSession] = useState<{
+  pax: number;
+  waiterCode: string;
+  waiterName: string;
+} | null>(null);
   const { activeOltName } = useActiveOLT(); // ✅ use context
 
+  const fetchSubTables = async () => {
+    try {
+      const outlet = localStorage.getItem("activeOltCode") || "";
+      const table = tableData.tableNumber || "";
+
+      const data = await getSubTables(outlet, table);
+
+      const cleaned = (data || []).filter((s: string) => s && s.trim() !== "");
+
+      if (cleaned.length === 0) {
+        setSubTables(["A"]);
+      } else {
+        setSubTables(cleaned);
+      }
+    } catch (err) {
+      console.error("Failed to load subtables", err);
+    }
+  };
+
+  // const fetchOldCart = async (sub: string) => {
+  //   try {
+  //     const outlet = localStorage.getItem("activeOltCode") || "";
+  //     const table = tableData.tableNumber || "";
+
+  //     const data = await getOldCart(table, outlet, sub);
+
+  //     setOldCartData(data); // store response only
+
+  //     console.log("Old Cart:", data);
+  //   } catch (err) {
+  //     console.error("Failed to fetch old cart", err);
+  //   }
+  // };
+const fetchOldCart = async (sub: string) => {
+  try {
+    const outlet = localStorage.getItem("activeOltCode") || "";
+    const table = tableData.tableNumber || "";
+
+    const data = await getOldCart(table, outlet, sub);
+
+    if (!data || data.length === 0) return;
+
+    const order = data[0];
+
+    setSession({
+      pax: order.pax,
+      waiterCode: String(order.waiter),
+      waiterName: order.waiterName,
+    });
+
+    // ✅ store old ordered items separately
+    const oldItems = order.food.map((f: any) => ({
+      id: f.itemCode,
+      name: f.food.trim(),
+      price: f.price,
+      qty: f.qty,
+    }));
+
+    setPastItems(oldItems);
+
+  } catch (err) {
+    console.error("Failed to fetch old cart", err);
+  }
+};
+  const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  const getNextSubTable = (list: string[]) => {
+    if (!list || list.length === 0) return "A";
+
+    const last = list[list.length - 1];
+    const index = ALPHABETS.indexOf(last);
+
+    return ALPHABETS[index + 1];
+  };
   useEffect(() => {
     if (!items.length) return;
 
@@ -79,13 +157,16 @@ function OrderingBoard() {
     setCategoryLoading(false);
   }, [items]);
 
-
   /* ---------------- BILL STATES ---------------- */
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
-    if (tableData.status === "Available") setOpenSessionModal(true);
-    else if (tableData.status === "Occupied") setOpenKOTModal(true);
+    if (tableData.status === "Available") {
+      setOpenSessionModal(true);
+    } else if (tableData.status === "Occupied") {
+      fetchSubTables(); // ✅ load A,B,C
+      setOpenKOTModal(true);
+    }
   }, [tableData.status]);
 
   /* ---------------- SYNC CART ---------------- */
@@ -114,7 +195,10 @@ function OrderingBoard() {
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
   const handleAdd = (itemCode: number) => {
-    if (!activeBillId) return;
+    if (!session) {
+  toast.error("Start table session first");
+  return;
+}
 
     const food = items
       .flatMap((cat: any) => cat.items)
@@ -161,7 +245,7 @@ function OrderingBoard() {
   const handleKOT = async () => {
     if (!session || cart.length === 0) return;
 
-    setKotLoading(true); // ✅ start loader
+    setKotLoading(true);
 
     const branch = localStorage.getItem("branch") || "";
     const outlate = localStorage.getItem("activeOltCode") || "";
@@ -169,12 +253,13 @@ function OrderingBoard() {
     const payload = {
       userCode: 3,
       table: tableData.tableNumber || "",
-      subTable: "A",
+      subTable: selectedSubTable || "A", // ✅ important
       outlet: outlate,
       outletName: activeOltName,
-      waiter: "2",
-      waiterName: session.waiter,
+     waiter: session.waiterCode,
+waiterName: session.waiterName,
       pax: session.pax,
+
       food: cart.map((i) => ({
         id: i.id,
         food: i.name,
@@ -185,8 +270,10 @@ function OrderingBoard() {
         category: activeCategory || 0,
         origQty: i.qty,
       })),
+
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
       totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+
       branch: branch,
       type: "CASH",
       ncCode: 0,
@@ -202,6 +289,7 @@ function OrderingBoard() {
       guestCode: "234",
       checkInNo: "",
       kotMobileNo: "3456789021",
+
       homeDelivary: {
         guestCode: 0,
         titleGn1: 0,
@@ -223,14 +311,16 @@ function OrderingBoard() {
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
 
-      setCart([]);
-      navigate("/NewOrder");
+   setCart([]);
+setSession(null);
+navigate("/NewOrder");
+
       toast.success("KOT created successfully! ✅");
     } catch (err) {
       console.error("Failed to create KOT:", err);
       toast.error("Failed to create KOT ❌");
     } finally {
-      setKotLoading(false); // ✅ stop loader
+      setKotLoading(false);
     }
   };
   /* ---------------- GLOBAL LOADER ---------------- */
@@ -265,7 +355,7 @@ function OrderingBoard() {
               </span>
 
               <span className="flex items-center gap-1 bg-purple-50 text-purple-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
-                🧑‍🍳 {session.waiter}
+             🧑‍🍳 {session.waiterName}
               </span>
             </div>
 
@@ -314,14 +404,15 @@ function OrderingBoard() {
           onUpdateNote={(id) => {
             setInstructionItemId(id);
             setOpenInstructionModal(true);
-          }}
+          } }
           onKOT={handleKOT}
           kotLoading={kotLoading} // ✅ pass loader state
-        />
+          pastItems={pastItems}     />
       </div>
 
       {/* MOBILE CART */}
       <MobileCartButton
+      pastItems={pastItems}
         cart={cart}
         increaseQty={increaseQty}
         decreaseQty={decreaseQty}
@@ -337,15 +428,19 @@ function OrderingBoard() {
       <TableSessionModal
         isOpen={openSessionModal}
         initialPax={session?.pax}
-        initialWaiter={session?.waiter}
+     initialWaiter={session?.waiterCode}
         onClose={() => {
           setOpenSessionModal(false);
           navigate("/NewOrder");
         }}
-        onStart={({ pax, waiter }) => {
-          const newBill: Bill = { id: Date.now(), pax, waiter, items: [] };
+       onStart={({ pax, waiterCode, waiterName }) => {
+  const newBill: Bill = { id: Date.now(), pax, waiter: waiterName, items: [] };
 
-          setSession({ pax, waiter });
+         setSession({
+    pax,
+    waiterCode,
+    waiterName
+  });
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
           setCart([]);
@@ -357,16 +452,19 @@ function OrderingBoard() {
       {/* KOT MODAL */}
       <KotModal
         isOpen={openKOTModal}
-        bills={kot}
+        bills={subTables}
         onClose={() => navigate("/NewOrder")}
-        onSelectBill={(id) => {
-          const selectedBill = kot.find((b) => b.id === id);
-          if (!selectedBill) return;
-          setCart(selectedBill.items.map((item) => ({ ...item })));
-          setActiveBillId(id);
+        onSelectBill={async (sub) => {
+          setSelectedSubTable(sub);
+
+          await fetchOldCart(sub); // call GetOldCart API
+
           setOpenKOTModal(false);
         }}
         onNewBill={() => {
+          const next = getNextSubTable(subTables); // generate next letter
+          setSelectedSubTable(next);
+
           setOpenKOTModal(false);
           setOpenSessionModal(true);
         }}

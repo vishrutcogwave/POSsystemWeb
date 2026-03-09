@@ -1,17 +1,9 @@
 import React from "react";
-import type { CartItem } from "../utils";
-
-type Bill = {
-  id: number;
-  pax: number;
-  waiter: string;
-  items: CartItem[];
-};
 
 type Props = {
   isOpen: boolean;
-  bills: Bill[];
-  onSelectBill: (id: number) => void;
+  bills: string[];
+  onSelectBill: (sub: string) => void;
   onNewBill: () => void;
   onClose: () => void;
 };
@@ -30,30 +22,28 @@ const KotModal: React.FC<Props> = ({
       <div className="w-full max-w-lg rounded-xl bg-white p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Table Bills</h2>
-          <button onClick={onClose} className="text-xl">×</button>
+          <button onClick={onClose} className="text-xl">
+            ×
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {bills.map((bill, index) => (
+          {bills.map((sub) => (
             <button
-              key={bill.id}
-              onClick={() => onSelectBill(bill.id)}
+              key={sub}
+              onClick={() => onSelectBill(sub)}
               className="rounded-lg border p-4 text-left hover:bg-blue-50"
             >
-              <p className="font-semibold">Bill {index + 1}</p>
-              <p className="text-xs text-gray-500">
-                {bill.pax} Pax · {bill.waiter}
-              </p>
+              <p className="font-semibold">{sub}</p>
             </button>
           ))}
 
-          {/* NEW BILL */}
-         <button
-      onClick={onNewBill}
-      className="rounded-lg border-2 border-dashed border-[#0576B2]  bg-white p-4 text-[#0576B2] font-semibold"
-    >
-      ➕ New Bill
-    </button>
+          <button
+            onClick={onNewBill}
+            className="rounded-lg border-2 border-dashed border-[#0576B2] bg-white p-4 text-[#0576B2] font-semibold"
+          >
+            ➕ New Bill
+          </button>
         </div>
       </div>
     </div>

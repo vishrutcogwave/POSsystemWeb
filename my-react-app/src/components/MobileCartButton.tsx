@@ -4,16 +4,17 @@ import CartPanel from "./CartPanel";
 
 type MobileCartProps = {
   cart: CartItem[];
+  pastItems: CartItem[];
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
-  onUpdateNote: (id: number) => void; // now triggers modal
-      onKOT: () => void; // NEW
-        kotLoading:boolean
+  onUpdateNote: (id: number) => void;
+  onKOT: () => void;
+  kotLoading: boolean;
 };
-
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   cart,
+  pastItems,
   increaseQty,
   decreaseQty,
   setCart,
@@ -51,6 +52,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              pastItems={pastItems}
               kotLoading={kotLoading}
               onKOT={onKOT}
                 items={cart}
