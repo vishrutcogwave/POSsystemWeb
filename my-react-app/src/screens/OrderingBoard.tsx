@@ -10,7 +10,10 @@ import { MobileCartButton } from "../components/MobileCartButton";
 import Loader from "../components/Loader";
 
 import { type Category, type CartItem } from "../utils";
-import { createOrder, getItemCategoryList } from "../api/services/products.service";
+import {
+  createOrder,
+  getItemCategoryList,
+} from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
 import { useActiveOLT } from "../context/ActiveOLTContext";
@@ -28,6 +31,7 @@ function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { items, loading } = useItems(); // Items from context
+  console.log("items", items);
 
   const tableData =
     (location.state as {
@@ -55,35 +59,51 @@ function OrderingBoard() {
     pax: number;
     waiter: string;
   } | null>(null);
-   const { activeOltName } = useActiveOLT(); // ✅ use context
-
-
+  const { activeOltName } = useActiveOLT(); // ✅ use context
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setCategoryLoading(true);
-        const branch = localStorage.getItem("branch") || "";
-        const data = await getItemCategoryList(branch);
+    if (!items.length) return;
 
-        const mapped: Category[] = data.map((item: any) => ({
-          id: item.catCode,
-          name: item.catName.trim(),
-          image: item.thumbnail || "",
-        }));
+    const mapped: Category[] = items.map((cat: any) => ({
+      id: cat.catCode,
+      name: cat.catName.trim(),
+      image: cat.catthumb || "",
+    }));
 
-        setCategories(mapped);
+    setCategories(mapped);
 
-        if (mapped.length > 0) setActiveCategory(mapped[0].id);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setCategoryLoading(false);
-      }
-    };
+    if (mapped.length > 0) {
+      setActiveCategory(mapped[0].id);
+    }
 
-    fetchCategories();
-  }, []);
+    setCategoryLoading(false);
+  }, [items]);
+
+  // useEffect(() => {
+  //   const fetchCategories = async () => {
+  //     try {
+  //       setCategoryLoading(true);
+  //       const branch = localStorage.getItem("branch") || "";
+  //       const data = await getItemCategoryList(branch);
+
+  //       const mapped: Category[] = data.map((item: any) => ({
+  //         id: item.catCode,
+  //         name: item.catName.trim(),
+  //         image: item.thumbnail || "",
+  //       }));
+
+  //       setCategories(mapped);
+
+  //       if (mapped.length > 0) setActiveCategory(mapped[0].id);
+  //     } catch (error) {
+  //       console.error("Error fetching categories:", error);
+  //     } finally {
+  //       setCategoryLoading(false);
+  //     }
+  //   };
+
+  //   fetchCategories();
+  // }, []);
 
   /* ---------------- BILL STATES ---------------- */
 
@@ -109,18 +129,21 @@ function OrderingBoard() {
 
   /* ---------------- FILTER ITEMS ---------------- */
   const foods = useMemo(() => {
-    return items
-      .filter((item) => item.catCode === activeCategory)
-      .filter((item) =>
-        item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-  }, [items, activeCategory, searchTerm]);
+    const category = items.find((cat: any) => cat.catCode === activeCategory);
 
+    if (!category) return [];
+
+    return category.items.filter((item: any) =>
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
   const handleAdd = (itemCode: number) => {
     if (!activeBillId) return;
 
-    const food = items.find((i) => i.itemCode === itemCode);
+    const food = items
+      .flatMap((cat: any) => cat.items)
+      .find((i: any) => i.itemCode === itemCode);
     if (!food) return;
 
     setCart((prev) => {
@@ -160,86 +183,81 @@ function OrderingBoard() {
     setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
   };
 
+  const handleKOT = async () => {
+    if (!session || cart.length === 0) return;
 
+    setKotLoading(true); // ✅ start loader
 
-const handleKOT = async () => {
-  if (!session || cart.length === 0) return;
+    const branch = localStorage.getItem("branch") || "";
+    const outlate = localStorage.getItem("activeOltCode") || "";
 
-  setKotLoading(true); // ✅ start loader
-
-  const branch = localStorage.getItem("branch") || "";
-  const outlate = localStorage.getItem("activeOltCode") || "";
-
-  const payload = {
-    userCode: 3,
-    table: tableData.tableNumber || "",
-    subTable: "1",
-    outlet: outlate,
-    outletName: activeOltName,
-    waiter: "2",
-    waiterName: session.waiter,
-    pax: session.pax,
-    food: cart.map((i) => ({
-      id: i.id,
-      food: i.name,
-      code: i.id.toString(),
-      price: i.price,
-      qty: i.qty,
-      comment: i.note || "",
-      category: activeCategory || 0,
-      origQty: i.qty,
-    })),
-    total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
-    totQty: cart.reduce((sum, i) => sum + i.qty, 0),
-    branch: branch,
-    type: "CASH",
-    ncCode: 0,
-    ncRemarks: "",
-    discount: 0,
-    discountType: "",
-    discountRemarks: "",
-    vRemarks: "1",
-    mode: "CASH",
-    subBillType: "DIRECT",
-    plan: "",
-    guestName: "adc",
-    guestCode: "234",
-    checkInNo: "",
-    kotMobileNo: "3456789021",
-    homeDelivary: {
-      guestCode: 0,
-      titleGn1: 0,
-      guestName: "",
-      dob: new Date().toISOString(),
-      address: "",
-      city: "",
-      phone: "",
-      email: "",
-      remarks: "",
-      lastModify: new Date().toISOString(),
+    const payload = {
+      userCode: 3,
+      table: tableData.tableNumber || "",
+      subTable: "1",
+      outlet: outlate,
+      outletName: activeOltName,
+      waiter: "2",
+      waiterName: session.waiter,
+      pax: session.pax,
+      food: cart.map((i) => ({
+        id: i.id,
+        food: i.name,
+        code: i.id.toString(),
+        price: i.price,
+        qty: i.qty,
+        comment: i.note || "",
+        category: activeCategory || 0,
+        origQty: i.qty,
+      })),
+      total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
+      totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+      branch: branch,
+      type: "CASH",
+      ncCode: 0,
+      ncRemarks: "",
       discount: 0,
-      branch_code: branch,
-      isUpdate: 0,
-    },
+      discountType: "",
+      discountRemarks: "",
+      vRemarks: "1",
+      mode: "CASH",
+      subBillType: "DIRECT",
+      plan: "",
+      guestName: "adc",
+      guestCode: "234",
+      checkInNo: "",
+      kotMobileNo: "3456789021",
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: new Date().toISOString(),
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: new Date().toISOString(),
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    };
+
+    try {
+      const res = await createOrder(payload);
+      console.log("KOT Created:", res);
+
+      setCart([]);
+      navigate("/NewOrder");
+      toast.success("KOT created successfully! ✅");
+    } catch (err) {
+      console.error("Failed to create KOT:", err);
+      toast.error("Failed to create KOT ❌");
+    } finally {
+      setKotLoading(false); // ✅ stop loader
+    }
   };
-
-
-
-
-  try {
-    const res = await createOrder(payload);
-    console.log("KOT Created:", res);
-
-    setCart([]);
-    navigate("/NewOrder")
-    toast.success("KOT created successfully! ✅");
-  } catch (err) {
-    console.error("Failed to create KOT:", err);
-    toast.error("Failed to create KOT ❌");
-  } finally {
-    setKotLoading(false); // ✅ stop loader
-  }
-};
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
@@ -313,33 +331,33 @@ const handleKOT = async () => {
 
       {/* CART PANEL */}
       <div className="hidden lg:block">
-       <CartPanel
-  items={cart}
-  onIncrease={increaseQty}
-  onDecrease={decreaseQty}
-  onClear={() => setCart([])}
-  onUpdateNote={(id) => {
-    setInstructionItemId(id);
-    setOpenInstructionModal(true);
-  }}
-  onKOT={handleKOT}
-  kotLoading={kotLoading} // ✅ pass loader state
-/>
+        <CartPanel
+          items={cart}
+          onIncrease={increaseQty}
+          onDecrease={decreaseQty}
+          onClear={() => setCart([])}
+          onUpdateNote={(id) => {
+            setInstructionItemId(id);
+            setOpenInstructionModal(true);
+          }}
+          onKOT={handleKOT}
+          kotLoading={kotLoading} // ✅ pass loader state
+        />
       </div>
 
       {/* MOBILE CART */}
-     <MobileCartButton
-  cart={cart}
-  increaseQty={increaseQty}
-  decreaseQty={decreaseQty}
-  setCart={setCart}
-  onUpdateNote={(id) => {
-    setInstructionItemId(id);
-    setOpenInstructionModal(true);
-  }}
-  onKOT={handleKOT}
-  kotLoading={kotLoading} // ✅ pass loader state
-/>
+      <MobileCartButton
+        cart={cart}
+        increaseQty={increaseQty}
+        decreaseQty={decreaseQty}
+        setCart={setCart}
+        onUpdateNote={(id) => {
+          setInstructionItemId(id);
+          setOpenInstructionModal(true);
+        }}
+        onKOT={handleKOT}
+        kotLoading={kotLoading} // ✅ pass loader state
+      />
       {/* SESSION MODAL */}
       <TableSessionModal
         isOpen={openSessionModal}
