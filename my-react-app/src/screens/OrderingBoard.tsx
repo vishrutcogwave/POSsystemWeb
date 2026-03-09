@@ -58,11 +58,11 @@ function OrderingBoard() {
     null,
   );
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
-const [session, setSession] = useState<{
-  pax: number;
-  waiterCode: string;
-  waiterName: string;
-} | null>(null);
+  const [session, setSession] = useState<{
+    pax: number;
+    waiterCode: string;
+    waiterName: string;
+  } | null>(null);
   const { activeOltName } = useActiveOLT(); // ✅ use context
 
   const fetchSubTables = async () => {
@@ -85,72 +85,71 @@ const [session, setSession] = useState<{
   };
 
   const fetchOldCart = async (sub: string) => {
-  try {
-    const outlet = localStorage.getItem("activeOltCode") || "";
-    const table = tableData.tableNumber || "";
+    try {
+      const outlet = localStorage.getItem("activeOltCode") || "";
+      const table = tableData.tableNumber || "";
 
-    const data = await getOldCart(table, outlet, sub);
+      const data = await getOldCart(table, outlet, sub);
 
-    if (!data || data.length === 0) return;
+      if (!data || data.length === 0) return;
 
-    // session info from first order
-    const first = data[0];
+      // session info from first order
+      const first = data[0];
 
-    setSession({
-      pax: first.pax,
-      waiterCode: String(first.waiter),
-      waiterName: first.waiterName,
-    });
+      setSession({
+        pax: first.pax,
+        waiterCode: String(first.waiter),
+        waiterName: first.waiterName,
+      });
 
-    // ✅ combine all food items from all KOTs
-    const allFoods = data.flatMap((order: any) => order.food);
+      // ✅ combine all food items from all KOTs
+      const allFoods = data.flatMap((order: any) => order.food);
 
-    const oldItems = allFoods.map((f: any) => ({
-      id: f.itemCode,
-      name: f.food.trim(),
-      price: f.price,
-      qty: f.qty,
-    }));
+      const oldItems = allFoods.map((f: any) => ({
+        id: f.itemCode,
+        name: f.food.trim(),
+        price: f.price,
+        qty: f.qty,
+      }));
 
-    setPastItems(oldItems);
+      setPastItems(oldItems);
 
-    console.log("All old items:", oldItems);
+      console.log("All old items:", oldItems);
+    } catch (err) {
+      console.error("Failed to fetch old cart", err);
+    }
+  };
+  // const fetchOldCart = async (sub: string) => {
+  //   try {
+  //     const outlet = localStorage.getItem("activeOltCode") || "";
+  //     const table = tableData.tableNumber || "";
 
-  } catch (err) {
-    console.error("Failed to fetch old cart", err);
-  }
-};
-// const fetchOldCart = async (sub: string) => {
-//   try {
-//     const outlet = localStorage.getItem("activeOltCode") || "";
-//     const table = tableData.tableNumber || "";
+  //     const data = await getOldCart(table, outlet, sub);
 
-//     const data = await getOldCart(table, outlet, sub);
+  //     if (!data || data.length === 0) return;
 
-//     if (!data || data.length === 0) return;
+  //     const order = data[0];
 
-//     const order = data[0];
+  //     setSession({
+  //       pax: order.pax,
+  //       waiterCode: String(order.waiter),
+  //       waiterName: order.waiterName,
+  //     });
 
-//     setSession({
-//       pax: order.pax,
-//       waiterCode: String(order.waiter),
-//       waiterName: order.waiterName,
-//     });
+  //     // ✅ store old ordered items separately
+  //     const oldItems = order.food.map((f: any) => ({
+  //       id: f.itemCode,
+  //       name: f.food.trim(),
+  //       price: f.price,
+  //       qty: f.qty,
+  //     }));
 
-//     // ✅ store old ordered items separately
-//     const oldItems = order.food.map((f: any) => ({
-//       id: f.itemCode,
-//       name: f.food.trim(),
-//       price: f.price,
-//       qty: f.qty,
-//     }));
+  //     setPastItems(oldItems);
 
-//     setPastItems(oldItems);
-
-//   } catch (err) {
-//     console.error("Failed to fetch old cart", err);
-//   }
-// };
+  //   } catch (err) {
+  //     console.error("Failed to fetch old cart", err);
+  //   }
+  // };
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   const getNextSubTable = (list: string[]) => {
@@ -218,9 +217,9 @@ const [session, setSession] = useState<{
   /* ---------------- CART ACTIONS ---------------- */
   const handleAdd = (itemCode: number) => {
     if (!session) {
-  toast.error("Start table session first");
-  return;
-}
+      toast.error("Start table session first");
+      return;
+    }
 
     const food = items
       .flatMap((cat: any) => cat.items)
@@ -278,8 +277,8 @@ const [session, setSession] = useState<{
       subTable: selectedSubTable || "A", // ✅ important
       outlet: outlate,
       outletName: activeOltName,
-     waiter: session.waiterCode,
-waiterName: session.waiterName,
+      waiter: session.waiterCode,
+      waiterName: session.waiterName,
       pax: session.pax,
 
       food: cart.map((i) => ({
@@ -333,9 +332,9 @@ waiterName: session.waiterName,
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
 
-   setCart([]);
-setSession(null);
-navigate("/NewOrder");
+      setCart([]);
+      setSession(null);
+      navigate("/NewOrder");
 
       toast.success("KOT created successfully! ✅");
     } catch (err) {
@@ -377,31 +376,32 @@ navigate("/NewOrder");
               </span>
 
               <span className="flex items-center gap-1 bg-purple-50 text-purple-600 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
-             🧑‍🍳 {session.waiterName}
+                🧑‍🍳 {session.waiterName}
               </span>
-                 {selectedSubTable && (
-        <span className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
-        {selectedSubTable}
-        </span>
-      )}
+              {selectedSubTable && (
+                <span className="flex items-center gap-1 bg-yellow-50 text-yellow-700 px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
+                  {selectedSubTable}
+                </span>
+              )}
             </div>
-  
+
             {/* EDIT BUTTON */}
-            {tableData.status === "Available"&&
-            <button
-              onClick={() => setOpenSessionModal(true)}
-              className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
-            >
-              ✏ Edit
-            </button>}
-             {tableData.status === "Occupied"&&
-            <button
-              onClick={() => setOpenKOTModal(true)}
-              className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
-            >
-              ✏ Edit
-            </button>}
-            
+            {tableData.status === "Available" && (
+              <button
+                onClick={() => setOpenSessionModal(true)}
+                className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+              >
+                ✏ Edit
+              </button>
+            )}
+            {tableData.status === "Occupied" && (
+              <button
+                onClick={() => setOpenKOTModal(true)}
+                className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+              >
+                ✏ Edit
+              </button>
+            )}
           </div>
         )}
         <div className="mb-1">
@@ -440,15 +440,16 @@ navigate("/NewOrder");
           onUpdateNote={(id) => {
             setInstructionItemId(id);
             setOpenInstructionModal(true);
-          } }
+          }}
           onKOT={handleKOT}
           kotLoading={kotLoading} // ✅ pass loader state
-          pastItems={pastItems}     />
+          pastItems={pastItems}
+        />
       </div>
 
       {/* MOBILE CART */}
       <MobileCartButton
-      pastItems={pastItems}
+        pastItems={pastItems}
         cart={cart}
         increaseQty={increaseQty}
         decreaseQty={decreaseQty}
@@ -464,19 +465,24 @@ navigate("/NewOrder");
       <TableSessionModal
         isOpen={openSessionModal}
         initialPax={session?.pax}
-     initialWaiter={session?.waiterCode}
+        initialWaiter={session?.waiterCode}
         onClose={() => {
           setOpenSessionModal(false);
           navigate("/NewOrder");
         }}
-       onStart={({ pax, waiterCode, waiterName }) => {
-  const newBill: Bill = { id: Date.now(), pax, waiter: waiterName, items: [] };
+        onStart={({ pax, waiterCode, waiterName }) => {
+          const newBill: Bill = {
+            id: Date.now(),
+            pax,
+            waiter: waiterName,
+            items: [],
+          };
 
-         setSession({
-    pax,
-    waiterCode,
-    waiterName
-  });
+          setSession({
+            pax,
+            waiterCode,
+            waiterName,
+          });
           setKot((prev) => [...prev, newBill]);
           setActiveBillId(newBill.id);
           setCart([]);
@@ -500,7 +506,7 @@ navigate("/NewOrder");
         onNewBill={() => {
           const next = getNextSubTable(subTables); // generate next letter
           setSelectedSubTable(next);
-  setPastItems([]);
+          setPastItems([]);
 
           setOpenKOTModal(false);
           setOpenSessionModal(true);
