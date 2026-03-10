@@ -5,22 +5,37 @@ import CartPanel from "./CartPanel";
 type MobileCartProps = {
   cart: CartItem[];
   pastItems: CartItem[];
+
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+
   onUpdateNote: (id: number) => void;
   onKOT: () => void;
   kotLoading: boolean;
+
+  ncReasons: any[];
+
+  selectedNcCode: number | null;
+  setSelectedNcCode: (code: number | null) => void;
+
+  ncRemarks: string;
+  setNcRemarks: (text: string) => void;
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   cart,
   pastItems,
+  ncReasons,
   increaseQty,
   decreaseQty,
   setCart,
   onUpdateNote,
   onKOT,
-  kotLoading
+  kotLoading,
+  selectedNcCode,
+  setSelectedNcCode,
+  ncRemarks,
+  setNcRemarks
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -51,16 +66,23 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
 
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
-              <CartPanel
-              pastItems={pastItems}
-              kotLoading={kotLoading}
-              onKOT={onKOT}
-                items={cart}
-                onIncrease={increaseQty}
-                onDecrease={decreaseQty}
-                onClear={() => setCart([])}
-                onUpdateNote={onUpdateNote}
-              />
+            <CartPanel
+  ncReasons={ncReasons}
+  pastItems={pastItems}
+  kotLoading={kotLoading}
+  onKOT={onKOT}
+
+  items={cart}
+  onIncrease={increaseQty}
+  onDecrease={decreaseQty}
+  onClear={() => setCart([])}
+  onUpdateNote={onUpdateNote}
+
+  selectedNcCode={selectedNcCode}
+  setSelectedNcCode={setSelectedNcCode}
+  ncRemarks={ncRemarks}
+  setNcRemarks={setNcRemarks}
+/>
             </div>
 
           </div>

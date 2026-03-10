@@ -112,3 +112,16 @@ export const getOldCart = async (
 
   return response.data;
 };
+
+export const getNCKOT = async () => {
+  const response = await api.get(
+    "/api/POS/getnckot",
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

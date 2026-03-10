@@ -4,6 +4,14 @@ import type { CartItem } from "../utils";
 type CartPanelProps = {
   items: CartItem[];
   pastItems: CartItem[];
+  ncReasons: any[];
+
+  selectedNcCode: number | null;
+  setSelectedNcCode: (code: number | null) => void;
+
+  ncRemarks: string;
+  setNcRemarks: (text: string) => void;
+
   onIncrease: (id: number) => void;
   onDecrease: (id: number) => void;
   onClear: () => void;
@@ -20,16 +28,22 @@ export default function CartPanel({
   onClear,
   onUpdateNote,
   onKOT,
-  kotLoading
+  ncReasons,
+  kotLoading,
+  selectedNcCode,
+  setSelectedNcCode,
+  ncRemarks,
+  setNcRemarks
 }: CartPanelProps) {
 
   const [showPast, setShowPast] = useState(false);
+  const [openNcModal, setOpenNcModal] = useState(false);
 
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
+console.log("ncReasons",ncReasons);
+
 
   return (
+    <>
     <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
 
       {/* HEADER */}
@@ -145,33 +159,133 @@ export default function CartPanel({
       )}
 
       {/* TOTALS */}
-      <div className="border-t p-4 space-y-2 text-sm bg-white">
+     <div className="border-t p-4 bg-white">
 
-        <div className="flex justify-between">
-          <span className="text-gray-500">SUBTOTAL</span>
-          <span>₹ {subtotal.toFixed(2)}</span>
-        </div>
+ <div className="border-t p-4 bg-white space-y-3">
 
-        <div className="flex justify-between">
-          <span className="text-gray-500">TAX (5%)</span>
-          <span>₹ {tax.toFixed(2)}</span>
-        </div>
+  {/* NC TOGGLE BUTTON */}
+<div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
 
-        <div className="flex justify-between font-bold text-blue-700">
-          <span>TOTAL</span>
-          <span>₹ {total.toFixed(2)}</span>
-        </div>
+  {/* LEFT SIDE */}
+  <div className="flex flex-col">
+    <span className="text-sm font-semibold text-orange-700">
+      NC (Non Chargeable)
+    </span>
+
+  
+  </div>
+
+  {/* TOGGLE */}
+  <button
+    onClick={() => {
+      if (selectedNcCode) {
+        setSelectedNcCode(null);
+        setNcRemarks("");
+      } else {
+        setOpenNcModal(true);
+      }
+    }}
+    className={`relative inline-flex h-6 w-12 items-center rounded-full transition ${
+      selectedNcCode ? "bg-orange-500" : "bg-gray-300"
+    }`}
+  >
+    <span
+      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+        selectedNcCode ? "translate-x-6" : "translate-x-1"
+      }`}
+    />
+  </button>
+
+</div>
+  {/* OTHER BUTTONS */}
+  <div className="grid grid-cols-2 gap-3">
+
+   
+    <button
+      disabled={kotLoading}
+      onClick={onKOT}
+      className="bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm"
+    >
+      {kotLoading ? "Creating..." : "KOT"}
+    </button>
+ <button
+      disabled={kotLoading}
+      onClick={onKOT}
+      className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
+    >
+      Void
+    </button>
+
+    <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">
+       Bill
+    </button>
+
+  </div>
+
+</div>
+
+</div>
+
+    </aside>
+    {openNcModal && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+    <div className="bg-white rounded-lg w-80 p-5 space-y-4">
+
+      <h3 className="font-semibold text-lg text-gray-700">
+        Select NC Reason
+      </h3>
+
+      {/* DROPDOWN */}
+   <select
+  className="w-full border rounded px-3 py-2"
+  value={selectedNcCode || ""}
+  onChange={(e) => setSelectedNcCode(Number(e.target.value))}
+>
+  <option value="">Select Reason</option>
+
+  {ncReasons.map((r) => (
+    <option key={r.ncDepCode} value={r.ncDepCode}>
+      {r.ncDepName}
+    </option>
+  ))}
+</select>
+<textarea
+  placeholder="Enter reason / remarks..."
+  value={ncRemarks}
+  onChange={(e) => setNcRemarks(e.target.value)}
+  className="w-full border rounded px-3 py-2 h-20 resize-none"
+/>
+      {/* ACTION BUTTONS */}
+      <div className="flex justify-end gap-2">
 
         <button
-          disabled={kotLoading}
-          onClick={onKOT}
-          className="w-full bg-green-600 text-white py-2 rounded mt-3"
+          onClick={() => setOpenNcModal(false)}
+          className="px-3 py-1 text-sm border rounded"
         >
-          {kotLoading ? "Creating KOT..." : "KOT"}
+          Cancel
         </button>
+
+<button
+  onClick={() => {
+    console.log("NC Code:", selectedNcCode);
+    console.log("NC Remarks:", ncRemarks);
+
+    setOpenNcModal(false);
+  }}
+  className="px-3 py-1 text-sm bg-orange-500 text-white rounded"
+>
+  Confirm
+</button>
 
       </div>
 
-    </aside>
+    </div>
+
+  </div>
+)}</>
+
+
+
   );
 }
