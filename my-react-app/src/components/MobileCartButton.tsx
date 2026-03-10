@@ -19,10 +19,14 @@ type MobileCartProps = {
   selectedNcCode: number | null;
   setSelectedNcCode: (code: number | null) => void;
 
+  status?: string;
+  kotStatus?: string;
   ncRemarks: string;
   setNcRemarks: (text: string) => void;
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
+  status,
+  kotStatus,
   cart,
   pastItems,
   ncReasons,
@@ -30,6 +34,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   decreaseQty,
   setCart,
   onUpdateNote,
+  
   onKOT,
   kotLoading,
   selectedNcCode,
@@ -67,6 +72,8 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
             <CartPanel
+              status={status}
+  kotStatus={kotStatus} 
   ncReasons={ncReasons}
   pastItems={pastItems}
   kotLoading={kotLoading}

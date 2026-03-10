@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState ,useEffect } from "react";
 import type { CartItem } from "../utils";
 
 type CartPanelProps = {
@@ -6,6 +6,8 @@ type CartPanelProps = {
   pastItems: CartItem[];
   ncReasons: any[];
 
+  status?: string;
+  kotStatus?: string;
   selectedNcCode: number | null;
   setSelectedNcCode: (code: number | null) => void;
 
@@ -33,8 +35,15 @@ export default function CartPanel({
   selectedNcCode,
   setSelectedNcCode,
   ncRemarks,
+  kotStatus,
+  status,
   setNcRemarks
 }: CartPanelProps) {
+  useEffect(() => {
+  if (kotStatus === "NCKOT") {
+    setSelectedNcCode(-1); // any value to enable toggle
+  }
+}, [kotStatus]);
 
   const [showPast, setShowPast] = useState(false);
   const [openNcModal, setOpenNcModal] = useState(false);
@@ -177,18 +186,21 @@ console.log("ncReasons",ncReasons);
 
   {/* TOGGLE */}
   <button
-    onClick={() => {
-      if (selectedNcCode) {
-        setSelectedNcCode(null);
-        setNcRemarks("");
-      } else {
-        setOpenNcModal(true);
-      }
-    }}
-    className={`relative inline-flex h-6 w-12 items-center rounded-full transition ${
-      selectedNcCode ? "bg-orange-500" : "bg-gray-300"
-    }`}
-  >
+  disabled={status !== "Available" }
+  onClick={() => {
+    if (selectedNcCode) {
+      setSelectedNcCode(null);
+      setNcRemarks("");
+    } else {
+      setOpenNcModal(true);
+    }
+  }}
+  className={`relative inline-flex h-6 w-12 items-center rounded-full transition ${
+    selectedNcCode ? "bg-orange-500" : "bg-gray-300"
+  } ${(status !== "Available" && kotStatus !== "NCKOT")
+      ? "opacity-50 cursor-not-allowed"
+      : ""}`}
+>
     <span
       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
         selectedNcCode ? "translate-x-6" : "translate-x-1"

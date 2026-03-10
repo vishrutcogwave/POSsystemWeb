@@ -83,6 +83,7 @@ const NewOrder: React.FC = () => {
       state: {
         tableNumber: table.tableNumber,
         status: table.status,
+         kotStatus: table.kotStatus,
       },
     });
   };

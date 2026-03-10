@@ -39,7 +39,9 @@ function OrderingBoard() {
     (location.state as {
       tableNumber?: string;
       status?: "Available" | "Occupied";
+      kotStatus:string
     }) || {};
+console.log(tableData,"tableData");
 
   /* ---------------- CATEGORY STATE ---------------- */
   const [selectedNcCode, setSelectedNcCode] = useState<number | null>(null);
@@ -536,6 +538,8 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          status={tableData?.status}
+  kotStatus={tableData?.kotStatus} 
           items={cart}
           pastItems={pastItems}
           ncReasons={ncReasons}
@@ -557,6 +561,8 @@ function OrderingBoard() {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        status={tableData?.status}
+  kotStatus={tableData?.kotStatus} 
         ncReasons={ncReasons}
         pastItems={pastItems}
         cart={cart}
