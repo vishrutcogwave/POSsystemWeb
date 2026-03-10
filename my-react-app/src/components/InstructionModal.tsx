@@ -1,86 +1,81 @@
 import React, { useState, useEffect } from "react";
 
+type Instruction = {
+  spid: number;
+  spinfo: string;
+};
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (note: string) => void;
+  onSave: (spcodes: string, note: string) => void;
   existingNote?: string;
+    existingSpcodes?: string;   // ⭐ ADD THIS
+  instructions: Instruction[]; // 👈 API instructions
 };
-
-const dummyInstructions = [
-  "Less spicy",
-  "Extra spicy",
-  "No onion",
-  "No garlic",
-  "Extra cheese",
-  "Less oil",
-  "No salt",
-  "Extra salt",
-  "Well cooked",
-  "Half cooked",
-  "Extra gravy",
-  "Dry",
-  "Less oil",
-  "More butter",
-  "No chilli",
-  "Extra chilli",
-];
 
 const InstructionModal: React.FC<Props> = ({
   isOpen,
   onClose,
   onSave,
   existingNote,
+  instructions,
+  existingSpcodes
 }) => {
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   const [custom, setCustom] = useState("");
   const [search, setSearch] = useState("");
 
   /* ---------- PREFILL EXISTING NOTE ---------- */
-  useEffect(() => {
-    if (!isOpen) return;
+useEffect(() => {
+  if (!isOpen) return;
 
-    if (existingNote) {
-      const parts = existingNote.split(",").map((p) => p.trim());
+  if (existingSpcodes) {
+    const ids = existingSpcodes
+      .split(",")
+      .map((id) => Number(id))
+      .filter(Boolean);
 
-      const predefined = parts.filter((p) => dummyInstructions.includes(p));
-      const customText = parts.filter((p) => !dummyInstructions.includes(p));
+    setSelected(ids);
+  } else {
+    setSelected([]);
+  }
 
-      setSelected(predefined);
-      setCustom(customText.join(", "));
-    } else {
-      setSelected([]);
-      setCustom("");
-    }
-  }, [isOpen, existingNote]);
+  setCustom(existingNote || "");
+}, [isOpen, existingSpcodes, existingNote]);
 
   /* ---------- FILTER SEARCH ---------- */
-  const filteredInstructions = dummyInstructions.filter((inst) =>
-    inst.toLowerCase().includes(search.toLowerCase())
+  const filteredInstructions = instructions.filter((inst) =>
+    inst.spinfo.toLowerCase().includes(search.toLowerCase())
   );
 
   /* ---------- TOGGLE SELECT ---------- */
-  const toggleInstruction = (value: string) => {
-    if (selected.includes(value)) {
-      setSelected(selected.filter((v) => v !== value));
+  const toggleInstruction = (id: number) => {
+    if (selected.includes(id)) {
+      setSelected(selected.filter((v) => v !== id));
     } else {
-      setSelected([...selected, value]);
+      setSelected([...selected, id]);
     }
   };
 
   /* ---------- SAVE ---------- */
-  const handleSave = () => {
-    const note = [...selected, custom].filter(Boolean).join(", ");
-    onSave(note);
-  };
+ const handleSave = () => {
+  let values = [...selected.map(String)];
 
+  if (custom.trim() !== "") {
+    values.push(custom.trim());
+  }
+
+  const spcodeString = values.join(","); // "155,189,test"
+
+  onSave(spcodeString, custom);
+};
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl w-full max-w-md p-5 space-y-4">
 
-        {/* HEADER */}
         <h2 className="font-semibold text-lg">Special Instructions</h2>
 
         {/* SEARCH */}
@@ -92,24 +87,24 @@ const InstructionModal: React.FC<Props> = ({
           className="w-full border rounded px-3 py-2 text-sm"
         />
 
-        {/* INSTRUCTION LIST */}
+        {/* INSTRUCTIONS */}
         <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-          {filteredInstructions.map((inst, index) => (
+          {filteredInstructions.map((inst) => (
             <button
-              key={inst + index}
-              onClick={() => toggleInstruction(inst)}
+              key={inst.spid}
+              onClick={() => toggleInstruction(inst.spid)}
               className={`border rounded-lg p-2 text-sm ${
-                selected.includes(inst)
+                selected.includes(inst.spid)
                   ? "bg-blue-600 text-white"
                   : "border-gray-300"
               }`}
             >
-              {inst}
+              {inst.spinfo}
             </button>
           ))}
         </div>
 
-        {/* CUSTOM INPUT */}
+        {/* CUSTOM NOTE */}
         <input
           type="text"
           placeholder="Other instructions..."
@@ -118,12 +113,9 @@ const InstructionModal: React.FC<Props> = ({
           className="w-full border rounded px-3 py-2 text-sm"
         />
 
-        {/* ACTION BUTTONS */}
+        {/* BUTTONS */}
         <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="text-gray-500 text-sm"
-          >
+          <button onClick={onClose} className="text-gray-500 text-sm">
             Cancel
           </button>
 

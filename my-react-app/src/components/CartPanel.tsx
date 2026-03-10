@@ -10,7 +10,7 @@ type CartPanelProps = {
   kotStatus?: string;
   selectedNcCode: number | null;
   setSelectedNcCode: (code: number | null) => void;
-
+  instructions: { spid: number; spinfo: string }[]; 
   ncRemarks: string;
   setNcRemarks: (text: string) => void;
 
@@ -37,7 +37,8 @@ export default function CartPanel({
   ncRemarks,
   kotStatus,
   status,
-  setNcRemarks
+  setNcRemarks,
+  instructions
 }: CartPanelProps) {
   useEffect(() => {
   if (kotStatus === "NCKOT") {
@@ -50,7 +51,17 @@ export default function CartPanel({
 
 console.log("ncReasons",ncReasons);
 
+const getSpinfo = (spcodes?: string) => {
+  if (!spcodes) return "";
 
+  return spcodes
+    .split(",")
+    .map((id) =>
+      instructions.find((i) => i.spid === Number(id))?.spinfo
+    )
+    .filter(Boolean)
+    .join(" • ");
+};
   return (
     <>
     <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
@@ -104,14 +115,21 @@ console.log("ncReasons",ncReasons);
               </div>
 
               <div className="flex justify-between items-center">
-                {item.note ? (
-                  <span className="text-xs text-gray-500 italic truncate max-w-[140px]">
-                    {item.note}
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-400"></span>
-                )}
+<div className="flex flex-col max-w-[150px] overflow-hidden">
 
+  {item.spcodes && (
+    <span className="text-xs text-orange-600 font-medium truncate">
+      {getSpinfo(item.spcodes)}
+    </span>
+  )}
+
+  {item.note && (
+    <span className="text-xs text-gray-500 italic truncate">
+      {item.note}
+    </span>
+  )}
+
+</div>
                 <button
                   onClick={() => onUpdateNote(item.id, "")}
                   className="text-xs text-[#0576B2] font-semibold"

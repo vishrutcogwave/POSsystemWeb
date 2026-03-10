@@ -24,4 +24,5 @@ export type CartItem = {
   price: number;
   qty: number;
   note?: string; // new field for special instructions
+   spcodes?: string;
 };

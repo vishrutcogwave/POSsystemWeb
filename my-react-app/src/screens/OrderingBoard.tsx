@@ -14,6 +14,7 @@ import {
   createOrder,
   getNCKOT,
   getOldCart,
+  getSpecialInfo,
   getSubTables,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
@@ -39,12 +40,13 @@ function OrderingBoard() {
     (location.state as {
       tableNumber?: string;
       status?: "Available" | "Occupied";
-      kotStatus:string
+      kotStatus: string;
     }) || {};
-console.log(tableData,"tableData");
+  console.log(tableData, "tableData");
 
   /* ---------------- CATEGORY STATE ---------------- */
   const [selectedNcCode, setSelectedNcCode] = useState<number | null>(null);
+  const [instructions, setInstructions] = useState<any[]>([]);
   const [ncRemarks, setNcRemarks] = useState("");
   const [ncReasons, setNcReasons] = useState<any[]>([]);
   const [subTables, setSubTables] = useState<string[]>([]);
@@ -70,17 +72,29 @@ console.log(tableData,"tableData");
     waiterName: string;
   } | null>(null);
   const { activeOltName } = useActiveOLT(); // ✅ use context
-  useEffect(() => {
-    const fetchNcReasons = async () => {
-      try {
-        const data = await getNCKOT();
-        setNcReasons(data || []);
-      } catch (err) {
-        console.error("Failed to fetch NC reasons", err);
-      }
-    };
 
-    fetchNcReasons();
+  const fetchInstructions = async () => {
+    try {
+      const data = await getSpecialInfo();
+      console.log("spdata", data);
+
+      setInstructions(data || []);
+    } catch (err) {
+      console.error("Failed to fetch special instructions", err);
+    }
+  };
+  const fetchNcReasons = async () => {
+    try {
+      const data = await getNCKOT();
+      setNcReasons(data || []);
+    } catch (err) {
+      console.error("Failed to fetch NC reasons", err);
+    }
+  };
+
+  useEffect(() => {
+    void fetchNcReasons();
+    void fetchInstructions();
   }, []);
 
   const fetchSubTables = async () => {
@@ -277,8 +291,10 @@ console.log(tableData,"tableData");
     );
   };
 
-  const updateCartNote = (id: number, note: string) => {
-    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, note } : i)));
+  const updateCartNote = (id: number, spcodes: string, note: string) => {
+    setCart((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, spcodes, note } : i)),
+    );
   };
 
   // const handleKOT = async () => {
@@ -363,92 +379,92 @@ console.log(tableData,"tableData");
   //   }
   // };
   const handleKOT = async () => {
-  if (!session || cart.length === 0) return;
+    if (!session || cart.length === 0) return;
 
-  setKotLoading(true);
+    setKotLoading(true);
 
-  const branch = localStorage.getItem("branch") || "";
-  const outlet = localStorage.getItem("activeOltCode") || "";
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
 
-  // Determine if NC is active
-  const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    // Determine if NC is active
+    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
-  const payload = {
-    userCode: 3,
-    table: tableData.tableNumber || "",
-    subTable: selectedSubTable || "A",
-    outlet,
-    outletName: activeOltName,
-    waiter: session.waiterCode,
-    waiterName: session.waiterName,
-    pax: session.pax,
+    const payload = {
+      userCode: 3,
+      table: tableData.tableNumber || "",
+      subTable: selectedSubTable || "A",
+      outlet,
+      outletName: activeOltName,
+      waiter: session.waiterCode,
+      waiterName: session.waiterName,
+      pax: session.pax,
 
-    food: cart.map((i) => ({
-      id: i.id,
-      food: i.name,
-      code: i.id.toString(),
-      price: i.price,
-      qty: i.qty,
-      comment: i.note || "",
-      category: activeCategory || 0,
-      origQty: i.qty,
-    })),
+      food: cart.map((i) => ({
+        id: i.id,
+        food: i.name,
+        code: i.id.toString(),
+        price: i.price,
+        qty: i.qty,
+        comment: i.spcodes || "", // optional manual note
+        category: activeCategory || 0,
+        origQty: i.qty,
+      })),
 
-    total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
-    totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+      total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
+      totQty: cart.reduce((sum, i) => sum + i.qty, 0),
 
-    branch,
-    type: isNC ? "N" : "K",          // <-- NC type
-    ncCode: isNC ? selectedNcCode : 0, // <-- NC code
-    ncRemarks: isNC ? ncRemarks : "",   // <-- NC remarks
-    discount: 0,
-    discountType: "",
-    discountRemarks: "",
-    vRemarks: "1",
-    mode: "ADD",
-    subBillType: "S",
-    plan: "",
-    guestName: "adc",
-    guestCode: "234",
-    checkInNo: "",
-    kotMobileNo: "3456789021",
-
-    homeDelivary: {
-      guestCode: 0,
-      titleGn1: 0,
-      guestName: "",
-      dob: new Date().toISOString(),
-      address: "",
-      city: "",
-      phone: "",
-      email: "",
-      remarks: "",
-      lastModify: new Date().toISOString(),
+      branch,
+      type: isNC ? "N" : "K", // <-- NC type
+      ncCode: isNC ? selectedNcCode : 0, // <-- NC code
+      ncRemarks: isNC ? ncRemarks : "", // <-- NC remarks
       discount: 0,
-      branch_code: branch,
-      isUpdate: 0,
-    },
+      discountType: "",
+      discountRemarks: "",
+      vRemarks: "1",
+      mode: "ADD",
+      subBillType: "S",
+      plan: "",
+      guestName: "adc",
+      guestCode: "234",
+      checkInNo: "",
+      kotMobileNo: "3456789021",
+
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: new Date().toISOString(),
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: new Date().toISOString(),
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    };
+
+    try {
+      const res = await createOrder(payload);
+      console.log("KOT Created:", res);
+
+      // Reset everything after KOT
+      setCart([]);
+      setSession(null);
+      setSelectedNcCode(null); // <-- reset NC
+      setNcRemarks(""); // <-- reset remarks
+      navigate("/NewOrder");
+
+      toast.success("KOT created successfully! ✅");
+    } catch (err) {
+      console.error("Failed to create KOT:", err);
+      toast.error("Failed to create KOT ❌");
+    } finally {
+      setKotLoading(false);
+    }
   };
-
-  try {
-    const res = await createOrder(payload);
-    console.log("KOT Created:", res);
-
-    // Reset everything after KOT
-    setCart([]);
-    setSession(null);
-    setSelectedNcCode(null);  // <-- reset NC
-    setNcRemarks("");         // <-- reset remarks
-    navigate("/NewOrder");
-
-    toast.success("KOT created successfully! ✅");
-  } catch (err) {
-    console.error("Failed to create KOT:", err);
-    toast.error("Failed to create KOT ❌");
-  } finally {
-    setKotLoading(false);
-  }
-};
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
@@ -538,8 +554,9 @@ console.log(tableData,"tableData");
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          instructions={instructions}
           status={tableData?.status}
-  kotStatus={tableData?.kotStatus} 
+          kotStatus={tableData?.kotStatus}
           items={cart}
           pastItems={pastItems}
           ncReasons={ncReasons}
@@ -561,8 +578,9 @@ console.log(tableData,"tableData");
 
       {/* MOBILE CART */}
       <MobileCartButton
+        instructions={instructions}
         status={tableData?.status}
-  kotStatus={tableData?.kotStatus} 
+        kotStatus={tableData?.kotStatus}
         ncReasons={ncReasons}
         pastItems={pastItems}
         cart={cart}
@@ -636,9 +654,11 @@ console.log(tableData,"tableData");
         isOpen={openInstructionModal}
         onClose={() => setOpenInstructionModal(false)}
         existingNote={selectedItem?.note}
-        onSave={(note) => {
+        existingSpcodes={selectedItem?.spcodes}
+        instructions={instructions}
+        onSave={(spcodes, note) => {
           if (instructionItemId !== null) {
-            updateCartNote(instructionItemId, note);
+            updateCartNote(instructionItemId, spcodes, note);
           }
           setInstructionItemId(null);
           setOpenInstructionModal(false);

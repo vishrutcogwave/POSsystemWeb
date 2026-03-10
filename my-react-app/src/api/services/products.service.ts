@@ -125,3 +125,13 @@ export const getNCKOT = async () => {
 
   return response.data;
 };
+
+export const getSpecialInfo = async () => {
+  const response = await api.get("/api/POS/GetSpecialInfo", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};

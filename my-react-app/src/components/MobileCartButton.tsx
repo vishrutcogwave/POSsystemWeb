@@ -23,6 +23,7 @@ type MobileCartProps = {
   kotStatus?: string;
   ncRemarks: string;
   setNcRemarks: (text: string) => void;
+    instructions: { spid: number; spinfo: string }[]; // ⭐ ADD
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   status,
@@ -34,7 +35,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   decreaseQty,
   setCart,
   onUpdateNote,
-  
+  instructions,
   onKOT,
   kotLoading,
   selectedNcCode,
@@ -72,6 +73,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
             <CartPanel
+              instructions={instructions}  
               status={status}
   kotStatus={kotStatus} 
   ncReasons={ncReasons}
