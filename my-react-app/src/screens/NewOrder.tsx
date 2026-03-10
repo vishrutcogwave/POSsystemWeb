@@ -6,10 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { getCombinedOutletAndTableMasterList } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext"; // ✅ import ActiveOLT context
-
 type Table = {
   tableNumber: string;
   status: string;
+  kotStatus?: string; // ✅ add this
   peopleCount?: number;
 };
 
@@ -18,10 +18,10 @@ type Outlet = {
   oltName: string;
   tables: {
     tblNo: string;
-    tableStatus:string
+    tableStatus: string;
+    kotStatus: string; // ✅ add this
   }[];
 };
-
 const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
@@ -37,8 +37,9 @@ const NewOrder: React.FC = () => {
       setLoading(true);
       try {
         const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-          localStorage.getItem("branch") || ""
+          localStorage.getItem("branch") || "",
         );
+        console.log("tableData", data);
 
         // Map API response to tabs
         const formattedTabs = data.map((outlet) => ({
@@ -48,11 +49,12 @@ const NewOrder: React.FC = () => {
         setTabs(formattedTabs);
 
         // Map API tables
-        const tables: Record<string, any[]> = {};
+        const tables: Record<string, Table[]> = {};
         data.forEach((outlet) => {
           tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
             tableNumber: tbl.tblNo,
             status: tbl.tableStatus,
+            kotStatus: tbl.kotStatus, // ✅ add this
           }));
         });
         setTablesData(tables);
@@ -111,6 +113,7 @@ const NewOrder: React.FC = () => {
                 key={table.tableNumber}
                 tableNumber={table.tableNumber}
                 status={table.status}
+                kotStatus={table.kotStatus} // ✅ pass here
                 peopleCount={table.peopleCount}
                 handleCardClick={() => handleTableClick(table)}
               />

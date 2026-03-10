@@ -1,24 +1,31 @@
 import React from "react";
-
 type TableCardProps = {
   tableNumber: string | number;
   status: "Occupied" | "Available" | string;
+  kotStatus?: "KOT" | "NCKOT" | string;
   peopleCount?: number;
   handleCardClick: () => void;
 };
-
 const TableCard: React.FC<TableCardProps> = ({
   tableNumber,
   status,
   peopleCount,
   handleCardClick,
+  kotStatus
 }) => {
-  const statusStyles =
-    status === "Occupied"
-      ? "bg-orange-100 text-orange-600 border-orange-400"
-      : status === "Available"
-      ? "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]"
-      : "bg-gray-100 text-gray-600 border-gray-300";
+  let statusStyles = "bg-gray-100 text-gray-600 border-gray-300";
+
+if (status === "Available") {
+  statusStyles = "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]";
+}
+
+if (status === "Occupied" && kotStatus === "KOT") {
+  statusStyles = "bg-red-100 text-red-600 border-red-400";
+}
+
+if (status === "Occupied" && kotStatus === "NCKOT") {
+  statusStyles = "bg-yellow-100 text-yellow-700 border-yellow-400";
+}
 
   const fixedTime = "01:24:18";
   const fixedPrice = "₹ 1,250";
