@@ -306,87 +306,18 @@ function OrderingBoard() {
     );
   };
 
-  // const handleKOT = async () => {
-  //   if (!session || cart.length === 0) return;
+const getInstructionLines = (codes?: string) => {
+  if (!codes) return [];
 
-  //   setKotLoading(true);
+  const ids = codes.split(",");
 
-  //   const branch = localStorage.getItem("branch") || "";
-  //   const outlate = localStorage.getItem("activeOltCode") || "";
-
-  //   const payload = {
-  //     userCode: 3,
-  //     table: tableData.tableNumber || "",
-  //     subTable: selectedSubTable || "A", // ✅ important
-  //     outlet: outlate,
-  //     outletName: activeOltName,
-  //     waiter: session.waiterCode,
-  //     waiterName: session.waiterName,
-  //     pax: session.pax,
-
-  //     food: cart.map((i) => ({
-  //       id: i.id,
-  //       food: i.name,
-  //       code: i.id.toString(),
-  //       price: i.price,
-  //       qty: i.qty,
-  //       comment: i.note || "",
-  //       category: activeCategory || 0,
-  //       origQty: i.qty,
-  //     })),
-
-  //     total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
-  //     totQty: cart.reduce((sum, i) => sum + i.qty, 0),
-
-  //     branch: branch,
-  //     type: "K",
-  //     ncCode: 0,
-  //     ncRemarks: "",
-  //     discount: 0,
-  //     discountType: "",
-  //     discountRemarks: "",
-  //     vRemarks: "1",
-  //     mode: "ADD",
-  //     subBillType: "S",
-  //     plan: "",
-  //     guestName: "adc",
-  //     guestCode: "234",
-  //     checkInNo: "",
-  //     kotMobileNo: "3456789021",
-
-  //     homeDelivary: {
-  //       guestCode: 0,
-  //       titleGn1: 0,
-  //       guestName: "",
-  //       dob: new Date().toISOString(),
-  //       address: "",
-  //       city: "",
-  //       phone: "",
-  //       email: "",
-  //       remarks: "",
-  //       lastModify: new Date().toISOString(),
-  //       discount: 0,
-  //       branch_code: branch,
-  //       isUpdate: 0,
-  //     },
-  //   };
-
-  //   try {
-  //     const res = await createOrder(payload);
-  //     console.log("KOT Created:", res);
-
-  //     setCart([]);
-  //     setSession(null);
-  //     navigate("/NewOrder");
-
-  //     toast.success("KOT created successfully! ✅");
-  //   } catch (err) {
-  //     console.error("Failed to create KOT:", err);
-  //     toast.error("Failed to create KOT ❌");
-  //   } finally {
-  //     setKotLoading(false);
-  //   }
-  // };
+  return ids
+    .map((id) =>
+      instructions.find((i) => String(i.spid) === id)?.spinfo
+    )
+    .filter(Boolean);
+};
+  
   const handleKOT = async () => {
     if (!session || cart.length === 0) return;
 
@@ -463,50 +394,65 @@ function OrderingBoard() {
       /* ---------------- PRINT SECTION ---------------- */
 
       /* ------------ PRINT ------------ */
+let printData = "";
 
-      let printData = "";
+/* RESET */
+printData += "\x1B\x40";
 
-      // reset printer
-      printData += "\x1B\x40";
+/* CENTER HEADER */
+printData += "\x1B\x61\x01";
+printData += "\x1B\x45\x01";
+printData += "KITCHEN ORDER TICKET\n";
+printData += "\x1B\x45\x00";
 
-      // center
-      printData += "\x1B\x61\x01";
-      printData += "*** KITCHEN ORDER TICKET ***\n";
+printData += "--------------------------------\n";
 
-      // left
-      printData += "\x1B\x61\x00";
+/* LEFT ALIGN */
+printData += "\x1B\x61\x00";
 
-      printData += "--------------------------------\n";
-      printData += "Table  : " + (tableData?.tableNumber || "") + "\n";
-      printData += "SubTbl : " + (selectedSubTable || "A") + "\n";
-      printData += "Waiter : " + session.waiterName + "\n";
-      printData += "Pax    : " + session.pax + "\n";
-      printData += "--------------------------------\n";
+/* TABLE INFO */
+printData += `Table : ${tableData?.tableNumber}\n`;
+printData += `SubTbl: ${selectedSubTable || "A"}\n`;
+printData += `Waiter: ${session.waiterName}\n`;
+printData += `Pax   : ${session.pax}\n`;
 
-      cart.forEach((item) => {
-        const name = (item.name || "").substring(0, 20);
-        const qty = String(item.qty).padStart(3, " ");
-        const price = String(item.price).padStart(6, " ");
+printData += "--------------------------------\n";
 
-        printData += name + "\n";
-        printData += " " + qty + " x " + price + "\n";
+/* ITEMS */
+cart.forEach((item) => {
 
-        if (item.spcodes) {
-          printData += "  * " + item.spcodes + "\n";
-        }
-      });
+  const qty = String(item.qty).padEnd(3, " ");
 
-      printData += "--------------------------------\n";
+  // limit item name length to prevent wrap
+  const itemName = (item.name || "").substring(0, 24);
 
-      const totalQty = cart.reduce((s, i) => s + i.qty, 0);
-      printData += "Total Qty : " + totalQty + "\n";
+  // align properly
+  const line = qty + " " + itemName.padEnd(24, " ");
 
-      printData += "--------------------------------\n";
-      printData += "\n\n\n";
-      printData += "\x1B\x64\x05"; // feed paper
-      printData += "\x1D\x56\x41\x10"; // full cut
+  printData += line + "\n";
 
-      await printKOT("POS LAN PRINTER", printData);
+  const instructionLines = getInstructionLines(item.spcodes);
+
+  instructionLines.forEach((line) => {
+    printData += "    * " + line + "\n";
+  });
+
+});
+
+/* TOTAL */
+printData += "--------------------------------\n";
+
+const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+
+printData += `Total Items : ${totalQty}\n`;
+
+printData += "--------------------------------\n";
+
+/* FEED + CUT */
+printData += "\n\n\n";
+printData += "\x1B\x64\x05";
+printData += "\x1D\x56\x41\x10";
+      await printKOT(null, printData);
 
       /* ---------------- RESET ---------------- */
 

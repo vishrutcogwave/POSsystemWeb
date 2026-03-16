@@ -57,18 +57,13 @@ export const connectPrinter = async () => {
 };
 
 /* ---------------- PRINT ---------------- */
-
 export const printKOT = async (printerName: string | null, data: string) => {
 
   await connectPrinter();
 
-  // If no printer name is provided → auto detect
+  // If no printer name passed, get Windows default printer
   if (!printerName) {
-    const printers = await qz.printers.find();
-    if (!printers || printers.length === 0) {
-      throw new Error("No printers found");
-    }
-    printerName = printers[0]; // use first available printer
+    printerName = await qz.printers.getDefault();
   }
 
   const config = qz.configs.create(printerName);
