@@ -21,6 +21,7 @@ import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
 import { useActiveOLT } from "../context/ActiveOLTContext";
 import toast from "react-hot-toast";
+import { printKOT } from "../api/services/printer";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -238,15 +239,22 @@ function OrderingBoard() {
   }, [kot]);
 
   /* ---------------- FILTER ITEMS ---------------- */
-  const foods = useMemo(() => {
-    const category = items.find((cat: any) => cat.catCode === activeCategory);
+const foods = useMemo(() => {
+  const category = items.find((cat: any) => cat.catCode === activeCategory);
+  if (!category) return [];
 
-    if (!category) return [];
+  const unique = new Map();
 
-    return category.items.filter((item: any) =>
-      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [items, activeCategory, searchTerm]);
+  category.items.forEach((item: any) => {
+    if (!unique.has(item.itemCode)) {
+      unique.set(item.itemCode, item);
+    }
+  });
+
+  return Array.from(unique.values()).filter((item: any) =>
+    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
   const handleAdd = (itemCode: number) => {
     if (!session) {
@@ -379,93 +387,146 @@ function OrderingBoard() {
   //     setKotLoading(false);
   //   }
   // };
-  const handleKOT = async () => {
-    if (!session || cart.length === 0) return;
+const handleKOT = async () => {
+  if (!session || cart.length === 0) return;
 
-    setKotLoading(true);
+  setKotLoading(true);
 
-    const branch = localStorage.getItem("branch") || "";
-    const outlet = localStorage.getItem("activeOltCode") || "";
+  const branch = localStorage.getItem("branch") || "";
+  const outlet = localStorage.getItem("activeOltCode") || "";
 
-    // Determine if NC is active
-    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+  const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
-    const payload = {
-      userCode: 3,
-      table: tableData.tableNumber || "",
-      subTable: selectedSubTable || "A",
-      outlet,
-      outletName: activeOltName,
-      waiter: session.waiterCode,
-      waiterName: session.waiterName,
-      pax: session.pax,
+  const payload = {
+    userCode: 3,
+    table: tableData.tableNumber || "",
+    subTable: selectedSubTable || "A",
+    outlet,
+    outletName: activeOltName,
+    waiter: session.waiterCode,
+    waiterName: session.waiterName,
+    pax: session.pax,
 
-      food: cart.map((i) => ({
-        id: i.id,
-        food: i.name,
-        code: i.id.toString(),
-        price: i.price,
-        qty: i.qty,
-        comment: i.spcodes || "", // optional manual note
-        category: activeCategory || 0,
-        origQty: i.qty,
-      })),
+    food: cart.map((i) => ({
+      id: i.id,
+      food: i.name,
+      code: i.id.toString(),
+      price: i.price,
+      qty: i.qty,
+      comment: i.spcodes || "",
+      category: activeCategory || 0,
+      origQty: i.qty,
+    })),
 
-      total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
-      totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+    total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
+    totQty: cart.reduce((sum, i) => sum + i.qty, 0),
 
-      branch,
-      type: isNC ? "N" : "K", // <-- NC type
-      ncCode: isNC ? selectedNcCode : 0, // <-- NC code
-      ncRemarks: isNC ? ncRemarks : "", // <-- NC remarks
+    branch,
+    type: isNC ? "N" : "K",
+    ncCode: isNC ? selectedNcCode : 0,
+    ncRemarks: isNC ? ncRemarks : "",
+
+    discount: 0,
+    discountType: "",
+    discountRemarks: "",
+    vRemarks: "1",
+
+    mode: "ADD",
+    subBillType: "S",
+    plan: "",
+    guestName: "adc",
+    guestCode: "234",
+    checkInNo: "",
+    kotMobileNo: "3456789021",
+
+    homeDelivary: {
+      guestCode: 0,
+      titleGn1: 0,
+      guestName: "",
+      dob: new Date().toISOString(),
+      address: "",
+      city: "",
+      phone: "",
+      email: "",
+      remarks: "",
+      lastModify: new Date().toISOString(),
       discount: 0,
-      discountType: "",
-      discountRemarks: "",
-      vRemarks: "1",
-      mode: "ADD",
-      subBillType: "S",
-      plan: "",
-      guestName: "adc",
-      guestCode: "234",
-      checkInNo: "",
-      kotMobileNo: "3456789021",
-
-      homeDelivary: {
-        guestCode: 0,
-        titleGn1: 0,
-        guestName: "",
-        dob: new Date().toISOString(),
-        address: "",
-        city: "",
-        phone: "",
-        email: "",
-        remarks: "",
-        lastModify: new Date().toISOString(),
-        discount: 0,
-        branch_code: branch,
-        isUpdate: 0,
-      },
-    };
-
-    try {
-      const res = await createOrder(payload);
-      console.log("KOT Created:", res);
-
-      // Reset everything after KOT
-      setCart([]);
-      setSession(null);
-      setSelectedNcCode(null); // <-- reset NC
-      setNcRemarks(""); // <-- reset remarks
-      navigate("/NewOrder");
-
-      toast.success("KOT created successfully! ✅");
-    } catch (err) {
-      console.error("Failed to create KOT:", err);
-      toast.error("Failed to create KOT ❌");
-    } finally {
-      setKotLoading(false);
-    }
+      branch_code: branch,
+      isUpdate: 0,
+    },
   };
+
+  try {
+    const res = await createOrder(payload);
+    console.log("KOT Created:", res);
+
+    /* ---------------- PRINT SECTION ---------------- */
+
+    const printerName = localStorage.getItem("printerName") || "POS-80";
+/* ------------ PRINT ------------ */
+
+let printData = "";
+
+// reset printer
+printData += "\x1B\x40";
+
+// center
+printData += "\x1B\x61\x01";
+printData += "*** KITCHEN ORDER TICKET ***\n";
+
+// left
+printData += "\x1B\x61\x00";
+
+printData += "--------------------------------\n";
+printData += "Table  : " + (tableData?.tableNumber || "") + "\n";
+printData += "SubTbl : " + (selectedSubTable || "A") + "\n";
+printData += "Waiter : " + session.waiterName + "\n";
+printData += "Pax    : " + session.pax + "\n";
+printData += "--------------------------------\n";
+
+cart.forEach((item) => {
+  const name = (item.name || "").substring(0, 20);
+  const qty = String(item.qty).padStart(3, " ");
+  const price = String(item.price).padStart(6, " ");
+
+  printData += name + "\n";
+  printData += " " + qty + " x " + price + "\n";
+
+  if (item.spcodes) {
+    printData += "  * " + item.spcodes + "\n";
+  }
+});
+
+printData += "--------------------------------\n";
+
+const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+printData += "Total Qty : " + totalQty + "\n";
+
+printData += "--------------------------------\n";
+printData += "\n\n\n";
+printData += "\x1B\x64\x05"; // feed paper
+printData += "\x1D\x56\x41\x10"; // full cut
+
+await printKOT(printerName, printData);
+   
+
+    /* ---------------- RESET ---------------- */
+
+    setCart([]);
+    setSession(null);
+    setSelectedNcCode(null);
+    setNcRemarks("");
+
+    navigate("/NewOrder");
+
+    toast.success("KOT created & printed successfully! ✅");
+  } catch (err) {
+    console.error("Failed to create KOT:", err);
+    toast.error("Failed to create KOT ❌");
+  } finally {
+    setKotLoading(false);
+  }
+};
   const handleVoid = async () => {
     if (!session || selectedVoidItems.length === 0) return;
 
@@ -632,7 +693,7 @@ function OrderingBoard() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {foods.map((item) => (
               <FoodCard
-                key={item.itemCode}
+                key={`${item.itemCode}-${item.itemName}`}
                 id={item.itemCode}
                 name={item.itemName.trim()}
                 price={item.oidRate}
