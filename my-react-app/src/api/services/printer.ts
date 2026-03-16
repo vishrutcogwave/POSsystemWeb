@@ -58,8 +58,18 @@ export const connectPrinter = async () => {
 
 /* ---------------- PRINT ---------------- */
 
-export const printKOT = async (printerName: string, data: string) => {
+export const printKOT = async (printerName: string | null, data: string) => {
+
   await connectPrinter();
+
+  // If no printer name is provided → auto detect
+  if (!printerName) {
+    const printers = await qz.printers.find();
+    if (!printers || printers.length === 0) {
+      throw new Error("No printers found");
+    }
+    printerName = printers[0]; // use first available printer
+  }
 
   const config = qz.configs.create(printerName);
 
@@ -67,7 +77,7 @@ export const printKOT = async (printerName: string, data: string) => {
     {
       type: "raw",
       format: "plain",
-      data: data,
+      data,
     },
   ];
 
