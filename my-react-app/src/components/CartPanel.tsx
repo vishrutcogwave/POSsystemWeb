@@ -20,9 +20,15 @@ type CartPanelProps = {
   onUpdateNote: (id: number, note: string) => void;
   onKOT: () => void;
   kotLoading: boolean;
+  selectedVoidItems: CartItem[];
+setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+onVoid: () => void;
 };
 
 export default function CartPanel({
+  selectedVoidItems,
+  setSelectedVoidItems,
+  onVoid,
   items,
   pastItems,
   onIncrease,
@@ -161,25 +167,78 @@ const getSpinfo = (spcodes?: string) => {
               <p className="text-xs font-semibold text-gray-500">
                 ALREADY ORDERED
               </p>
+            {pastItems.map((item, index) => {
+  const selectedItem = selectedVoidItems.find((i) => i.id === item.id);
+  const voidQty = selectedItem?.qty || 0;
 
-              {pastItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-white border rounded-lg p-3 flex justify-between"
-                >
-                  <div>
-                    <p className="font-semibold text-sm">{item.name}</p>
-                    <p className="text-xs text-gray-500">
-                      Quantity: {item.qty}
-                    </p>
-                  </div>
+  return (
+    <div
+      key={index}
+      className="bg-white border rounded-lg p-3 flex justify-between items-center"
+    >
+<div className="flex items-center gap-2">
 
-                  <p className="font-semibold text-sm">
-                    ₹ {(item.price * item.qty).toFixed(2)}
-                  </p>
-                </div>
-              ))}
+        {/* CHECKBOX */}
+      <input
+  type="checkbox"
+  checked={!!selectedItem}
+  onChange={(e) => {
+    if (e.target.checked) {
+  setSelectedVoidItems((prev) => [
+  ...prev,
+  {
+    ...item,
+    origQty: item.qty, // store original ordered qty
+    qty: item.qty      // remaining qty
+  },
+]);
+    } else {
+      setSelectedVoidItems((prev) =>
+        prev.filter((i) => i.id !== item.id)
+      );
+    }
+  }}
+  className="w-4 h-4 cursor-pointer accent-red-500"
+/>
 
+        <div>
+          <p className="font-semibold text-sm">{item.name}</p>
+          <p className="text-xs text-gray-500">
+            Ordered: {item.qty}
+          </p>
+        </div>
+      </div>
+
+      {/* VOID CONTROL */}
+      {selectedItem ? (
+        <div className="flex items-center gap-2">
+
+          <button
+            onClick={() => {
+      setSelectedVoidItems((prev) =>
+  prev
+    .map((i) =>
+      i.id === item.id ? { ...i, qty: i.qty - 1 } : i
+    )
+    .filter((i) => i.qty > 0)
+);
+            }}
+            className="w-6 h-6 border rounded"
+          >
+            -
+          </button>
+
+          <span className="text-sm">{voidQty}</span>
+
+        </div>
+      ) : (
+        <p className="text-xs text-gray-500">
+          Qty: {item.qty}
+        </p>
+      )}
+    </div>
+  );
+})}
             </div>
           )}
         </div>
@@ -238,13 +297,15 @@ const getSpinfo = (spcodes?: string) => {
     >
       {kotLoading ? "Creating..." : "KOT"}
     </button>
- <button
-      disabled={kotLoading}
-      onClick={onKOT}
-      className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
-    >
-      Void
-    </button>
+
+  <button
+    disabled={selectedVoidItems.length < 0}
+    onClick={onVoid}
+    className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
+  >
+    Void
+  </button>
+
 
     <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">
        Bill

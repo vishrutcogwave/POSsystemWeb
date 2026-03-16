@@ -65,6 +65,7 @@ function OrderingBoard() {
   const [instructionItemId, setInstructionItemId] = useState<number | null>(
     null,
   );
+  const [selectedVoidItems, setSelectedVoidItems] = useState<CartItem[]>([]);
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
   const [session, setSession] = useState<{
     pax: number;
@@ -465,6 +466,98 @@ function OrderingBoard() {
       setKotLoading(false);
     }
   };
+  const handleVoid = async () => {
+    if (!session || selectedVoidItems.length === 0) return;
+
+    setKotLoading(true);
+
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
+  const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+ const payload = {
+  userCode: 3,
+  table: tableData.tableNumber || "",
+  subTable: selectedSubTable || "A",
+  outlet,
+  outletName: activeOltName,
+  waiter: session.waiterCode,
+  waiterName: session.waiterName,
+  pax: session.pax,
+
+  food: selectedVoidItems
+    .filter((i) => (i.origQty! - i.qty) > 0)
+    .map((i) => ({
+      id: i.id,
+      food: i.name,
+      code: i.id.toString(),
+      price: i.price,
+
+      qty: i.origQty! - i.qty, // void quantity
+
+      comment: "",
+      category: activeCategory || 0,
+
+      origQty: i.origQty, // original ordered qty
+    })),
+
+  total: selectedVoidItems.reduce(
+    (sum, i) => sum + i.price * (i.origQty! - i.qty),
+    0
+  ),
+
+  totQty: selectedVoidItems.reduce(
+    (sum, i) => sum + (i.origQty! - i.qty),
+    0
+  ),
+
+  branch,
+ type: isNC ? "N" : "K", // <-- NC type
+  ncCode: 0,
+  ncRemarks: "",
+  discount: 0,
+  discountType: "",
+  discountRemarks: "",
+  vRemarks: "1",
+
+  mode: "VOID",   // 🔥 ONLY CHANGE
+
+  subBillType: "S",
+  plan: "",
+  guestName: "adc",
+  guestCode: "234",
+  checkInNo: "",
+  kotMobileNo: "3456789021",
+
+  homeDelivary: {
+    guestCode: 0,
+    titleGn1: 0,
+    guestName: "",
+    dob: new Date().toISOString(),
+    address: "",
+    city: "",
+    phone: "",
+    email: "",
+    remarks: "",
+    lastModify: new Date().toISOString(),
+    discount: 0,
+    branch_code: branch,
+    isUpdate: 0,
+  },
+};
+
+    try {
+      await createOrder(payload);
+
+      toast.success("Items voided successfully");
+
+      setSelectedVoidItems([]);
+      navigate("/NewOrder");
+    } catch (err) {
+      toast.error("Void failed");
+    } finally {
+      setKotLoading(false);
+    }
+  };
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
@@ -560,6 +653,8 @@ function OrderingBoard() {
           items={cart}
           pastItems={pastItems}
           ncReasons={ncReasons}
+          selectedVoidItems={selectedVoidItems}
+          setSelectedVoidItems={setSelectedVoidItems}
           selectedNcCode={selectedNcCode}
           setSelectedNcCode={setSelectedNcCode}
           ncRemarks={ncRemarks}
@@ -572,12 +667,16 @@ function OrderingBoard() {
             setOpenInstructionModal(true);
           }}
           onKOT={handleKOT}
+          onVoid={handleVoid}
           kotLoading={kotLoading}
         />
       </div>
 
       {/* MOBILE CART */}
       <MobileCartButton
+        onVoid={handleVoid}
+        selectedVoidItems={selectedVoidItems}
+        setSelectedVoidItems={setSelectedVoidItems}
         instructions={instructions}
         status={tableData?.status}
         kotStatus={tableData?.kotStatus}

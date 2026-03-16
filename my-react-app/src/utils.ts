@@ -23,6 +23,9 @@ export type CartItem = {
   name: string;
   price: number;
   qty: number;
-  note?: string; // new field for special instructions
-   spcodes?: string;
+
+  origQty?: number; // ✅ add this
+
+  note?: string;
+  spcodes?: string;
 };

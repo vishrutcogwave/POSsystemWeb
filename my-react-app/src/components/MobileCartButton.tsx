@@ -3,9 +3,12 @@ import type { CartItem } from "../utils";
 import CartPanel from "./CartPanel";
 
 type MobileCartProps = {
+  
   cart: CartItem[];
   pastItems: CartItem[];
-
+  selectedVoidItems: CartItem[];
+setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+onVoid: () => void;
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -26,6 +29,9 @@ type MobileCartProps = {
     instructions: { spid: number; spinfo: string }[]; // ⭐ ADD
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
+    selectedVoidItems,
+  setSelectedVoidItems,
+  onVoid,
   status,
   kotStatus,
   cart,
@@ -73,6 +79,9 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
             <CartPanel
+            onVoid={onVoid}
+            selectedVoidItems={selectedVoidItems}
+            setSelectedVoidItems={setSelectedVoidItems}
               instructions={instructions}  
               status={status}
   kotStatus={kotStatus} 
