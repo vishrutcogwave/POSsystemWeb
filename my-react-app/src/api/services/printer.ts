@@ -57,24 +57,73 @@ export const connectPrinter = async () => {
 };
 
 /* ---------------- PRINT ---------------- */
-export const printKOT = async (printerName: string | null, data: string) => {
+export const printKOT = async (
+  printerName: string | null,
+  data: string,
+  isThermal: boolean
+) => {
+  try {
+    await connectPrinter();
 
-  await connectPrinter();
+    if (!qz.websocket.isActive()) {
+      throw new Error("QZ Tray not running");
+    }
 
-  // If no printer name passed, get Windows default printer
-  if (!printerName) {
-    printerName = await qz.printers.getDefault();
+    const allPrinters = await qz.printers.find();
+
+    if (!printerName || printerName.trim() === "") {
+  printerName = await qz.printers.getDefault();
+}
+
+    if (!printerName) {
+      throw new Error("No default printer found");
+    }
+
+    // ✅ CHECK PRINTER EXISTS
+    if (!allPrinters.includes(printerName)) {
+      throw new Error("Printer not installed / offline");
+    }
+
+    const config = qz.configs.create(printerName);
+
+    let printData;
+
+    if (isThermal) {
+      printData = [
+        {
+          type: "raw",
+          format: "plain",
+          data,
+        },
+      ];
+    } else {
+      printData = [
+        {
+          type: "html",
+          format: "plain",
+          data: `
+            <div style="font-family: monospace; font-size: 12px;">
+              ${data.replace(/\n/g, "<br/>")}
+            </div>
+          `,
+        },
+      ];
+    }
+
+    await qz.print(config, printData);
+
+    return {
+      success: true,
+      printer: printerName,
+    };
+
+  } catch (err: any) {
+    console.error(`❌ PRINT ERROR (${printerName}):`, err);
+
+    return {
+      success: false,
+      printer: printerName,
+      message: err?.message || "Printing failed",
+    };
   }
-
-  const config = qz.configs.create(printerName);
-
-  const printData = [
-    {
-      type: "raw",
-      format: "plain",
-      data,
-    },
-  ];
-
-  await qz.print(config, printData);
 };

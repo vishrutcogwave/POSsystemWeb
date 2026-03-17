@@ -24,6 +24,8 @@ export type CartItem = {
   price: number;
   qty: number;
 
+  category: number; // ✅ ADD THIS
+
   origQty?: number; // ✅ add this
 
   note?: string;

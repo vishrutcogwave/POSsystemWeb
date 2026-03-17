@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import qz from "qz-tray";
 import CategorySidebar from "../components/CategorySidebar";
 import FoodCard from "../components/FoodCard";
 import CartPanel from "../components/CartPanel";
@@ -281,6 +281,7 @@ function OrderingBoard() {
           name: food.itemName.trim(),
           price: food.oidRate,
           qty: 1,
+          category: food.catCode, // ✅ ADD THIS
         },
       ];
     });
@@ -306,18 +307,16 @@ function OrderingBoard() {
     );
   };
 
-const getInstructionLines = (codes?: string) => {
-  if (!codes) return [];
+  const getInstructionLines = (codes?: string) => {
+    if (!codes) return [];
 
-  const ids = codes.split(",");
+    const ids = codes.split(",");
 
-  return ids
-    .map((id) =>
-      instructions.find((i) => String(i.spid) === id)?.spinfo
-    )
-    .filter(Boolean);
-};
-  
+    return ids
+      .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
+      .filter(Boolean);
+  };
+
   const handleKOT = async () => {
     if (!session || cart.length === 0) return;
 
@@ -345,7 +344,7 @@ const getInstructionLines = (codes?: string) => {
         price: i.price,
         qty: i.qty,
         comment: i.spcodes || "",
-        category: activeCategory || 0,
+        category: i.category, // ✅ CORRECT
         origQty: i.qty,
       })),
 
@@ -391,71 +390,166 @@ const getInstructionLines = (codes?: string) => {
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
 
-      /* ---------------- PRINT SECTION ---------------- */
+      /* ---------------- MULTI PRINTER PRINT ---------------- */
 
-      /* ------------ PRINT ------------ */
-let printData = "";
+      const printers = res.printers || [];
+      const foodItems = res.food || [];
 
-/* RESET */
-printData += "\x1B\x40";
+      /* -------- GROUP ITEMS PER PRINTER -------- */
+      const printerItemMap: Record<string, any[]> = {};
 
-/* CENTER HEADER */
-printData += "\x1B\x61\x01";
-printData += "\x1B\x45\x01";
-printData += "KITCHEN ORDER TICKET\n";
-printData += "\x1B\x45\x00";
+      printers.forEach((printer: any) => {
+        const matchedItems = foodItems.filter((item: any) =>
+          printer.categoryIds.includes(Number(item.category)),
+        );
 
-printData += "--------------------------------\n";
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName] = matchedItems;
+        }
+      });
 
-/* LEFT ALIGN */
-printData += "\x1B\x61\x00";
+      /* -------- COMMON CONTENT -------- */
+      const generateContent = (items: any[]) => ({
+        title: "KITCHEN ORDER TICKET",
+        table: tableData?.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item) => ({
+          qty: item.origQty,
+          name: item.food,
+          instructions: getInstructionLines(item.comment),
+        })),
+      });
 
-/* TABLE INFO */
-printData += `Table : ${tableData?.tableNumber}\n`;
-printData += `SubTbl: ${selectedSubTable || "A"}\n`;
-printData += `Waiter: ${session.waiterName}\n`;
-printData += `Pax   : ${session.pax}\n`;
+      /* -------- THERMAL FORMAT -------- */
+      const formatThermal = (c: any) => {
+        let d = "";
 
-printData += "--------------------------------\n";
+        d += "\x1B\x40";
 
-/* ITEMS */
-cart.forEach((item) => {
+        d += "\x1B\x61\x01";
+        d += "\x1B\x45\x01";
+        d += c.title + "\n";
+        d += "\x1B\x45\x00";
 
-  const qty = String(item.qty).padEnd(3, " ");
+        d += "--------------------------------\n";
 
-  // limit item name length to prevent wrap
-  const itemName = (item.name || "").substring(0, 24);
+        d += "\x1B\x61\x00";
 
-  // align properly
-  const line = qty + " " + itemName.padEnd(24, " ");
+        d += `Table : ${c.table}\n`;
+        d += `SubTbl: ${c.subTable}\n`;
+        d += `Waiter: ${c.waiter}\n`;
+        d += `Pax   : ${c.pax}\n`;
 
-  printData += line + "\n";
+        d += "--------------------------------\n";
 
-  const instructionLines = getInstructionLines(item.spcodes);
+        c.items.forEach((item: any) => {
+          const qty = String(item.qty).padEnd(3, " ");
+          const name = item.name.substring(0, 24);
 
-  instructionLines.forEach((line) => {
-    printData += "    * " + line + "\n";
-  });
+          d += qty + " " + name.padEnd(24, " ") + "\n";
 
-});
+          item.instructions.forEach((i: string) => {
+            d += "    * " + i + "\n";
+          });
+        });
 
-/* TOTAL */
-printData += "--------------------------------\n";
+        d += "--------------------------------\n";
 
-const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+        const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
+        d += `Total Items : ${total}\n`;
 
-printData += `Total Items : ${totalQty}\n`;
+        d += "\n\n\n";
+        d += "\x1B\x64\x05";
+        d += "\x1D\x56\x41\x10";
 
-printData += "--------------------------------\n";
+        return d;
+      };
 
-/* FEED + CUT */
-printData += "\n\n\n";
-printData += "\x1B\x64\x05";
-printData += "\x1D\x56\x41\x10";
-      await printKOT(null, printData);
+      /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
+      const formatHTML = (c: any) => `
+  <div style="font-family: monospace; font-size: 12px; width: 260px;">
+    
+    <div style="text-align:center; font-weight:bold;">
+      ${c.title}
+    </div>
 
-      /* ---------------- RESET ---------------- */
+    <hr/>
 
+    <div>Table : ${c.table}</div>
+    <div>SubTbl: ${c.subTable}</div>
+    <div>Waiter: ${c.waiter}</div>
+    <div>Pax   : ${c.pax}</div>
+
+    <hr/>
+
+    ${c.items
+      .map(
+        (item: any) => `
+      <div style="display:flex; justify-content:space-between;">
+        <span>${item.qty}</span>
+        <span>${item.name}</span>
+      </div>
+
+      ${item.instructions
+        .map((i: string) => `<div style="margin-left:10px;">* ${i}</div>`)
+        .join("")}
+    `,
+      )
+      .join("")}
+
+    <hr/>
+
+    <div>Total Items : ${c.items.reduce(
+      (s: number, i: any) => s + i.qty,
+      0,
+    )}</div>
+
+  </div>
+`;
+
+      /* -------- PRINT LOOP -------- */
+      let hasError = false;
+
+for (const rawPrinterName in printerItemMap) {
+  const items = printerItemMap[rawPrinterName];
+
+  const content = generateContent(items);
+
+  // ✅ STEP 1: resolve default printer if empty
+  let printerName = rawPrinterName;
+
+  if (!printerName || printerName.trim() === "") {
+    printerName = await qz.printers.getDefault();
+  }
+
+  console.log("Using Printer:", printerName);
+
+  // ✅ STEP 2: detect type using REAL printer name
+  const isThermal =
+    printerName.toLowerCase().includes("pos") ||
+    printerName.toLowerCase().includes("thermal");
+
+  // ✅ STEP 3: generate correct format
+  const finalData = isThermal
+    ? formatThermal(content)
+    : formatHTML(content);
+
+  // ✅ STEP 4: print
+  const result = await printKOT(
+    printerName,
+    finalData,
+    isThermal
+  );
+
+  if (!result.success) {
+    hasError = true;
+
+    const msg = `❌ ${printerName}: ${result.message}`;
+    toast.error(msg);
+  }
+}
       setCart([]);
       setSession(null);
       setSelectedNcCode(null);
@@ -463,7 +557,11 @@ printData += "\x1D\x56\x41\x10";
 
       navigate("/NewOrder");
 
-      toast.success("KOT created & printed successfully! ✅");
+      if (hasError) {
+        toast.error("Some printers failed ❌");
+      } else {
+        toast.success("KOT created & printed successfully! ✅");
+      }
     } catch (err) {
       console.error("Failed to create KOT:", err);
       toast.error("Failed to create KOT ❌");
