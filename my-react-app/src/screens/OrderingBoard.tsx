@@ -147,13 +147,22 @@ function OrderingBoard() {
 
       // ✅ combine all food items from all KOTs
       const allFoods = data.flatMap((order: any) => order.food);
+const grouped = new Map<number, any>();
 
-      const oldItems = allFoods.map((f: any) => ({
-        id: f.itemCode,
-        name: f.food.trim(),
-        price: f.price,
-        qty: f.qty,
-      }));
+allFoods.forEach((f: any) => {
+  if (grouped.has(f.itemCode)) {
+    grouped.get(f.itemCode).qty += f.qty;
+  } else {
+    grouped.set(f.itemCode, {
+      id: f.itemCode,
+      name: f.food.trim(),
+      price: f.price,
+      qty: f.qty,
+    });
+  }
+});
+
+const oldItems = Array.from(grouped.values());
 
       setPastItems(oldItems);
 
@@ -235,36 +244,50 @@ function OrderingBoard() {
     );
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-  const handleAdd = (itemCode: number) => {
-    if (!session) {
-      toast.error("Start table session first");
-      return;
+const handleAdd = (itemCode: number) => {
+  if (!session) {
+    toast.error("Start table session first");
+    return;
+  }
+
+  const food = items
+    .flatMap((cat: any) => cat.items)
+    .find((i: any) => i.itemCode === itemCode);
+
+  if (!food) return;
+
+  setCart((prev) => {
+    const existing = prev.find(
+      (i) =>
+        i.id === itemCode &&
+        (!i.spcodes || i.spcodes === "") &&
+        (!i.note || i.note === "")
+    );
+
+    if (existing) {
+      return prev.map((i) =>
+        i.id === itemCode &&
+        (!i.spcodes || i.spcodes === "") &&
+        (!i.note || i.note === "")
+          ? { ...i, qty: i.qty + 1 }
+          : i
+      );
     }
 
-    const food = items
-      .flatMap((cat: any) => cat.items)
-      .find((i: any) => i.itemCode === itemCode);
-    if (!food) return;
-
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === itemCode);
-      if (existing)
-        return prev.map((i) =>
-          i.id === itemCode ? { ...i, qty: i.qty + 1 } : i,
-        );
-
-      return [
-        ...prev,
-        {
-          id: food.itemCode,
-          name: food.itemName.trim(),
-          price: food.oidRate,
-          qty: 1,
-          category: food.catCode, // ✅ ADD THIS
-        },
-      ];
-    });
-  };
+    return [
+      ...prev,
+      {
+        id: food.itemCode,
+        name: food.itemName.trim(),
+        price: food.oidRate,
+        qty: 1,
+        category: food.catCode,
+        spcodes: "",
+        note: "",
+      },
+    ];
+  });
+};
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
@@ -279,12 +302,31 @@ function OrderingBoard() {
         .filter((i) => i.qty > 0),
     );
   };
+const updateCartNote = (id: number, spcodes: string, note: string) => {
+  setCart((prev) => {
+    const item = prev.find((i) => i.id === id);
 
-  const updateCartNote = (id: number, spcodes: string, note: string) => {
-    setCart((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, spcodes, note } : i)),
-    );
-  };
+    if (!item) return prev;
+
+    // reduce qty of original
+    const updated = prev
+      .map((i) =>
+        i.id === id ? { ...i, qty: i.qty - 1 } : i
+      )
+      .filter((i) => i.qty > 0);
+
+    // add new item with instruction
+    return [
+      ...updated,
+      {
+        ...item,
+        qty: 1,
+        spcodes,
+        note,
+      },
+    ];
+  });
+};
 
   const getInstructionLines = (codes?: string) => {
     if (!codes) return [];
@@ -295,6 +337,91 @@ function OrderingBoard() {
       .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
       .filter(Boolean);
   };
+      const formatThermal = (c: any) => {
+        let d = "";
+
+        d += "\x1B\x40";
+
+        d += "\x1B\x61\x01";
+        d += "\x1B\x45\x01";
+        d += c.title + "\n";
+        d += "\x1B\x45\x00";
+
+        d += "--------------------------------\n";
+
+        d += "\x1B\x61\x00";
+
+        d += `Table : ${c.table}\n`;
+        d += `SubTbl: ${c.subTable}\n`;
+        d += `Waiter: ${c.waiter}\n`;
+        d += `Pax   : ${c.pax}\n`;
+
+        d += "--------------------------------\n";
+
+        c.items.forEach((item: any) => {
+          const qty = String(item.qty).padEnd(3, " ");
+          const name = item.name.substring(0, 24);
+
+          d += qty + " " + name.padEnd(24, " ") + "\n";
+
+          item.instructions.forEach((i: string) => {
+            d += "    * " + i + "\n";
+          });
+        });
+
+        d += "--------------------------------\n";
+
+        const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
+        d += `Total Items : ${total}\n`;
+
+        d += "\n\n\n";
+        d += "\x1B\x64\x05";
+        d += "\x1D\x56\x41\x10";
+
+        return d;
+      };
+
+      /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
+      const formatHTML = (c: any) => `
+  <div style="font-family: monospace; font-size: 12px; width: 260px;">
+    
+    <div style="text-align:center; font-weight:bold;">
+      ${c.title}
+    </div>
+
+    <hr/>
+
+    <div>Table : ${c.table}</div>
+    <div>SubTbl: ${c.subTable}</div>
+    <div>Waiter: ${c.waiter}</div>
+    <div>Pax   : ${c.pax}</div>
+
+    <hr/>
+
+    ${c.items
+      .map(
+        (item: any) => `
+      <div style="display:flex; justify-content:space-between;">
+        <span>${item.qty}</span>
+        <span>${item.name}</span>
+      </div>
+
+      ${item.instructions
+        .map((i: string) => `<div style="margin-left:10px;">* ${i}</div>`)
+        .join("")}
+    `,
+      )
+      .join("")}
+
+    <hr/>
+
+    <div>Total Items : ${c.items.reduce(
+      (s: number, i: any) => s + i.qty,
+      0,
+    )}</div>
+
+  </div>
+`;
 
   const handleKOT = async () => {
     if (!session || cart.length === 0) return;
@@ -389,7 +516,7 @@ function OrderingBoard() {
 
       /* -------- COMMON CONTENT -------- */
       const generateContent = (items: any[]) => ({
-        title: "KITCHEN ORDER TICKET",
+        title: isNC? "NC KOT":"KOT",
         table: tableData?.tableNumber,
         subTable: selectedSubTable || "A",
         waiter: session.waiterName,
@@ -402,91 +529,6 @@ function OrderingBoard() {
       });
 
       /* -------- THERMAL FORMAT -------- */
-      const formatThermal = (c: any) => {
-        let d = "";
-
-        d += "\x1B\x40";
-
-        d += "\x1B\x61\x01";
-        d += "\x1B\x45\x01";
-        d += c.title + "\n";
-        d += "\x1B\x45\x00";
-
-        d += "--------------------------------\n";
-
-        d += "\x1B\x61\x00";
-
-        d += `Table : ${c.table}\n`;
-        d += `SubTbl: ${c.subTable}\n`;
-        d += `Waiter: ${c.waiter}\n`;
-        d += `Pax   : ${c.pax}\n`;
-
-        d += "--------------------------------\n";
-
-        c.items.forEach((item: any) => {
-          const qty = String(item.qty).padEnd(3, " ");
-          const name = item.name.substring(0, 24);
-
-          d += qty + " " + name.padEnd(24, " ") + "\n";
-
-          item.instructions.forEach((i: string) => {
-            d += "    * " + i + "\n";
-          });
-        });
-
-        d += "--------------------------------\n";
-
-        const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
-        d += `Total Items : ${total}\n`;
-
-        d += "\n\n\n";
-        d += "\x1B\x64\x05";
-        d += "\x1D\x56\x41\x10";
-
-        return d;
-      };
-
-      /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
-      const formatHTML = (c: any) => `
-  <div style="font-family: monospace; font-size: 12px; width: 260px;">
-    
-    <div style="text-align:center; font-weight:bold;">
-      ${c.title}
-    </div>
-
-    <hr/>
-
-    <div>Table : ${c.table}</div>
-    <div>SubTbl: ${c.subTable}</div>
-    <div>Waiter: ${c.waiter}</div>
-    <div>Pax   : ${c.pax}</div>
-
-    <hr/>
-
-    ${c.items
-      .map(
-        (item: any) => `
-      <div style="display:flex; justify-content:space-between;">
-        <span>${item.qty}</span>
-        <span>${item.name}</span>
-      </div>
-
-      ${item.instructions
-        .map((i: string) => `<div style="margin-left:10px;">* ${i}</div>`)
-        .join("")}
-    `,
-      )
-      .join("")}
-
-    <hr/>
-
-    <div>Total Items : ${c.items.reduce(
-      (s: number, i: any) => s + i.qty,
-      0,
-    )}</div>
-
-  </div>
-`;
 
       /* -------- PRINT LOOP -------- */
       let hasError = false;
@@ -544,96 +586,160 @@ function OrderingBoard() {
       setKotLoading(false);
     }
   };
-  const handleVoid = async () => {
-    if (!session || selectedVoidItems.length === 0) return;
+const handleVoid = async () => {
+  if (!session || selectedVoidItems.length === 0) return;
 
-    setKotLoading(true);
+  setKotLoading(true);
 
-    const branch = localStorage.getItem("branch") || "";
-    const outlet = localStorage.getItem("activeOltCode") || "";
-    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
-    const payload = {
-      userCode: 3,
-      table: tableData.tableNumber || "",
-      subTable: selectedSubTable || "A",
-      outlet,
-      outletName: activeOltName,
-      waiter: session.waiterCode,
-      waiterName: session.waiterName,
-      pax: session.pax,
+  const branch = localStorage.getItem("branch") || "";
+  const outlet = localStorage.getItem("activeOltCode") || "";
+  const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
-  food: selectedVoidItems
-  .filter((i) => i.qty > 0)
-  .map((i) => ({
-    id: i.id,
-    food: i.name,
-    code: i.id.toString(),
-    price: i.price,
-    qty: i.qty, // ✅ direct qty
-    comment: "",
-    category: activeCategory || 0,
-    origQty: i.origQty,
-  })),
+  const payload = {
+    userCode: 3,
+    table: tableData.tableNumber || "",
+    subTable: selectedSubTable || "A",
+    outlet,
+    outletName: activeOltName,
+    waiter: session.waiterCode,
+    waiterName: session.waiterName,
+    pax: session.pax,
 
-      total: selectedVoidItems.reduce(
-        (sum, i) => sum + i.price * (i.origQty! - i.qty),
-        0,
-      ),
+    food: selectedVoidItems
+      .filter((i) => i.qty > 0)
+      .map((i) => ({
+        id: i.id,
+        food: i.name,
+        code: i.id.toString(),
+        price: i.price,
+        qty: i.qty,
+        comment: "",
+        category: i.category || 0,
+        origQty: i.origQty,
+      })),
 
-      totQty: selectedVoidItems.reduce(
-        (sum, i) => sum + (i.origQty! - i.qty),
-        0,
-      ),
+    total: selectedVoidItems.reduce(
+      (sum, i) => sum + i.price * (i.origQty! - i.qty),
+      0
+    ),
 
-      branch,
-      type: isNC ? "N" : "K", // <-- NC type
-      ncCode: 0,
-      ncRemarks: "",
+    totQty: selectedVoidItems.reduce(
+      (sum, i) => sum + (i.origQty! - i.qty),
+      0
+    ),
+
+    branch,
+    type: isNC ? "N" : "K",
+    ncCode: 0,
+    ncRemarks: "",
+
+    discount: 0,
+    discountType: "",
+    discountRemarks: "",
+    vRemarks: "1",
+
+    mode: "VOID",
+
+    subBillType: "S",
+    plan: "",
+    guestName: "adc",
+    guestCode: "234",
+    checkInNo: "",
+    kotMobileNo: "3456789021",
+
+    homeDelivary: {
+      guestCode: 0,
+      titleGn1: 0,
+      guestName: "",
+      dob: new Date().toISOString(),
+      address: "",
+      city: "",
+      phone: "",
+      email: "",
+      remarks: "",
+      lastModify: new Date().toISOString(),
       discount: 0,
-      discountType: "",
-      discountRemarks: "",
-      vRemarks: "1",
-
-      mode: "VOID", // 🔥 ONLY CHANGE
-
-      subBillType: "S",
-      plan: "",
-      guestName: "adc",
-      guestCode: "234",
-      checkInNo: "",
-      kotMobileNo: "3456789021",
-
-      homeDelivary: {
-        guestCode: 0,
-        titleGn1: 0,
-        guestName: "",
-        dob: new Date().toISOString(),
-        address: "",
-        city: "",
-        phone: "",
-        email: "",
-        remarks: "",
-        lastModify: new Date().toISOString(),
-        discount: 0,
-        branch_code: branch,
-        isUpdate: 0,
-      },
-    };
-
-    try {
-      await createOrder(payload);
-
-      toast.success("Items voided successfully");
-
-      setSelectedVoidItems([]);
-      navigate("/NewOrder");
-    } catch (err) {
-      toast.error("Void failed");
-    } finally {
-      setKotLoading(false);
-    }
+      branch_code: branch,
+      isUpdate: 0,
+    },
   };
 
+  try {
+    const res = await createOrder(payload);
+
+    /* ---------------- PRINT SAME AS KOT ---------------- */
+
+    const printers = res.printers || [];
+    const foodItems = res.food || [];
+
+    const printerItemMap: Record<string, any[]> = {};
+
+    printers.forEach((printer: any) => {
+      const matchedItems = foodItems.filter((item: any) =>
+        printer.categoryIds.includes(Number(item.category))
+      );
+
+      if (matchedItems.length > 0) {
+        printerItemMap[printer.printerName] = matchedItems;
+      }
+    });
+
+  const generateContent = (items: any[]) => ({
+  title: isNC? "CANCEL NCKOT":"CANCEL KOT",
+  table: tableData?.tableNumber,
+  subTable: selectedSubTable || "A",
+  waiter: session.waiterName,
+  pax: session.pax,
+  items: items.map((item) => ({
+    qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
+    name: item.food,
+    instructions: [],
+  })),
+});
+    let hasError = false;
+
+    for (const rawPrinterName in printerItemMap) {
+      const items = printerItemMap[rawPrinterName];
+
+      const content = generateContent(items);
+
+      let printerName = rawPrinterName;
+
+      if (!printerName || printerName.trim() === "") {
+        printerName = await qz.printers.getDefault();
+      }
+
+      const isThermal =
+        printerName.toLowerCase().includes("pos") ||
+        printerName.toLowerCase().includes("thermal");
+
+      const finalData = isThermal
+        ? formatThermal(content)
+        : formatHTML(content);
+
+      const result = await printKOT(printerName, finalData, isThermal);
+
+      if (!result.success) {
+        hasError = true;
+        toast.error(`❌ ${printerName}: ${result.message}`);
+      }
+    }
+
+    setSelectedVoidItems([]);
+    navigate("/NewOrder");
+
+    if (hasError) {
+      toast.error("Some printers failed ❌");
+    } else {
+      toast.success("Items voided & printed successfully ✅");
+    }
+  } catch (err) {
+    console.error("Void failed:", err);
+    toast.error("Void failed ❌");
+  } finally {
+    setKotLoading(false);
+  }
+};
   const buildBillPayload = () => {
     if (!session) return null;
 
