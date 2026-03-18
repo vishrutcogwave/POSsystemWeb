@@ -23,6 +23,8 @@ type CartPanelProps = {
   selectedVoidItems: CartItem[];
 setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 onVoid: () => void;
+handleGetBill:()=>void;
+
 };
 
 export default function CartPanel({
@@ -30,6 +32,7 @@ export default function CartPanel({
   setSelectedVoidItems,
   onVoid,
   items,
+  handleGetBill,
   pastItems,
   onIncrease,
   onDecrease,
@@ -307,7 +310,7 @@ const getSpinfo = (spcodes?: string) => {
   </button>
 
 
-    <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">
+    <button onClick={handleGetBill} className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">
        Bill
     </button>
 

@@ -135,3 +135,52 @@ export const getSpecialInfo = async () => {
 
   return response.data;
 };
+
+
+export const getBill = async (billData: any) => {
+  try {
+    const response = await api.post(
+      "/api/POS/GetBill",
+      billData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching bill:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+export const postBill = async (billData: any) => {
+  try {
+    const response = await api.post(
+      "/api/POS/Postbill",
+      billData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching bill:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+

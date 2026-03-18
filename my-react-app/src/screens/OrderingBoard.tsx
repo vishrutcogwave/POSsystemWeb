@@ -12,16 +12,19 @@ import Loader from "../components/Loader";
 import { type Category, type CartItem } from "../utils";
 import {
   createOrder,
+  getBill,
   getNCKOT,
   getOldCart,
   getSpecialInfo,
   getSubTables,
+  postBill,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
 import { useActiveOLT } from "../context/ActiveOLTContext";
 import toast from "react-hot-toast";
-import { printKOT } from "../api/services/printer";
+import { printBill, printKOT } from "../api/services/printer";
+import InvoicePopup from "../components/InvoicePopup";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -36,6 +39,7 @@ function OrderingBoard() {
   const navigate = useNavigate();
   const { items, loading } = useItems(); // Items from context
   console.log("items", items);
+  const [oldCartData, setOldCartData] = useState<any[]>([]);
 
   const tableData =
     (location.state as {
@@ -73,6 +77,8 @@ function OrderingBoard() {
     waiterCode: string;
     waiterName: string;
   } | null>(null);
+  const [billData, setBillData] = useState<any>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
   const { activeOltName } = useActiveOLT(); // ✅ use context
 
   const fetchInstructions = async () => {
@@ -124,6 +130,9 @@ function OrderingBoard() {
       const table = tableData.tableNumber || "";
 
       const data = await getOldCart(table, outlet, sub);
+      console.log("oldcart", data);
+
+      setOldCartData(data);
 
       if (!data || data.length === 0) return;
 
@@ -153,37 +162,7 @@ function OrderingBoard() {
       console.error("Failed to fetch old cart", err);
     }
   };
-  // const fetchOldCart = async (sub: string) => {
-  //   try {
-  //     const outlet = localStorage.getItem("activeOltCode") || "";
-  //     const table = tableData.tableNumber || "";
 
-  //     const data = await getOldCart(table, outlet, sub);
-
-  //     if (!data || data.length === 0) return;
-
-  //     const order = data[0];
-
-  //     setSession({
-  //       pax: order.pax,
-  //       waiterCode: String(order.waiter),
-  //       waiterName: order.waiterName,
-  //     });
-
-  //     // ✅ store old ordered items separately
-  //     const oldItems = order.food.map((f: any) => ({
-  //       id: f.itemCode,
-  //       name: f.food.trim(),
-  //       price: f.price,
-  //       qty: f.qty,
-  //     }));
-
-  //     setPastItems(oldItems);
-
-  //   } catch (err) {
-  //     console.error("Failed to fetch old cart", err);
-  //   }
-  // };
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   const getNextSubTable = (list: string[]) => {
@@ -512,44 +491,40 @@ function OrderingBoard() {
       /* -------- PRINT LOOP -------- */
       let hasError = false;
 
-for (const rawPrinterName in printerItemMap) {
-  const items = printerItemMap[rawPrinterName];
+      for (const rawPrinterName in printerItemMap) {
+        const items = printerItemMap[rawPrinterName];
 
-  const content = generateContent(items);
+        const content = generateContent(items);
 
-  // ✅ STEP 1: resolve default printer if empty
-  let printerName = rawPrinterName;
+        // ✅ STEP 1: resolve default printer if empty
+        let printerName = rawPrinterName;
 
-  if (!printerName || printerName.trim() === "") {
-    printerName = await qz.printers.getDefault();
-  }
+        if (!printerName || printerName.trim() === "") {
+          printerName = await qz.printers.getDefault();
+        }
 
-  console.log("Using Printer:", printerName);
+        console.log("Using Printer:", printerName);
 
-  // ✅ STEP 2: detect type using REAL printer name
-  const isThermal =
-    printerName.toLowerCase().includes("pos") ||
-    printerName.toLowerCase().includes("thermal");
+        // ✅ STEP 2: detect type using REAL printer name
+        const isThermal =
+          printerName.toLowerCase().includes("pos") ||
+          printerName.toLowerCase().includes("thermal");
 
-  // ✅ STEP 3: generate correct format
-  const finalData = isThermal
-    ? formatThermal(content)
-    : formatHTML(content);
+        // ✅ STEP 3: generate correct format
+        const finalData = isThermal
+          ? formatThermal(content)
+          : formatHTML(content);
 
-  // ✅ STEP 4: print
-  const result = await printKOT(
-    printerName,
-    finalData,
-    isThermal
-  );
+        // ✅ STEP 4: print
+        const result = await printKOT(printerName, finalData, isThermal);
 
-  if (!result.success) {
-    hasError = true;
+        if (!result.success) {
+          hasError = true;
 
-    const msg = `❌ ${printerName}: ${result.message}`;
-    toast.error(msg);
-  }
-}
+          const msg = `❌ ${printerName}: ${result.message}`;
+          toast.error(msg);
+        }
+      }
       setCart([]);
       setSession(null);
       setSelectedNcCode(null);
@@ -661,6 +636,146 @@ for (const rawPrinterName in printerItemMap) {
       setKotLoading(false);
     }
   };
+
+  const buildBillPayload = () => {
+    if (!session) return null;
+
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
+    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    const oldFoods = oldCartData.flatMap((order: any) =>
+      order.food.map((f: any) => ({
+        id: f.itemCode,
+        food: f.food,
+        code: String(f.itemCode), // ✅ FIXED
+        price: f.price,
+        qty: f.qty,
+        comment: f.comment || "",
+        category: f.category || 0,
+        origQty: f.origQty ?? f.qty,
+      })),
+    );
+
+    const newFoods = cart.map((i) => ({
+      id: i.id,
+      food: i.name,
+      code: String(i.id),
+      price: i.price,
+      qty: i.qty,
+      comment: i.spcodes || "",
+      category: i.category,
+      origQty: i.qty,
+    }));
+
+    const food = [...oldFoods, ...newFoods];
+
+    return {
+      userCode: 3,
+      table: tableData.tableNumber || "",
+      subTable: selectedSubTable || "A",
+      outlet,
+      outletName: activeOltName,
+
+      waiter: session.waiterCode,
+      waiterName: session.waiterName,
+      pax: session.pax,
+
+      food,
+
+      total: food.reduce((s, i) => s + i.price * i.qty, 0),
+      totQty: food.reduce((s, i) => s + i.qty, 0),
+
+      branch,
+      type: isNC ? "N" : "K",
+      ncCode: isNC ? selectedNcCode : 0,
+      ncRemarks: isNC ? ncRemarks : "",
+
+      discount: 0,
+      discountType: "",
+      discountRemarks: "",
+      vRemarks: "1",
+
+      mode: "ADD",
+      subBillType: "S",
+
+      plan: "",
+      guestName: "",
+      guestCode: "",
+      checkInNo: "",
+      kotMobileNo: "",
+      kotMinTimer: 0,
+
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: new Date().toISOString(),
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: new Date().toISOString(),
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    };
+  };
+  const handlePrintBill = async (billData: any) => {
+    try {
+      if (!billData) {
+        throw new Error("No bill data");
+      }
+
+      // ✅ 1. POST BILL (FULL OBJECT)
+      const res = await postBill(billData);
+      console.log("Bill Posted:", res);
+
+      // ✅ 2. PRINT BILL
+      const printRes = await printBill(billData, res);
+
+      if (!printRes.success) {
+        throw new Error(printRes.message);
+      }
+
+      toast.success("Bill Printed Successfully ✅");
+      navigate("/NewOrder");
+      return true;
+    } catch (err: any) {
+      console.error("Print Bill Error:", err);
+      toast.error(err.message || "Print failed ❌");
+      return false;
+    }
+  };
+  const handleGetBill = async () => {
+    const payload = buildBillPayload();
+    console.log("payload", payload);
+
+    try {
+      const res = await getBill(payload);
+      console.log("res", res);
+
+      const finalResponse = {
+        cart: {
+          ...payload, // your cart data goes here
+        },
+        tax: {
+          ...res, // full tax response
+          taxList: res.taxList || [], // ensure taxList is included
+        },
+        billingType: "C",
+        subBillingType: "C",
+      };
+
+      console.log("finalResponse", finalResponse);
+      // ✅ set state
+      setBillData(finalResponse);
+      setShowInvoice(true);
+    } catch (err) {
+      console.error("GetBill failed", err);
+    }
+  };
   /* ---------------- GLOBAL LOADER ---------------- */
   if (loading || categoryLoading) return <Loader />;
 
@@ -750,6 +865,7 @@ for (const rawPrinterName in printerItemMap) {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          handleGetBill={handleGetBill}
           instructions={instructions}
           status={tableData?.status}
           kotStatus={tableData?.kotStatus}
@@ -777,6 +893,7 @@ for (const rawPrinterName in printerItemMap) {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        handleGetBill={handleGetBill}
         onVoid={handleVoid}
         selectedVoidItems={selectedVoidItems}
         setSelectedVoidItems={setSelectedVoidItems}
@@ -851,6 +968,14 @@ for (const rawPrinterName in printerItemMap) {
           setOpenSessionModal(true);
         }}
       />
+      {showInvoice && billData && (
+        <InvoicePopup
+          cart={billData.cart}
+          tax={billData.tax}
+          onClose={() => setShowInvoice(false)}
+          onPrint={() => handlePrintBill(billData)}
+        />
+      )}
 
       <InstructionModal
         isOpen={openInstructionModal}

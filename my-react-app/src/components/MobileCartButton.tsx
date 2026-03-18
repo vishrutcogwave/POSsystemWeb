@@ -3,12 +3,11 @@ import type { CartItem } from "../utils";
 import CartPanel from "./CartPanel";
 
 type MobileCartProps = {
-  
   cart: CartItem[];
   pastItems: CartItem[];
   selectedVoidItems: CartItem[];
-setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
-onVoid: () => void;
+  setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  onVoid: () => void;
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -16,7 +15,7 @@ onVoid: () => void;
   onUpdateNote: (id: number) => void;
   onKOT: () => void;
   kotLoading: boolean;
-
+  handleGetBill: () => void;
   ncReasons: any[];
 
   selectedNcCode: number | null;
@@ -26,10 +25,11 @@ onVoid: () => void;
   kotStatus?: string;
   ncRemarks: string;
   setNcRemarks: (text: string) => void;
-    instructions: { spid: number; spinfo: string }[]; // ⭐ ADD
+  instructions: { spid: number; spinfo: string }[]; // ⭐ ADD
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
-    selectedVoidItems,
+  handleGetBill,
+  selectedVoidItems,
   setSelectedVoidItems,
   onVoid,
   status,
@@ -47,7 +47,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   selectedNcCode,
   setSelectedNcCode,
   ncRemarks,
-  setNcRemarks
+  setNcRemarks,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -65,7 +65,6 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
       {open && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end">
           <div className="w-80 max-w-full bg-white h-full flex flex-col">
-
             {/* Close Button */}
             <div className="p-4 border-b">
               <button
@@ -78,31 +77,29 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
 
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
-            <CartPanel
-            onVoid={onVoid}
-            selectedVoidItems={selectedVoidItems}
-            setSelectedVoidItems={setSelectedVoidItems}
-              instructions={instructions}  
-              status={status}
-  kotStatus={kotStatus} 
-  ncReasons={ncReasons}
-  pastItems={pastItems}
-  kotLoading={kotLoading}
-  onKOT={onKOT}
-
-  items={cart}
-  onIncrease={increaseQty}
-  onDecrease={decreaseQty}
-  onClear={() => setCart([])}
-  onUpdateNote={onUpdateNote}
-
-  selectedNcCode={selectedNcCode}
-  setSelectedNcCode={setSelectedNcCode}
-  ncRemarks={ncRemarks}
-  setNcRemarks={setNcRemarks}
-/>
+              <CartPanel
+                onVoid={onVoid}
+                selectedVoidItems={selectedVoidItems}
+                setSelectedVoidItems={setSelectedVoidItems}
+                instructions={instructions}
+                status={status}
+                kotStatus={kotStatus}
+                ncReasons={ncReasons}
+                pastItems={pastItems}
+                kotLoading={kotLoading}
+                onKOT={onKOT}
+                items={cart}
+                onIncrease={increaseQty}
+                onDecrease={decreaseQty}
+                onClear={() => setCart([])}
+                onUpdateNote={onUpdateNote}
+                selectedNcCode={selectedNcCode}
+                setSelectedNcCode={setSelectedNcCode}
+                ncRemarks={ncRemarks}
+                setNcRemarks={setNcRemarks}
+                handleGetBill={handleGetBill}
+              />
             </div>
-
           </div>
         </div>
       )}
