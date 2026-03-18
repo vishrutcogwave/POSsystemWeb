@@ -562,21 +562,18 @@ function OrderingBoard() {
       waiterName: session.waiterName,
       pax: session.pax,
 
-      food: selectedVoidItems
-        .filter((i) => i.origQty! - i.qty > 0)
-        .map((i) => ({
-          id: i.id,
-          food: i.name,
-          code: i.id.toString(),
-          price: i.price,
-
-          qty: i.origQty! - i.qty, // void quantity
-
-          comment: "",
-          category: activeCategory || 0,
-
-          origQty: i.origQty, // original ordered qty
-        })),
+  food: selectedVoidItems
+  .filter((i) => i.qty > 0)
+  .map((i) => ({
+    id: i.id,
+    food: i.name,
+    code: i.id.toString(),
+    price: i.price,
+    qty: i.qty, // ✅ direct qty
+    comment: "",
+    category: activeCategory || 0,
+    origQty: i.origQty,
+  })),
 
       total: selectedVoidItems.reduce(
         (sum, i) => sum + i.price * (i.origQty! - i.qty),

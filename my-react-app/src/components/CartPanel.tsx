@@ -216,20 +216,20 @@ const getSpinfo = (spcodes?: string) => {
       {selectedItem ? (
         <div className="flex items-center gap-2">
 
-          <button
-            onClick={() => {
-      setSelectedVoidItems((prev) =>
-  prev
-    .map((i) =>
-      i.id === item.id ? { ...i, qty: i.qty - 1 } : i
-    )
-    .filter((i) => i.qty > 0)
-);
-            }}
-            className="w-6 h-6 border rounded"
-          >
-            -
-          </button>
+        <button
+  onClick={() => {
+    setSelectedVoidItems((prev) =>
+      prev
+        .map((i) =>
+          i.id === item.id ? { ...i, qty: Math.max(i.qty - 1, 0) } : i
+        )
+        .filter((i) => i.qty > 0)
+    );
+  }}
+  className="w-6 h-6 border rounded"
+>
+  -
+</button>
 
           <span className="text-sm">{voidQty}</span>
 
