@@ -182,5 +182,31 @@ export const postBill = async (billData: any) => {
   }
 };
 
+export const getTaxSettings = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
 
+  const response = await api.get("/api/POS/GetTaxSettings", {
+    params: { branchcode },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
+  return response.data;
+};
+
+export const getCompanyInfo = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetCompanyInfo",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

@@ -13,10 +13,12 @@ import { type Category, type CartItem } from "../utils";
 import {
   createOrder,
   getBill,
+  getCompanyInfo,
   getNCKOT,
   getOldCart,
   getSpecialInfo,
   getSubTables,
+  getTaxSettings,
   postBill,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
@@ -70,6 +72,7 @@ function OrderingBoard() {
   const [instructionItemId, setInstructionItemId] = useState<number | null>(
     null,
   );
+  const [taxSettings, setTaxSettings] = useState<any>(null);
   const [selectedVoidItems, setSelectedVoidItems] = useState<CartItem[]>([]);
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
   const [session, setSession] = useState<{
@@ -80,6 +83,32 @@ function OrderingBoard() {
   const [billData, setBillData] = useState<any>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const { activeOltName } = useActiveOLT(); // ✅ use context
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
+
+const fetchCompany = async () => {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+    const data = await getCompanyInfo(branch);
+
+    console.log("Company Info:", data);
+    setCompanyInfo(data);
+  } catch (err) {
+    console.error("Company fetch failed", err);
+  }
+};
+  const fetchTaxSettings = async () => {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+    const data = await getTaxSettings(branch);
+
+    console.log("Tax Settings:", data);
+    setTaxSettings(data);
+  } catch (err) {
+    console.error("Tax fetch failed", err);
+  }
+};
+
+
 
   const fetchInstructions = async () => {
     try {
@@ -101,8 +130,11 @@ function OrderingBoard() {
   };
 
   useEffect(() => {
+  void fetchTaxSettings();
+
     void fetchNcReasons();
     void fetchInstructions();
+    void fetchCompany()
   }, []);
 
   const fetchSubTables = async () => {
@@ -250,11 +282,20 @@ const handleAdd = (itemCode: number) => {
     return;
   }
 
-  const food = items
-    .flatMap((cat: any) => cat.items)
-    .find((i: any) => i.itemCode === itemCode);
+  // 🔥 FIND CATEGORY + ITEM TOGETHER
+  let selectedCategory: any = null;
+  let food: any = null;
 
-  if (!food) return;
+  for (const cat of items) {
+    const found = cat.items.find((i: any) => i.itemCode === itemCode);
+    if (found) {
+      selectedCategory = cat;
+      food = found;
+      break;
+    }
+  }
+
+  if (!food || !selectedCategory) return;
 
   setCart((prev) => {
     const existing = prev.find(
@@ -281,7 +322,8 @@ const handleAdd = (itemCode: number) => {
         name: food.itemName.trim(),
         price: food.oidRate,
         qty: 1,
-        category: food.catCode,
+        category: selectedCategory.catCode, // ✅ FIXED
+        grpCode: Number(selectedCategory.grpCode), // ✅ ADD THIS
         spcodes: "",
         note: "",
       },
@@ -382,12 +424,57 @@ const updateCartNote = (id: number, spcodes: string, note: string) => {
       };
 
       /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
-      const formatHTML = (c: any) => `
-  <div style="font-family: monospace; font-size: 12px; width: 260px;">
-    
-    <div style="text-align:center; font-weight:bold;">
-      ${c.title}
-    </div>
+const formatHTML = (c: any) => `
+<html>
+<head>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+
+    @media print {
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
+    }
+
+    .bill {
+      font-family: monospace;
+      font-size: 12px;
+      width: 240px; /* 🔥 reduced from 260 */
+      padding: 0 12px; /* 🔥 SAFE AREA both sides */
+      box-sizing: border-box;
+    }
+
+    .center {
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .indent {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bill">
+
+    <div class="center">${c.title}</div>
 
     <hr/>
 
@@ -398,31 +485,27 @@ const updateCartNote = (id: number, spcodes: string, note: string) => {
 
     <hr/>
 
-    ${c.items
-      .map(
-        (item: any) => `
-      <div style="display:flex; justify-content:space-between;">
+    ${c.items.map((item: any) => `
+      <div class="row">
         <span>${item.qty}</span>
         <span>${item.name}</span>
       </div>
 
       ${item.instructions
-        .map((i: string) => `<div style="margin-left:10px;">* ${i}</div>`)
+        .map((i: string) => `<div class="indent">* ${i}</div>`)
         .join("")}
-    `,
-      )
-      .join("")}
+    `).join("")}
 
     <hr/>
 
-    <div>Total Items : ${c.items.reduce(
-      (s: number, i: any) => s + i.qty,
-      0,
-    )}</div>
+    <div>Total Items : ${
+      c.items.reduce((s: number, i: any) => s + i.qty, 0)
+    }</div>
 
   </div>
+</body>
+</html>
 `;
-
   const handleKOT = async () => {
     if (!session || cart.length === 0) return;
 
@@ -443,16 +526,17 @@ const updateCartNote = (id: number, spcodes: string, note: string) => {
       waiterName: session.waiterName,
       pax: session.pax,
 
-      food: cart.map((i) => ({
-        id: i.id,
-        food: i.name,
-        code: i.id.toString(),
-        price: i.price,
-        qty: i.qty,
-        comment: i.spcodes || "",
-        category: i.category, // ✅ CORRECT
-        origQty: i.qty,
-      })),
+  food: cart.map((i) => ({
+  id: i.id,
+  food: i.name,
+  code: i.id.toString(),
+  price: i.price,
+  qty: i.qty,
+  comment: i.spcodes || "",
+  category: i.category,
+  grpCode: i.grpCode, // ✅ ADD THIS
+  origQty: i.qty,
+})),
 
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
       totQty: cart.reduce((sum, i) => sum + i.qty, 0),
@@ -740,36 +824,62 @@ const handleVoid = async () => {
     setKotLoading(false);
   }
 };
+
+const categoryMap = useMemo(() => {
+  const map = new Map<number, { catCode: number; grpCode: number }>();
+
+  items.forEach((cat) => {
+    cat.items.forEach((item) => {
+      map.set(item.itemCode, {
+        catCode: cat.catCode,
+        grpCode: Number(cat.grpCode),
+      });
+    });
+  });
+
+  return map;
+}, [items]);
   const buildBillPayload = () => {
     if (!session) return null;
 
     const branch = localStorage.getItem("branch") || "";
     const outlet = localStorage.getItem("activeOltCode") || "";
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
-    const oldFoods = oldCartData.flatMap((order: any) =>
-      order.food.map((f: any) => ({
-        id: f.itemCode,
-        food: f.food,
-        code: String(f.itemCode), // ✅ FIXED
-        price: f.price,
-        qty: f.qty,
-        comment: f.comment || "",
-        category: f.category || 0,
-        origQty: f.origQty ?? f.qty,
-      })),
-    );
 
-    const newFoods = cart.map((i) => ({
-      id: i.id,
-      food: i.name,
-      code: String(i.id),
-      price: i.price,
-      qty: i.qty,
-      comment: i.spcodes || "",
-      category: i.category,
-      origQty: i.qty,
-    }));
+  const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
+const oldFoods = oldCartData.flatMap((order: any) =>
+  order.food.map((f: any) => {
+    const meta = categoryMap.get(f.itemCode);
 
+    return {
+      id: f.itemCode,
+      food: f.food,
+      code: String(f.itemCode),
+      price: f.price,
+      qty: f.qty,
+      comment: f.comment || "",
+      category: meta?.catCode || 0,
+      grpCode: meta?.grpCode || 0,
+      origQty: f.origQty ?? f.qty,
+    };
+  })
+);
+
+const newFoods = cart.map((i) => {
+  const meta = categoryMap.get(i.id);
+
+  return {
+    id: i.id,
+    food: i.name,
+    code: String(i.id),
+    price: i.price,
+    qty: i.qty,
+    comment: i.spcodes || "",
+    category: i.category || meta?.catCode || 0,
+    grpCode: i.grpCode || meta?.grpCode || 0,
+    origQty: i.qty,
+  };
+});
     const food = [...oldFoods, ...newFoods];
 
     return {
@@ -807,7 +917,7 @@ const handleVoid = async () => {
       checkInNo: "",
       kotMobileNo: "",
       kotMinTimer: 0,
-
+taxType:taxType,
       homeDelivary: {
         guestCode: 0,
         titleGn1: 0,
@@ -836,7 +946,7 @@ const handleVoid = async () => {
       console.log("Bill Posted:", res);
 
       // ✅ 2. PRINT BILL
-      const printRes = await printBill(billData, res);
+      const printRes = await printBill(billData, res,companyInfo);
 
       if (!printRes.success) {
         throw new Error(printRes.message);
@@ -866,6 +976,7 @@ const handleVoid = async () => {
         tax: {
           ...res, // full tax response
           taxList: res.taxList || [], // ensure taxList is included
+           taxType: taxSettings?.taxType, // ✅ ADD THIS
         },
         billingType: "C",
         subBillingType: "C",

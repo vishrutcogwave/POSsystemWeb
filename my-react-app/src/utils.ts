@@ -25,7 +25,7 @@ export type CartItem = {
   qty: number;
 
   category: number; // ✅ ADD THIS
-
+grpCode: number;
   origQty?: number; // ✅ add this
 
   note?: string;
