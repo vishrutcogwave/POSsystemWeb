@@ -1,7 +1,7 @@
 import React from "react";
 type TableCardProps = {
   tableNumber: string | number;
-  status: "Occupied" | "Available" | string;
+  status: "Occupied" | "Available" | "Unsettled" | string;
   kotStatus?: "KOT" | "NCKOT" | string;
   peopleCount?: number;
   handleCardClick: () => void;
@@ -18,13 +18,15 @@ const TableCard: React.FC<TableCardProps> = ({
 if (status === "Available") {
   statusStyles = "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]";
 }
-
+if (status === "Unsettled") {
+  statusStyles = "bg-yellow-100 text-yellow-700 border-yellow-400";
+}
 if (status === "Occupied" && kotStatus === "KOT") {
   statusStyles = "bg-red-100 text-red-600 border-red-400";
 }
 
 if (status === "Occupied" && kotStatus === "NCKOT") {
-  statusStyles = "bg-yellow-100 text-yellow-700 border-yellow-400";
+  statusStyles = "bg-purple-100 text-purple-700 border-purple-400";
 }
 
   const fixedTime = "01:24:18";

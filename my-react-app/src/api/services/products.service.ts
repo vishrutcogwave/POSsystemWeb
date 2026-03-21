@@ -54,9 +54,9 @@ export const getItemCategoryList = async (branchcode: string) => {
   return response.data;
 };
 
-export const getCombinedOltItemList = async (oltCode: string, branchCode: string) => {
+export const getCombinedOltItemList = async (oltCode: string, branchCode: string, grpCode: number) => {
   const response = await api.get("/api/POS/GetCombinedOltItemList", {
-    params: { oltcode: oltCode, branchcode: branchCode },
+    params: { oltcode: oltCode, branchcode: branchCode ,grpcode:grpCode },
   });
   return response.data;
 };
@@ -200,6 +200,42 @@ export const getCompanyInfo = async (branchcode: string) => {
 
   const response = await api.get(
     "/api/POS/GetCompanyInfo",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const getFastfoodDetails = async (
+  outlet: string,
+  branchcode: string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetFastfoodDetails",
+    {
+      params: { outlet, branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+export const getItemGroupList = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetItemGroupList",
     {
       params: { branchcode },
       headers: {

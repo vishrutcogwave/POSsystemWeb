@@ -9,11 +9,13 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = ({ onNewOrder }) => {
   const navigate = useNavigate();
 
-  const handleNewOrder = () => {
-    if (onNewOrder) onNewOrder();
-    navigate("/NewOrder");
-  };
+const handleNewOrder = () => {
+  if (onNewOrder) onNewOrder();
 
+  navigate("/NewOrder", {
+    state: { reset: true }, // ✅ IMPORTANT
+  });
+};
   const handleDashboard = () => {
     navigate("/dashboard");
   };

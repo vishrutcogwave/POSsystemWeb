@@ -2,14 +2,20 @@
 import React, { useEffect, useState } from "react";
 import Tabs from "../components/Tabs";
 import TableCard from "../components/TableCard";
-import { useNavigate } from "react-router-dom";
-import { getCombinedOutletAndTableMasterList } from "../api/services/products.service";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  getCombinedOutletAndTableMasterList,
+  getFastfoodDetails,
+} from "../api/services/products.service";
 import Loader from "../components/Loader";
-import { useActiveOLT } from "../context/ActiveOLTContext"; // ✅ import ActiveOLT context
+import { useActiveOLT } from "../context/ActiveOLTContext";
+import PaymentModal from "../components/PaymentModal";
+
+/* ---------------- TYPES ---------------- */
 type Table = {
   tableNumber: string;
   status: string;
-  kotStatus?: string; // ✅ add this
+  kotStatus?: string;
   peopleCount?: number;
 };
 
@@ -19,56 +25,67 @@ type Outlet = {
   tables: {
     tblNo: string;
     tableStatus: string;
-    kotStatus: string; // ✅ add this
+    kotStatus: string;
   }[];
 };
+
 const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
   const [activeTab, setActiveTab] = useState("");
   const [loading, setLoading] = useState(false);
+    const [openPayment, setOpenPayment] = useState(false)
+
   const navigate = useNavigate();
-
-  const { activeOltCode, setActiveOLT } = useActiveOLT(); // ✅ use context
-
-  /* ---------------- FETCH OUTLETS & TABLES ---------------- */
+  const { activeOltCode, setActiveOLT } = useActiveOLT();
+const location = useLocation();
+const shouldReset = location.state?.reset;
+  /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-          localStorage.getItem("branch") || "",
-        );
-        console.log("tableData", data);
+        const data: Outlet[] =
+          await getCombinedOutletAndTableMasterList(
+            localStorage.getItem("branch") || ""
+          );
 
-        // Map API response to tabs
         const formattedTabs = data.map((outlet) => ({
           id: outlet.oltCode.toString(),
           label: outlet.oltName.trim(),
         }));
+
         setTabs(formattedTabs);
 
-        // Map API tables
         const tables: Record<string, Table[]> = {};
         data.forEach((outlet) => {
           tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
             tableNumber: tbl.tblNo,
             status: tbl.tableStatus,
-            kotStatus: tbl.kotStatus, // ✅ add this
+            kotStatus: tbl.kotStatus,
           }));
         });
+
         setTablesData(tables);
 
-        // Set first tab as active if exists
-        if (formattedTabs.length > 0 && !activeOltCode) {
-          const firstTab = formattedTabs[0];
-          setActiveTab(firstTab.id);
-          setActiveOLT(firstTab.id, firstTab.label); // ✅ set context
-        } else if (activeOltCode) {
-          setActiveTab(activeOltCode); // restore last active tab from context
-        }
+       if (formattedTabs.length > 0) {
+  const firstTab = formattedTabs[0];
+
+  if (shouldReset) {
+    // 🔥 FORCE RESET
+    setActiveTab(firstTab.id);
+    setActiveOLT(firstTab.id, firstTab.label);
+              window.history.replaceState({}, document.title);
+
+  } else if (!activeOltCode) {
+    setActiveTab(firstTab.id);
+    setActiveOLT(firstTab.id, firstTab.label);
+  } else {
+    setActiveTab(activeOltCode);
+  }
+}
       } catch (error) {
-        console.error("Error fetching outlets and tables:", error);
+        console.error("Error fetching outlets:", error);
       } finally {
         setLoading(false);
       }
@@ -77,27 +94,63 @@ const NewOrder: React.FC = () => {
     fetchData();
   }, [activeOltCode, setActiveOLT]);
 
-  /* ---------------- NAVIGATE TO ORDERING BOARD ---------------- */
+  /* ---------------- TAB CHANGE ---------------- */
+  const handleTabChange = async (tabId: string) => {
+    const selectedTab = tabs.find((t) => t.id === tabId);
+    if (!selectedTab) return;
+
+    setActiveTab(selectedTab.id);
+    setActiveOLT(selectedTab.id, selectedTab.label);
+
+    const isFastFood =
+      selectedTab.id === "7" ||
+      selectedTab.label.toUpperCase().includes("FAST");
+
+    if (isFastFood) {
+      try {
+        const branch = localStorage.getItem("branch") || "";
+
+        const res = await getFastfoodDetails(selectedTab.id, branch);
+
+        console.log("FastFood API:", res);
+
+        // 🔥 DIRECT REDIRECT
+        navigate("/OrderingBoard", {
+          state: {
+            tableNumber: res.tblNo || "FF",
+            status: "Available",
+            kotStatus: "N",
+            fastFood: true,
+
+            // ✅ FIXED WAITER
+            waiter: String(res.stwCode),
+            waiterName: res.stwName || "Counter",
+
+            pax: res.tblSeatCount || 1,
+          },
+        });
+      } catch (err) {
+        console.error("Fast food fetch failed", err);
+      }
+    }
+  };
+
+  /* ---------------- NORMAL TABLE CLICK ---------------- */
   const handleTableClick = (table: Table) => {
+    if (table.status==="Unsettled"){
+setOpenPayment(true)
+      return
+    }
     navigate("/OrderingBoard", {
       state: {
         tableNumber: table.tableNumber,
         status: table.status,
-         kotStatus: table.kotStatus,
+        kotStatus: table.kotStatus,
       },
     });
   };
 
-  /* ---------------- TAB CHANGE ---------------- */
-  const handleTabChange = (tabId: string) => {
-    const selectedTab = tabs.find((t) => t.id === tabId);
-    if (selectedTab) {
-      setActiveTab(selectedTab.id);
-      setActiveOLT(selectedTab.id, selectedTab.label); // ✅ update context
-    }
-  };
-
-  /* ---------------- RENDER ---------------- */
+  /* ---------------- UI ---------------- */
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
@@ -105,7 +158,7 @@ const NewOrder: React.FC = () => {
       {/* Tabs */}
       <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
 
-      {/* Table Cards */}
+      {/* Table Grid */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
           {activeTab &&
@@ -114,13 +167,18 @@ const NewOrder: React.FC = () => {
                 key={table.tableNumber}
                 tableNumber={table.tableNumber}
                 status={table.status}
-                kotStatus={table.kotStatus} // ✅ pass here
+                kotStatus={table.kotStatus}
                 peopleCount={table.peopleCount}
                 handleCardClick={() => handleTableClick(table)}
               />
             ))}
         </div>
       </div>
+         <PaymentModal
+        isOpen={openPayment}
+        onClose={() => setOpenPayment(false)}
+        onPay={()=>alert("setteled")}
+      />
     </div>
   );
 };

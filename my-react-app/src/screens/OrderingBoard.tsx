@@ -14,6 +14,7 @@ import {
   createOrder,
   getBill,
   getCompanyInfo,
+  getItemGroupList,
   getNCKOT,
   getOldCart,
   getSpecialInfo,
@@ -27,6 +28,7 @@ import { useActiveOLT } from "../context/ActiveOLTContext";
 import toast from "react-hot-toast";
 import { printBill, printKOT } from "../api/services/printer";
 import InvoicePopup from "../components/InvoicePopup";
+import PaymentModal from "../components/PaymentModal";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -39,17 +41,36 @@ type Bill = {
 function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { items, loading } = useItems(); // Items from context
+  const [groups, setGroups] = useState<any[]>([]);
+  const { items, loading, setActiveGroup, activeGroup } = useItems(); // Items from context
   console.log("items", items);
   const [oldCartData, setOldCartData] = useState<any[]>([]);
+  const [openPayment, setOpenPayment] = useState(false);
 
   const tableData =
     (location.state as {
       tableNumber?: string;
       status?: "Available" | "Occupied";
       kotStatus: string;
+      fastFood?: boolean;
+      waiter?: string;
+      waiterName?: string; // ✅ ADD THIS
+      pax?: number;
     }) || {};
-  console.log(tableData, "tableData");
+  console.log(tableData.fastFood, "tableData");
+  useEffect(() => {
+    if (tableData.fastFood) {
+      setSession({
+        pax: tableData.pax || 1,
+        waiterCode: String(tableData.waiter || 1),
+
+        // ✅ USE REAL NAME
+        waiterName: tableData.waiterName || "Counter",
+      });
+
+      setSelectedSubTable("A");
+    }
+  }, [tableData]);
 
   /* ---------------- CATEGORY STATE ---------------- */
   const [selectedNcCode, setSelectedNcCode] = useState<number | null>(null);
@@ -84,31 +105,39 @@ function OrderingBoard() {
   const [showInvoice, setShowInvoice] = useState(false);
   const { activeOltName } = useActiveOLT(); // ✅ use context
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const fetchGroups = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getItemGroupList(branch);
 
-const fetchCompany = async () => {
-  try {
-    const branch = localStorage.getItem("branch") || "";
-    const data = await getCompanyInfo(branch);
+      setGroups(data);
+    } catch (err) {
+      console.error("Group fetch failed", err);
+    }
+  };
 
-    console.log("Company Info:", data);
-    setCompanyInfo(data);
-  } catch (err) {
-    console.error("Company fetch failed", err);
-  }
-};
+  const fetchCompany = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getCompanyInfo(branch);
+
+      console.log("Company Info:", data);
+      setCompanyInfo(data);
+    } catch (err) {
+      console.error("Company fetch failed", err);
+    }
+  };
   const fetchTaxSettings = async () => {
-  try {
-    const branch = localStorage.getItem("branch") || "";
-    const data = await getTaxSettings(branch);
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getTaxSettings(branch);
 
-    console.log("Tax Settings:", data);
-    setTaxSettings(data);
-  } catch (err) {
-    console.error("Tax fetch failed", err);
-  }
-};
-
-
+      console.log("Tax Settings:", data);
+      setTaxSettings(data);
+    } catch (err) {
+      console.error("Tax fetch failed", err);
+    }
+  };
 
   const fetchInstructions = async () => {
     try {
@@ -130,11 +159,11 @@ const fetchCompany = async () => {
   };
 
   useEffect(() => {
-  void fetchTaxSettings();
-
+    void fetchTaxSettings();
+    void fetchGroups();
     void fetchNcReasons();
     void fetchInstructions();
-    void fetchCompany()
+    void fetchCompany();
   }, []);
 
   const fetchSubTables = async () => {
@@ -179,22 +208,22 @@ const fetchCompany = async () => {
 
       // ✅ combine all food items from all KOTs
       const allFoods = data.flatMap((order: any) => order.food);
-const grouped = new Map<number, any>();
+      const grouped = new Map<number, any>();
 
-allFoods.forEach((f: any) => {
-  if (grouped.has(f.itemCode)) {
-    grouped.get(f.itemCode).qty += f.qty;
-  } else {
-    grouped.set(f.itemCode, {
-      id: f.itemCode,
-      name: f.food.trim(),
-      price: f.price,
-      qty: f.qty,
-    });
-  }
-});
+      allFoods.forEach((f: any) => {
+        if (grouped.has(f.itemCode)) {
+          grouped.get(f.itemCode).qty += f.qty;
+        } else {
+          grouped.set(f.itemCode, {
+            id: f.itemCode,
+            name: f.food.trim(),
+            price: f.price,
+            qty: f.qty,
+          });
+        }
+      });
 
-const oldItems = Array.from(grouped.values());
+      const oldItems = Array.from(grouped.values());
 
       setPastItems(oldItems);
 
@@ -236,13 +265,15 @@ const oldItems = Array.from(grouped.values());
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
+    if (tableData.fastFood) return; // 🔥 SKIP EVERYTHING
+
     if (tableData.status === "Available") {
       setOpenSessionModal(true);
     } else if (tableData.status === "Occupied") {
-      fetchSubTables(); // ✅ load A,B,C
+      fetchSubTables();
       setOpenKOTModal(true);
     }
-  }, [tableData.status]);
+  }, [tableData.status, tableData.fastFood]);
 
   /* ---------------- SYNC CART ---------------- */
   useEffect(() => {
@@ -276,60 +307,60 @@ const oldItems = Array.from(grouped.values());
     );
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-const handleAdd = (itemCode: number) => {
-  if (!session) {
-    toast.error("Start table session first");
-    return;
-  }
-
-  // 🔥 FIND CATEGORY + ITEM TOGETHER
-  let selectedCategory: any = null;
-  let food: any = null;
-
-  for (const cat of items) {
-    const found = cat.items.find((i: any) => i.itemCode === itemCode);
-    if (found) {
-      selectedCategory = cat;
-      food = found;
-      break;
+  const handleAdd = (itemCode: number) => {
+    if (!session) {
+      toast.error("Start table session first");
+      return;
     }
-  }
 
-  if (!food || !selectedCategory) return;
+    // 🔥 FIND CATEGORY + ITEM TOGETHER
+    let selectedCategory: any = null;
+    let food: any = null;
 
-  setCart((prev) => {
-    const existing = prev.find(
-      (i) =>
-        i.id === itemCode &&
-        (!i.spcodes || i.spcodes === "") &&
-        (!i.note || i.note === "")
-    );
+    for (const cat of items) {
+      const found = cat.items.find((i: any) => i.itemCode === itemCode);
+      if (found) {
+        selectedCategory = cat;
+        food = found;
+        break;
+      }
+    }
 
-    if (existing) {
-      return prev.map((i) =>
-        i.id === itemCode &&
-        (!i.spcodes || i.spcodes === "") &&
-        (!i.note || i.note === "")
-          ? { ...i, qty: i.qty + 1 }
-          : i
+    if (!food || !selectedCategory) return;
+
+    setCart((prev) => {
+      const existing = prev.find(
+        (i) =>
+          i.id === itemCode &&
+          (!i.spcodes || i.spcodes === "") &&
+          (!i.note || i.note === ""),
       );
-    }
 
-    return [
-      ...prev,
-      {
-        id: food.itemCode,
-        name: food.itemName.trim(),
-        price: food.oidRate,
-        qty: 1,
-        category: selectedCategory.catCode, // ✅ FIXED
-        grpCode: Number(selectedCategory.grpCode), // ✅ ADD THIS
-        spcodes: "",
-        note: "",
-      },
-    ];
-  });
-};
+      if (existing) {
+        return prev.map((i) =>
+          i.id === itemCode &&
+          (!i.spcodes || i.spcodes === "") &&
+          (!i.note || i.note === "")
+            ? { ...i, qty: i.qty + 1 }
+            : i,
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          id: food.itemCode,
+          name: food.itemName.trim(),
+          price: food.oidRate,
+          qty: 1,
+          category: selectedCategory.catCode, // ✅ FIXED
+          grpCode: Number(selectedCategory.grpCode), // ✅ ADD THIS
+          spcodes: "",
+          note: "",
+        },
+      ];
+    });
+  };
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
@@ -344,31 +375,29 @@ const handleAdd = (itemCode: number) => {
         .filter((i) => i.qty > 0),
     );
   };
-const updateCartNote = (id: number, spcodes: string, note: string) => {
-  setCart((prev) => {
-    const item = prev.find((i) => i.id === id);
+  const updateCartNote = (id: number, spcodes: string, note: string) => {
+    setCart((prev) => {
+      const item = prev.find((i) => i.id === id);
 
-    if (!item) return prev;
+      if (!item) return prev;
 
-    // reduce qty of original
-    const updated = prev
-      .map((i) =>
-        i.id === id ? { ...i, qty: i.qty - 1 } : i
-      )
-      .filter((i) => i.qty > 0);
+      // reduce qty of original
+      const updated = prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0);
 
-    // add new item with instruction
-    return [
-      ...updated,
-      {
-        ...item,
-        qty: 1,
-        spcodes,
-        note,
-      },
-    ];
-  });
-};
+      // add new item with instruction
+      return [
+        ...updated,
+        {
+          ...item,
+          qty: 1,
+          spcodes,
+          note,
+        },
+      ];
+    });
+  };
 
   const getInstructionLines = (codes?: string) => {
     if (!codes) return [];
@@ -379,52 +408,52 @@ const updateCartNote = (id: number, spcodes: string, note: string) => {
       .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
       .filter(Boolean);
   };
-      const formatThermal = (c: any) => {
-        let d = "";
+  const formatThermal = (c: any) => {
+    let d = "";
 
-        d += "\x1B\x40";
+    d += "\x1B\x40";
 
-        d += "\x1B\x61\x01";
-        d += "\x1B\x45\x01";
-        d += c.title + "\n";
-        d += "\x1B\x45\x00";
+    d += "\x1B\x61\x01";
+    d += "\x1B\x45\x01";
+    d += c.title + "\n";
+    d += "\x1B\x45\x00";
 
-        d += "--------------------------------\n";
+    d += "--------------------------------\n";
 
-        d += "\x1B\x61\x00";
+    d += "\x1B\x61\x00";
 
-        d += `Table : ${c.table}\n`;
-        d += `SubTbl: ${c.subTable}\n`;
-        d += `Waiter: ${c.waiter}\n`;
-        d += `Pax   : ${c.pax}\n`;
+    d += `Table : ${c.table}\n`;
+    d += `SubTbl: ${c.subTable}\n`;
+    d += `Waiter: ${c.waiter}\n`;
+    d += `Pax   : ${c.pax}\n`;
 
-        d += "--------------------------------\n";
+    d += "--------------------------------\n";
 
-        c.items.forEach((item: any) => {
-          const qty = String(item.qty).padEnd(3, " ");
-          const name = item.name.substring(0, 24);
+    c.items.forEach((item: any) => {
+      const qty = String(item.qty).padEnd(3, " ");
+      const name = item.name.substring(0, 24);
 
-          d += qty + " " + name.padEnd(24, " ") + "\n";
+      d += qty + " " + name.padEnd(24, " ") + "\n";
 
-          item.instructions.forEach((i: string) => {
-            d += "    * " + i + "\n";
-          });
-        });
+      item.instructions.forEach((i: string) => {
+        d += "    * " + i + "\n";
+      });
+    });
 
-        d += "--------------------------------\n";
+    d += "--------------------------------\n";
 
-        const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
-        d += `Total Items : ${total}\n`;
+    const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
+    d += `Total Items : ${total}\n`;
 
-        d += "\n\n\n";
-        d += "\x1B\x64\x05";
-        d += "\x1D\x56\x41\x10";
+    d += "\n\n\n";
+    d += "\x1B\x64\x05";
+    d += "\x1D\x56\x41\x10";
 
-        return d;
-      };
+    return d;
+  };
 
-      /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
-const formatHTML = (c: any) => `
+  /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
+  const formatHTML = (c: any) => `
 <html>
 <head>
   <style>
@@ -485,7 +514,9 @@ const formatHTML = (c: any) => `
 
     <hr/>
 
-    ${c.items.map((item: any) => `
+    ${c.items
+      .map(
+        (item: any) => `
       <div class="row">
         <span>${item.qty}</span>
         <span>${item.name}</span>
@@ -494,13 +525,16 @@ const formatHTML = (c: any) => `
       ${item.instructions
         .map((i: string) => `<div class="indent">* ${i}</div>`)
         .join("")}
-    `).join("")}
+    `,
+      )
+      .join("")}
 
     <hr/>
 
-    <div>Total Items : ${
-      c.items.reduce((s: number, i: any) => s + i.qty, 0)
-    }</div>
+    <div>Total Items : ${c.items.reduce(
+      (s: number, i: any) => s + i.qty,
+      0,
+    )}</div>
 
   </div>
 </body>
@@ -526,17 +560,17 @@ const formatHTML = (c: any) => `
       waiterName: session.waiterName,
       pax: session.pax,
 
-  food: cart.map((i) => ({
-  id: i.id,
-  food: i.name,
-  code: i.id.toString(),
-  price: i.price,
-  qty: i.qty,
-  comment: i.spcodes || "",
-  category: i.category,
-  grpCode: i.grpCode, // ✅ ADD THIS
-  origQty: i.qty,
-})),
+      food: cart.map((i) => ({
+        id: i.id,
+        food: i.name,
+        code: i.id.toString(),
+        price: i.price,
+        qty: i.qty,
+        comment: i.spcodes || "",
+        category: i.category,
+        grpCode: i.grpCode, // ✅ ADD THIS
+        origQty: i.qty,
+      })),
 
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
       totQty: cart.reduce((sum, i) => sum + i.qty, 0),
@@ -600,7 +634,7 @@ const formatHTML = (c: any) => `
 
       /* -------- COMMON CONTENT -------- */
       const generateContent = (items: any[]) => ({
-        title: isNC? "NC KOT":"KOT",
+        title: isNC ? "NC KOT" : "KOT",
         table: tableData?.tableNumber,
         subTable: selectedSubTable || "A",
         waiter: session.waiterName,
@@ -670,175 +704,175 @@ const formatHTML = (c: any) => `
       setKotLoading(false);
     }
   };
-const handleVoid = async () => {
-  if (!session || selectedVoidItems.length === 0) return;
+  const handleVoid = async () => {
+    if (!session || selectedVoidItems.length === 0) return;
 
-  setKotLoading(true);
+    setKotLoading(true);
 
-  const branch = localStorage.getItem("branch") || "";
-  const outlet = localStorage.getItem("activeOltCode") || "";
-  const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
+    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
-  const payload = {
-    userCode: 3,
-    table: tableData.tableNumber || "",
-    subTable: selectedSubTable || "A",
-    outlet,
-    outletName: activeOltName,
-    waiter: session.waiterCode,
-    waiterName: session.waiterName,
-    pax: session.pax,
+    const payload = {
+      userCode: 3,
+      table: tableData.tableNumber || "",
+      subTable: selectedSubTable || "A",
+      outlet,
+      outletName: activeOltName,
+      waiter: session.waiterCode,
+      waiterName: session.waiterName,
+      pax: session.pax,
 
-    food: selectedVoidItems
-      .filter((i) => i.qty > 0)
-      .map((i) => ({
-        id: i.id,
-        food: i.name,
-        code: i.id.toString(),
-        price: i.price,
-        qty: i.qty,
-        comment: "",
-        category: i.category || 0,
-        origQty: i.origQty,
-      })),
+      food: selectedVoidItems
+        .filter((i) => i.qty > 0)
+        .map((i) => ({
+          id: i.id,
+          food: i.name,
+          code: i.id.toString(),
+          price: i.price,
+          qty: i.qty,
+          comment: "",
+          category: i.category || 0,
+          origQty: i.origQty,
+        })),
 
-    total: selectedVoidItems.reduce(
-      (sum, i) => sum + i.price * (i.origQty! - i.qty),
-      0
-    ),
+      total: selectedVoidItems.reduce(
+        (sum, i) => sum + i.price * (i.origQty! - i.qty),
+        0,
+      ),
 
-    totQty: selectedVoidItems.reduce(
-      (sum, i) => sum + (i.origQty! - i.qty),
-      0
-    ),
+      totQty: selectedVoidItems.reduce(
+        (sum, i) => sum + (i.origQty! - i.qty),
+        0,
+      ),
 
-    branch,
-    type: isNC ? "N" : "K",
-    ncCode: 0,
-    ncRemarks: "",
+      branch,
+      type: isNC ? "N" : "K",
+      ncCode: 0,
+      ncRemarks: "",
 
-    discount: 0,
-    discountType: "",
-    discountRemarks: "",
-    vRemarks: "1",
-
-    mode: "VOID",
-
-    subBillType: "S",
-    plan: "",
-    guestName: "adc",
-    guestCode: "234",
-    checkInNo: "",
-    kotMobileNo: "3456789021",
-
-    homeDelivary: {
-      guestCode: 0,
-      titleGn1: 0,
-      guestName: "",
-      dob: new Date().toISOString(),
-      address: "",
-      city: "",
-      phone: "",
-      email: "",
-      remarks: "",
-      lastModify: new Date().toISOString(),
       discount: 0,
-      branch_code: branch,
-      isUpdate: 0,
-    },
+      discountType: "",
+      discountRemarks: "",
+      vRemarks: "1",
+
+      mode: "VOID",
+
+      subBillType: "S",
+      plan: "",
+      guestName: "adc",
+      guestCode: "234",
+      checkInNo: "",
+      kotMobileNo: "3456789021",
+
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: new Date().toISOString(),
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: new Date().toISOString(),
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    };
+
+    try {
+      const res = await createOrder(payload);
+
+      /* ---------------- PRINT SAME AS KOT ---------------- */
+
+      const printers = res.printers || [];
+      const foodItems = res.food || [];
+
+      const printerItemMap: Record<string, any[]> = {};
+
+      printers.forEach((printer: any) => {
+        const matchedItems = foodItems.filter((item: any) =>
+          printer.categoryIds.includes(Number(item.category)),
+        );
+
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName] = matchedItems;
+        }
+      });
+
+      const generateContent = (items: any[]) => ({
+        title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
+        table: tableData?.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item) => ({
+          qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
+          name: item.food,
+          instructions: [],
+        })),
+      });
+      let hasError = false;
+
+      for (const rawPrinterName in printerItemMap) {
+        const items = printerItemMap[rawPrinterName];
+
+        const content = generateContent(items);
+
+        let printerName = rawPrinterName;
+
+        if (!printerName || printerName.trim() === "") {
+          printerName = await qz.printers.getDefault();
+        }
+
+        const isThermal =
+          printerName.toLowerCase().includes("pos") ||
+          printerName.toLowerCase().includes("thermal");
+
+        const finalData = isThermal
+          ? formatThermal(content)
+          : formatHTML(content);
+
+        const result = await printKOT(printerName, finalData, isThermal);
+
+        if (!result.success) {
+          hasError = true;
+          toast.error(`❌ ${printerName}: ${result.message}`);
+        }
+      }
+
+      setSelectedVoidItems([]);
+      navigate("/NewOrder");
+
+      if (hasError) {
+        toast.error("Some printers failed ❌");
+      } else {
+        toast.success("Items voided & printed successfully ✅");
+      }
+    } catch (err) {
+      console.error("Void failed:", err);
+      toast.error("Void failed ❌");
+    } finally {
+      setKotLoading(false);
+    }
   };
 
-  try {
-    const res = await createOrder(payload);
+  const categoryMap = useMemo(() => {
+    const map = new Map<number, { catCode: number; grpCode: number }>();
 
-    /* ---------------- PRINT SAME AS KOT ---------------- */
-
-    const printers = res.printers || [];
-    const foodItems = res.food || [];
-
-    const printerItemMap: Record<string, any[]> = {};
-
-    printers.forEach((printer: any) => {
-      const matchedItems = foodItems.filter((item: any) =>
-        printer.categoryIds.includes(Number(item.category))
-      );
-
-      if (matchedItems.length > 0) {
-        printerItemMap[printer.printerName] = matchedItems;
-      }
-    });
-
-  const generateContent = (items: any[]) => ({
-  title: isNC? "CANCEL NCKOT":"CANCEL KOT",
-  table: tableData?.tableNumber,
-  subTable: selectedSubTable || "A",
-  waiter: session.waiterName,
-  pax: session.pax,
-  items: items.map((item) => ({
-    qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
-    name: item.food,
-    instructions: [],
-  })),
-});
-    let hasError = false;
-
-    for (const rawPrinterName in printerItemMap) {
-      const items = printerItemMap[rawPrinterName];
-
-      const content = generateContent(items);
-
-      let printerName = rawPrinterName;
-
-      if (!printerName || printerName.trim() === "") {
-        printerName = await qz.printers.getDefault();
-      }
-
-      const isThermal =
-        printerName.toLowerCase().includes("pos") ||
-        printerName.toLowerCase().includes("thermal");
-
-      const finalData = isThermal
-        ? formatThermal(content)
-        : formatHTML(content);
-
-      const result = await printKOT(printerName, finalData, isThermal);
-
-      if (!result.success) {
-        hasError = true;
-        toast.error(`❌ ${printerName}: ${result.message}`);
-      }
-    }
-
-    setSelectedVoidItems([]);
-    navigate("/NewOrder");
-
-    if (hasError) {
-      toast.error("Some printers failed ❌");
-    } else {
-      toast.success("Items voided & printed successfully ✅");
-    }
-  } catch (err) {
-    console.error("Void failed:", err);
-    toast.error("Void failed ❌");
-  } finally {
-    setKotLoading(false);
-  }
-};
-
-const categoryMap = useMemo(() => {
-  const map = new Map<number, { catCode: number; grpCode: number }>();
-
-  items.forEach((cat) => {
-    cat.items.forEach((item) => {
-      map.set(item.itemCode, {
-        catCode: cat.catCode,
-        grpCode: Number(cat.grpCode),
+    items.forEach((cat) => {
+      cat.items.forEach((item) => {
+        map.set(item.itemCode, {
+          catCode: cat.catCode,
+          grpCode: Number(cat.grpCode),
+        });
       });
     });
-  });
 
-  return map;
-}, [items]);
+    return map;
+  }, [items]);
   const buildBillPayload = () => {
     if (!session) return null;
 
@@ -846,40 +880,40 @@ const categoryMap = useMemo(() => {
     const outlet = localStorage.getItem("activeOltCode") || "";
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
-  const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
-const oldFoods = oldCartData.flatMap((order: any) =>
-  order.food.map((f: any) => {
-    const meta = categoryMap.get(f.itemCode);
+    const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
+    const oldFoods = oldCartData.flatMap((order: any) =>
+      order.food.map((f: any) => {
+        const meta = categoryMap.get(f.itemCode);
 
-    return {
-      id: f.itemCode,
-      food: f.food,
-      code: String(f.itemCode),
-      price: f.price,
-      qty: f.qty,
-      comment: f.comment || "",
-      category: meta?.catCode || 0,
-      grpCode: meta?.grpCode || 0,
-      origQty: f.origQty ?? f.qty,
-    };
-  })
-);
+        return {
+          id: f.itemCode,
+          food: f.food,
+          code: String(f.itemCode),
+          price: f.price,
+          qty: f.qty,
+          comment: f.comment || "",
+          category: meta?.catCode || 0,
+          grpCode: meta?.grpCode || 0,
+          origQty: f.origQty ?? f.qty,
+        };
+      }),
+    );
 
-const newFoods = cart.map((i) => {
-  const meta = categoryMap.get(i.id);
+    const newFoods = cart.map((i) => {
+      const meta = categoryMap.get(i.id);
 
-  return {
-    id: i.id,
-    food: i.name,
-    code: String(i.id),
-    price: i.price,
-    qty: i.qty,
-    comment: i.spcodes || "",
-    category: i.category || meta?.catCode || 0,
-    grpCode: i.grpCode || meta?.grpCode || 0,
-    origQty: i.qty,
-  };
-});
+      return {
+        id: i.id,
+        food: i.name,
+        code: String(i.id),
+        price: i.price,
+        qty: i.qty,
+        comment: i.spcodes || "",
+        category: i.category || meta?.catCode || 0,
+        grpCode: i.grpCode || meta?.grpCode || 0,
+        origQty: i.qty,
+      };
+    });
     const food = [...oldFoods, ...newFoods];
 
     return {
@@ -917,7 +951,7 @@ const newFoods = cart.map((i) => {
       checkInNo: "",
       kotMobileNo: "",
       kotMinTimer: 0,
-taxType:taxType,
+      taxType: taxType,
       homeDelivary: {
         guestCode: 0,
         titleGn1: 0,
@@ -946,7 +980,7 @@ taxType:taxType,
       console.log("Bill Posted:", res);
 
       // ✅ 2. PRINT BILL
-      const printRes = await printBill(billData, res,companyInfo);
+      const printRes = await printBill(billData, res, companyInfo);
 
       if (!printRes.success) {
         throw new Error(printRes.message);
@@ -962,6 +996,7 @@ taxType:taxType,
     }
   };
   const handleGetBill = async () => {
+    setOpenPayment(false)
     const payload = buildBillPayload();
     console.log("payload", payload);
 
@@ -976,7 +1011,7 @@ taxType:taxType,
         tax: {
           ...res, // full tax response
           taxList: res.taxList || [], // ensure taxList is included
-           taxType: taxSettings?.taxType, // ✅ ADD THIS
+          taxType: taxSettings?.taxType, // ✅ ADD THIS
         },
         billingType: "C",
         subBillingType: "C",
@@ -998,6 +1033,7 @@ taxType:taxType,
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
       {/* SIDEBAR */}
+
       <div className="w-full lg:w-auto flex-shrink-0">
         <CategorySidebar
           active={activeCategory}
@@ -1009,7 +1045,23 @@ taxType:taxType,
       <div className="flex flex-col flex-1 min-h-0">
         {/* SESSION INFO BAR - NOT SCROLLABLE */}
         {/* SESSION INFO BAR */}
-        {session && (
+        <div className="flex gap-2 overflow-x-auto p-2 border-b bg-white">
+          {groups.map((g) => (
+            <button
+              key={g.grpCode}
+              onClick={() => setActiveGroup(g.grpCode)} // 🔥 CORE
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap
+        ${
+          activeGroup === g.grpCode
+            ? "bg-[#0576B2] text-white"
+            : "bg-gray-100 text-gray-700"
+        }`}
+            >
+              {g.grpName}
+            </button>
+          ))}
+        </div>
+        {session && tableData.fastFood ===undefined && (
           <div className="flex items-center justify-between border-b bg-[#E0F0FA] px-3 sm:px-4 py-2 shadow-sm">
             {/* LEFT SIDE INFO */}
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
@@ -1032,14 +1084,15 @@ taxType:taxType,
             </div>
 
             {/* EDIT BUTTON */}
-            {tableData.status === "Available" && (
-              <button
-                onClick={() => setOpenSessionModal(true)}
-                className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
-              >
-                ✏ Edit
-              </button>
-            )}
+            {tableData.status === "Available" &&
+              tableData.fastFood === undefined && (
+                <button
+                  onClick={() => setOpenSessionModal(true)}
+                  className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
+                >
+                  ✏ Edit
+                </button>
+              )}
             {tableData.status === "Occupied" && (
               <button
                 onClick={() => setOpenKOTModal(true)}
@@ -1099,7 +1152,13 @@ taxType:taxType,
             setInstructionItemId(id);
             setOpenInstructionModal(true);
           }}
-          onKOT={handleKOT}
+          onKOT={
+            tableData.fastFood === undefined
+              ? handleKOT
+              : () => {
+                  setOpenPayment(true);
+                }
+          }
           onVoid={handleVoid}
           kotLoading={kotLoading}
         />
@@ -1124,7 +1183,13 @@ taxType:taxType,
           setInstructionItemId(id);
           setOpenInstructionModal(true);
         }}
-        onKOT={handleKOT}
+          onKOT={
+            tableData.fastFood === undefined
+              ? handleKOT
+              : () => {
+                  setOpenPayment(true);
+                }
+          }
         kotLoading={kotLoading}
         selectedNcCode={selectedNcCode}
         setSelectedNcCode={setSelectedNcCode}
@@ -1204,6 +1269,11 @@ taxType:taxType,
           setInstructionItemId(null);
           setOpenInstructionModal(false);
         }}
+      />
+      <PaymentModal
+        isOpen={openPayment}
+        onClose={() => setOpenPayment(false)}
+        onPay={handleGetBill}
       />
     </div>
   );

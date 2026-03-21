@@ -30,6 +30,8 @@ export interface CategoryItem {
 interface ItemContextType {
   items: CategoryItem[];
   loading: boolean;
+  activeGroup: number;
+  setActiveGroup: (grp: number) => void;
 }
 
 /* ---------------- CONTEXT ---------------- */
@@ -37,6 +39,8 @@ interface ItemContextType {
 const ItemContext = createContext<ItemContextType>({
   items: [],
   loading: true,
+  activeGroup: 1,
+  setActiveGroup: () => {},
 });
 
 /* ---------------- PROVIDER ---------------- */
@@ -46,36 +50,36 @@ export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [items, setItems] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-
+const [activeGroup, setActiveGroup] = useState<number>(1); // default FOOD
   const { activeOltCode } = useActiveOLT();
 
   const branch = localStorage.getItem("branch") || "";
-  const activeOltCode2 = localStorage.getItem("activeOltCode") || "";
+useEffect(() => {
+  const fetchItems = async () => {
+    if (!activeOltCode) return;
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      if (!activeOltCode) return;
+    try {
+      setLoading(true);
 
-      try {
-        setLoading(true);
+      const data = await getCombinedOltItemList(
+        activeOltCode,
+        branch,
+        activeGroup // ✅ NEW
+      );
 
-        console.log("Fetching items for OLT:", activeOltCode);
+      setItems(data);
+    } catch (err) {
+      console.error("Error fetching items:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const data = await getCombinedOltItemList(activeOltCode2, branch);
-
-        setItems(data); // API already returns category → items structure
-      } catch (err) {
-        console.error("Error fetching items:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchItems();
-  }, [activeOltCode, branch]);
+  fetchItems();
+}, [activeOltCode, branch, activeGroup]); // ✅ ADD activeGroup
 
   return (
-    <ItemContext.Provider value={{ items, loading }}>
+    <ItemContext.Provider value={{ items, loading, activeGroup, setActiveGroup }}>
       {children}
     </ItemContext.Provider>
   );
