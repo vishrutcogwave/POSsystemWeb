@@ -9,7 +9,7 @@ export default function App() {
   <ActiveOLTProvider>
   <ItemProvider>
    <Toaster position="top-right" />
-   <LandingPage/>;
+   <LandingPage/>
    </ItemProvider>
    </ActiveOLTProvider>
    </>)

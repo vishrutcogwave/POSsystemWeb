@@ -5,6 +5,11 @@ import Header from "../components/Header";
 import NewOrder from "./NewOrder";
 import OrderingBoard from "./OrderingBoard";
 import Dashboard from "./Dashboard";
+import Chancesheet from "./Chancesheet";
+import Dailysales from "./dailysales";
+import Itemsales from "./itemsales";
+import Nckot from "./Nckot";
+import Voidkot from "./Voidkot";
 
 function LandingPage() {
   const location = useLocation();
@@ -61,6 +66,11 @@ function LandingPage() {
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/NewOrder" element={<NewOrder />} />
         <Route path="/OrderingBoard" element={<OrderingBoard />} />
+            <Route path="/pos/dailysales" element={<Dailysales/>} />
+        <Route path="/pos/itemsales" element={<Itemsales/>} />
+        <Route path="/pos/chancesheet" element={<Chancesheet />} />
+        <Route path="/pos/voidkot" element={<Voidkot />} />
+        <Route path="/pos/nckot" element={< Nckot/>} />
       </Routes>
     </>
   );
