@@ -6,18 +6,18 @@ import NewOrder from "./NewOrder";
 import OrderingBoard from "./OrderingBoard";
 import Dashboard from "./Dashboard";
 import Chancesheet from "./Chancesheet";
-import Dailysales from "./dailysales";
-import Itemsales from "./itemsales";
+
 import Nckot from "./Nckot";
 import Voidkot from "./Voidkot";
+import Dailysales from "./DailySales";
+import Itemsales from "./Itemsales";
 
 function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
   const showHeader =
-    location.pathname === "/NewOrder" ||
-    location.pathname === "/OrderingBoard";
+    location.pathname === "/NewOrder" || location.pathname === "/OrderingBoard";
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -66,11 +66,11 @@ function LandingPage() {
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/NewOrder" element={<NewOrder />} />
         <Route path="/OrderingBoard" element={<OrderingBoard />} />
-            <Route path="/pos/dailysales" element={<Dailysales/>} />
-        <Route path="/pos/itemsales" element={<Itemsales/>} />
+        <Route path="/pos/dailysales" element={<Dailysales />} />
+        <Route path="/pos/itemsales" element={<Itemsales />} />
         <Route path="/pos/chancesheet" element={<Chancesheet />} />
         <Route path="/pos/voidkot" element={<Voidkot />} />
-        <Route path="/pos/nckot" element={< Nckot/>} />
+        <Route path="/pos/nckot" element={<Nckot />} />
       </Routes>
     </>
   );

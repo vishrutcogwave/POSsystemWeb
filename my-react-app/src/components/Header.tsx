@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 
 type HeaderProps = {
   onNewOrder?: () => void;
+  showNeworderButton?:boolean;
 };
 
-const Header: React.FC<HeaderProps> = ({ onNewOrder }) => {
+const Header: React.FC<HeaderProps> = ({ onNewOrder ,showNeworderButton}) => {
   const navigate = useNavigate();
 
 const handleNewOrder = () => {
@@ -39,12 +40,13 @@ const handleNewOrder = () => {
           </p>
 
           {/* New Order */}
+          {showNeworderButton&&
           <button
             onClick={handleNewOrder}
             className="flex items-center gap-2 bg-[#0576B2] hover:bg-[#0576B2] transition px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium"
           >
             + New Order
-          </button>
+          </button>}
         </div>
 
         {/* RIGHT SIDE */}

@@ -246,3 +246,137 @@ export const getItemGroupList = async (branchcode: string) => {
 
   return response.data;
 };
+
+export const getDailySalesReport = async (
+  fromdate: string,
+  todate: string,
+  outlet: number | string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POSReports/Dailysales",
+    {
+      params: {
+        fromdate,
+        todate,
+        outlet,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+
+
+export const getChanceSheetReport = async (
+  fromdate: string,
+  todate: string,
+  outlet: number | string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/POSReports/Chancesheet", {
+    params: {
+      fromdate,
+      todate,
+      outlet,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+
+export const getVoidKOTReport = async (
+  fromdate: string,
+  todate: string,
+  outlet: number | string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/POSReports/Voidkot", {
+    params: {
+      fromdate,
+      todate,
+      outlet,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+export const getNCKOTReport = async (
+  fromdate: string,
+  todate: string,
+  outlet: number | string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/POSReports/Nckot", {
+    params: {
+      fromdate,
+      todate,
+      outlet,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+
+
+
+
+export const getItemSalesReport = async (
+  fromdate: string,
+  todate: string,
+  outlet: string | number
+) => {
+  try {
+    const response = await api.get("/api/POSReports/Itemsales", {
+      params: { fromdate, todate, outlet },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item sales report:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const getPaymentModeMaster = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetPaymentModeMaster",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};

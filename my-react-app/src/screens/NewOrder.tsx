@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   getCombinedOutletAndTableMasterList,
   getFastfoodDetails,
+  getPaymentModeMaster,
 } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext";
@@ -40,6 +41,19 @@ const NewOrder: React.FC = () => {
   const { activeOltCode, setActiveOLT } = useActiveOLT();
 const location = useLocation();
 const shouldReset = location.state?.reset;
+  const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const fetchPaymentModes = async () => {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+    const data = await getPaymentModeMaster(branch);
+
+    console.log("Payment Modes:", data);
+
+    setPaymentModes(data || []);
+  } catch (err) {
+    console.error("Failed to fetch payment modes", err);
+  }
+};
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
     const fetchData = async () => {
@@ -93,6 +107,10 @@ const shouldReset = location.state?.reset;
 
     fetchData();
   }, [activeOltCode, setActiveOLT]);
+  useEffect(() => {
+    void fetchPaymentModes()
+  }, [])
+  
 
   /* ---------------- TAB CHANGE ---------------- */
   const handleTabChange = async (tabId: string) => {
@@ -175,6 +193,7 @@ setOpenPayment(true)
         </div>
       </div>
          <PaymentModal
+         paymentModes={paymentModes}
         isOpen={openPayment}
         onClose={() => setOpenPayment(false)}
         onPay={()=>alert("setteled")}

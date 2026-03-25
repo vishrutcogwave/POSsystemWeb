@@ -11,6 +11,11 @@ import {
   LogOut,
   Menu,
   X,
+  FileText,
+  BarChart3,
+  ClipboardList,
+  Ban,
+  FileX,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -24,16 +29,16 @@ const DashboardHeader: React.FC = () => {
   // 🔥 POS dropdown items
   const posDropdownItems = [{ name: "Touch Screen", icon: Monitor }];
 
-  // 🔥 POS Reports dropdown items
+  // 🔥 POS Reports dropdown items WITH ICONS
   const posReportItems = [
-    { name: "DailySales" },
-    { name: "ItemSales" },
-    { name: "ChanceSheet" },
-    { name: "VoidKot" },
-    { name: "Nckot" },
+    { name: "DailySales", icon: BarChart3 },
+    { name: "ItemSales", icon: FileText },
+    { name: "ChanceSheet", icon: ClipboardList },
+    { name: "VoidKot", icon: Ban },
+    { name: "Nckot", icon: FileX },
   ];
 
-  // 🔥 Navigation map (clean)
+  // 🔥 Navigation map
   const routeMap: Record<string, string> = {
     "Touch Screen": "/NewOrder",
     DailySales: "/pos/dailysales",
@@ -47,7 +52,6 @@ const DashboardHeader: React.FC = () => {
     if (routeMap[name]) {
       navigate(routeMap[name]);
     }
-
     setActiveMenu(null);
     setMobileOpen(false);
   };
@@ -57,12 +61,10 @@ const DashboardHeader: React.FC = () => {
     navigate("/");
   };
 
-  // ✅ Toggle logic (ONLY ONE OPEN)
   const toggleMenu = (menu: string) => {
     setActiveMenu((prev) => (prev === menu ? null : menu));
   };
 
-  // ✅ Close on outside click + ESC
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -124,7 +126,7 @@ const DashboardHeader: React.FC = () => {
               Inventory
             </button>
 
-            {/* ✅ POS Dropdown */}
+            {/* POS Dropdown */}
             <div className="relative">
               <button
                 onClick={() => toggleMenu("POS")}
@@ -154,7 +156,7 @@ const DashboardHeader: React.FC = () => {
               )}
             </div>
 
-            {/* ✅ POS REPORTS DROPDOWN */}
+            {/* POS REPORTS DROPDOWN */}
             <div className="relative">
               <button
                 onClick={() => toggleMenu("POS_REPORTS")}
@@ -167,15 +169,19 @@ const DashboardHeader: React.FC = () => {
 
               {activeMenu === "POS_REPORTS" && (
                 <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50">
-                  {posReportItems.map((item, index) => (
-                    <div
-                      key={index}
-                      onClick={() => handleNavigation(item.name)}
-                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-                    >
-                      {item.name}
-                    </div>
-                  ))}
+                  {posReportItems.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => handleNavigation(item.name)}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                      >
+                        <Icon size={16} />
+                        {item.name}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -228,11 +234,19 @@ const DashboardHeader: React.FC = () => {
 
             {activeMenu === "POS" && (
               <div className="ml-4 mt-2">
-                {posDropdownItems.map((item, i) => (
-                  <button key={i} onClick={() => handleNavigation(item.name)}>
-                    {item.name}
-                  </button>
-                ))}
+                {posDropdownItems.map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center gap-2"
+                    >
+                      <Icon size={16} />
+                      {item.name}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -248,11 +262,19 @@ const DashboardHeader: React.FC = () => {
 
             {activeMenu === "POS_REPORTS" && (
               <div className="ml-4 mt-2 flex flex-col gap-2">
-                {posReportItems.map((item, i) => (
-                  <button key={i} onClick={() => handleNavigation(item.name)}>
-                    {item.name}
-                  </button>
-                ))}
+                {posReportItems.map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center gap-2"
+                    >
+                      <Icon size={16} />
+                      {item.name}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

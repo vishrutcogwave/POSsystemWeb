@@ -1,22 +1,57 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
+type SubMode = {
+  subModeId: number;
+  subModeType: string;
+};
+
+type PaymentMode = {
+  modeId: number;
+  modeType: string;
+  subModes: SubMode[];
+};
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onPay: (data: {
-    mode: string;
-    subMode?: string;
-  }) => void;
+  onPay: (mode: string, subMode: string) => void;
+  paymentModes: PaymentMode[];
+  runApi?:()=>void
 };
 
-const onlineOptions = ["PhonePe", "Google Pay", "Paytm"];
-const cardOptions = ["HDFC", "ICICI", "SBI"];
-
-const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onPay }) => {
-  const [mode, setMode] = useState<string>("CASH");
+const PaymentModal: React.FC<Props> = ({
+  isOpen,
+  runApi,
+  onClose,
+  onPay,
+  paymentModes,
+}) => {
+  const [mode, setMode] = useState<string>("");
   const [subMode, setSubMode] = useState<string>("");
 
+  // ✅ auto select first mode
+  useEffect(() => {
+    if (paymentModes.length > 0 && !mode) {
+      setMode(paymentModes[0].modeType);
+    }
+  
+  }, [paymentModes]);
+useEffect(() => {
+  if (isOpen && runApi) {
+    runApi();
+  }
+}, [isOpen]);
+  
+
   if (!isOpen) return null;
+
+  // ✅ selected mode
+  const selectedMode = paymentModes.find(
+    (m) => m.modeType === mode
+  );
+
+  // ✅ FIX: safe fallback
+  const subModes = selectedMode?.subModes || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -38,72 +73,46 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onPay }) => {
             </p>
 
             <div className="grid grid-cols-3 gap-3">
-              {["CASH", "ONLINE", "CARD"].map((m) => (
+              {paymentModes.map((m) => (
                 <button
-                  key={m}
+                  key={m.modeId}
                   onClick={() => {
-                    setMode(m);
+                    setMode(m.modeType);
                     setSubMode("");
                   }}
                   className={`rounded-lg border px-4 py-3 text-sm font-semibold
                     ${
-                      mode === m
+                      mode === m.modeType
                         ? "bg-[#0576B2] text-white"
                         : "border-gray-300 text-gray-700"
                     }`}
                 >
-                  {m}
+                  {m.modeType.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* ONLINE OPTIONS */}
-          {mode === "ONLINE" && (
+          {/* SUB MODES */}
+          {subModes.length > 0 && (
             <div>
               <p className="mb-2 text-sm font-semibold text-gray-600">
-                SELECT APP
+                SELECT OPTION
               </p>
 
               <div className="grid grid-cols-2 gap-3">
-                {onlineOptions.map((o) => (
+                {subModes.map((s) => (
                   <button
-                    key={o}
-                    onClick={() => setSubMode(o)}
+                    key={s.subModeId}
+                    onClick={() => setSubMode(s.subModeType)}
                     className={`rounded-lg border px-4 py-2 text-sm
                       ${
-                        subMode === o
+                        subMode === s.subModeType
                           ? "border-[#0576B2] bg-blue-50 text-[#0576B2]"
                           : "border-gray-300"
                       }`}
                   >
-                    {o}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* CARD OPTIONS */}
-          {mode === "CARD" && (
-            <div>
-              <p className="mb-2 text-sm font-semibold text-gray-600">
-                SELECT BANK
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                {cardOptions.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setSubMode(c)}
-                    className={`rounded-lg border px-4 py-2 text-sm
-                      ${
-                        subMode === c
-                          ? "border-[#0576B2] bg-blue-50 text-[#0576B2]"
-                          : "border-gray-300"
-                      }`}
-                  >
-                    {c}
+                    {s.subModeType}
                   </button>
                 ))}
               </div>
@@ -121,8 +130,8 @@ const PaymentModal: React.FC<Props> = ({ isOpen, onClose, onPay }) => {
           </button>
 
           <button
-            disabled={!mode || (mode !== "CASH" && !subMode)}
-            onClick={() => onPay({ mode, subMode })}
+            disabled={!mode || (subModes.length > 0 && !subMode)}
+            onClick={() => onPay(mode, subMode)}
             className="rounded-lg bg-green-600 px-6 py-2 text-white font-semibold disabled:opacity-50"
           >
             SUBMIT

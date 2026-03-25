@@ -17,6 +17,7 @@ import {
   getItemGroupList,
   getNCKOT,
   getOldCart,
+  getPaymentModeMaster,
   getSpecialInfo,
   getSubTables,
   getTaxSettings,
@@ -60,15 +61,17 @@ function OrderingBoard() {
   console.log(tableData.fastFood, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
-      setSession({
+      const newSession = {
         pax: tableData.pax || 1,
         waiterCode: String(tableData.waiter || 1),
-
-        // ✅ USE REAL NAME
         waiterName: tableData.waiterName || "Counter",
-      });
+      };
 
+      setSession(newSession);
       setSelectedSubTable("A");
+
+      // ✅ SAVE SESSION
+      localStorage.setItem("fastfood_session", JSON.stringify(newSession));
     }
   }, [tableData]);
 
@@ -105,6 +108,19 @@ function OrderingBoard() {
   const [showInvoice, setShowInvoice] = useState(false);
   const { activeOltName } = useActiveOLT(); // ✅ use context
   const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const fetchPaymentModes = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getPaymentModeMaster(branch);
+
+      console.log("Payment Modes:", data);
+
+      setPaymentModes(data || []);
+    } catch (err) {
+      console.error("Failed to fetch payment modes", err);
+    }
+  };
   const fetchGroups = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -164,6 +180,7 @@ function OrderingBoard() {
     void fetchNcReasons();
     void fetchInstructions();
     void fetchCompany();
+    void fetchPaymentModes();
   }, []);
 
   const fetchSubTables = async () => {
@@ -631,7 +648,6 @@ function OrderingBoard() {
           printerItemMap[printer.printerName] = matchedItems;
         }
       });
-
       /* -------- COMMON CONTENT -------- */
       const generateContent = (items: any[]) => ({
         title: isNC ? "NC KOT" : "KOT",
@@ -653,15 +669,13 @@ function OrderingBoard() {
 
       for (const rawPrinterName in printerItemMap) {
         const items = printerItemMap[rawPrinterName];
+        console.log("items", items);
 
         const content = generateContent(items);
 
         // ✅ STEP 1: resolve default printer if empty
         let printerName = rawPrinterName;
-
-        if (!printerName || printerName.trim() === "") {
-          printerName = await qz.printers.getDefault();
-        }
+        console.log("printerName", printerName);
 
         console.log("Using Printer:", printerName);
 
@@ -677,6 +691,14 @@ function OrderingBoard() {
 
         // ✅ STEP 4: print
         const result = await printKOT(printerName, finalData, isThermal);
+        if (tableData.fastFood === true) {
+          const printRes = await printBill(
+            billData,
+            res.fnBillResponse,
+            companyInfo,
+          );
+          console.log("printRes", printRes);
+        }
 
         if (!result.success) {
           hasError = true;
@@ -689,9 +711,20 @@ function OrderingBoard() {
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
+      if (tableData.fastFood === undefined) {
+        navigate("/NewOrder");
+      }
+      if (tableData.fastFood !== undefined) {
+        setOpenPayment(false);
+      }
+      const savedSession = localStorage.getItem("fastfood_session");
 
-      navigate("/NewOrder");
+      if (savedSession) {
+        const parsed = JSON.parse(savedSession);
 
+        setSession(parsed);
+        setSelectedSubTable("A");
+      }
       if (hasError) {
         toast.error("Some printers failed ❌");
       } else {
@@ -844,7 +877,9 @@ function OrderingBoard() {
       }
 
       setSelectedVoidItems([]);
-      navigate("/NewOrder");
+      if (tableData.fastFood === undefined) {
+        navigate("/NewOrder");
+      }
 
       if (hasError) {
         toast.error("Some printers failed ❌");
@@ -987,7 +1022,9 @@ function OrderingBoard() {
       }
 
       toast.success("Bill Printed Successfully ✅");
-      navigate("/NewOrder");
+      if (tableData.fastFood === undefined) {
+        navigate("/NewOrder");
+      }
       return true;
     } catch (err: any) {
       console.error("Print Bill Error:", err);
@@ -996,7 +1033,6 @@ function OrderingBoard() {
     }
   };
   const handleGetBill = async () => {
-    setOpenPayment(false)
     const payload = buildBillPayload();
     console.log("payload", payload);
 
@@ -1061,7 +1097,7 @@ function OrderingBoard() {
             </button>
           ))}
         </div>
-        {session && tableData.fastFood ===undefined && (
+        {session && tableData.fastFood === undefined && (
           <div className="flex items-center justify-between border-b bg-[#E0F0FA] px-3 sm:px-4 py-2 shadow-sm">
             {/* LEFT SIDE INFO */}
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
@@ -1183,13 +1219,13 @@ function OrderingBoard() {
           setInstructionItemId(id);
           setOpenInstructionModal(true);
         }}
-          onKOT={
-            tableData.fastFood === undefined
-              ? handleKOT
-              : () => {
-                  setOpenPayment(true);
-                }
-          }
+        onKOT={
+          tableData.fastFood === undefined
+            ? handleKOT
+            : () => {
+                setOpenPayment(true);
+              }
+        }
         kotLoading={kotLoading}
         selectedNcCode={selectedNcCode}
         setSelectedNcCode={setSelectedNcCode}
@@ -1247,7 +1283,7 @@ function OrderingBoard() {
           setOpenSessionModal(true);
         }}
       />
-      {showInvoice && billData && (
+      {showInvoice && billData && tableData.fastFood === undefined && (
         <InvoicePopup
           cart={billData.cart}
           tax={billData.tax}
@@ -1271,9 +1307,11 @@ function OrderingBoard() {
         }}
       />
       <PaymentModal
+        paymentModes={paymentModes}
         isOpen={openPayment}
         onClose={() => setOpenPayment(false)}
-        onPay={handleGetBill}
+        onPay={handleKOT}
+        runApi={handleGetBill}
       />
     </div>
   );
