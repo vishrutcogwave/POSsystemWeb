@@ -73,6 +73,7 @@ const res = await getDailySalesReport(fromDate, toDate, outletId);
       <Header showNeworderButton={false} />
       <div className="flex-1 overflow-auto">
         <ReportTable
+        title="Daily Sales Report"
           columns={columns}
           data={data}
           outlets={outlets}

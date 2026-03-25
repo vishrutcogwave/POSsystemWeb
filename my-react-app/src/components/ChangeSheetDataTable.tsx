@@ -41,6 +41,7 @@ type Summary = {
 };
 
 type Props = {
+    title:string 
   data: Bill[];
   summary: Summary;
   selectedOutlet: string;
@@ -55,6 +56,7 @@ type Props = {
 };
 
 export default function ChangeSheetDataTable({
+    title,
   data,
   summary,
   selectedOutlet,
@@ -219,7 +221,7 @@ const handlePrint = () => {
         </style>
       </head>
       <body>
-        <h2>Change Sheet Report</h2>
+    <h2>${title}</h2>
         ${sections}
         ${summaryHtml}
       </body>
@@ -233,9 +235,9 @@ const handlePrint = () => {
 };
   return (
     <div className="p-4">
-      <h2 className="text-lg md:text-xl font-semibold text-center mb-4">
-        Change Sheet Report
-      </h2>
+  <h2 className="text-lg md:text-xl font-semibold text-center mb-4">
+  {title}
+</h2>
 
       {/* FILTER BAR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast"; // ✅ IMPORT
 
 type SubMode = {
   subModeId: number;
@@ -11,12 +12,18 @@ type PaymentMode = {
   subModes: SubMode[];
 };
 
+type PaymentDetail = {
+  mode: string;
+  subMode: string;
+  amount: number;
+};
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onPay: (mode: string, subMode: string) => void;
+  onPay: (data: any) => void;
   paymentModes: PaymentMode[];
-  runApi?:()=>void
+  runApi?: () => void;
 };
 
 const PaymentModal: React.FC<Props> = ({
@@ -26,115 +33,274 @@ const PaymentModal: React.FC<Props> = ({
   onPay,
   paymentModes,
 }) => {
-  const [mode, setMode] = useState<string>("");
-  const [subMode, setSubMode] = useState<string>("");
+  const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
 
-  // ✅ auto select first mode
-  useEffect(() => {
-    if (paymentModes.length > 0 && !mode) {
-      setMode(paymentModes[0].modeType);
-    }
-  
-  }, [paymentModes]);
+  const PAYABLE_AMOUNT = 100;
 useEffect(() => {
-  if (isOpen && runApi) {
-    runApi();
-  }
-}, [isOpen]);
+  console.log("paymentDetails",paymentDetails);
   
+
+
+}, [paymentDetails])
+
+  useEffect(() => {
+    if (isOpen && runApi) runApi();
+  }, [isOpen]);
+  useEffect(() => {
+  if (isOpen && paymentModes.length > 0) {
+    const firstMode = paymentModes[0].modeType;
+
+    setSelectedMulti({
+      // [firstMode]: "",
+    });
+
+    setPaymentDetails([
+      // {
+      //   mode: firstMode,
+      //   subMode: "",
+      //   amount: PAYABLE_AMOUNT,
+      // },
+    ]);
+  }
+}, [isOpen, paymentModes]);
 
   if (!isOpen) return null;
 
-  // ✅ selected mode
-  const selectedMode = paymentModes.find(
-    (m) => m.modeType === mode
+  // ✅ SAFE UPDATE (NO DUPLICATES)
+  const updatePayment = (
+    modeType: string,
+    field: "amount" | "subMode",
+    value: any
+  ) => {
+    setPaymentDetails((prev) => {
+      const index = prev.findIndex((p) => p.mode === modeType);
+
+      if (index !== -1) {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          [field]: value,
+        };
+        return updated;
+      }
+
+      return [
+        ...prev,
+        {
+          mode: modeType,
+          subMode: field === "subMode" ? value : "",
+          amount: field === "amount" ? Number(value) : 0,
+        },
+      ];
+    });
+  };
+
+  // ✅ TOTAL
+  const total = paymentDetails.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0
   );
 
-  // ✅ FIX: safe fallback
-  const subModes = selectedMode?.subModes || [];
+  // ✅ HANDLE MODE CLICK
+  const handleModeClick = (modeType: string) => {
+    const isSelected = selectedMulti[modeType] !== undefined;
+
+    if (isSelected) {
+      setSelectedMulti((prev) => {
+        const updated = { ...prev };
+        delete updated[modeType];
+        return updated;
+      });
+
+      setPaymentDetails((prev) =>
+        prev.filter((p) => p.mode !== modeType)
+      );
+
+      return;
+    }
+
+    setSelectedMulti((prev) => ({
+      ...prev,
+      [modeType]: "",
+    }));
+
+    setPaymentDetails((prev) => {
+      if (prev.some((p) => p.mode === modeType)) return prev;
+
+      const isFirst = prev.length === 0;
+
+      return [
+        ...prev,
+        {
+          mode: modeType,
+          subMode: "",
+          amount: isFirst ? PAYABLE_AMOUNT : 0,
+        },
+      ];
+    });
+  };
+
+  // ✅ SUBMIT WITH TOAST
+  const handleSubmit = () => {
+    // 🔴 Empty / zero amount
+    for (const p of paymentDetails) {
+      if (!p.amount || Number(p.amount) <= 0) {
+        toast.error(`Enter amount for ${p.mode}`);
+        return;
+      }
+    }
+
+    // 🔴 Total mismatch
+    if (total !== PAYABLE_AMOUNT) {
+      toast.error(`Total must be ₹${PAYABLE_AMOUNT}`);
+        return;
+    }
+
+    // 🔴 SubMode missing
+    for (const key of Object.keys(selectedMulti)) {
+      const sub = selectedMulti[key];
+      const modeObj = paymentModes.find((m) => m.modeType === key);
+
+      if (modeObj?.subModes.length && !sub) {
+        toast.error(`Select sub mode for ${key}`);
+        return;
+      }
+    }
+
+    // ✅ SUCCESS
+    toast.success("Payment successful");
+
+    onPay({
+      type: "MULTI",
+      payments: paymentDetails,
+    });
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex w-full max-w-lg flex-col rounded-xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+      <div className="w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
 
         {/* HEADER */}
-        <div className="flex items-center justify-between rounded-t-xl bg-[#0576B2] px-5 py-3 text-white">
-          <h2 className="text-lg font-semibold">💳 Payment</h2>
-          <button onClick={onClose} className="text-xl font-bold">×</button>
+        <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
+          <h2 className="font-semibold text-lg">💳 Payment</h2>
+          <button onClick={onClose}>×</button>
         </div>
 
         {/* BODY */}
-        <div className="p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
 
-          {/* MAIN MODES */}
+          {/* MODES */}
           <div>
-            <p className="mb-2 text-sm font-semibold text-gray-600">
-              SELECT PAYMENT MODE
-            </p>
+            <p className="font-semibold mb-2">Select Payment Mode</p>
 
-            <div className="grid grid-cols-3 gap-3">
-              {paymentModes.map((m) => (
-                <button
-                  key={m.modeId}
-                  onClick={() => {
-                    setMode(m.modeType);
-                    setSubMode("");
-                  }}
-                  className={`rounded-lg border px-4 py-3 text-sm font-semibold
-                    ${
-                      mode === m.modeType
-                        ? "bg-[#0576B2] text-white"
-                        : "border-gray-300 text-gray-700"
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {paymentModes.map((m) => {
+                const isSelected =
+                  selectedMulti[m.modeType] !== undefined;
+
+                return (
+                  <button
+                    key={m.modeId}
+                    onClick={() => handleModeClick(m.modeType)}
+                    className={`border rounded px-3 py-3 text-sm font-semibold ${
+                      isSelected ? "bg-[#0576B2] text-white" : ""
                     }`}
-                >
-                  {m.modeType.toUpperCase()}
-                </button>
-              ))}
+                  >
+                    {m.modeType}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* SUB MODES */}
-          {subModes.length > 0 && (
-            <div>
-              <p className="mb-2 text-sm font-semibold text-gray-600">
-                SELECT OPTION
-              </p>
+          {Object.keys(selectedMulti).map((modeKey) => {
+            const modeObj = paymentModes.find(
+              (m) => m.modeType === modeKey
+            );
 
-              <div className="grid grid-cols-2 gap-3">
-                {subModes.map((s) => (
-                  <button
-                    key={s.subModeId}
-                    onClick={() => setSubMode(s.subModeType)}
-                    className={`rounded-lg border px-4 py-2 text-sm
-                      ${
-                        subMode === s.subModeType
-                          ? "border-[#0576B2] bg-blue-50 text-[#0576B2]"
-                          : "border-gray-300"
+            if (!modeObj || modeObj.subModes.length === 0) return null;
+
+            return (
+              <div key={modeKey}>
+                <p className="text-sm font-semibold text-gray-600">
+                  {modeKey} Options
+                </p>
+
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {modeObj.subModes.map((s) => (
+                    <button
+                      key={s.subModeId}
+                      onClick={() => {
+                        setSelectedMulti((prev) => ({
+                          ...prev,
+                          [modeKey]: s.subModeType,
+                        }));
+
+                        updatePayment(
+                          modeKey,
+                          "subMode",
+                          s.subModeType
+                        );
+                      }}
+                      className={`px-3 py-1 rounded border text-sm ${
+                        selectedMulti[modeKey] === s.subModeType
+                          ? "bg-blue-100 border-blue-500"
+                          : ""
                       }`}
-                  >
-                    {s.subModeType}
-                  </button>
-                ))}
+                    >
+                      {s.subModeType}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })}
+
+          {/* INPUTS */}
+          <div className="space-y-3">
+            <p className="font-semibold">Enter Amount</p>
+
+            {paymentDetails.map((p) => (
+              <div
+                key={p.mode}
+                className="flex justify-between items-center border p-3 rounded"
+              >
+                <span className="font-medium">
+                  {p.mode} {p.subMode && `(${p.subMode})`}
+                </span>
+
+                <input
+                  type="number"
+                  value={p.amount || ""}
+                  onChange={(e) =>
+                    updatePayment(
+                      p.mode,
+                      "amount",
+                      Number(e.target.value)
+                    )
+                  }
+                  className="w-24 border rounded px-2 py-1"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* TOTAL */}
+          <div className="text-right font-bold">
+            Total: ₹{total}
+          </div>
         </div>
 
         {/* FOOTER */}
-        <div className="flex justify-between border-t px-6 py-4">
+        <div className="border-t p-3 flex justify-between">
+          <button onClick={onClose}>Cancel</button>
           <button
-            onClick={onClose}
-            className="text-sm font-semibold text-gray-500"
+            onClick={handleSubmit}
+            className="bg-green-600 text-white px-4 py-2 rounded"
           >
-            CANCEL
-          </button>
-
-          <button
-            disabled={!mode || (subModes.length > 0 && !subMode)}
-            onClick={() => onPay(mode, subMode)}
-            className="rounded-lg bg-green-600 px-6 py-2 text-white font-semibold disabled:opacity-50"
-          >
-            SUBMIT
+            Submit
           </button>
         </div>
       </div>

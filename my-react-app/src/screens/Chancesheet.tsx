@@ -114,6 +114,7 @@ export default function Chancesheet() {
 
       <div className="flex-1 overflow-auto">
         <ChangeSheetDataTable
+              title="Chance Sheet"
           data={data}
           summary={summary}
           selectedOutlet={selectedOutlet}

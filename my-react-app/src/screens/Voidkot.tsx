@@ -73,6 +73,7 @@ export default function Voidkot() {
       <Header showNeworderButton={false} />
       <div className="flex-1 overflow-auto">
         <ReportTable
+        title="Void Kot Report"
           columns={columns}
           data={data}
           outlets={outlets}

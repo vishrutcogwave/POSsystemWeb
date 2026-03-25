@@ -73,6 +73,7 @@ export default function ItemSales() {
       <Header showNeworderButton={false} />
       <div className="flex-1 overflow-auto">
         <ReportTable
+        title="Item Sales Report"
           columns={columns}
           data={data}
           outlets={outlets}

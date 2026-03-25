@@ -16,6 +16,7 @@ type Outlet = {
 };
 
 type Props<T> = {
+    title: string; // 👈 add this
   columns: readonly Column<T>[];
   data: T[];
   outlets: Outlet[];
@@ -28,6 +29,7 @@ type Props<T> = {
 };
 
 export default function ReportTable<T extends Record<string, any>>({
+  title,
   columns,
   data,
   outlets,
@@ -151,7 +153,7 @@ export default function ReportTable<T extends Record<string, any>>({
           </style>
         </head>
         <body>
-          <h2>Daily Sales Report</h2>
+    <h2>${title}</h2>
           ${sectionsHtml}
         </body>
       </html>
@@ -226,9 +228,9 @@ export default function ReportTable<T extends Record<string, any>>({
   // -------------------- RENDER --------------------
   return (
     <div className="p-4">
-      <h2 className="text-lg md:text-xl font-semibold text-center mb-4">
-        Daily Sales Report
-      </h2>
+<h2 className="text-lg md:text-xl font-semibold text-center mb-4">
+  {title}
+</h2>
 
       {/* FILTER BAR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">

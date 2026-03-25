@@ -73,6 +73,7 @@ export default function Nckot() {
       <Header showNeworderButton={false} />
       <div className="flex-1 overflow-auto">
         <ReportTable
+        title="NC Kot Report"
           columns={columns}
           data={data}
           outlets={outlets}
