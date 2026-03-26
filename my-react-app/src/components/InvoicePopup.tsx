@@ -43,14 +43,48 @@ interface Props {
   onClose: () => void;
   onPrint: () => void;
 }
+/* -------- MERGE SAME ITEMS -------- */
+const mergeItems = (items: any[] = []) => {
+  const map = new Map<string, any>();
 
+  items.forEach((item) => {
+    const key = `${item.id}_${item.food}`;
+
+    if (map.has(key)) {
+      map.get(key).qty += item.qty;
+    } else {
+      map.set(key, { ...item });
+    }
+  });
+
+  return Array.from(map.values());
+};
+/* -------- SAFE TAX NORMALIZER -------- */
+const normalizeTaxList = (taxList: any[] = []) => {
+  return taxList.map((t) => {
+    const taxable = Number(t.taxableAmount || 0);
+    const taxPer = Number(t.taxper || 0);
+
+    const taxAmount =
+      t.taxAmount !== undefined
+        ? Number(t.taxAmount)
+        : (taxable * taxPer) / 100;
+
+    const cgst = t.cgst !== undefined ? Number(t.cgst) : taxAmount / 2;
+
+    const sgst = t.sgst !== undefined ? Number(t.sgst) : taxAmount / 2;
+
+    return {
+      ...t,
+      taxableAmount: taxable,
+      taxAmount,
+      cgst,
+      sgst,
+    };
+  });
+};
 /* -------- COMPONENT -------- */
-const InvoicePopup: React.FC<Props> = ({
-  cart,
-  tax,
-  onPrint,
-  onClose,
-}) => {
+const InvoicePopup: React.FC<Props> = ({ cart, tax, onPrint, onClose }) => {
   const dateStr = new Date().toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -59,8 +93,14 @@ const InvoicePopup: React.FC<Props> = ({
     minute: "2-digit",
   });
 
-  const items = cart?.food || [];
+ const rawItems = cart?.food || [];
+const items = mergeItems(rawItems);
+  console.log("itemsincart",items);
+  
   const isGrouped = tax?.taxType === "groupedtax";
+
+  /* ✅ SAFE TAX LIST */
+  const safeTaxList = normalizeTaxList(tax?.taxList);
 
   /* -------- GROUP LOGIC -------- */
   const groupMap: Record<number, FoodItem[]> = {};
@@ -76,20 +116,19 @@ const InvoicePopup: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
       <div className="w-full max-w-sm h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-xl bg-white">
-
         {/* HEADER */}
         <div className="bg-[#0576B2] text-white px-5 py-4 shrink-0">
           <div className="flex justify-between items-center">
             <div className="text-xs opacity-80">TAX INVOICE</div>
-            <button onClick={onClose} className="text-xl">✕</button>
+            <button onClick={onClose} className="text-xl">
+              ✕
+            </button>
           </div>
 
           <div className="font-bold text-lg mt-1">
             {cart?.outletName || "-"}
           </div>
-          <div className="text-sm opacity-80">
-            {cart?.branch || "-"}
-          </div>
+          <div className="text-sm opacity-80">{cart?.branch || "-"}</div>
 
           <div className="flex gap-2 mt-3 text-xs flex-wrap">
             <Badge text={`🍽 ${cart?.table}-${cart?.subTable}`} />
@@ -112,7 +151,6 @@ const InvoicePopup: React.FC<Props> = ({
 
         {/* ✅ SCROLLABLE AREA */}
         <div className="flex-1 overflow-y-auto px-5 scroll-smooth overscroll-contain">
-
           {items.length === 0 ? (
             <div className="text-center py-4 text-gray-400 text-sm">
               No items
@@ -120,16 +158,14 @@ const InvoicePopup: React.FC<Props> = ({
           ) : isGrouped ? (
             Object.entries(groupMap).map(([grp, groupItems]) => {
               const grpNum = Number(grp);
-
-              const groupInfo = tax.taxList.find(
-                (t) => t.groupCode === grpNum
+              const groupTaxes = safeTaxList.filter(
+                (t) => t.groupCode === grpNum,
               );
-
               return (
                 <div key={grp}>
                   {/* GROUP TITLE */}
                   <div className="font-semibold text-blue-600 mt-3 border-t pt-2">
-                    *** {groupInfo?.groupName || "OTHERS"} ***
+                  *** {groupTaxes[0]?.groupName || "OTHERS"} ***
                   </div>
 
                   {/* ITEMS */}
@@ -138,9 +174,7 @@ const InvoicePopup: React.FC<Props> = ({
                       key={item.id + "-" + grp}
                       className="grid grid-cols-4 py-2 text-sm border-b"
                     >
-                      <span className="col-span-2 truncate">
-                        {item.food}
-                      </span>
+                      <span className="col-span-2 truncate">{item.food}</span>
                       <span>{item.qty}</span>
                       <span className="text-right">
                         ₹{(item.price * item.qty).toFixed(2)}
@@ -149,20 +183,30 @@ const InvoicePopup: React.FC<Props> = ({
                   ))}
 
                   {/* GROUP TAX */}
-                  {groupInfo && (
-                    <div className="text-xs text-gray-500 py-1 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>₹{groupInfo.taxableAmount?.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>CGST</span>
-                        <span>₹{groupInfo.cgst?.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>SGST</span>
-                        <span>₹{groupInfo.sgst?.toFixed(2)}</span>
-                      </div>
+                  {groupTaxes.length > 0 && (
+                    <div className="text-xs text-gray-500 py-1 space-y-2">
+                      {groupTaxes.map((tax, idx) => {
+                        const halfPer = (tax.taxper || 0) / 2;
+
+                        return (
+                          <div key={idx} className="border-t pt-1">
+                          <div className="flex justify-between text-[10px] text-gray-400">
+  <span>Taxable</span>
+  <span>₹{(tax.taxableAmount || 0).toFixed(2)}</span>
+</div>
+
+                            <div className="flex justify-between">
+                              <span>CGST ({halfPer}%)</span>
+                              <span>₹{(tax.cgst || 0).toFixed(2)}</span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>SGST ({halfPer}%)</span>
+                              <span>₹{(tax.sgst || 0).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -174,9 +218,7 @@ const InvoicePopup: React.FC<Props> = ({
                 key={item.id}
                 className="grid grid-cols-4 py-3 text-sm border-b"
               >
-                <span className="col-span-2 truncate">
-                  {item.food}
-                </span>
+                <span className="col-span-2 truncate">{item.food}</span>
                 <span>{item.qty}</span>
                 <span className="text-right">
                   ₹{(item.price * item.qty).toFixed(2)}
@@ -184,7 +226,6 @@ const InvoicePopup: React.FC<Props> = ({
               </div>
             ))
           )}
-
         </div>
 
         {/* SUBTOTAL */}
@@ -196,12 +237,31 @@ const InvoicePopup: React.FC<Props> = ({
 
           {!isGrouped && (
             <div className="mt-2 text-gray-500 text-xs space-y-1">
-              {tax?.taxList?.map((t, i) => (
-                <div key={i} className="flex justify-between">
-                  <span>{t.taxName}</span>
-                  <span>₹{t.taxAmount.toFixed(2)}</span>
-                </div>
-              ))}
+              {safeTaxList?.map((t, i) => {
+                const halfPer = (t.taxper || 0) / 2;
+
+                return (
+                  <div key={i} className="border-t pt-1 mt-1 space-y-1">
+                    {/* ✅ GST HEADER */}
+                   <div className="flex justify-between text-[10px] text-gray-400">
+  <span>Taxable</span>
+  <span>₹{(t.taxableAmount || 0).toFixed(2)}</span>
+</div>
+
+                    {/* ✅ CGST */}
+                    <div className="flex justify-between">
+                      <span>CGST ({halfPer}%)</span>
+                      <span>₹{(t.cgst || 0).toFixed(2)}</span>
+                    </div>
+
+                    {/* ✅ SGST */}
+                    <div className="flex justify-between">
+                      <span>SGST ({halfPer}%)</span>
+                      <span>₹{(t.sgst || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -217,9 +277,7 @@ const InvoicePopup: React.FC<Props> = ({
 
           <div className="text-right">
             <div className="text-xs opacity-80">ITEMS</div>
-            <div className="text-lg font-semibold">
-              {tax?.totalQty || 0}
-            </div>
+            <div className="text-lg font-semibold">{tax?.totalQty || 0}</div>
           </div>
         </div>
 
@@ -239,7 +297,6 @@ const InvoicePopup: React.FC<Props> = ({
             🖨 Print Bill
           </button>
         </div>
-
       </div>
     </div>
   );

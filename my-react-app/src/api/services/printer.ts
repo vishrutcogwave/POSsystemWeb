@@ -165,33 +165,9 @@ export const printBill = async (
 
     /* ---------------- THERMAL FORMAT ---------------- */
 const formatThermal = (c: any) => {
-  const width = 42; // 🔥 FULL WIDTH (80mm)
+  const width = 42;
 
   /* -------- HELPERS -------- */
-
-  const centerText = (text: string) => {
-    const spaces = Math.max(0, Math.floor((width - text.length) / 2));
-    return " ".repeat(spaces) + text + "\n";
-  };
-
-  const splitText = (text: string, max = width) => {
-    const words = text.split(" ");
-    let lines: string[] = [];
-    let line = "";
-
-    words.forEach((w) => {
-      if ((line + w).length > max) {
-        lines.push(line.trim());
-        line = w + " ";
-      } else {
-        line += w + " ";
-      }
-    });
-
-    if (line) lines.push(line.trim());
-    return lines;
-  };
-
   const line2Col = (left: string, right: string) => {
     const space = width - left.length - right.length;
     return left + " ".repeat(Math.max(1, space)) + right + "\n";
@@ -211,56 +187,72 @@ const formatThermal = (c: any) => {
     return `${nameCol}${qtyCol}${rateCol}${amtCol}\n`;
   };
 
+  const mergeItems = (items: any[]) => {
+    const map = new Map();
+    items.forEach((item) => {
+      const key = `${item.id}_${item.food}`;
+      if (map.has(key)) {
+        map.get(key).qty += item.qty;
+      } else {
+        map.set(key, { ...item });
+      }
+    });
+    return Array.from(map.values());
+  };
+
   let d = "";
 
   d += "\x1B\x40"; // reset
 
-  /* -------- COMPANY HEADER (CENTER) -------- */
-  d += "\x1B\x61\x00";
-
+  /* -------- COMPANY HEADER (FIXED) -------- */
   if (c.company) {
-    d += "\x1B\x45\x01";
+    d += "\x1B\x61\x01"; // center align
 
-    splitText(c.company.company_Name || "").forEach((l) => {
-      d += centerText(l);
-    });
+    const printCenter = (text: string, bold = false) => {
+      if (!text) return;
 
-    d += "\x1B\x45\x00";
+      const clean = text.trim();
 
-    if (c.company.address1) {
-      splitText(c.company.address1).forEach((l) => {
-        d += centerText(l);
+      if (bold) d += "\x1B\x45\x01";
+
+      let line = "";
+      clean.split(" ").forEach((word: string) => {
+        if ((line + word).length > width) {
+          d += line.trim() + "\n";
+          line = word + " ";
+        } else {
+          line += word + " ";
+        }
       });
-    }
 
-    if (c.company.address2) {
-      splitText(c.company.address2).forEach((l) => {
-        d += centerText(l);
-      });
-    }
+      if (line) d += line.trim() + "\n";
+
+      if (bold) d += "\x1B\x45\x00";
+    };
+
+    printCenter(c.company.company_Name || "", true);
+    printCenter(c.company.address1 || "");
+    printCenter(c.company.address2 || "");
 
     if (c.company.phone_number) {
-      d += centerText("Ph: " + c.company.phone_number);
+      printCenter(`Ph: ${c.company.phone_number}`);
     }
 
     if (c.company.tin_no) {
-      d += centerText("GSTIN: " + c.company.tin_no);
+      printCenter(`GSTIN: ${c.company.tin_no}`);
     }
+
+    d += "\x1B\x61\x00"; // back to left
   }
 
   d += "-".repeat(width) + "\n";
 
   /* -------- BILL INFO -------- */
-  d += line2Col(
-    `Bill : ${billNo.billNo}`,
-    `Outlet : ${c.outlet}`
-  );
-
+  d += line2Col(`Bill : ${billNo.billNo}`, `Outlet : ${c.outlet}`);
   d += line2Col(
     `Table : ${c.table}-${c.subTable}`,
     `Waiter : ${c.waiter}`
   );
-
   d += `Pax : ${c.pax}\n`;
 
   d += "-".repeat(width) + "\n";
@@ -269,11 +261,11 @@ const formatThermal = (c: any) => {
   d += "Item Name              Qty   Rate    Amount\n";
   d += "-".repeat(width) + "\n";
 
-  /* -------- ITEMS -------- */
+  /* -------- GROUPED TAX -------- */
   if (c.taxType === "groupedtax") {
     const groupMap: Record<number, any[]> = {};
 
-    c.items.forEach((item: any) => {
+    mergeItems(c.items).forEach((item: any) => {
       const grp = item.grpCode || 0;
       if (!groupMap[grp]) groupMap[grp] = [];
       groupMap[grp].push(item);
@@ -283,96 +275,42 @@ const formatThermal = (c: any) => {
       const grpNum = Number(grp);
       const groupItems = groupMap[grpNum];
 
-      const groupInfo = c.taxes.find(
+      const groupTaxes = c.taxes.filter(
         (t: any) => t.groupCode === grpNum
       );
 
       d += "\n";
-      d += `*** ${groupInfo?.groupName || "OTHERS"} ***\n`;
+      d += `*** ${groupTaxes[0]?.groupName || "OTHERS"} ***\n`;
       d += "-".repeat(width) + "\n";
 
+      /* ITEMS */
       groupItems.forEach((i: any) => {
-        const parts = i.food.split(" ");
-        const first = parts.slice(0, 2).join(" ");
-        const second = parts.slice(2).join(" ");
-
-        d += formatRow(first, i.qty, i.price, i.price * i.qty);
-
-        if (second) d += second + "\n";
+        d += formatRow(i.food, i.qty, i.price, i.price * i.qty);
       });
 
       d += "-".repeat(width) + "\n";
 
-      if (groupInfo) {
-        d +=
-          "Sub Total".padEnd(33, " ") +
-          (groupInfo.taxableAmount || 0)
-            .toFixed(2)
-            .padStart(9, " ") +
-          "\n";
+      /* TAX */
+      groupTaxes.forEach((tax: any) => {
+        const halfPer = (tax.taxper || 0) / 2;
 
-        // ✅ CGST
-        if (groupInfo.cgst && groupInfo.cgst > 0) {
-          const percent =
-            groupInfo.cgstPercent ||
-            groupInfo.cgst_per ||
-            groupInfo.cgstRate ||
-            0;
+        d += line2Col(
+          "Taxable",
+          (tax.taxableAmount || 0).toFixed(2)
+        );
 
-          d +=
-            `CGST ${percent}%`.padEnd(33, " ") +
-            groupInfo.cgst.toFixed(2).padStart(9, " ") +
-            "\n";
-        }
+        d += line2Col(
+          `CGST ${halfPer}%`,
+          (tax.cgst || 0).toFixed(2)
+        );
 
-        // ✅ SGST
-        if (groupInfo.sgst && groupInfo.sgst > 0) {
-          const percent =
-            groupInfo.sgstPercent ||
-            groupInfo.sgst_per ||
-            groupInfo.sgstRate ||
-            0;
+        d += line2Col(
+          `SGST ${halfPer}%`,
+          (tax.sgst || 0).toFixed(2)
+        );
 
-          d +=
-            `SGST ${percent}%`.padEnd(33, " ") +
-            groupInfo.sgst.toFixed(2).padStart(9, " ") +
-            "\n";
-        }
-      }
-
-      d += "-".repeat(width) + "\n";
-    });
-  } else {
-    c.items.forEach((i: any) => {
-      const parts = i.food.split(" ");
-      const first = parts.slice(0, 2).join(" ");
-      const second = parts.slice(2).join(" ");
-
-      d += formatRow(first, i.qty, i.price, i.price * i.qty);
-
-      if (second) d += second + "\n";
-    });
-
-    d += "-".repeat(width) + "\n";
-
-    c.taxes.forEach((t: any) => {
-      if (!t.taxAmount || t.taxAmount === 0) return;
-
-      const percent =
-        t.taxPercent ||
-        t.percentage ||
-        t.tax_per ||
-        t.rate ||
-        "";
-
-      const name = percent
-        ? `${t.taxName} ${percent}%`
-        : t.taxName;
-
-      d +=
-        name.padEnd(33, " ") +
-        t.taxAmount.toFixed(2).padStart(9, " ") +
-        "\n";
+        d += "-".repeat(width) + "\n";
+      });
     });
   }
 
@@ -380,10 +318,7 @@ const formatThermal = (c: any) => {
   d += "-".repeat(width) + "\n";
 
   d += "\x1B\x45\x01";
-  d +=
-    "TOTAL".padEnd(33, " ") +
-    c.grandTotal.toFixed(2).padStart(9, " ") +
-    "\n";
+  d += line2Col("TOTAL", c.grandTotal.toFixed(2));
   d += "\x1B\x45\x00";
 
   d += "\n\n\n";

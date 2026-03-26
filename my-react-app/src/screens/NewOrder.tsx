@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Tabs from "../components/Tabs";
 import TableCard from "../components/TableCard";
-import { useLocation, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 import {
   getCombinedOutletAndTableMasterList,
   getFastfoodDetails,
@@ -19,7 +19,7 @@ type Table = {
   status: string;
   kotStatus?: string;
   peopleCount?: number;
-  BillNo:number
+  BillNo: number;
 };
 
 type Outlet = {
@@ -29,35 +29,35 @@ type Outlet = {
     tblNo: string;
     tableStatus: string;
     kotStatus: string;
-    billNo: number; // 👈 ADD THIS
-    billAmount?: number; // optional (you also have this in API)
+    billNo: number;
+    billAmount?: number;
   }[];
 };
+
 const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
   const [activeTab, setActiveTab] = useState("");
   const [loading, setLoading] = useState(false);
-    const [openPayment, setOpenPayment] = useState(false)
+  const [openPayment, setOpenPayment] = useState(false);
 
   const navigate = useNavigate();
   const { activeOltCode, setActiveOLT } = useActiveOLT();
-const location = useLocation();
-const shouldReset = location.state?.reset;
-const [unbillData, setUnbillData] = useState<any>(null);
+
+  const [unbillData, setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
+
+  /* ---------------- FETCH PAYMENT MODES ---------------- */
   const fetchPaymentModes = async () => {
-  try {
-    const branch = localStorage.getItem("branch") || "";
-    const data = await getPaymentModeMaster(branch);
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getPaymentModeMaster(branch);
+      setPaymentModes(data || []);
+    } catch (err) {
+      console.error("Failed to fetch payment modes", err);
+    }
+  };
 
-    console.log("Payment Modes:", data);
-
-    setPaymentModes(data || []);
-  } catch (err) {
-    console.error("Failed to fetch payment modes", err);
-  }
-};
   /* ---------------- FETCH DATA ---------------- */
   useEffect(() => {
     const fetchData = async () => {
@@ -81,28 +81,67 @@ const [unbillData, setUnbillData] = useState<any>(null);
             tableNumber: tbl.tblNo,
             status: tbl.tableStatus,
             kotStatus: tbl.kotStatus,
-             BillNo: tbl.billNo, // 👈 ADD THIS
+            BillNo: tbl.billNo,
           }));
         });
 
         setTablesData(tables);
 
-       if (formattedTabs.length > 0) {
-  const firstTab = formattedTabs[0];
+        /* 🔥 INITIAL SELECTION LOGIC */
+        if (formattedTabs.length > 0) {
+          const fastFoodTab = formattedTabs.find((t) =>
+            t.label.toUpperCase().includes("FAST")
+          );
 
-  if (shouldReset) {
-    // 🔥 FORCE RESET
-    setActiveTab(firstTab.id);
-    setActiveOLT(firstTab.id, firstTab.label);
-              window.history.replaceState({}, document.title);
+          const nonFastFoodTabs = formattedTabs.filter(
+            (t) => !t.label.toUpperCase().includes("FAST")
+          );
 
-  } else if (!activeOltCode) {
-    setActiveTab(firstTab.id);
-    setActiveOLT(firstTab.id, firstTab.label);
-  } else {
-    setActiveTab(activeOltCode);
-  }
-}
+          // ✅ Only FAST FOOD → redirect
+          if (formattedTabs.length === 1 && fastFoodTab) {
+            const branch = localStorage.getItem("branch") || "";
+            const res = await getFastfoodDetails(fastFoodTab.id, branch);
+
+            navigate("/OrderingBoard", {
+              state: {
+                tableNumber: res.tblNo || "FF",
+                status: "Available",
+                kotStatus: "N",
+                fastFood: true,
+                waiter: String(res.stwCode),
+                waiterName: res.stwName || "Counter",
+                pax: res.tblSeatCount || 1,
+              },
+            });
+            return;
+          }
+
+          let selectedTab;
+
+          if (fastFoodTab && !activeOltCode) {
+            // pick random non-fastfood
+            if (nonFastFoodTabs.length > 0) {
+              const randomIndex = Math.floor(
+                Math.random() * nonFastFoodTabs.length
+              );
+              selectedTab = nonFastFoodTabs[randomIndex];
+            } else {
+              selectedTab = fastFoodTab;
+            }
+          } else {
+            selectedTab =
+              formattedTabs.find((t) => t.id === activeOltCode) ||
+              formattedTabs[0];
+          }
+
+          if (
+            selectedTab &&
+            !selectedTab.label.toUpperCase().includes("FAST")
+          ) {
+            setActiveTab(selectedTab.id);
+            setActiveOLT(selectedTab.id, selectedTab.label);
+          }
+        }
       } catch (error) {
         console.error("Error fetching outlets:", error);
       } finally {
@@ -111,93 +150,115 @@ const [unbillData, setUnbillData] = useState<any>(null);
     };
 
     fetchData();
-  }, [activeOltCode, setActiveOLT]);
+  }, []);
+
   useEffect(() => {
-    void fetchPaymentModes()
-  }, [])
-  
+    void fetchPaymentModes();
+  }, []);
 
   /* ---------------- TAB CHANGE ---------------- */
   const handleTabChange = async (tabId: string) => {
     const selectedTab = tabs.find((t) => t.id === tabId);
     if (!selectedTab) return;
 
-    setActiveTab(selectedTab.id);
-    setActiveOLT(selectedTab.id, selectedTab.label);
-
     const isFastFood =
       selectedTab.id === "7" ||
       selectedTab.label.toUpperCase().includes("FAST");
 
+    // 🔥 FASTFOOD → DIRECT REDIRECT (no active tab)
     if (isFastFood) {
       try {
         const branch = localStorage.getItem("branch") || "";
-
         const res = await getFastfoodDetails(selectedTab.id, branch);
 
-        console.log("FastFood API:", res);
-
-        // 🔥 DIRECT REDIRECT
         navigate("/OrderingBoard", {
           state: {
             tableNumber: res.tblNo || "FF",
             status: "Available",
             kotStatus: "N",
             fastFood: true,
-
-            // ✅ FIXED WAITER
             waiter: String(res.stwCode),
             waiterName: res.stwName || "Counter",
-
             pax: res.tblSeatCount || 1,
           },
         });
       } catch (err) {
         console.error("Fast food fetch failed", err);
       }
+      return;
     }
+
+    // ✅ Normal outlet
+    setActiveTab(selectedTab.id);
+    setActiveOLT(selectedTab.id, selectedTab.label);
   };
 
-  /* ---------------- NORMAL TABLE CLICK ---------------- */
-const handleTableClick = async (table: Table) => {
-  if (table.status === "Unsettled") {
-    try {
-      const branch = localStorage.getItem("branch") || "";
+  /* ---------------- TABLE CLICK ---------------- */
+  const handleTableClick = async (table: Table) => {
+    if (table.status === "Unsettled") {
+      try {
+        const branch = localStorage.getItem("branch") || "";
+        const res = await getUnbillDetails(
+          table.BillNo,
+          table.tableNumber,
+          activeTab,
+          branch
+        );
 
-      const res = await getUnbillDetails(
-        table.BillNo,
-        table.tableNumber,
-        activeTab,
-        branch
-      );
-
-      console.log("Unbill Details:", res);
-
-      setUnbillData(res); // ✅ STORE HERE
-      setOpenPayment(true);
-    } catch (err) {
-      console.error("Failed to fetch unbill details", err);
+        setUnbillData(res);
+        setOpenPayment(true);
+      } catch (err) {
+        console.error("Failed to fetch unbill details", err);
+      }
+      return;
     }
 
-    return;
-  }
+    navigate("/OrderingBoard", {
+      state: {
+        tableNumber: table.tableNumber,
+        status: table.status,
+        kotStatus: table.kotStatus,
+      },
+    });
+  };
 
-  navigate("/OrderingBoard", {
-    state: {
-      tableNumber: table.tableNumber,
-      status: table.status,
-      kotStatus: table.kotStatus,
-    },
-  });
-};
+  /* ---------------- SPLIT FASTFOOD ---------------- */
+  const fastFoodTab = tabs.find((t) =>
+    t.label.toUpperCase().includes("FAST")
+  );
+
+  const normalTabs = tabs.filter(
+    (t) => !t.label.toUpperCase().includes("FAST")
+  );
 
   /* ---------------- UI ---------------- */
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
 
-      {/* Tabs */}
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
+      {/* Tabs + FASTFOOD Button */}
+      <div className="flex items-center border-b">
+        <Tabs
+          tabs={normalTabs}
+          activeTab={activeTab}
+          onChange={handleTabChange}
+        />
+
+{fastFoodTab && (
+  <button
+    onClick={() => handleTabChange(fastFoodTab.id)}
+    className="
+      flex-1 min-w-[120px] px-4 py-3 text-sm font-medium tracking-wide
+      text-gray-500
+      transition-all duration-200
+      hover:text-[#0576B2]
+      hover:bg-[#026388]/10
+    "
+  >
+    {fastFoodTab.label}
+  </button>
+)}
+      </div>
 
       {/* Table Grid */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4">
@@ -216,13 +277,14 @@ const handleTableClick = async (table: Table) => {
             ))}
         </div>
       </div>
-       <PaymentModal
-  paymentModes={paymentModes}
-  isOpen={openPayment}
-  unbillData={unbillData} // 👈 PASS HERE
-  onClose={() => setOpenPayment(false)}
-  onPay={() => alert("setteled")}
-/>
+
+      <PaymentModal
+        paymentModes={paymentModes}
+        isOpen={openPayment}
+        unbillData={unbillData}
+        onClose={() => setOpenPayment(false)}
+        onPay={() => alert("setteled")}
+      />
     </div>
   );
 };

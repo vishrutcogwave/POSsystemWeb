@@ -1,306 +1,3 @@
-// import React, { useEffect, useState } from "react";
-// import toast from "react-hot-toast";
-
-// type SubMode = {
-//   subModeId: number;
-//   subModeType: string;
-// };
-
-// type PaymentMode = {
-//   modeId: number;
-//   modeType: string;
-//   subModes: SubMode[];
-// };
-
-// type PaymentDetail = {
-//   mode: string;
-//   subMode: string;
-//   amount: number;
-// };
-
-// type Props = {
-//   isOpen: boolean;
-//   onClose: () => void;
-//   onPay: (data: any) => void;
-//   paymentModes: PaymentMode[];
-//   runApi?: () => void;
-//   unbillData?: any;
-// };
-
-// const PaymentModal: React.FC<Props> = ({
-//   isOpen,
-//   runApi,
-//   onClose,
-//   onPay,
-//   paymentModes,
-//   unbillData
-// }) => {
-//   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
-//   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
-//   const [remarks, setRemarks] = useState(""); // ✅ NEW STATE
-
-//   const PAYABLE_AMOUNT = Number(unbillData?.[0]?.total || 0);
-
-//   useEffect(() => {
-//     if (isOpen && runApi) runApi();
-//   }, [isOpen]);
-
-//   if (!isOpen) return null;
-
-//   const updatePayment = (
-//     modeType: string,
-//     field: "amount" | "subMode",
-//     value: any
-//   ) => {
-//     setPaymentDetails((prev) => {
-//       const index = prev.findIndex((p) => p.mode === modeType);
-
-//       if (index !== -1) {
-//         const updated = [...prev];
-//         updated[index] = {
-//           ...updated[index],
-//           [field]: value,
-//         };
-//         return updated;
-//       }
-
-//       return [
-//         ...prev,
-//         {
-//           mode: modeType,
-//           subMode: field === "subMode" ? value : "",
-//           amount: field === "amount" ? Number(value) : 0,
-//         },
-//       ];
-//     });
-//   };
-
-//   const total = paymentDetails.reduce(
-//     (sum, p) => sum + Number(p.amount || 0),
-//     0
-//   );
-
-//   const handleModeClick = (modeType: string) => {
-//     const isSelected = selectedMulti[modeType] !== undefined;
-
-//     if (isSelected) {
-//       setSelectedMulti((prev) => {
-//         const updated = { ...prev };
-//         delete updated[modeType];
-//         return updated;
-//       });
-
-//       setPaymentDetails((prev) =>
-//         prev.filter((p) => p.mode !== modeType)
-//       );
-
-//       return;
-//     }
-
-//     setSelectedMulti((prev) => ({
-//       ...prev,
-//       [modeType]: "",
-//     }));
-
-//     setPaymentDetails((prev) => {
-//       if (prev.some((p) => p.mode === modeType)) return prev;
-
-//       const isFirst = prev.length === 0;
-
-//       return [
-//         ...prev,
-//         {
-//           mode: modeType,
-//           subMode: "",
-//           amount: isFirst ? PAYABLE_AMOUNT : 0,
-//         },
-//       ];
-//     });
-//   };
-
-//   const handleSubmit = () => {
-//     // validations
-//     for (const p of paymentDetails) {
-//       if (!p.amount || Number(p.amount) <= 0) {
-//         toast.error(`Enter amount for ${p.mode}`);
-//         return;
-//       }
-//     }
-
-//     if (total !== PAYABLE_AMOUNT) {
-//       toast.error(`Total must be ₹${PAYABLE_AMOUNT}`);
-//       return;
-//     }
-
-//     for (const key of Object.keys(selectedMulti)) {
-//       const sub = selectedMulti[key];
-//       const modeObj = paymentModes.find((m) => m.modeType === key);
-
-//       if (modeObj?.subModes.length && !sub) {
-//         toast.error(`Select sub mode for ${key}`);
-//         return;
-//       }
-//     }
-
-//     // ✅ FINAL PAYLOAD
-//     const finalPayload = {
-//       ...unbillData?.[0],
-//       paymentDetails: paymentDetails,
-//       remarks: remarks.trim() || null, // ✅ ADDED
-//     };
-
-//     console.log("FINAL DATA:", finalPayload); // ✅ LOG
-
-//     toast.success("Payment successful");
-
-//     onPay(finalPayload);
-//   };
-
-//   return (
-//     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-//       <div className="w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
-
-//         {/* HEADER */}
-//         <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
-//           <h2 className="font-semibold text-lg">💳 Payment</h2>
-//           <button onClick={onClose}>×</button>
-//         </div>
-
-//         {/* BODY */}
-//         <div className="flex-1 overflow-y-auto p-4 space-y-5">
-
-//           {/* MODES */}
-//           <div>
-//             <p className="font-semibold mb-2">Select Payment Mode</p>
-//             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-//               {paymentModes.map((m) => {
-//                 const isSelected =
-//                   selectedMulti[m.modeType] !== undefined;
-
-//                 return (
-//                   <button
-//                     key={m.modeId}
-//                     onClick={() => handleModeClick(m.modeType)}
-//                     className={`border rounded px-3 py-3 text-sm font-semibold ${
-//                       isSelected ? "bg-[#0576B2] text-white" : ""
-//                     }`}
-//                   >
-//                     {m.modeType}
-//                   </button>
-//                 );
-//               })}
-//             </div>
-//           </div>
-
-//           {/* SUB MODES */}
-//           {Object.keys(selectedMulti).map((modeKey) => {
-//             const modeObj = paymentModes.find(
-//               (m) => m.modeType === modeKey
-//             );
-
-//             if (!modeObj || modeObj.subModes.length === 0) return null;
-
-//             return (
-//               <div key={modeKey}>
-//                 <p className="text-sm font-semibold text-gray-600">
-//                   {modeKey} Options
-//                 </p>
-
-//                 <div className="flex gap-2 flex-wrap mt-2">
-//                   {modeObj.subModes.map((s) => (
-//                     <button
-//                       key={s.subModeId}
-//                       onClick={() => {
-//                         setSelectedMulti((prev) => ({
-//                           ...prev,
-//                           [modeKey]: s.subModeType,
-//                         }));
-
-//                         updatePayment(
-//                           modeKey,
-//                           "subMode",
-//                           s.subModeType
-//                         );
-//                       }}
-//                       className={`px-3 py-1 rounded border text-sm ${
-//                         selectedMulti[modeKey] === s.subModeType
-//                           ? "bg-blue-100 border-blue-500"
-//                           : ""
-//                       }`}
-//                     >
-//                       {s.subModeType}
-//                     </button>
-//                   ))}
-//                 </div>
-//               </div>
-//             );
-//           })}
-
-//           {/* INPUTS */}
-//           <div className="space-y-3">
-//             <p className="font-semibold">Enter Amount</p>
-
-//             {paymentDetails.map((p) => (
-//               <div
-//                 key={p.mode}
-//                 className="flex justify-between items-center border p-3 rounded"
-//               >
-//                 <span className="font-medium">
-//                   {p.mode} {p.subMode && `(${p.subMode})`}
-//                 </span>
-
-//                 <input
-//                   type="number"
-//                   value={p.amount || ""}
-//                   onChange={(e) =>
-//                     updatePayment(
-//                       p.mode,
-//                       "amount",
-//                       Number(e.target.value)
-//                     )
-//                   }
-//                   className="w-24 border rounded px-2 py-1"
-//                 />
-//               </div>
-//             ))}
-//           </div>
-
-//           {/* ✅ REMARKS */}
-//           <div>
-//             <p className="font-semibold mb-1">Remarks (Optional)</p>
-//             <textarea
-//               value={remarks}
-//               onChange={(e) => setRemarks(e.target.value)}
-//               placeholder="Enter remarks..."
-//               className="w-full border rounded px-3 py-2 text-sm"
-//               rows={3}
-//             />
-//           </div>
-
-//           {/* TOTAL */}
-//           <div className="text-right font-bold">
-//             Total: ₹{total}
-//           </div>
-//         </div>
-
-//         {/* FOOTER */}
-//         <div className="border-t p-3 flex justify-between">
-//           <button onClick={onClose}>Cancel</button>
-//           <button
-//             onClick={handleSubmit}
-//             className="bg-green-600 text-white px-4 py-2 rounded"
-//           >
-//             Submit
-//           </button>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default PaymentModal;
-
-
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -319,7 +16,7 @@ type PaymentDetail = {
   mode: string;
   subMode: string;
   amount: number;
-  remarks?: string; // ✅ ADDED
+  remarks?: string;
 };
 
 type Props = {
@@ -337,9 +34,16 @@ const PaymentModal: React.FC<Props> = ({
   onClose,
   onPay,
   paymentModes,
-  unbillData
+  unbillData,
 }) => {
-  const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
+  const handleClose = () => {
+  setSelectedMulti({});
+  setPaymentDetails([]);
+  onClose(); // existing close
+};
+  const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
+    {},
+  );
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
 
   const PAYABLE_AMOUNT = Number(unbillData?.[0]?.total || 0);
@@ -350,11 +54,11 @@ const PaymentModal: React.FC<Props> = ({
 
   if (!isOpen) return null;
 
-  // ✅ UPDATE PAYMENT (NOW SUPPORTS REMARKS)
+  /* ---------------- UPDATE PAYMENT ---------------- */
   const updatePayment = (
     modeType: string,
     field: "amount" | "subMode" | "remarks",
-    value: any
+    value: any,
   ) => {
     setPaymentDetails((prev) => {
       const index = prev.findIndex((p) => p.mode === modeType);
@@ -372,19 +76,15 @@ const PaymentModal: React.FC<Props> = ({
         ...prev,
         {
           mode: modeType,
-          subMode: field === "subMode" ? value : "",
-          amount: field === "amount" ? Number(value) : 0,
-          remarks: field === "remarks" ? value : "",
+          subMode: "",
+          amount: 0,
+          remarks: "",
         },
       ];
     });
   };
 
-  const total = paymentDetails.reduce(
-    (sum, p) => sum + Number(p.amount || 0),
-    0
-  );
-
+  /* ---------------- SELECT MODE ---------------- */
   const handleModeClick = (modeType: string) => {
     const isSelected = selectedMulti[modeType] !== undefined;
 
@@ -395,9 +95,7 @@ const PaymentModal: React.FC<Props> = ({
         return updated;
       });
 
-      setPaymentDetails((prev) =>
-        prev.filter((p) => p.mode !== modeType)
-      );
+      setPaymentDetails((prev) => prev.filter((p) => p.mode !== modeType));
 
       return;
     }
@@ -410,80 +108,67 @@ const PaymentModal: React.FC<Props> = ({
     setPaymentDetails((prev) => {
       if (prev.some((p) => p.mode === modeType)) return prev;
 
-      const isFirst = prev.length === 0;
+      const currentTotal = prev.reduce((sum, p) => sum + p.amount, 0);
+      const remaining = PAYABLE_AMOUNT - currentTotal;
 
       return [
         ...prev,
         {
           mode: modeType,
           subMode: "",
-          amount: isFirst ? PAYABLE_AMOUNT : 0,
-          remarks: "", // ✅ INIT
+          amount:
+            prev.length === 0 ? PAYABLE_AMOUNT : remaining > 0 ? remaining : 0,
+          remarks: "",
         },
       ];
     });
   };
 
-  const handleSubmit = () => {
-    // validations
-    for (const p of paymentDetails) {
-      if (!p.amount || Number(p.amount) <= 0) {
-        toast.error(`Enter amount for ${p.mode}`);
-        return;
-      }
-    }
+  /* ---------------- CALCULATIONS ---------------- */
+  const total = paymentDetails.reduce(
+    (sum, p) => sum + Number(p.amount || 0),
+    0,
+  );
 
-    if (total !== PAYABLE_AMOUNT) {
-      toast.error(`Total must be ₹${PAYABLE_AMOUNT}`);
+  const difference = PAYABLE_AMOUNT - total;
+
+  /* ---------------- SUBMIT ---------------- */
+  const handleSubmit = () => {
+    if (difference !== 0) {
+      toast.error(`Amount must match ₹${PAYABLE_AMOUNT}`);
       return;
     }
 
-    for (const key of Object.keys(selectedMulti)) {
-      const sub = selectedMulti[key];
-      const modeObj = paymentModes.find((m) => m.modeType === key);
-
-      if (modeObj?.subModes.length && !sub) {
-        toast.error(`Select sub mode for ${key}`);
-        return;
-      }
-    }
-
-    // ✅ FINAL PAYLOAD
     const finalPayload = {
       ...unbillData?.[0],
       paymentDetails: paymentDetails.map((p) => ({
         ...p,
-        remarks: (p.remarks || "").trim() || null, // clean remarks
+        remarks: (p.remarks || "").trim() || null,
       })),
     };
 
     console.log("FINAL DATA:", finalPayload);
-
     toast.success("Payment successful");
-
     onPay(finalPayload);
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-      <div className="w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
-
+      <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
         {/* HEADER */}
         <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
           <h2 className="font-semibold text-lg">💳 Payment</h2>
-          <button onClick={onClose}>×</button>
+        <button onClick={handleClose}>×</button>
         </div>
 
         {/* BODY */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5">
-
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
           {/* MODES */}
           <div>
             <p className="font-semibold mb-2">Select Payment Mode</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {paymentModes.map((m) => {
-                const isSelected =
-                  selectedMulti[m.modeType] !== undefined;
+                const isSelected = selectedMulti[m.modeType] !== undefined;
 
                 return (
                   <button
@@ -500,79 +185,41 @@ const PaymentModal: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* SUB MODES */}
-          {Object.keys(selectedMulti).map((modeKey) => {
-            const modeObj = paymentModes.find(
-              (m) => m.modeType === modeKey
-            );
-
-            if (!modeObj || modeObj.subModes.length === 0) return null;
-
-            return (
-              <div key={modeKey}>
-                <p className="text-sm font-semibold text-gray-600">
-                  {modeKey} Options
-                </p>
-
-                <div className="flex gap-2 flex-wrap mt-2">
-                  {modeObj.subModes.map((s) => (
-                    <button
-                      key={s.subModeId}
-                      onClick={() => {
-                        setSelectedMulti((prev) => ({
-                          ...prev,
-                          [modeKey]: s.subModeType,
-                        }));
-
-                        updatePayment(
-                          modeKey,
-                          "subMode",
-                          s.subModeType
-                        );
-                      }}
-                      className={`px-3 py-1 rounded border text-sm ${
-                        selectedMulti[modeKey] === s.subModeType
-                          ? "bg-blue-100 border-blue-500"
-                          : ""
-                      }`}
-                    >
-                      {s.subModeType}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* INPUTS + REMARKS */}
+          {/* INPUTS */}
           <div className="space-y-3">
             <p className="font-semibold">Enter Amount</p>
 
             {paymentDetails.map((p) => (
-              <div
-                key={p.mode}
-                className="border p-3 rounded space-y-2"
-              >
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">
-                    {p.mode} {p.subMode && `(${p.subMode})`}
-                  </span>
-
+              <div key={p.mode} className="border p-3 rounded space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="font-medium">{p.mode}</span>
                   <input
-                    type="number"
+                    type="text" // ✅ removes arrows
+                    inputMode="numeric" // ✅ mobile keypad
                     value={p.amount || ""}
-                    onChange={(e) =>
-                      updatePayment(
-                        p.mode,
-                        "amount",
-                        Number(e.target.value)
-                      )
-                    }
-                    className="w-24 border rounded px-2 py-1"
+                    onChange={(e) => {
+                      const value = e.target.value;
+
+                      // ✅ allow only digits
+                      if (!/^\d*$/.test(value)) return;
+
+                      const numValue = Number(value || 0);
+
+                      const otherTotal = paymentDetails
+                        .filter((x) => x.mode !== p.mode)
+                        .reduce((sum, x) => sum + x.amount, 0);
+
+                      if (numValue + otherTotal > PAYABLE_AMOUNT) {
+                        toast.error("Total exceeds payable");
+                        return;
+                      }
+
+                      updatePayment(p.mode, "amount", numValue);
+                    }}
+                    className="w-full sm:w-24 border rounded px-2 py-1 text-right" // 👈 SAME STYLE (unchanged)
                   />
                 </div>
 
-                {/* ✅ REMARKS PER MODE */}
                 <textarea
                   value={p.remarks || ""}
                   onChange={(e) =>
@@ -580,24 +227,63 @@ const PaymentModal: React.FC<Props> = ({
                   }
                   placeholder={`Remarks for ${p.mode}`}
                   className="w-full border rounded px-2 py-1 text-sm"
-                  rows={2}
                 />
               </div>
             ))}
           </div>
 
-          {/* TOTAL */}
-          <div className="text-right font-bold">
-            Total: ₹{total}
+          {/* SUMMARY */}
+          <div className="bg-gray-50 p-3 rounded-lg border space-y-2">
+            <div className="flex justify-between text-sm font-semibold text-gray-600">
+              <span>Payable</span>
+              <span>₹{PAYABLE_AMOUNT}</span>
+            </div>
+
+            <div className="flex justify-between text-sm">
+              <span>Entered</span>
+              <span>₹{total}</span>
+            </div>
+
+            <div
+              className={`flex justify-between font-bold ${
+                difference === 0 ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              <span>
+                {difference === 0
+                  ? "Balanced"
+                  : difference > 0
+                    ? "Remaining"
+                    : "Excess"}
+              </span>
+              <span>₹{Math.abs(difference)}</span>
+            </div>
+
+            {difference !== 0 && (
+              <div className="text-xs text-red-500 text-right">
+                ⚠ Amount must match ₹{PAYABLE_AMOUNT}
+              </div>
+            )}
           </div>
         </div>
 
         {/* FOOTER */}
-        <div className="border-t p-3 flex justify-between">
-          <button onClick={onClose}>Cancel</button>
+        <div className="border-t p-3 flex flex-col sm:flex-row gap-2 sm:justify-between">
+ <button
+  onClick={handleClose}
+  className="w-full sm:w-auto border px-4 py-2 rounded"
+>
+  Cancel
+</button>
+
           <button
             onClick={handleSubmit}
-            className="bg-green-600 text-white px-4 py-2 rounded"
+            disabled={difference !== 0}
+            className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
+              difference === 0
+                ? "bg-green-600"
+                : "bg-gray-400 cursor-not-allowed"
+            }`}
           >
             Submit
           </button>
