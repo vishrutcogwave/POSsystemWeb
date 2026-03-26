@@ -72,6 +72,7 @@ const NewOrder: React.FC = () => {
           id: outlet.oltCode.toString(),
           label: outlet.oltName.trim(),
         }));
+        
 
         setTabs(formattedTabs);
 

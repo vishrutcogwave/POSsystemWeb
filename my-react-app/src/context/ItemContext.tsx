@@ -66,6 +66,8 @@ useEffect(() => {
         branch,
         activeGroup // ✅ NEW
       );
+      console.log("dataaaa",data);
+      
 
       setItems(data);
     } catch (err) {

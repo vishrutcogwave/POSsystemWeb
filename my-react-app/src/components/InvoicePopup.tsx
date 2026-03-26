@@ -93,10 +93,10 @@ const InvoicePopup: React.FC<Props> = ({ cart, tax, onPrint, onClose }) => {
     minute: "2-digit",
   });
 
- const rawItems = cart?.food || [];
-const items = mergeItems(rawItems);
-  console.log("itemsincart",items);
-  
+  const rawItems = cart?.food || [];
+  const items = mergeItems(rawItems);
+  console.log("rawItems", rawItems);
+
   const isGrouped = tax?.taxType === "groupedtax";
 
   /* ✅ SAFE TAX LIST */
@@ -165,7 +165,7 @@ const items = mergeItems(rawItems);
                 <div key={grp}>
                   {/* GROUP TITLE */}
                   <div className="font-semibold text-blue-600 mt-3 border-t pt-2">
-                  *** {groupTaxes[0]?.groupName || "OTHERS"} ***
+                    *** {groupTaxes[0]?.groupName || "OTHERS"} ***
                   </div>
 
                   {/* ITEMS */}
@@ -190,10 +190,12 @@ const items = mergeItems(rawItems);
 
                         return (
                           <div key={idx} className="border-t pt-1">
-                          <div className="flex justify-between text-[10px] text-gray-400">
-  <span>Taxable</span>
-  <span>₹{(tax.taxableAmount || 0).toFixed(2)}</span>
-</div>
+                            <div className="flex justify-between text-[10px] text-gray-400">
+                              <span>Taxable</span>
+                              <span>
+                                ₹{(tax.taxableAmount || 0).toFixed(2)}
+                              </span>
+                            </div>
 
                             <div className="flex justify-between">
                               <span>CGST ({halfPer}%)</span>
@@ -243,10 +245,10 @@ const items = mergeItems(rawItems);
                 return (
                   <div key={i} className="border-t pt-1 mt-1 space-y-1">
                     {/* ✅ GST HEADER */}
-                   <div className="flex justify-between text-[10px] text-gray-400">
-  <span>Taxable</span>
-  <span>₹{(t.taxableAmount || 0).toFixed(2)}</span>
-</div>
+                    <div className="flex justify-between text-[10px] text-gray-400">
+                      <span>Taxable</span>
+                      <span>₹{(t.taxableAmount || 0).toFixed(2)}</span>
+                    </div>
 
                     {/* ✅ CGST */}
                     <div className="flex justify-between">

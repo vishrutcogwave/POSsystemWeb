@@ -224,22 +224,47 @@ function OrderingBoard() {
       });
 
       // ✅ combine all food items from all KOTs
-      const allFoods = data.flatMap((order: any) => order.food);
-      const grouped = new Map<number, any>();
+  if (!items.length) return;
 
-      allFoods.forEach((f: any) => {
-        if (grouped.has(f.itemCode)) {
-          grouped.get(f.itemCode).qty += f.qty;
-        } else {
-          grouped.set(f.itemCode, {
-            id: f.itemCode,
-            name: f.food.trim(),
-            price: f.price,
-            qty: f.qty,
-          });
-        }
-      });
+const allFoods = data.flatMap((order: any) => order.food);
 
+const mappedFoods = allFoods.map((f: any) => {
+  let foundCategory: any = null;
+
+  for (const cat of items) {
+    const foundItem = cat.items.find(
+      (i: any) => i.itemCode === f.itemCode
+    );
+
+    if (foundItem) {
+      foundCategory = cat;
+      break;
+    }
+  }
+
+  return {
+    ...f,
+    category: foundCategory?.catCode || 0,
+    grpCode: Number(foundCategory?.grpCode || 0),
+  };
+});
+
+const grouped = new Map();
+
+mappedFoods.forEach((f: any) => {
+  if (grouped.has(f.itemCode)) {
+    grouped.get(f.itemCode).qty += f.qty;
+  } else {
+    grouped.set(f.itemCode, {
+      id: f.itemCode,
+      name: f.food.trim(),
+      price: f.price,
+      qty: f.qty,
+      category: f.category, // ✅ FIXED
+      grpCode: f.grpCode,   // ✅ FIXED
+    });
+  }
+});
       const oldItems = Array.from(grouped.values());
 
       setPastItems(oldItems);
@@ -916,9 +941,14 @@ function OrderingBoard() {
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
     const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
+    console.log("oldCartData",oldCartData);
+    console.log("categoryMap",categoryMap);
+    
     const oldFoods = oldCartData.flatMap((order: any) =>
       order.food.map((f: any) => {
         const meta = categoryMap.get(f.itemCode);
+        console.log("f.catCode",f.catCode );
+        
 
         return {
           id: f.itemCode,
@@ -927,7 +957,7 @@ function OrderingBoard() {
           price: f.price,
           qty: f.qty,
           comment: f.comment || "",
-          category: meta?.catCode || 0,
+        category: meta?.catCode || 0,
           grpCode: meta?.grpCode || 0,
           origQty: f.origQty ?? f.qty,
         };
