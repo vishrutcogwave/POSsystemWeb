@@ -1,7 +1,6 @@
-
 // src/context/ItemContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getCombinedOltItemList } from "../api/services/products.service";
+import { getCombinedOltItemList, getItemGroupList } from "../api/services/products.service";
 import { useActiveOLT } from "./ActiveOLTContext";
 
 /* ---------------- TYPES ---------------- */
@@ -29,6 +28,7 @@ export interface CategoryItem {
 
 interface ItemContextType {
   items: CategoryItem[];
+  masterItems: CategoryItem[]; // ✅ NEW
   loading: boolean;
   activeGroup: number;
   setActiveGroup: (grp: number) => void;
@@ -38,6 +38,7 @@ interface ItemContextType {
 
 const ItemContext = createContext<ItemContextType>({
   items: [],
+  masterItems: [],
   loading: true,
   activeGroup: 1,
   setActiveGroup: () => {},
@@ -45,43 +46,67 @@ const ItemContext = createContext<ItemContextType>({
 
 /* ---------------- PROVIDER ---------------- */
 
-export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CategoryItem[]>([]);
+  const [masterItems, setMasterItems] = useState<CategoryItem[]>([]); // ✅ NEW
   const [loading, setLoading] = useState(true);
-const [activeGroup, setActiveGroup] = useState<number>(1); // default FOOD
+  const [activeGroup, setActiveGroup] = useState<number>(1);
+
   const { activeOltCode } = useActiveOLT();
-
   const branch = localStorage.getItem("branch") || "";
-useEffect(() => {
-  const fetchItems = async () => {
-    if (!activeOltCode) return;
 
-    try {
-      setLoading(true);
+  /* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
+  useEffect(() => {
+    const fetchItems = async () => {
+      if (!activeOltCode) return;
 
-      const data = await getCombinedOltItemList(
-        activeOltCode,
-        branch,
-        activeGroup // ✅ NEW
-      );
-      console.log("dataaaa",data);
-      
+      try {
+        setLoading(true);
 
-      setItems(data);
-    } catch (err) {
-      console.error("Error fetching items:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const data = await getCombinedOltItemList(
+          activeOltCode,
+          branch,
+          activeGroup
+        );
 
-  fetchItems();
-}, [activeOltCode, branch, activeGroup]); // ✅ ADD activeGroup
+        setItems(data);
+      } catch (err) {
+        console.error("Error fetching items:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchItems();
+  }, [activeOltCode, branch, activeGroup]);
+
+  /* ---------------- FETCH MASTER ITEMS (NEW 🔥) ---------------- */
+  useEffect(() => {
+    const fetchAllItems = async () => {
+      if (!activeOltCode) return;
+
+      try {
+        const groups = await getItemGroupList(branch);
+
+        const results = await Promise.all(
+          groups.map((g: any) =>
+            getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
+          )
+        );
+
+        setMasterItems(results.flat());
+      } catch (err) {
+        console.error("Error fetching master items:", err);
+      }
+    };
+
+    fetchAllItems();
+  }, [activeOltCode, branch]);
 
   return (
-    <ItemContext.Provider value={{ items, loading, activeGroup, setActiveGroup }}>
+    <ItemContext.Provider
+      value={{ items, masterItems, loading, activeGroup, setActiveGroup }}
+    >
       {children}
     </ItemContext.Provider>
   );

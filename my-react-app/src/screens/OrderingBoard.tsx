@@ -43,7 +43,7 @@ function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<any[]>([]);
-  const { items, loading, setActiveGroup, activeGroup } = useItems(); // Items from context
+  const { items, masterItems, loading, setActiveGroup, activeGroup } = useItems(); // Items from context
   console.log("items", items);
   const [oldCartData, setOldCartData] = useState<any[]>([]);
   const [openPayment, setOpenPayment] = useState(false);
@@ -919,20 +919,20 @@ mappedFoods.forEach((f: any) => {
     }
   };
 
-  const categoryMap = useMemo(() => {
-    const map = new Map<number, { catCode: number; grpCode: number }>();
+const categoryMap = useMemo(() => {
+  const map = new Map<number, { catCode: number; grpCode: number }>();
 
-    items.forEach((cat) => {
-      cat.items.forEach((item) => {
-        map.set(item.itemCode, {
-          catCode: cat.catCode,
-          grpCode: Number(cat.grpCode),
-        });
+  masterItems.forEach((cat) => {
+    cat.items.forEach((item) => {
+      map.set(item.itemCode, {
+        catCode: cat.catCode,
+        grpCode: Number(cat.grpCode),
       });
     });
+  });
 
-    return map;
-  }, [items]);
+  return map;
+}, [masterItems]);
   const buildBillPayload = () => {
     if (!session) return null;
 
