@@ -1,5 +1,308 @@
+// import React, { useEffect, useState } from "react";
+// import toast from "react-hot-toast";
+
+// type SubMode = {
+//   subModeId: number;
+//   subModeType: string;
+// };
+
+// type PaymentMode = {
+//   modeId: number;
+//   modeType: string;
+//   subModes: SubMode[];
+// };
+
+// type PaymentDetail = {
+//   mode: string;
+//   subMode: string;
+//   amount: number;
+// };
+
+// type Props = {
+//   isOpen: boolean;
+//   onClose: () => void;
+//   onPay: (data: any) => void;
+//   paymentModes: PaymentMode[];
+//   runApi?: () => void;
+//   unbillData?: any;
+// };
+
+// const PaymentModal: React.FC<Props> = ({
+//   isOpen,
+//   runApi,
+//   onClose,
+//   onPay,
+//   paymentModes,
+//   unbillData
+// }) => {
+//   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
+//   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
+//   const [remarks, setRemarks] = useState(""); // ✅ NEW STATE
+
+//   const PAYABLE_AMOUNT = Number(unbillData?.[0]?.total || 0);
+
+//   useEffect(() => {
+//     if (isOpen && runApi) runApi();
+//   }, [isOpen]);
+
+//   if (!isOpen) return null;
+
+//   const updatePayment = (
+//     modeType: string,
+//     field: "amount" | "subMode",
+//     value: any
+//   ) => {
+//     setPaymentDetails((prev) => {
+//       const index = prev.findIndex((p) => p.mode === modeType);
+
+//       if (index !== -1) {
+//         const updated = [...prev];
+//         updated[index] = {
+//           ...updated[index],
+//           [field]: value,
+//         };
+//         return updated;
+//       }
+
+//       return [
+//         ...prev,
+//         {
+//           mode: modeType,
+//           subMode: field === "subMode" ? value : "",
+//           amount: field === "amount" ? Number(value) : 0,
+//         },
+//       ];
+//     });
+//   };
+
+//   const total = paymentDetails.reduce(
+//     (sum, p) => sum + Number(p.amount || 0),
+//     0
+//   );
+
+//   const handleModeClick = (modeType: string) => {
+//     const isSelected = selectedMulti[modeType] !== undefined;
+
+//     if (isSelected) {
+//       setSelectedMulti((prev) => {
+//         const updated = { ...prev };
+//         delete updated[modeType];
+//         return updated;
+//       });
+
+//       setPaymentDetails((prev) =>
+//         prev.filter((p) => p.mode !== modeType)
+//       );
+
+//       return;
+//     }
+
+//     setSelectedMulti((prev) => ({
+//       ...prev,
+//       [modeType]: "",
+//     }));
+
+//     setPaymentDetails((prev) => {
+//       if (prev.some((p) => p.mode === modeType)) return prev;
+
+//       const isFirst = prev.length === 0;
+
+//       return [
+//         ...prev,
+//         {
+//           mode: modeType,
+//           subMode: "",
+//           amount: isFirst ? PAYABLE_AMOUNT : 0,
+//         },
+//       ];
+//     });
+//   };
+
+//   const handleSubmit = () => {
+//     // validations
+//     for (const p of paymentDetails) {
+//       if (!p.amount || Number(p.amount) <= 0) {
+//         toast.error(`Enter amount for ${p.mode}`);
+//         return;
+//       }
+//     }
+
+//     if (total !== PAYABLE_AMOUNT) {
+//       toast.error(`Total must be ₹${PAYABLE_AMOUNT}`);
+//       return;
+//     }
+
+//     for (const key of Object.keys(selectedMulti)) {
+//       const sub = selectedMulti[key];
+//       const modeObj = paymentModes.find((m) => m.modeType === key);
+
+//       if (modeObj?.subModes.length && !sub) {
+//         toast.error(`Select sub mode for ${key}`);
+//         return;
+//       }
+//     }
+
+//     // ✅ FINAL PAYLOAD
+//     const finalPayload = {
+//       ...unbillData?.[0],
+//       paymentDetails: paymentDetails,
+//       remarks: remarks.trim() || null, // ✅ ADDED
+//     };
+
+//     console.log("FINAL DATA:", finalPayload); // ✅ LOG
+
+//     toast.success("Payment successful");
+
+//     onPay(finalPayload);
+//   };
+
+//   return (
+//     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+//       <div className="w-full max-w-lg h-[90vh] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden">
+
+//         {/* HEADER */}
+//         <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
+//           <h2 className="font-semibold text-lg">💳 Payment</h2>
+//           <button onClick={onClose}>×</button>
+//         </div>
+
+//         {/* BODY */}
+//         <div className="flex-1 overflow-y-auto p-4 space-y-5">
+
+//           {/* MODES */}
+//           <div>
+//             <p className="font-semibold mb-2">Select Payment Mode</p>
+//             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+//               {paymentModes.map((m) => {
+//                 const isSelected =
+//                   selectedMulti[m.modeType] !== undefined;
+
+//                 return (
+//                   <button
+//                     key={m.modeId}
+//                     onClick={() => handleModeClick(m.modeType)}
+//                     className={`border rounded px-3 py-3 text-sm font-semibold ${
+//                       isSelected ? "bg-[#0576B2] text-white" : ""
+//                     }`}
+//                   >
+//                     {m.modeType}
+//                   </button>
+//                 );
+//               })}
+//             </div>
+//           </div>
+
+//           {/* SUB MODES */}
+//           {Object.keys(selectedMulti).map((modeKey) => {
+//             const modeObj = paymentModes.find(
+//               (m) => m.modeType === modeKey
+//             );
+
+//             if (!modeObj || modeObj.subModes.length === 0) return null;
+
+//             return (
+//               <div key={modeKey}>
+//                 <p className="text-sm font-semibold text-gray-600">
+//                   {modeKey} Options
+//                 </p>
+
+//                 <div className="flex gap-2 flex-wrap mt-2">
+//                   {modeObj.subModes.map((s) => (
+//                     <button
+//                       key={s.subModeId}
+//                       onClick={() => {
+//                         setSelectedMulti((prev) => ({
+//                           ...prev,
+//                           [modeKey]: s.subModeType,
+//                         }));
+
+//                         updatePayment(
+//                           modeKey,
+//                           "subMode",
+//                           s.subModeType
+//                         );
+//                       }}
+//                       className={`px-3 py-1 rounded border text-sm ${
+//                         selectedMulti[modeKey] === s.subModeType
+//                           ? "bg-blue-100 border-blue-500"
+//                           : ""
+//                       }`}
+//                     >
+//                       {s.subModeType}
+//                     </button>
+//                   ))}
+//                 </div>
+//               </div>
+//             );
+//           })}
+
+//           {/* INPUTS */}
+//           <div className="space-y-3">
+//             <p className="font-semibold">Enter Amount</p>
+
+//             {paymentDetails.map((p) => (
+//               <div
+//                 key={p.mode}
+//                 className="flex justify-between items-center border p-3 rounded"
+//               >
+//                 <span className="font-medium">
+//                   {p.mode} {p.subMode && `(${p.subMode})`}
+//                 </span>
+
+//                 <input
+//                   type="number"
+//                   value={p.amount || ""}
+//                   onChange={(e) =>
+//                     updatePayment(
+//                       p.mode,
+//                       "amount",
+//                       Number(e.target.value)
+//                     )
+//                   }
+//                   className="w-24 border rounded px-2 py-1"
+//                 />
+//               </div>
+//             ))}
+//           </div>
+
+//           {/* ✅ REMARKS */}
+//           <div>
+//             <p className="font-semibold mb-1">Remarks (Optional)</p>
+//             <textarea
+//               value={remarks}
+//               onChange={(e) => setRemarks(e.target.value)}
+//               placeholder="Enter remarks..."
+//               className="w-full border rounded px-3 py-2 text-sm"
+//               rows={3}
+//             />
+//           </div>
+
+//           {/* TOTAL */}
+//           <div className="text-right font-bold">
+//             Total: ₹{total}
+//           </div>
+//         </div>
+
+//         {/* FOOTER */}
+//         <div className="border-t p-3 flex justify-between">
+//           <button onClick={onClose}>Cancel</button>
+//           <button
+//             onClick={handleSubmit}
+//             className="bg-green-600 text-white px-4 py-2 rounded"
+//           >
+//             Submit
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default PaymentModal;
+
+
 import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast"; // ✅ IMPORT
+import toast from "react-hot-toast";
 
 type SubMode = {
   subModeId: number;
@@ -16,6 +319,7 @@ type PaymentDetail = {
   mode: string;
   subMode: string;
   amount: number;
+  remarks?: string; // ✅ ADDED
 };
 
 type Props = {
@@ -24,6 +328,7 @@ type Props = {
   onPay: (data: any) => void;
   paymentModes: PaymentMode[];
   runApi?: () => void;
+  unbillData?: any;
 };
 
 const PaymentModal: React.FC<Props> = ({
@@ -32,45 +337,23 @@ const PaymentModal: React.FC<Props> = ({
   onClose,
   onPay,
   paymentModes,
+  unbillData
 }) => {
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
 
-  const PAYABLE_AMOUNT = 100;
-useEffect(() => {
-  console.log("paymentDetails",paymentDetails);
-  
-
-
-}, [paymentDetails])
+  const PAYABLE_AMOUNT = Number(unbillData?.[0]?.total || 0);
 
   useEffect(() => {
     if (isOpen && runApi) runApi();
   }, [isOpen]);
-  useEffect(() => {
-  if (isOpen && paymentModes.length > 0) {
-    const firstMode = paymentModes[0].modeType;
-
-    setSelectedMulti({
-      // [firstMode]: "",
-    });
-
-    setPaymentDetails([
-      // {
-      //   mode: firstMode,
-      //   subMode: "",
-      //   amount: PAYABLE_AMOUNT,
-      // },
-    ]);
-  }
-}, [isOpen, paymentModes]);
 
   if (!isOpen) return null;
 
-  // ✅ SAFE UPDATE (NO DUPLICATES)
+  // ✅ UPDATE PAYMENT (NOW SUPPORTS REMARKS)
   const updatePayment = (
     modeType: string,
-    field: "amount" | "subMode",
+    field: "amount" | "subMode" | "remarks",
     value: any
   ) => {
     setPaymentDetails((prev) => {
@@ -91,18 +374,17 @@ useEffect(() => {
           mode: modeType,
           subMode: field === "subMode" ? value : "",
           amount: field === "amount" ? Number(value) : 0,
+          remarks: field === "remarks" ? value : "",
         },
       ];
     });
   };
 
-  // ✅ TOTAL
   const total = paymentDetails.reduce(
     (sum, p) => sum + Number(p.amount || 0),
     0
   );
 
-  // ✅ HANDLE MODE CLICK
   const handleModeClick = (modeType: string) => {
     const isSelected = selectedMulti[modeType] !== undefined;
 
@@ -136,14 +418,14 @@ useEffect(() => {
           mode: modeType,
           subMode: "",
           amount: isFirst ? PAYABLE_AMOUNT : 0,
+          remarks: "", // ✅ INIT
         },
       ];
     });
   };
 
-  // ✅ SUBMIT WITH TOAST
   const handleSubmit = () => {
-    // 🔴 Empty / zero amount
+    // validations
     for (const p of paymentDetails) {
       if (!p.amount || Number(p.amount) <= 0) {
         toast.error(`Enter amount for ${p.mode}`);
@@ -151,13 +433,11 @@ useEffect(() => {
       }
     }
 
-    // 🔴 Total mismatch
     if (total !== PAYABLE_AMOUNT) {
       toast.error(`Total must be ₹${PAYABLE_AMOUNT}`);
-        return;
+      return;
     }
 
-    // 🔴 SubMode missing
     for (const key of Object.keys(selectedMulti)) {
       const sub = selectedMulti[key];
       const modeObj = paymentModes.find((m) => m.modeType === key);
@@ -168,13 +448,20 @@ useEffect(() => {
       }
     }
 
-    // ✅ SUCCESS
+    // ✅ FINAL PAYLOAD
+    const finalPayload = {
+      ...unbillData?.[0],
+      paymentDetails: paymentDetails.map((p) => ({
+        ...p,
+        remarks: (p.remarks || "").trim() || null, // clean remarks
+      })),
+    };
+
+    console.log("FINAL DATA:", finalPayload);
+
     toast.success("Payment successful");
 
-    onPay({
-      type: "MULTI",
-      payments: paymentDetails,
-    });
+    onPay(finalPayload);
   };
 
   return (
@@ -193,7 +480,6 @@ useEffect(() => {
           {/* MODES */}
           <div>
             <p className="font-semibold mb-2">Select Payment Mode</p>
-
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {paymentModes.map((m) => {
                 const isSelected =
@@ -258,30 +544,43 @@ useEffect(() => {
             );
           })}
 
-          {/* INPUTS */}
+          {/* INPUTS + REMARKS */}
           <div className="space-y-3">
             <p className="font-semibold">Enter Amount</p>
 
             {paymentDetails.map((p) => (
               <div
                 key={p.mode}
-                className="flex justify-between items-center border p-3 rounded"
+                className="border p-3 rounded space-y-2"
               >
-                <span className="font-medium">
-                  {p.mode} {p.subMode && `(${p.subMode})`}
-                </span>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">
+                    {p.mode} {p.subMode && `(${p.subMode})`}
+                  </span>
 
-                <input
-                  type="number"
-                  value={p.amount || ""}
+                  <input
+                    type="number"
+                    value={p.amount || ""}
+                    onChange={(e) =>
+                      updatePayment(
+                        p.mode,
+                        "amount",
+                        Number(e.target.value)
+                      )
+                    }
+                    className="w-24 border rounded px-2 py-1"
+                  />
+                </div>
+
+                {/* ✅ REMARKS PER MODE */}
+                <textarea
+                  value={p.remarks || ""}
                   onChange={(e) =>
-                    updatePayment(
-                      p.mode,
-                      "amount",
-                      Number(e.target.value)
-                    )
+                    updatePayment(p.mode, "remarks", e.target.value)
                   }
-                  className="w-24 border rounded px-2 py-1"
+                  placeholder={`Remarks for ${p.mode}`}
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  rows={2}
                 />
               </div>
             ))}

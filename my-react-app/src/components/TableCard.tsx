@@ -5,11 +5,12 @@ type TableCardProps = {
   kotStatus?: "KOT" | "NCKOT" | string;
   peopleCount?: number;
   handleCardClick: () => void;
+  billNo:number
 };
 const TableCard: React.FC<TableCardProps> = ({
+  billNo,
   tableNumber,
   status,
-  peopleCount,
   handleCardClick,
   kotStatus
 }) => {
@@ -29,8 +30,7 @@ if (status === "Occupied" && kotStatus === "NCKOT") {
   statusStyles = "bg-purple-100 text-purple-700 border-purple-400";
 }
 
-  const fixedTime = "01:24:18";
-  const fixedPrice = "₹ 1,250";
+
 
   return (
     <div
@@ -38,22 +38,16 @@ if (status === "Occupied" && kotStatus === "NCKOT") {
       className={`relative ${statusStyles} border rounded-lg p-2 pt-7 flex flex-col items-center justify-center gap-1 sm:gap-2 transition hover:shadow-md active:scale-95 cursor-pointer`}
     >
       {/* Badge Row */}
-      <div className="absolute top-1 left-1 right-1 flex flex-wrap justify-center gap-1 text-[7px] sm:text-[8px] md:text-[9px]">
-        {status === "Occupied" && (
+      <div className="absolute top-1 left-1 right-1 flex flex-wrap justify-center gap-1 text-[10px] sm:text-[8px] md:text-[9px]">
+        {status === "Unsettled" && (
           <>
-            <div className="bg-white/90 text-gray-700 px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1 whitespace-nowrap">
-              ⏱ {fixedTime}
-            </div>
-            <div className="bg-white/90 text-gray-700 px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1 whitespace-nowrap">
-              💰 {fixedPrice}
-            </div>
+          <div className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1 whitespace-nowrap">
+  🧾 Bill {billNo}
+</div>
+        
           </>
         )}
-        {peopleCount !== undefined && (
-          <div className="bg-white/90 text-gray-700 px-1 py-0.5 rounded-md shadow-sm flex items-center gap-1 whitespace-nowrap">
-            👥 {peopleCount}
-          </div>
-        )}
+        
       </div>
 
       {/* Table Number */}

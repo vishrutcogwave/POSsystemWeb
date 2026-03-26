@@ -7,6 +7,7 @@ import {
   getCombinedOutletAndTableMasterList,
   getFastfoodDetails,
   getPaymentModeMaster,
+  getUnbillDetails,
 } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext";
@@ -18,6 +19,7 @@ type Table = {
   status: string;
   kotStatus?: string;
   peopleCount?: number;
+  BillNo:number
 };
 
 type Outlet = {
@@ -27,9 +29,10 @@ type Outlet = {
     tblNo: string;
     tableStatus: string;
     kotStatus: string;
+    billNo: number; // 👈 ADD THIS
+    billAmount?: number; // optional (you also have this in API)
   }[];
 };
-
 const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
@@ -41,6 +44,7 @@ const NewOrder: React.FC = () => {
   const { activeOltCode, setActiveOLT } = useActiveOLT();
 const location = useLocation();
 const shouldReset = location.state?.reset;
+const [unbillData, setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const fetchPaymentModes = async () => {
   try {
@@ -77,6 +81,7 @@ const shouldReset = location.state?.reset;
             tableNumber: tbl.tblNo,
             status: tbl.tableStatus,
             kotStatus: tbl.kotStatus,
+             BillNo: tbl.billNo, // 👈 ADD THIS
           }));
         });
 
@@ -154,19 +159,37 @@ const shouldReset = location.state?.reset;
   };
 
   /* ---------------- NORMAL TABLE CLICK ---------------- */
-  const handleTableClick = (table: Table) => {
-    if (table.status==="Unsettled"){
-setOpenPayment(true)
-      return
+const handleTableClick = async (table: Table) => {
+  if (table.status === "Unsettled") {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+
+      const res = await getUnbillDetails(
+        table.BillNo,
+        table.tableNumber,
+        activeTab,
+        branch
+      );
+
+      console.log("Unbill Details:", res);
+
+      setUnbillData(res); // ✅ STORE HERE
+      setOpenPayment(true);
+    } catch (err) {
+      console.error("Failed to fetch unbill details", err);
     }
-    navigate("/OrderingBoard", {
-      state: {
-        tableNumber: table.tableNumber,
-        status: table.status,
-        kotStatus: table.kotStatus,
-      },
-    });
-  };
+
+    return;
+  }
+
+  navigate("/OrderingBoard", {
+    state: {
+      tableNumber: table.tableNumber,
+      status: table.status,
+      kotStatus: table.kotStatus,
+    },
+  });
+};
 
   /* ---------------- UI ---------------- */
   return (
@@ -183,6 +206,7 @@ setOpenPayment(true)
             tablesData[activeTab]?.map((table) => (
               <TableCard
                 key={table.tableNumber}
+                billNo={table.BillNo}
                 tableNumber={table.tableNumber}
                 status={table.status}
                 kotStatus={table.kotStatus}
@@ -192,12 +216,13 @@ setOpenPayment(true)
             ))}
         </div>
       </div>
-         <PaymentModal
-         paymentModes={paymentModes}
-        isOpen={openPayment}
-        onClose={() => setOpenPayment(false)}
-        onPay={()=>alert("setteled")}
-      />
+       <PaymentModal
+  paymentModes={paymentModes}
+  isOpen={openPayment}
+  unbillData={unbillData} // 👈 PASS HERE
+  onClose={() => setOpenPayment(false)}
+  onPay={() => alert("setteled")}
+/>
     </div>
   );
 };

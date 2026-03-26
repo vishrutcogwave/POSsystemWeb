@@ -380,3 +380,30 @@ export const getPaymentModeMaster = async (branchcode: string) => {
 
   return response.data;
 };
+
+
+export const getUnbillDetails = async (
+  billno: number,
+  tblno: string,
+  outlet: string | number,
+  branchcode: string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetUnbillDetails",
+    {
+      params: {
+        billno,
+        tblno,
+        outlet,
+        branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
