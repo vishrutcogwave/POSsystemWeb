@@ -8,10 +8,12 @@ import {
   getFastfoodDetails,
   getPaymentModeMaster,
   getUnbillDetails,
+  settleBill,
 } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext";
 import PaymentModal from "../components/PaymentModal";
+import toast from "react-hot-toast";
 
 /* ---------------- TYPES ---------------- */
 type Table = {
@@ -238,6 +240,75 @@ if (isFastFood) {
   );
 
   /* ---------------- UI ---------------- */
+
+
+  const handleSettleBill = async (data: any) => {
+  const { paymentDetails, difference, payableAmount } = data;
+
+  if (difference !== 0) {
+    toast.error(`Amount must match ₹${payableAmount}`);
+    return;
+  }
+
+  // ✅ VALIDATION
+  for (let p of paymentDetails) {
+    const mode = paymentModes.find((m) => m.modeType === p.mode);
+
+    if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
+      toast.error(`Select sub mode for ${p.mode}`);
+      return;
+    }
+
+    if (!p.amount || p.amount <= 0) {
+      toast.error(`Enter valid amount for ${p.mode}`);
+      return;
+    }
+  }
+
+  const bill = unbillData?.[0] || {};
+  const branch = localStorage.getItem("branch") || "";
+
+  const finalPayload = {
+    oltCode: bill?.oltCode || 0,
+    userCode: bill?.userCode || 0,
+    billId: selectedTable?.BillNo || 0,
+    billNo: selectedTable?.BillNo || 0,
+    tableNo: bill?.tableNo || "",
+    subTableNo: bill?.subTableNo || "",
+    discount: bill?.discount || 0,
+    taxAmount: bill?.taxAmount || 0,
+    tips: bill?.tips || 0,
+    changeAmount: bill?.changeAmount || 0,
+    grandAmount: payableAmount,
+    billDate: new Date().toISOString(),
+    branchCode: branch,
+
+    paymentDetails: paymentDetails.map((p: any) => ({
+      mode: p.mode,
+      subMode: p.subMode || "",
+      amount: p.amount,
+      remarks: (p.remarks || "").trim() || "",
+    })),
+  };
+
+  console.log("FINAL DATA:", finalPayload);
+
+  try {
+    const res = await settleBill(finalPayload);
+
+    console.log("SETTLE RESPONSE:", res);
+
+    toast.success("Bill Settled Successfully ✅");
+
+    setOpenPayment(false);
+    setSelectedTable(null);
+
+    fetchData(); // 🔥 refresh tables
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to settle bill ❌");
+  }
+};
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
@@ -292,8 +363,10 @@ if (isFastFood) {
   onClose={() => {
     setOpenPayment(false);
     setSelectedTable(null); // reset
+  
   }}
-  onPay={() => alert("settled")}
+  onPay={handleSettleBill}
+
 />
     </div>
   );

@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { settleBill } from "../api/services/products.service";
 
 type SubMode = {
   subModeId: number;
@@ -28,12 +26,11 @@ type Props = {
   paymentModes: PaymentMode[];
   runApi?: () => void;
   unbillData?: any;
-     billNo?:any;
-     refresh?:()=>void;
+  billNo?: any;
+  refresh?: () => void;
 };
 
 const PaymentModal: React.FC<Props> = ({
-  refresh,
   billNo,
   isOpen,
   runApi,
@@ -47,8 +44,7 @@ const PaymentModal: React.FC<Props> = ({
     setPaymentDetails([]);
     onClose();
   };
-  console.log("billNo",billNo);
-  
+  console.log("billNo", billNo);
 
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
     {},
@@ -141,71 +137,6 @@ const PaymentModal: React.FC<Props> = ({
   const difference = PAYABLE_AMOUNT - total;
 
 
-const handleSubmit = async () => {
-  if (difference !== 0) {
-    toast.error(`Amount must match ₹${PAYABLE_AMOUNT}`);
-    return;
-  }
-
-  // ✅ VALIDATION
-  for (let p of paymentDetails) {
-    const mode = paymentModes.find((m) => m.modeType === p.mode);
-
-    if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
-      toast.error(`Select sub mode for ${p.mode}`);
-      return;
-    }
-
-    if (!p.amount || p.amount <= 0) {
-      toast.error(`Enter valid amount for ${p.mode}`);
-      return;
-    }
-  }
-
-  const bill = unbillData?.[0] || {};
-  const branch = localStorage.getItem("branch") || "";
-
-  const finalPayload = {
-    oltCode: bill?.oltCode || 0,
-    userCode: bill?.userCode || 0,
-    billId: billNo || 0,
-    billNo: billNo || 0,
-    tableNo: bill?.tableNo || "", // ⚠️ FIXED (you used billNo before ❌)
-    subTableNo: bill?.subTableNo || "",
-    discount: bill?.discount || 0,
-    taxAmount: bill?.taxAmount || 0,
-    tips: bill?.tips || 0,
-    changeAmount: bill?.changeAmount || 0,
-    grandAmount: PAYABLE_AMOUNT,
-    billDate: new Date().toISOString(),
-    branchCode: branch,
-
-    paymentDetails: paymentDetails.map((p) => ({
-      mode: p.mode,
-      subMode: p.subMode || "",
-      amount: p.amount,
-      remarks: (p.remarks || "").trim() || "",
-    })),
-  };
-
-  console.log("FINAL DATA:", finalPayload);
-
-  try {
-    // ✅ API CALL
-    const res = await settleBill(finalPayload);
-
-    console.log("SETTLE RESPONSE:", res);
-
-    toast.success("Bill Settled Successfully ✅");
-
-    onPay(finalPayload); // optional
-    handleClose(); // close modal
-    refresh&&refresh()
-  } catch (error) {
-    console.error(error);
-    toast.error("Failed to settle bill ❌");
-  }
-};
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
@@ -355,7 +286,14 @@ const handleSubmit = async () => {
           </button>
 
           <button
-            onClick={handleSubmit}
+          onClick={() =>
+  onPay({
+    paymentDetails,
+    total,
+    difference,
+    payableAmount: PAYABLE_AMOUNT,
+  })
+}
             disabled={difference !== 0}
             className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
               difference === 0
