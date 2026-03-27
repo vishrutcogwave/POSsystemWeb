@@ -59,7 +59,7 @@ function LandingPage() {
 
   return (
     <>
-      {showHeader && <Header />}
+      {showHeader && <Header showNeworderButton/>}
 
       <Routes>
         <Route path="/" element={<AuthPage />} />

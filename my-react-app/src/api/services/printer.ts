@@ -161,6 +161,7 @@ export const printBill = async (
       taxes: tax.taxList,
       taxType: tax.taxType,
       grandTotal: tax.grandTotal,
+        roundOff: tax.roundOff, // ✅ ADD THIS
     };
 
     /* ---------------- THERMAL FORMAT ---------------- */
@@ -291,35 +292,52 @@ const formatThermal = (c: any) => {
       d += "-".repeat(width) + "\n";
 
       /* TAX */
-      groupTaxes.forEach((tax: any) => {
-        const halfPer = (tax.taxper || 0) / 2;
+    groupTaxes.forEach((tax: any) => {
+  const halfPer = (tax.taxper || 0) / 2;
 
-        d += line2Col(
-          "Taxable",
-          (tax.taxableAmount || 0).toFixed(2)
-        );
+  // Subtotal (before tax)
 
-        d += line2Col(
-          `CGST ${halfPer}%`,
-          (tax.cgst || 0).toFixed(2)
-        );
 
-        d += line2Col(
-          `SGST ${halfPer}%`,
-          (tax.sgst || 0).toFixed(2)
-        );
+  // CGST
+  d += line2Col(
+    `CGST ${halfPer}%`,
+    (tax.cgst || 0).toFixed(2)
+  );
 
-        d += "-".repeat(width) + "\n";
-      });
+  // SGST
+  d += line2Col(
+    `SGST ${halfPer}%`,
+    (tax.sgst || 0).toFixed(2)
+  );
+
+  // Subtotal After Tax
+
+  d += "-".repeat(width) + "\n";
+    d += line2Col(
+    "Subtotal",
+    (tax.total || 0).toFixed(2)
+  );
+
+});
     });
   }
 
   /* -------- TOTAL -------- */
   d += "-".repeat(width) + "\n";
 
-  d += "\x1B\x45\x01";
-  d += line2Col("TOTAL", c.grandTotal.toFixed(2));
-  d += "\x1B\x45\x00";
+d += "-".repeat(width) + "\n";
+
+// GRAND TOTAL ONLY
+d += "\x1B\x45\x01";
+// Round Off (only if not 0)
+const roundOff = c.roundOff || 0;
+
+if (roundOff !== 0) {
+  d += line2Col("Round Off", roundOff.toFixed(2));
+}
+d += line2Col("GRAND TOTAL", c.grandTotal.toFixed(2));
+d += "\x1B\x45\x00";
+
 
   d += "\n\n\n";
   d += "\x1D\x56\x41\x10";

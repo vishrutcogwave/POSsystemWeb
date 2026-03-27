@@ -72,7 +72,7 @@ const NewOrder: React.FC = () => {
           id: outlet.oltCode.toString(),
           label: outlet.oltName.trim(),
         }));
-        
+
 
         setTabs(formattedTabs);
 
@@ -90,58 +90,57 @@ const NewOrder: React.FC = () => {
 
         /* 🔥 INITIAL SELECTION LOGIC */
         if (formattedTabs.length > 0) {
-          const fastFoodTab = formattedTabs.find((t) =>
-            t.label.toUpperCase().includes("FAST")
-          );
+          
 
-          const nonFastFoodTabs = formattedTabs.filter(
-            (t) => !t.label.toUpperCase().includes("FAST")
-          );
+       
 
           // ✅ Only FAST FOOD → redirect
-          if (formattedTabs.length === 1 && fastFoodTab) {
-            const branch = localStorage.getItem("branch") || "";
-            const res = await getFastfoodDetails(fastFoodTab.id, branch);
+      
+/* 🔥 INITIAL SELECTION LOGIC */
+if (formattedTabs.length > 0) {
+  const fastFoodTab = formattedTabs.find((t) =>
+    t.label.toUpperCase().includes("FAST")
+  );
 
-            navigate("/OrderingBoard", {
-              state: {
-                tableNumber: res.tblNo || "FF",
-                status: "Available",
-                kotStatus: "N",
-                fastFood: true,
-                waiter: String(res.stwCode),
-                waiterName: res.stwName || "Counter",
-                pax: res.tblSeatCount || 1,
-              },
-            });
-            return;
-          }
+  const nonFastFoodTabs = formattedTabs.filter(
+    (t) => !t.label.toUpperCase().includes("FAST")
+  );
 
-          let selectedTab;
+  // ✅ CASE 1: ONLY FASTFOOD
+  if (formattedTabs.length === 1 && fastFoodTab) {
+    const branch = localStorage.getItem("branch") || "";
+    const res = await getFastfoodDetails(fastFoodTab.id, branch);
 
-          if (fastFoodTab && !activeOltCode) {
-            // pick random non-fastfood
-            if (nonFastFoodTabs.length > 0) {
-              const randomIndex = Math.floor(
-                Math.random() * nonFastFoodTabs.length
-              );
-              selectedTab = nonFastFoodTabs[randomIndex];
-            } else {
-              selectedTab = fastFoodTab;
-            }
-          } else {
-            selectedTab =
-              formattedTabs.find((t) => t.id === activeOltCode) ||
-              formattedTabs[0];
-          }
+    setActiveOLT(fastFoodTab.id, fastFoodTab.label);
 
-          if (
-            selectedTab &&
-            !selectedTab.label.toUpperCase().includes("FAST")
-          ) {
-            setActiveTab(selectedTab.id);
-            setActiveOLT(selectedTab.id, selectedTab.label);
-          }
+    navigate("/OrderingBoard", {
+      state: { fastFood: true, tableNumber: res.tblNo || "FF" },
+    });
+    return;
+  }
+
+  // ✅ CASE 2: IF PREVIOUS SELECTION EXISTS → USE IT
+  const existing = formattedTabs.find(
+    (t) => t.id === activeOltCode && !t.label.toUpperCase().includes("FAST")
+  );
+
+  if (existing) {
+    setActiveTab(existing.id);
+    setActiveOLT(existing.id, existing.label);
+    return;
+  }
+
+  // ✅ CASE 3: DEFAULT
+  if (fastFoodTab && nonFastFoodTabs.length > 0) {
+    const firstNormal = nonFastFoodTabs[0];
+    setActiveTab(firstNormal.id);
+    setActiveOLT(firstNormal.id, firstNormal.label);
+  } else {
+    const first = formattedTabs[0];
+    setActiveTab(first.id);
+    setActiveOLT(first.id, first.label);
+  }
+}
         }
       } catch (error) {
         console.error("Error fetching outlets:", error);
@@ -167,27 +166,30 @@ const NewOrder: React.FC = () => {
       selectedTab.label.toUpperCase().includes("FAST");
 
     // 🔥 FASTFOOD → DIRECT REDIRECT (no active tab)
-    if (isFastFood) {
-      try {
-        const branch = localStorage.getItem("branch") || "";
-        const res = await getFastfoodDetails(selectedTab.id, branch);
+if (isFastFood) {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+    const res = await getFastfoodDetails(selectedTab.id, branch);
 
-        navigate("/OrderingBoard", {
-          state: {
-            tableNumber: res.tblNo || "FF",
-            status: "Available",
-            kotStatus: "N",
-            fastFood: true,
-            waiter: String(res.stwCode),
-            waiterName: res.stwName || "Counter",
-            pax: res.tblSeatCount || 1,
-          },
-        });
-      } catch (err) {
-        console.error("Fast food fetch failed", err);
-      }
-      return;
-    }
+    // ✅ ADD THIS LINE (FIX)
+    setActiveOLT(selectedTab.id, selectedTab.label);
+
+    navigate("/OrderingBoard", {
+      state: {
+        tableNumber: res.tblNo || "FF",
+        status: "Available",
+        kotStatus: "N",
+        fastFood: true,
+        waiter: String(res.stwCode),
+        waiterName: res.stwName || "Counter",
+        pax: res.tblSeatCount || 1,
+      },
+    });
+  } catch (err) {
+    console.error("Fast food fetch failed", err);
+  }
+  return;
+}
 
     // ✅ Normal outlet
     setActiveTab(selectedTab.id);
@@ -238,29 +240,29 @@ const NewOrder: React.FC = () => {
       {loading && <Loader />}
 
       {/* Tabs + FASTFOOD Button */}
-      <div className="flex items-center border-b">
-        <Tabs
-          tabs={normalTabs}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-        />
+   <div className="flex border-b overflow-x-auto">
+  <div className="flex min-w-max w-full">
+    <Tabs
+      tabs={normalTabs}
+      activeTab={activeTab}
+      onChange={handleTabChange}
+    />
 
-{fastFoodTab && (
-  <button
-    onClick={() => handleTabChange(fastFoodTab.id)}
-    className="
-      flex-1 min-w-[120px] px-4 py-3 text-sm font-medium tracking-wide
-      text-gray-500
-      transition-all duration-200
-      hover:text-[#0576B2]
-      hover:bg-[#026388]/10
-    "
-  >
-    {fastFoodTab.label}
-  </button>
-)}
-      </div>
-
+    {fastFoodTab && (
+      <button
+        onClick={() => handleTabChange(fastFoodTab.id)}
+        className="
+          px-4 py-3 text-sm font-medium whitespace-nowrap
+          text-gray-500
+          hover:text-[#0576B2]
+          hover:bg-[#026388]/10
+        "
+      >
+        {fastFoodTab.label}
+      </button>
+    )}
+  </div>
+</div>
       {/* Table Grid */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
@@ -291,3 +293,5 @@ const NewOrder: React.FC = () => {
 };
 
 export default NewOrder;
+
+
