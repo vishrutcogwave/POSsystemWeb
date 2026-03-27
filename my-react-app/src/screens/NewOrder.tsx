@@ -37,6 +37,7 @@ type Outlet = {
 const NewOrder: React.FC = () => {
   const [tabs, setTabs] = useState<{ id: string; label: string }[]>([]);
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [activeTab, setActiveTab] = useState("");
   const [loading, setLoading] = useState(false);
   const [openPayment, setOpenPayment] = useState(false);
@@ -59,7 +60,6 @@ const NewOrder: React.FC = () => {
   };
 
   /* ---------------- FETCH DATA ---------------- */
-  useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -148,6 +148,8 @@ if (formattedTabs.length > 0) {
         setLoading(false);
       }
     };
+  useEffect(() => {
+  
 
     fetchData();
   }, []);
@@ -198,6 +200,7 @@ if (isFastFood) {
 
   /* ---------------- TABLE CLICK ---------------- */
   const handleTableClick = async (table: Table) => {
+      setSelectedTable(table);
     if (table.status === "Unsettled") {
       try {
         const branch = localStorage.getItem("branch") || "";
@@ -280,14 +283,18 @@ if (isFastFood) {
             ))}
         </div>
       </div>
-
-      <PaymentModal
-        paymentModes={paymentModes}
-        isOpen={openPayment}
-        unbillData={unbillData}
-        onClose={() => setOpenPayment(false)}
-        onPay={() => alert("setteled")}
-      />
+<PaymentModal
+  paymentModes={paymentModes}
+  isOpen={openPayment}
+  unbillData={unbillData}
+  billNo={selectedTable?.BillNo} // ✅ correct bill
+  refresh={fetchData}
+  onClose={() => {
+    setOpenPayment(false);
+    setSelectedTable(null); // reset
+  }}
+  onPay={() => alert("settled")}
+/>
     </div>
   );
 };
