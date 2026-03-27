@@ -428,42 +428,58 @@ const PaymentModal: React.FC<Props> = ({
 
   const difference = PAYABLE_AMOUNT - total;
 
-  /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = () => {
-    if (difference !== 0) {
-      toast.error(`Amount must match ₹${PAYABLE_AMOUNT}`);
+const handleSubmit = () => {
+  if (difference !== 0) {
+    toast.error(`Amount must match ₹${PAYABLE_AMOUNT}`);
+    return;
+  }
+
+  // ✅ VALIDATION
+  for (let p of paymentDetails) {
+    const mode = paymentModes.find((m) => m.modeType === p.mode);
+
+    if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
+      toast.error(`Select sub mode for ${p.mode}`);
       return;
     }
 
-    // ✅ VALIDATION
-    for (let p of paymentDetails) {
-      const mode = paymentModes.find((m) => m.modeType === p.mode);
-
-      // ✅ Only validate subMode if available
-      if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
-        toast.error(`Select sub mode for ${p.mode}`);
-        return;
-      }
-
-      if (!p.amount || p.amount <= 0) {
-        toast.error(`Enter valid amount for ${p.mode}`);
-        return;
-      }
+    if (!p.amount || p.amount <= 0) {
+      toast.error(`Enter valid amount for ${p.mode}`);
+      return;
     }
+  }
 
-    const finalPayload = {
-      ...unbillData?.[0],
-      paymentDetails: paymentDetails.map((p) => ({
-        ...p,
-        remarks: (p.remarks || "").trim() || null,
-      })),
-    };
+  const bill = unbillData?.[0] || {};
 
-    console.log("FINAL DATA:", finalPayload);
-    toast.success("Payment successful");
-    onPay(finalPayload);
+  // ✅ EXACT FORMAT
+  const finalPayload = {
+    oltCode: bill?.oltCode || 0,
+    userCode: bill?.userCode || 0,
+    billId: bill?.billId || 0,
+    billNo: bill?.billNo || 0,
+    tableNo: bill?.tableNo || "",
+    subTableNo: bill?.subTableNo || "",
+    discount: bill?.discount || 0,
+    taxAmount: bill?.taxAmount || 0,
+    tips: bill?.tips || 0,
+    changeAmount: bill?.changeAmount || 0,
+    grandAmount: PAYABLE_AMOUNT,
+    billDate: new Date().toISOString(),
+    branchCode: bill?.branchCode || "",
+
+    paymentDetails: paymentDetails.map((p) => ({
+      mode: p.mode,
+      subMode: p.subMode || "",
+      amount: p.amount,
+      remarks: (p.remarks || "").trim() || "",
+    })),
   };
 
+  console.log("FINAL DATA:", finalPayload);
+
+  toast.success("Payment successful");
+  onPay(finalPayload);
+};
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
