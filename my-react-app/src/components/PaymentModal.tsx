@@ -338,7 +338,9 @@ const PaymentModal: React.FC<Props> = ({
     onClose();
   };
 
-  const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>({});
+  const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
+    {},
+  );
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
 
   const PAYABLE_AMOUNT = Math.round(Number(unbillData?.[0]?.total || 0));
@@ -394,10 +396,9 @@ const PaymentModal: React.FC<Props> = ({
       return;
     }
 
-   
     setSelectedMulti((prev) => ({
       ...prev,
-     [modeType]: "",
+      [modeType]: "",
     }));
 
     setPaymentDetails((prev) => {
@@ -410,7 +411,7 @@ const PaymentModal: React.FC<Props> = ({
         ...prev,
         {
           mode: modeType,
-        subMode: "",
+          subMode: "",
           amount:
             prev.length === 0 ? PAYABLE_AMOUNT : remaining > 0 ? remaining : 0,
           remarks: "",
@@ -435,20 +436,20 @@ const PaymentModal: React.FC<Props> = ({
     }
 
     // ✅ VALIDATION
-   for (let p of paymentDetails) {
-  const mode = paymentModes.find((m) => m.modeType === p.mode);
+    for (let p of paymentDetails) {
+      const mode = paymentModes.find((m) => m.modeType === p.mode);
 
-  // ✅ Only validate subMode if available
-  if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
-    toast.error(`Select sub mode for ${p.mode}`);
-    return;
-  }
+      // ✅ Only validate subMode if available
+      if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
+        toast.error(`Select sub mode for ${p.mode}`);
+        return;
+      }
 
-  if (!p.amount || p.amount <= 0) {
-    toast.error(`Enter valid amount for ${p.mode}`);
-    return;
-  }
-}
+      if (!p.amount || p.amount <= 0) {
+        toast.error(`Enter valid amount for ${p.mode}`);
+        return;
+      }
+    }
 
     const finalPayload = {
       ...unbillData?.[0],
@@ -466,7 +467,6 @@ const PaymentModal: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
-        
         {/* HEADER */}
         <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
           <h2 className="font-semibold text-lg">💳 Payment</h2>
@@ -475,7 +475,6 @@ const PaymentModal: React.FC<Props> = ({
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
-          
           {/* MODES */}
           <div>
             <p className="font-semibold mb-2">Select Payment Mode</p>
@@ -504,7 +503,6 @@ const PaymentModal: React.FC<Props> = ({
 
             {paymentDetails.map((p) => (
               <div key={p.mode} className="border p-3 rounded space-y-2">
-                
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <span className="font-medium">{p.mode}</span>
 
@@ -534,29 +532,30 @@ const PaymentModal: React.FC<Props> = ({
                 </div>
 
                 {/* ✅ SUB MODE DROPDOWN */}
-{(() => {
-  const mode = paymentModes.find((m) => m.modeType === p.mode);
+                {(() => {
+                  const mode = paymentModes.find((m) => m.modeType === p.mode);
 
-  if (!mode || !mode.subModes || mode.subModes.length === 0) return null;
+                  if (!mode || !mode.subModes || mode.subModes.length === 0)
+                    return null;
 
-  return (
-    <select
-      value={p.subMode || ""}
-      onChange={(e) =>
-        updatePayment(p.mode, "subMode", e.target.value)
-      }
-      className="w-full border rounded px-2 py-1 text-sm"
-    >
-      <option value="">Select Sub Mode</option>
+                  return (
+                    <select
+                      value={p.subMode || ""}
+                      onChange={(e) =>
+                        updatePayment(p.mode, "subMode", e.target.value)
+                      }
+                      className="w-full border rounded px-2 py-1 text-sm"
+                    >
+                      <option value="">Select Sub Mode</option>
 
-      {mode.subModes.map((s) => (
-        <option key={s.subModeId} value={s.subModeType}>
-          {s.subModeType}
-        </option>
-      ))}
-    </select>
-  );
-})()}
+                      {mode.subModes.map((s) => (
+                        <option key={s.subModeId} value={s.subModeType}>
+                          {s.subModeType}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
                 <textarea
                   value={p.remarks || ""}
                   onChange={(e) =>
@@ -590,8 +589,8 @@ const PaymentModal: React.FC<Props> = ({
                 {difference === 0
                   ? "Balanced"
                   : difference > 0
-                  ? "Remaining"
-                  : "Excess"}
+                    ? "Remaining"
+                    : "Excess"}
               </span>
               <span>₹{Math.abs(difference)}</span>
             </div>
