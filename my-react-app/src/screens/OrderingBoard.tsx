@@ -22,6 +22,7 @@ import {
   getSubTables,
   getTaxSettings,
   postBill,
+  settleBill,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
@@ -29,7 +30,7 @@ import { useActiveOLT } from "../context/ActiveOLTContext";
 import toast from "react-hot-toast";
 import { printBill, printKOT } from "../api/services/printer";
 import InvoicePopup from "../components/InvoicePopup";
-import PaymentModal from "../components/PaymentModal";
+import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -43,7 +44,8 @@ function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<any[]>([]);
-  const { items, masterItems, loading, setActiveGroup, activeGroup } = useItems(); // Items from context
+  const { items, masterItems, loading, setActiveGroup, activeGroup } =
+    useItems(); // Items from context
   console.log("items", items);
   const [oldCartData, setOldCartData] = useState<any[]>([]);
   const [openPayment, setOpenPayment] = useState(false);
@@ -224,47 +226,47 @@ function OrderingBoard() {
       });
 
       // ✅ combine all food items from all KOTs
-  if (!items.length) return;
+      if (!items.length) return;
 
-const allFoods = data.flatMap((order: any) => order.food);
+      const allFoods = data.flatMap((order: any) => order.food);
 
-const mappedFoods = allFoods.map((f: any) => {
-  let foundCategory: any = null;
+      const mappedFoods = allFoods.map((f: any) => {
+        let foundCategory: any = null;
 
-  for (const cat of items) {
-    const foundItem = cat.items.find(
-      (i: any) => i.itemCode === f.itemCode
-    );
+        for (const cat of items) {
+          const foundItem = cat.items.find(
+            (i: any) => i.itemCode === f.itemCode,
+          );
 
-    if (foundItem) {
-      foundCategory = cat;
-      break;
-    }
-  }
+          if (foundItem) {
+            foundCategory = cat;
+            break;
+          }
+        }
 
-  return {
-    ...f,
-    category: foundCategory?.catCode || 0,
-    grpCode: Number(foundCategory?.grpCode || 0),
-  };
-});
+        return {
+          ...f,
+          category: foundCategory?.catCode || 0,
+          grpCode: Number(foundCategory?.grpCode || 0),
+        };
+      });
 
-const grouped = new Map();
+      const grouped = new Map();
 
-mappedFoods.forEach((f: any) => {
-  if (grouped.has(f.itemCode)) {
-    grouped.get(f.itemCode).qty += f.qty;
-  } else {
-    grouped.set(f.itemCode, {
-      id: f.itemCode,
-      name: f.food.trim(),
-      price: f.price,
-      qty: f.qty,
-      category: f.category, // ✅ FIXED
-      grpCode: f.grpCode,   // ✅ FIXED
-    });
-  }
-});
+      mappedFoods.forEach((f: any) => {
+        if (grouped.has(f.itemCode)) {
+          grouped.get(f.itemCode).qty += f.qty;
+        } else {
+          grouped.set(f.itemCode, {
+            id: f.itemCode,
+            name: f.food.trim(),
+            price: f.price,
+            qty: f.qty,
+            category: f.category, // ✅ FIXED
+            grpCode: f.grpCode, // ✅ FIXED
+          });
+        }
+      });
       const oldItems = Array.from(grouped.values());
 
       setPastItems(oldItems);
@@ -621,7 +623,7 @@ mappedFoods.forEach((f: any) => {
       type: isNC ? "N" : "K",
       ncCode: isNC ? selectedNcCode : 0,
       ncRemarks: isNC ? ncRemarks : "",
-
+      discountGroups: [""],
       discount: 0,
       discountType: "",
       discountRemarks: "",
@@ -758,6 +760,181 @@ mappedFoods.forEach((f: any) => {
     } catch (err) {
       console.error("Failed to create KOT:", err);
       toast.error("Failed to create KOT ❌");
+    } finally {
+      setKotLoading(false);
+    }
+  };
+
+const handleFastFoodKOT = async (data: any) => {
+  const { paymentDetails } = data;
+    if (!session || cart.length === 0) return;
+
+    setKotLoading(true);
+
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
+    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    const payload = {
+      userCode: 3,
+      table: tableData.tableNumber || "",
+      subTable: selectedSubTable || "A",
+      outlet,
+      outletName: activeOltName,
+      waiter: session.waiterCode,
+      waiterName: session.waiterName,
+      pax: session.pax,
+
+      food: cart.map((i) => ({
+        id: i.id,
+        food: i.name,
+        code: i.id.toString(),
+        price: i.price,
+        qty: i.qty,
+        comment: i.spcodes || "",
+        category: i.category,
+        grpCode: i.grpCode, // ✅ ADD THIS
+        origQty: i.qty,
+      })),
+
+      total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
+      totQty: cart.reduce((sum, i) => sum + i.qty, 0),
+
+      branch,
+      type: isNC ? "N" : "K",
+      ncCode: isNC ? selectedNcCode : 0,
+      ncRemarks: isNC ? ncRemarks : "",
+
+      discount: 0,
+      discountType: "",
+      discountRemarks: "",
+      vRemarks: "1",
+      discountGroups: [""],
+      mode: "ADD",
+      subBillType: "S",
+      plan: "",
+      guestName: "adc",
+      guestCode: "234",
+      checkInNo: "",
+      kotMobileNo: "3456789021",
+
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: new Date().toISOString(),
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: new Date().toISOString(),
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    };
+
+    try {
+      const res = await createOrder(payload);
+      console.log("FastFood KOT:", res);
+
+const payload2 = {
+  oltCode: Number(localStorage.getItem("activeOltCode") || 0),
+  userCode: 3,
+
+  billId: res?.fnBillResponse?.billNo || 0,
+  billNo: res?.fnBillResponse?.billNo || 0,
+
+  tableNo: tableData.tableNumber || "",
+  subTableNo: selectedSubTable || "A",
+
+  discount: billData?.tax?.discount || 0,
+  taxAmount: billData?.tax?.taxAmount || 0,
+  tips: 0,
+
+  changeAmount: 0,
+  grandAmount: billData?.tax?.grandTotal || 0,
+
+  billDate: new Date().toISOString(),
+  branchCode: localStorage.getItem("branch") || "",
+
+  paymentDetails: paymentDetails.map((p: any) => ({
+    mode: p.mode || "",
+    subMode: p.subMode || "",
+    amount: Number(p.amount || 0),
+    remarks: p.remarks || "",
+  })),
+};
+      const selttelbill = await settleBill(payload2);
+      console.log("selttelbill",selttelbill);
+      
+
+      /* 🔥 PRINT KOT */
+      const printers = res.printers || [];
+      const foodItems = res.food || [];
+
+      const printerItemMap: Record<string, any[]> = {};
+
+      printers.forEach((printer: any) => {
+        const matchedItems = foodItems.filter((item: any) =>
+          printer.categoryIds.includes(Number(item.category)),
+        );
+
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName] = matchedItems;
+        }
+      });
+
+      const generateContent = (items: any[]) => ({
+        title: isNC ? "NC KOT" : "KOT",
+        table: tableData?.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item) => ({
+          qty: item.origQty,
+          name: item.food,
+          instructions: getInstructionLines(item.comment),
+        })),
+      });
+
+      for (const printerName in printerItemMap) {
+        const content = generateContent(printerItemMap[printerName]);
+
+        const isThermal =
+          printerName.toLowerCase().includes("pos") ||
+          printerName.toLowerCase().includes("thermal");
+        console.log("isThermal", isThermal);
+
+        const finalData = isThermal
+          ? formatThermal(content)
+          : formatHTML(content);
+
+        await printKOT(printerName, finalData, isThermal);
+      }
+
+
+
+      /* 🔥 PRINT BILL */
+      if (billData) {
+        const printRes = await printBill(
+          billData,
+          res.fnBillResponse,
+          companyInfo,
+        );
+
+        if (!printRes.success) {
+          throw new Error(printRes.message);
+        }
+      }
+
+      setCart([]);
+      setOpenPayment(false);
+
+      toast.success("FastFood Bill Printed ✅");
+    } catch (err) {
+      console.error(err);
+      toast.error("FastFood KOT Failed ❌");
     } finally {
       setKotLoading(false);
     }
@@ -919,20 +1096,25 @@ mappedFoods.forEach((f: any) => {
     }
   };
 
-const categoryMap = useMemo(() => {
-  const map = new Map<number, { catCode: number; grpCode: number }>();
+  const categoryMap = useMemo(() => {
+    const map = new Map<
+      number,
+      { catCode: number; grpCode: number; grpName: string }
+    >();
+    console.log("masterItems", masterItems);
 
-  masterItems.forEach((cat) => {
-    cat.items.forEach((item) => {
-      map.set(item.itemCode, {
-        catCode: cat.catCode,
-        grpCode: Number(cat.grpCode),
+    masterItems.forEach((cat) => {
+      cat.items.forEach((item) => {
+        map.set(item.itemCode, {
+          catCode: cat.catCode,
+          grpCode: Number(cat.grpCode),
+          grpName: cat.grpName,
+        });
       });
     });
-  });
 
-  return map;
-}, [masterItems]);
+    return map;
+  }, [masterItems]);
   const buildBillPayload = () => {
     if (!session) return null;
 
@@ -941,14 +1123,13 @@ const categoryMap = useMemo(() => {
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
     const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
-    console.log("oldCartData",oldCartData);
-    console.log("categoryMap",categoryMap);
-    
+    console.log("oldCartData", oldCartData);
+    console.log("categoryMap", categoryMap);
+
     const oldFoods = oldCartData.flatMap((order: any) =>
       order.food.map((f: any) => {
         const meta = categoryMap.get(f.itemCode);
-        console.log("f.catCode",f.catCode );
-        
+        console.log("f.catCode", f.catCode);
 
         return {
           id: f.itemCode,
@@ -957,7 +1138,7 @@ const categoryMap = useMemo(() => {
           price: f.price,
           qty: f.qty,
           comment: f.comment || "",
-        category: meta?.catCode || 0,
+          category: meta?.catCode || 0,
           grpCode: meta?.grpCode || 0,
           origQty: f.origQty ?? f.qty,
         };
@@ -966,6 +1147,7 @@ const categoryMap = useMemo(() => {
 
     const newFoods = cart.map((i) => {
       const meta = categoryMap.get(i.id);
+      // ✅ Collect unique discount groups
 
       return {
         id: i.id,
@@ -980,7 +1162,16 @@ const categoryMap = useMemo(() => {
       };
     });
     const food = [...oldFoods, ...newFoods];
-
+    const discountGroups = Array.from(
+      new Set(
+        food
+          .map((item) => {
+            const meta = categoryMap.get(item.id);
+            return meta?.grpName;
+          })
+          .filter(Boolean), // remove undefined/null
+      ),
+    );
     return {
       userCode: 3,
       table: tableData.tableNumber || "",
@@ -1009,7 +1200,7 @@ const categoryMap = useMemo(() => {
 
       mode: "ADD",
       subBillType: "S",
-
+      discountGroups,
       plan: "",
       guestName: "",
       guestCode: "",
@@ -1336,12 +1527,13 @@ const categoryMap = useMemo(() => {
           setOpenInstructionModal(false);
         }}
       />
-      <PaymentModal
+      <PaymentModalForFastFood
         paymentModes={paymentModes}
         isOpen={openPayment}
         onClose={() => setOpenPayment(false)}
-        onPay={handleKOT}
+        onPay={handleFastFoodKOT}
         runApi={handleGetBill}
+        unbillData={billData}
       />
     </div>
   );

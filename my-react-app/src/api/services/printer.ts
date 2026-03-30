@@ -93,7 +93,7 @@ export const printKOT = async (
         {
           type: "raw",
           format: "plain",
-          data,
+           data: data,
         },
       ];
     } else {
@@ -101,11 +101,7 @@ export const printKOT = async (
         {
           type: "html",
           format: "plain",
-          data: `
-            <div style="font-family: monospace; font-size: 12px;">
-              ${data.replace(/\n/g, "<br/>")}
-            </div>
-          `,
+            data: data,
         },
       ];
     }
