@@ -27,7 +27,7 @@ export type CartItem = {
   category: number; // ✅ ADD THIS
 grpCode: number;
   origQty?: number; // ✅ add this
-
+ itemDiscountAllowed: boolean;
   note?: string;
   spcodes?: string;
 };

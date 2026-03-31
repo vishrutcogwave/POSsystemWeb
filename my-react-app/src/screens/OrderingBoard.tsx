@@ -14,6 +14,7 @@ import {
   createOrder,
   getBill,
   getCompanyInfo,
+  getDiscountModeMaster,
   getItemGroupList,
   getNCKOT,
   getOldCart,
@@ -44,6 +45,7 @@ function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<any[]>([]);
+    const [discountModes, setdiscountModes] = useState<any[]>([]);
   const { items, masterItems, loading, setActiveGroup, activeGroup } =
     useItems(); // Items from context
   console.log("items", items);
@@ -133,6 +135,16 @@ function OrderingBoard() {
       console.error("Group fetch failed", err);
     }
   };
+   const fetchDiscountTypes = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getDiscountModeMaster(branch);
+
+      setdiscountModes(data);
+    } catch (err) {
+      console.error("Group fetch failed", err);
+    }
+  };
 
   const fetchCompany = async () => {
     try {
@@ -183,6 +195,7 @@ function OrderingBoard() {
     void fetchInstructions();
     void fetchCompany();
     void fetchPaymentModes();
+    void fetchDiscountTypes();
   }, []);
 
   const fetchSubTables = async () => {
@@ -248,6 +261,7 @@ function OrderingBoard() {
           ...f,
           category: foundCategory?.catCode || 0,
           grpCode: Number(foundCategory?.grpCode || 0),
+          itemDiscountAllowed: f.itemDiscountAllowed ?? true,
         };
       });
 
@@ -264,6 +278,7 @@ function OrderingBoard() {
             qty: f.qty,
             category: f.category, // ✅ FIXED
             grpCode: f.grpCode, // ✅ FIXED
+            itemDiscountAllowed: f.itemDiscountAllowed,
           });
         }
       });
@@ -401,6 +416,7 @@ function OrderingBoard() {
           grpCode: Number(selectedCategory.grpCode), // ✅ ADD THIS
           spcodes: "",
           note: "",
+          itemDiscountAllowed: food.itemDiscountAllowed,
         },
       ];
     });
@@ -614,6 +630,7 @@ function OrderingBoard() {
         category: i.category,
         grpCode: i.grpCode, // ✅ ADD THIS
         origQty: i.qty,
+        itemDiscountAllowed: i.itemDiscountAllowed ?? true,
       })),
 
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
@@ -765,8 +782,8 @@ function OrderingBoard() {
     }
   };
 
-const handleFastFoodKOT = async (data: any) => {
-  const { paymentDetails } = data;
+  const handleFastFoodKOT = async (data: any) => {
+    const { paymentDetails } = data;
     if (!session || cart.length === 0) return;
 
     setKotLoading(true);
@@ -794,6 +811,7 @@ const handleFastFoodKOT = async (data: any) => {
         category: i.category,
         grpCode: i.grpCode, // ✅ ADD THIS
         origQty: i.qty,
+        itemDiscountAllowed: i.itemDiscountAllowed ?? true,
       })),
 
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
@@ -838,36 +856,35 @@ const handleFastFoodKOT = async (data: any) => {
       const res = await createOrder(payload);
       console.log("FastFood KOT:", res);
 
-const payload2 = {
-  oltCode: Number(localStorage.getItem("activeOltCode") || 0),
-  userCode: 3,
+      const payload2 = {
+        oltCode: Number(localStorage.getItem("activeOltCode") || 0),
+        userCode: 3,
 
-  billId: res?.fnBillResponse?.billNo || 0,
-  billNo: res?.fnBillResponse?.billNo || 0,
+        billId: res?.fnBillResponse?.billNo || 0,
+        billNo: res?.fnBillResponse?.billNo || 0,
 
-  tableNo: tableData.tableNumber || "",
-  subTableNo: selectedSubTable || "A",
+        tableNo: tableData.tableNumber || "",
+        subTableNo: selectedSubTable || "A",
 
-  discount: billData?.tax?.discount || 0,
-  taxAmount: billData?.tax?.taxAmount || 0,
-  tips: 0,
+        discount: billData?.tax?.discount || 0,
+        taxAmount: billData?.tax?.taxAmount || 0,
+        tips: 0,
 
-  changeAmount: 0,
-  grandAmount: billData?.tax?.grandTotal || 0,
+        changeAmount: 0,
+        grandAmount: billData?.tax?.grandTotal || 0,
 
-  billDate: new Date().toISOString(),
-  branchCode: localStorage.getItem("branch") || "",
+        billDate: new Date().toISOString(),
+        branchCode: localStorage.getItem("branch") || "",
 
-  paymentDetails: paymentDetails.map((p: any) => ({
-    mode: p.mode || "",
-    subMode: p.subMode || "",
-    amount: Number(p.amount || 0),
-    remarks: p.remarks || "",
-  })),
-};
+        paymentDetails: paymentDetails.map((p: any) => ({
+          mode: p.mode || "",
+          subMode: p.subMode || "",
+          amount: Number(p.amount || 0),
+          remarks: p.remarks || "",
+        })),
+      };
       const selttelbill = await settleBill(payload2);
-      console.log("selttelbill",selttelbill);
-      
+      console.log("selttelbill", selttelbill);
 
       /* 🔥 PRINT KOT */
       const printers = res.printers || [];
@@ -912,8 +929,6 @@ const payload2 = {
 
         await printKOT(printerName, finalData, isThermal);
       }
-
-
 
       /* 🔥 PRINT BILL */
       if (billData) {
@@ -969,6 +984,7 @@ const payload2 = {
           comment: "",
           category: i.category || 0,
           origQty: i.origQty,
+          itemDiscountAllowed: i.itemDiscountAllowed ?? true,
         })),
 
       total: selectedVoidItems.reduce(
@@ -1141,6 +1157,7 @@ const payload2 = {
           category: meta?.catCode || 0,
           grpCode: meta?.grpCode || 0,
           origQty: f.origQty ?? f.qty,
+          itemDiscountAllowed: f.itemDiscountAllowed ?? true,
         };
       }),
     );
@@ -1159,6 +1176,7 @@ const payload2 = {
         category: i.category || meta?.catCode || 0,
         grpCode: i.grpCode || meta?.grpCode || 0,
         origQty: i.qty,
+        itemDiscountAllowed: i.itemDiscountAllowed ?? true,
       };
     });
     const food = [...oldFoods, ...newFoods];
@@ -1506,6 +1524,8 @@ const payload2 = {
       />
       {showInvoice && billData && tableData.fastFood === undefined && (
         <InvoicePopup
+        discountOptions={discountModes}
+        groupOptions={groups}
           cart={billData.cart}
           tax={billData.tax}
           onClose={() => setShowInvoice(false)}

@@ -432,3 +432,19 @@ export const settleBill = async (payload: any) => {
     throw error;
   }
 };
+
+export const getDiscountModeMaster = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetDiscountModeMaster",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
