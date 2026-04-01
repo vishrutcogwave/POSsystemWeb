@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import Loader from "../components/Loader";
 import { getBranchesByUser } from "../api/services/products.service";
 import type { LoginRequest } from "../types/types";
+import { useAppContext } from "../context/AppContext";
 type Branch = {
   branch_code: string;
   branch_name: string;
@@ -20,7 +21,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const { setAppData } = useAppContext();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,26 +36,26 @@ export default function AuthPage() {
     setIsOpen(false);
   };
 
-const handleLoadBranches = async () => {
-  if (!username) {
-    toast.error("Enter username first");
-    return;
-  }
+  const handleLoadBranches = async () => {
+    if (!username) {
+      toast.error("Enter username first");
+      return;
+    }
 
-  try {
-    setLoading(true); // show full loader
+    try {
+      setLoading(true); // show full loader
 
-    const data = await getBranchesByUser(username);
+      const data = await getBranchesByUser(username);
 
-    setBranches(data);
+      setBranches(data);
 
-    toast.success("Branches loaded");
-  } catch (error) {
-    toast.error("Failed to load branches");
-  } finally {
-    setLoading(false); // hide loader
-  }
-};
+      toast.success("Branches loaded");
+    } catch (error) {
+      toast.error("Failed to load branches");
+    } finally {
+      setLoading(false); // hide loader
+    }
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -70,7 +71,9 @@ const handleLoadBranches = async () => {
         branch_code: branch?.branch_code || "",
       };
       const data = await login(payload);
-
+      console.log("logingdtatails",data);
+      
+      setAppData(data);
       console.log("Token:", data.token);
 
       toast.success("Login successful");

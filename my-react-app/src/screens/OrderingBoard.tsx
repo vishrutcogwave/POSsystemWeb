@@ -45,7 +45,7 @@ function OrderingBoard() {
   const location = useLocation();
   const navigate = useNavigate();
   const [groups, setGroups] = useState<any[]>([]);
-    const [discountModes, setdiscountModes] = useState<any[]>([]);
+  const [discountModes, setdiscountModes] = useState<any[]>([]);
   const { items, masterItems, loading, setActiveGroup, activeGroup } =
     useItems(); // Items from context
   console.log("items", items);
@@ -113,6 +113,11 @@ function OrderingBoard() {
   const { activeOltName } = useActiveOLT(); // ✅ use context
   const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountType, setDiscountType] = useState("");
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountMode, setDiscountMode] = useState<"amt" | "per">("amt");
   const fetchPaymentModes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -135,7 +140,7 @@ function OrderingBoard() {
       console.error("Group fetch failed", err);
     }
   };
-   const fetchDiscountTypes = async () => {
+  const fetchDiscountTypes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
       const data = await getDiscountModeMaster(branch);
@@ -1180,16 +1185,7 @@ function OrderingBoard() {
       };
     });
     const food = [...oldFoods, ...newFoods];
-    const discountGroups = Array.from(
-      new Set(
-        food
-          .map((item) => {
-            const meta = categoryMap.get(item.id);
-            return meta?.grpName;
-          })
-          .filter(Boolean), // remove undefined/null
-      ),
-    );
+
     return {
       userCode: 3,
       table: tableData.tableNumber || "",
@@ -1211,14 +1207,15 @@ function OrderingBoard() {
       ncCode: isNC ? selectedNcCode : 0,
       ncRemarks: isNC ? ncRemarks : "",
 
-      discount: 0,
-      discountType: "",
+      discount: Number(discountValue || 0),
+      discountType: discountType,
+      discountIn: discountMode,
       discountRemarks: "",
       vRemarks: "1",
 
       mode: "ADD",
       subBillType: "S",
-      discountGroups,
+      discountGroups: selectedGroups,
       plan: "",
       guestName: "",
       guestCode: "",
@@ -1524,12 +1521,23 @@ function OrderingBoard() {
       />
       {showInvoice && billData && tableData.fastFood === undefined && (
         <InvoicePopup
-        discountOptions={discountModes}
-        groupOptions={groups}
+          discountOptions={discountModes}
+          groupOptions={groups}
           cart={billData.cart}
           tax={billData.tax}
           onClose={() => setShowInvoice(false)}
           onPrint={() => handlePrintBill(billData)}
+          showDiscount={showDiscount}
+          setShowDiscount={setShowDiscount}
+          discountType={discountType}
+          setDiscountType={setDiscountType}
+          selectedGroups={selectedGroups}
+          setSelectedGroups={setSelectedGroups}
+          discountValue={discountValue}
+          setDiscountValue={setDiscountValue}
+          reGetBill={handleGetBill}
+          discountMode={discountMode}
+          setDiscountMode={setDiscountMode}
         />
       )}
 

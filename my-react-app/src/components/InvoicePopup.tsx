@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { useAppContext } from "../context/AppContext";
 
 /* -------- TYPES -------- */
 interface FoodItem {
@@ -55,6 +56,21 @@ interface Props {
   groupOptions: GroupOption[];
   onClose: () => void;
   onPrint: () => void;
+
+  showDiscount: boolean;
+  setShowDiscount: React.Dispatch<React.SetStateAction<boolean>>;
+
+  discountType: string;
+  setDiscountType: React.Dispatch<React.SetStateAction<string>>;
+
+  selectedGroups: string[];
+  setSelectedGroups: React.Dispatch<React.SetStateAction<string[]>>;
+
+  discountValue: string;
+  setDiscountValue: React.Dispatch<React.SetStateAction<string>>;
+  reGetBill: () => void;
+  discountMode: "amt" | "per";
+setDiscountMode: React.Dispatch<React.SetStateAction<"amt" | "per">>;
 }
 
 /* -------- COMPONENT -------- */
@@ -65,12 +81,20 @@ const InvoicePopup: React.FC<Props> = ({
   groupOptions,
   onClose,
   onPrint,
+  discountType,
+  discountValue,
+  selectedGroups,
+  setDiscountType,
+  setDiscountValue,
+  setSelectedGroups,
+  setShowDiscount,
+  showDiscount,
+  reGetBill,
+  discountMode,
+  setDiscountMode
 }) => {
-  const [showDiscount, setShowDiscount] = useState(false);
-  const [discountType, setDiscountType] = useState("");
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [discountValue, setDiscountValue] = useState("");
-  const [discountMode, setDiscountMode] = useState<"amount" | "percent">("amount");
+  const { appData } = useAppContext();
+  console.log("appData", appData?.userRights[0]);
 
   const items = cart?.food || [];
   const isGrouped = tax?.taxType === "groupedtax";
@@ -106,24 +130,23 @@ const InvoicePopup: React.FC<Props> = ({
   const discountableTotal =
     discountType === "Groupwise"
       ? items
-      .filter((i) => i.grpCode !== undefined && selectedGroupCodes.includes(i.grpCode))
+          .filter(
+            (i) =>
+              i.grpCode !== undefined && selectedGroupCodes.includes(i.grpCode),
+          )
           .reduce((sum, i) => sum + i.price * i.qty, 0)
       : tax.totalAmount;
 
   let calculatedDiscount = 0;
 
-  if (discountMode === "percent") {
+  if (discountMode === "per") {
     calculatedDiscount = (discountableTotal * discountNum) / 100;
   } else {
     calculatedDiscount = discountNum;
   }
 
-  const appliedDiscount = Math.min(calculatedDiscount, discountableTotal);
 
-  const finalTotal = Math.max(
-    (tax.grandTotal || 0) - appliedDiscount,
-    0
-  );
+  const finalTotal = tax.grandTotal || 0 
 
   const dateStr = new Date().toLocaleString("en-IN", {
     day: "2-digit",
@@ -135,9 +158,7 @@ const InvoicePopup: React.FC<Props> = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex justify-center items-end sm:items-center z-50">
-
       <div className="w-full sm:max-w-sm h-[95vh] sm:h-[90vh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-xl bg-white">
-
         {/* HEADER */}
         <div className="bg-[#0576B2] text-white px-5 py-4">
           <div className="flex justify-between items-center">
@@ -145,9 +166,7 @@ const InvoicePopup: React.FC<Props> = ({
             <button onClick={onClose}>✕</button>
           </div>
 
-          <div className="font-bold text-lg mt-1">
-            {cart?.outletName}
-          </div>
+          <div className="font-bold text-lg mt-1">{cart?.outletName}</div>
           <div className="text-sm opacity-80">{cart?.branch}</div>
 
           <div className="flex gap-2 mt-3 text-xs flex-wrap">
@@ -158,9 +177,7 @@ const InvoicePopup: React.FC<Props> = ({
         </div>
 
         {/* DATE */}
-        <div className="px-5 py-2 text-xs text-gray-500">
-          {dateStr}
-        </div>
+        <div className="px-5 py-2 text-xs text-gray-500">{dateStr}</div>
 
         {/* COLUMN HEADER */}
         <div className="grid grid-cols-4 px-5 py-2 text-xs text-gray-400 font-semibold border-b">
@@ -171,74 +188,70 @@ const InvoicePopup: React.FC<Props> = ({
 
         {/* ITEMS */}
         <div className="flex-1 overflow-y-auto px-5">
-          {isGrouped ? (
-            Object.entries(groupMap).map(([grp, groupItems]) => {
-              const grpNum = Number(grp);
+          {isGrouped
+            ? Object.entries(groupMap).map(([grp, groupItems]) => {
+                const grpNum = Number(grp);
 
-              const groupTaxes = safeTaxList.filter(
-                (t) => t.groupCode === grpNum
-              );
+                const groupTaxes = safeTaxList.filter(
+                  (t) => t.groupCode === grpNum,
+                );
 
-              return (
-                <div key={grp}>
-                  <div className="font-semibold text-blue-600 mt-3 border-t pt-2">
-                    *** {groupTaxes[0]?.groupName || "OTHERS"} ***
-                  </div>
-
-                  {groupItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="grid grid-cols-4 py-2 text-sm border-b"
-                    >
-                      <span className="col-span-2 truncate">
-                        {item.food}
-                      </span>
-                      <span>{item.qty}</span>
-                      <span className="text-right">
-                        ₹{(item.price * item.qty).toFixed(2)}
-                      </span>
+                return (
+                  <div key={grp}>
+                    <div className="font-semibold text-blue-600 mt-3 border-t pt-2">
+                      *** {groupTaxes[0]?.groupName || "OTHERS"} ***
                     </div>
-                  ))}
 
-                  {groupTaxes.map((t, i) => {
-                    const half = (t.taxper || 0) / 2;
-
-                    return (
-                      <div key={i} className="text-xs text-gray-500 py-1">
-                        <div className="flex justify-between text-[10px] text-gray-400">
-                          <span>Taxable</span>
-                          <span>₹{t.taxableAmount?.toFixed(2)}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span>CGST ({half}%)</span>
-                          <span>₹{t.cgst?.toFixed(2)}</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span>SGST ({half}%)</span>
-                          <span>₹{t.sgst?.toFixed(2)}</span>
-                        </div>
+                    {groupItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="grid grid-cols-4 py-2 text-sm border-b"
+                      >
+                        <span className="col-span-2 truncate">{item.food}</span>
+                        <span>{item.qty}</span>
+                        <span className="text-right">
+                          ₹{(item.price * item.qty).toFixed(2)}
+                        </span>
                       </div>
-                    );
-                  })}
+                    ))}
+
+                    {groupTaxes.map((t, i) => {
+                      const half = (t.taxper || 0) / 2;
+
+                      return (
+                        <div key={i} className="text-xs text-gray-500 py-1">
+                          <div className="flex justify-between text-[10px] text-gray-400">
+                            <span>Taxable</span>
+                            <span>₹{t.taxableAmount?.toFixed(2)}</span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>CGST ({half}%)</span>
+                            <span>₹{t.cgst?.toFixed(2)}</span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>SGST ({half}%)</span>
+                            <span>₹{t.sgst?.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })
+            : items.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-4 py-2 text-sm border-b"
+                >
+                  <span className="col-span-2">{item.food}</span>
+                  <span>{item.qty}</span>
+                  <span className="text-right">
+                    ₹{(item.price * item.qty).toFixed(2)}
+                  </span>
                 </div>
-              );
-            })
-          ) : (
-            items.map((item) => (
-              <div
-                key={item.id}
-                className="grid grid-cols-4 py-2 text-sm border-b"
-              >
-                <span className="col-span-2">{item.food}</span>
-                <span>{item.qty}</span>
-                <span className="text-right">
-                  ₹{(item.price * item.qty).toFixed(2)}
-                </span>
-              </div>
-            ))
-          )}
+              ))}
         </div>
 
         {/* SUBTOTAL */}
@@ -256,11 +269,7 @@ const InvoicePopup: React.FC<Props> = ({
         >
           <div>
             <div className="text-sm font-semibold">💸 Discount</div>
-            {appliedDiscount > 0 && (
-              <div className="text-xs text-green-600">
-                ₹{appliedDiscount.toFixed(2)}
-              </div>
-            )}
+          
           </div>
 
           <div
@@ -279,7 +288,6 @@ const InvoicePopup: React.FC<Props> = ({
           }`}
         >
           <div className="space-y-2">
-
             {/* ✅ DISCOUNT TYPE FROM API */}
             <select
               value={discountType}
@@ -312,7 +320,7 @@ const InvoicePopup: React.FC<Props> = ({
                         onChange={() =>
                           checked
                             ? setSelectedGroups(
-                                selectedGroups.filter((x) => x !== g.grpName)
+                                selectedGroups.filter((x) => x !== g.grpName),
                               )
                             : setSelectedGroups([...selectedGroups, g.grpName])
                         }
@@ -329,12 +337,12 @@ const InvoicePopup: React.FC<Props> = ({
               <select
                 value={discountMode}
                 onChange={(e) =>
-                  setDiscountMode(e.target.value as "amount" | "percent")
+                  setDiscountMode(e.target.value as "amt" | "per")
                 }
                 className="w-20 border p-2 rounded"
               >
-                <option value="amount">₹</option>
-                <option value="percent">%</option>
+                <option value="amt">₹</option>
+                <option value="per">%</option>
               </select>
 
               <input
@@ -342,14 +350,22 @@ const InvoicePopup: React.FC<Props> = ({
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder={
-                  discountMode === "percent"
-                    ? "Enter %"
-                    : "Enter amount"
+                  discountMode === "per" ? "Enter %" : "Enter amount"
                 }
                 className="flex-1 border p-2 rounded"
               />
-            </div>
 
+              {/* ✅ APPLY BUTTON */}
+              <button
+                onClick={() => {
+                  if (!discountValue || Number(discountValue) <= 0) return;
+                  reGetBill(); // 🔥 CALL API HERE
+                }}
+                className="bg-green-600 text-white px-3 rounded"
+              >
+                Apply
+              </button>
+            </div>
           </div>
         </div>
 
@@ -361,10 +377,7 @@ const InvoicePopup: React.FC<Props> = ({
 
         {/* BUTTONS */}
         <div className="flex gap-3 p-4 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="flex-1 border rounded-lg py-2"
-          >
+          <button onClick={onClose} className="flex-1 border rounded-lg py-2">
             Close
           </button>
 
