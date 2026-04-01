@@ -1525,7 +1525,10 @@ function OrderingBoard() {
           groupOptions={groups}
           cart={billData.cart}
           tax={billData.tax}
-          onClose={() => setShowInvoice(false)}
+          onClose={() => {setShowInvoice(false)
+            setDiscountType("")
+            setDiscountValue("")
+          }}
           onPrint={() => handlePrintBill(billData)}
           showDiscount={showDiscount}
           setShowDiscount={setShowDiscount}

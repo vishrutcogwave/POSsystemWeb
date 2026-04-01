@@ -9,11 +9,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [appData, setAppDataState] = useState<any | null>(null);
+  const [appData, setAppDataState] = useState<any | null>(() => {
+    const stored = localStorage.getItem("appData");
+    return stored ? JSON.parse(stored) : null;
+  });
 
   const setAppData = (data: any) => {
     setAppDataState(data);
-    localStorage.setItem("appData", JSON.stringify(data)); // persist
+    localStorage.setItem("appData", JSON.stringify(data));
   };
 
   const clearAppData = () => {
@@ -27,7 +30,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     </AppContext.Provider>
   );
 };
-
 // Custom Hook
 export const useAppContext = () => {
   const context = useContext(AppContext);

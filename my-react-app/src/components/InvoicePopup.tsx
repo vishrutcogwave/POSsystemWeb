@@ -1,5 +1,6 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext";
+import toast from "react-hot-toast";
 
 /* -------- TYPES -------- */
 interface FoodItem {
@@ -70,7 +71,7 @@ interface Props {
   setDiscountValue: React.Dispatch<React.SetStateAction<string>>;
   reGetBill: () => void;
   discountMode: "amt" | "per";
-setDiscountMode: React.Dispatch<React.SetStateAction<"amt" | "per">>;
+  setDiscountMode: React.Dispatch<React.SetStateAction<"amt" | "per">>;
 }
 
 /* -------- COMPONENT -------- */
@@ -91,10 +92,14 @@ const InvoicePopup: React.FC<Props> = ({
   showDiscount,
   reGetBill,
   discountMode,
-  setDiscountMode
+  setDiscountMode,
 }) => {
   const { appData } = useAppContext();
   console.log("appData", appData?.userRights[0]);
+  const userRights = appData?.userRights?.[0];
+
+  const maxAmount = Number(userRights?.disAmount || 0);
+  const maxPercent = Number(userRights?.disPercent || 0);
 
   const items = cart?.food || [];
   const isGrouped = tax?.taxType === "groupedtax";
@@ -145,8 +150,7 @@ const InvoicePopup: React.FC<Props> = ({
     calculatedDiscount = discountNum;
   }
 
-
-  const finalTotal = tax.grandTotal || 0 
+  const finalTotal = tax.grandTotal || 0;
 
   const dateStr = new Date().toLocaleString("en-IN", {
     day: "2-digit",
@@ -269,7 +273,6 @@ const InvoicePopup: React.FC<Props> = ({
         >
           <div>
             <div className="text-sm font-semibold">💸 Discount</div>
-          
           </div>
 
           <div
@@ -332,40 +335,76 @@ const InvoicePopup: React.FC<Props> = ({
               </div>
             )}
 
-            {/* ₹ / % */}
-            <div className="flex gap-2">
-              <select
-                value={discountMode}
-                onChange={(e) =>
-                  setDiscountMode(e.target.value as "amt" | "per")
-                }
-                className="w-20 border p-2 rounded"
-              >
-                <option value="amt">₹</option>
-                <option value="per">%</option>
-              </select>
+         {discountType && (
+  <div className="flex gap-2">
+    <select
+      value={discountMode}
+      onChange={(e) => {
+        setDiscountMode(e.target.value as "amt" | "per");
+        setDiscountValue(""); // reset when mode changes
+      }}
+      className="w-20 border p-2 rounded"
+    >
+      <option value="amt">₹</option>
+      <option value="per">%</option>
+    </select>
 
-              <input
-                type="number"
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                placeholder={
-                  discountMode === "per" ? "Enter %" : "Enter amount"
-                }
-                className="flex-1 border p-2 rounded"
-              />
+    <input
+      type="number"
+      value={discountValue}
+      onChange={(e) => {
+        const value = e.target.value;
 
-              {/* ✅ APPLY BUTTON */}
-              <button
-                onClick={() => {
-                  if (!discountValue || Number(discountValue) <= 0) return;
-                  reGetBill(); // 🔥 CALL API HERE
-                }}
-                className="bg-green-600 text-white px-3 rounded"
-              >
-                Apply
-              </button>
-            </div>
+        if (value === "") {
+          setDiscountValue("");
+          return;
+        }
+
+        const num = Number(value);
+        if (isNaN(num)) return;
+
+        if (discountMode === "amt" && num > maxAmount) {
+          toast.error(`Max discount amount allowed is ₹${maxAmount}`);
+          return;
+        }
+
+        if (discountMode === "per" && num > maxPercent) {
+          toast.error(`Max discount percent allowed is ${maxPercent}%`);
+          return;
+        }
+
+        setDiscountValue(value);
+      }}
+      placeholder={
+        discountMode === "per" ? "Enter %" : "Enter amount"
+      }
+      className="flex-1 border p-2 rounded"
+    />
+
+    <button
+      onClick={() => {
+        const num = Number(discountValue);
+
+        if (!discountValue || num <= 0) return;
+
+        if (discountMode === "amt" && num > maxAmount) {
+          toast.error(`Max discount amount allowed is ₹${maxAmount}`);
+          return;
+        }
+
+        if (discountMode === "per" && num > maxPercent) {
+          toast.error(`Max discount percent allowed is ${maxPercent}%`);
+          return;
+        }
+
+        reGetBill();
+      }}
+      className="bg-green-600 text-white px-3 rounded"
+    >
+      Apply
+    </button>
+  </div>
+)}
           </div>
         </div>
 
