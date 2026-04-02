@@ -448,3 +448,56 @@ export const getDiscountModeMaster = async (branchcode: string) => {
 
   return response.data;
 };
+
+export const getKotTransferType = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/GetKotTransfertype",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const postKotTransferTable = async (payload: {
+  oldOutlet: string;
+  oldTableNo: string;
+  oldSubTable: string;
+  newOutlet: string;
+  newTable: string;
+  newSubTable: string;
+  userCode: string;
+  branch: string;
+  transferType: string;
+  kotNo: string[];
+  itemId: number[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/Kottransfertable",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error in KOT transfer:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

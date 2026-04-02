@@ -2,21 +2,26 @@
 import React, { useEffect, useState } from "react";
 import Tabs from "../components/Tabs";
 import TableCard from "../components/TableCard";
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   getCombinedOutletAndTableMasterList,
   getFastfoodDetails,
+  getKotTransferType,
   getPaymentModeMaster,
+  getSubTables,
   getUnbillDetails,
+  postKotTransferTable,
   settleBill,
 } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext";
 import PaymentModal from "../components/PaymentModal";
 import toast from "react-hot-toast";
+import TableTransferPopup from "../components/TableTransferPopup";
+import { useAppContext } from "../context/AppContext";
 
 /* ---------------- TYPES ---------------- */
-type Table = {
+export type Table = {
   tableNumber: string;
   status: string;
   kotStatus?: string;
@@ -43,13 +48,44 @@ const NewOrder: React.FC = () => {
   const [activeTab, setActiveTab] = useState("");
   const [loading, setLoading] = useState(false);
   const [openPayment, setOpenPayment] = useState(false);
-
+  const [openTableTransfer, setOpenTableTransfer] = useState(false);
   const navigate = useNavigate();
   const { activeOltCode, setActiveOLT } = useActiveOLT();
-
+  const [subTables, setSubTables] = useState<string[]>([]);
   const [unbillData, setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const outletCode = localStorage.getItem("activeOltCode") || "";
+  const [transferTypes, setTransferTypes] = useState<any[]>([]);
+    const { appData } = useAppContext();
+  
+  const [selectedSubTableTable, setselectedSubTableTable] = useState<
+    string | null
+  >(null); // sub table
+  const [TransformSelectedTable, setTransformSelectedTable] = useState<
+    string | null
+  >(null);
+  const [selectedTransferType, setSelectedTransferType] = useState<string>("");
+  const handleOpenTableTransfer = async (table: Table) => {
+     setSelectedTable(table);
+    try {
+      const outlet = localStorage.getItem("activeOltCode") || "";
 
+      const data = await getSubTables(outlet, table.tableNumber);
+
+      const cleaned = (data || []).filter((s: string) => s && s.trim() !== "");
+
+      if (cleaned.length === 0) {
+        setSubTables(["A"]);
+      } else {
+        setSubTables(cleaned);
+      }
+      setOpenTableTransfer(true);
+    } catch (error) {
+      console.error("Failed to open table transfer:", error);
+      // Optionally, show a user-friendly error message
+      // e.g., toast.error("Unable to fetch sub-tables. Please try again.");
+    }
+  };
   /* ---------------- FETCH PAYMENT MODES ---------------- */
   const fetchPaymentModes = async () => {
     try {
@@ -62,101 +98,103 @@ const NewOrder: React.FC = () => {
   };
 
   /* ---------------- FETCH DATA ---------------- */
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const data: Outlet[] =
-          await getCombinedOutletAndTableMasterList(
-            localStorage.getItem("branch") || ""
-          );
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+        localStorage.getItem("branch") || "",
+      );
 
-        const formattedTabs = data.map((outlet) => ({
-          id: outlet.oltCode.toString(),
-          label: outlet.oltName.trim(),
+      const formattedTabs = data.map((outlet) => ({
+        id: outlet.oltCode.toString(),
+        label: outlet.oltName.trim(),
+      }));
+
+      setTabs(formattedTabs);
+
+      const tables: Record<string, Table[]> = {};
+      data.forEach((outlet) => {
+        tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
+          tableNumber: tbl.tblNo,
+          status: tbl.tableStatus,
+          kotStatus: tbl.kotStatus,
+          BillNo: tbl.billNo,
         }));
+      });
 
+      setTablesData(tables);
 
-        setTabs(formattedTabs);
-
-        const tables: Record<string, Table[]> = {};
-        data.forEach((outlet) => {
-          tables[outlet.oltCode.toString()] = outlet.tables.map((tbl) => ({
-            tableNumber: tbl.tblNo,
-            status: tbl.tableStatus,
-            kotStatus: tbl.kotStatus,
-            BillNo: tbl.billNo,
-          }));
-        });
-
-        setTablesData(tables);
+      /* 🔥 INITIAL SELECTION LOGIC */
+      if (formattedTabs.length > 0) {
+        // ✅ Only FAST FOOD → redirect
 
         /* 🔥 INITIAL SELECTION LOGIC */
         if (formattedTabs.length > 0) {
-          
+          const fastFoodTab = formattedTabs.find((t) =>
+            t.label.toUpperCase().includes("FAST"),
+          );
 
-       
+          const nonFastFoodTabs = formattedTabs.filter(
+            (t) => !t.label.toUpperCase().includes("FAST"),
+          );
 
-          // ✅ Only FAST FOOD → redirect
-      
-/* 🔥 INITIAL SELECTION LOGIC */
-if (formattedTabs.length > 0) {
-  const fastFoodTab = formattedTabs.find((t) =>
-    t.label.toUpperCase().includes("FAST")
-  );
+          // ✅ CASE 1: ONLY FASTFOOD
+          if (formattedTabs.length === 1 && fastFoodTab) {
+            const branch = localStorage.getItem("branch") || "";
+            const res = await getFastfoodDetails(fastFoodTab.id, branch);
 
-  const nonFastFoodTabs = formattedTabs.filter(
-    (t) => !t.label.toUpperCase().includes("FAST")
-  );
+            setActiveOLT(fastFoodTab.id, fastFoodTab.label);
 
-  // ✅ CASE 1: ONLY FASTFOOD
-  if (formattedTabs.length === 1 && fastFoodTab) {
-    const branch = localStorage.getItem("branch") || "";
-    const res = await getFastfoodDetails(fastFoodTab.id, branch);
+            navigate("/OrderingBoard", {
+              state: { fastFood: true, tableNumber: res.tblNo || "FF" },
+            });
+            return;
+          }
 
-    setActiveOLT(fastFoodTab.id, fastFoodTab.label);
+          // ✅ CASE 2: IF PREVIOUS SELECTION EXISTS → USE IT
+          const existing = formattedTabs.find(
+            (t) =>
+              t.id === activeOltCode && !t.label.toUpperCase().includes("FAST"),
+          );
 
-    navigate("/OrderingBoard", {
-      state: { fastFood: true, tableNumber: res.tblNo || "FF" },
-    });
-    return;
-  }
+          if (existing) {
+            setActiveTab(existing.id);
+            setActiveOLT(existing.id, existing.label);
+            return;
+          }
 
-  // ✅ CASE 2: IF PREVIOUS SELECTION EXISTS → USE IT
-  const existing = formattedTabs.find(
-    (t) => t.id === activeOltCode && !t.label.toUpperCase().includes("FAST")
-  );
-
-  if (existing) {
-    setActiveTab(existing.id);
-    setActiveOLT(existing.id, existing.label);
-    return;
-  }
-
-  // ✅ CASE 3: DEFAULT
-  if (fastFoodTab && nonFastFoodTabs.length > 0) {
-    const firstNormal = nonFastFoodTabs[0];
-    setActiveTab(firstNormal.id);
-    setActiveOLT(firstNormal.id, firstNormal.label);
-  } else {
-    const first = formattedTabs[0];
-    setActiveTab(first.id);
-    setActiveOLT(first.id, first.label);
-  }
-}
+          // ✅ CASE 3: DEFAULT
+          if (fastFoodTab && nonFastFoodTabs.length > 0) {
+            const firstNormal = nonFastFoodTabs[0];
+            setActiveTab(firstNormal.id);
+            setActiveOLT(firstNormal.id, firstNormal.label);
+          } else {
+            const first = formattedTabs[0];
+            setActiveTab(first.id);
+            setActiveOLT(first.id, first.label);
+          }
         }
-      } catch (error) {
-        console.error("Error fetching outlets:", error);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching outlets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchTransferTypes = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getKotTransferType(branch);
+      console.log("typedata",data);
+      
+      setTransferTypes(data || []);
+    } catch (err) {
+      console.error("Failed to fetch transfer types", err);
+    }
+  };
   useEffect(() => {
-  
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
+    void fetchData();
+    void fetchTransferTypes();
     void fetchPaymentModes();
   }, []);
 
@@ -170,30 +208,30 @@ if (formattedTabs.length > 0) {
       selectedTab.label.toUpperCase().includes("FAST");
 
     // 🔥 FASTFOOD → DIRECT REDIRECT (no active tab)
-if (isFastFood) {
-  try {
-    const branch = localStorage.getItem("branch") || "";
-    const res = await getFastfoodDetails(selectedTab.id, branch);
+    if (isFastFood) {
+      try {
+        const branch = localStorage.getItem("branch") || "";
+        const res = await getFastfoodDetails(selectedTab.id, branch);
 
-    // ✅ ADD THIS LINE (FIX)
-    setActiveOLT(selectedTab.id, selectedTab.label);
+        // ✅ ADD THIS LINE (FIX)
+        setActiveOLT(selectedTab.id, selectedTab.label);
 
-    navigate("/OrderingBoard", {
-      state: {
-        tableNumber: res.tblNo || "FF",
-        status: "Available",
-        kotStatus: "N",
-        fastFood: true,
-        waiter: String(res.stwCode),
-        waiterName: res.stwName || "Counter",
-        pax: res.tblSeatCount || 1,
-      },
-    });
-  } catch (err) {
-    console.error("Fast food fetch failed", err);
-  }
-  return;
-}
+        navigate("/OrderingBoard", {
+          state: {
+            tableNumber: res.tblNo || "FF",
+            status: "Available",
+            kotStatus: "N",
+            fastFood: true,
+            waiter: String(res.stwCode),
+            waiterName: res.stwName || "Counter",
+            pax: res.tblSeatCount || 1,
+          },
+        });
+      } catch (err) {
+        console.error("Fast food fetch failed", err);
+      }
+      return;
+    }
 
     // ✅ Normal outlet
     setActiveTab(selectedTab.id);
@@ -202,7 +240,7 @@ if (isFastFood) {
 
   /* ---------------- TABLE CLICK ---------------- */
   const handleTableClick = async (table: Table) => {
-      setSelectedTable(table);
+    setSelectedTable(table);
     if (table.status === "Unsettled") {
       try {
         const branch = localStorage.getItem("branch") || "";
@@ -210,7 +248,7 @@ if (isFastFood) {
           table.BillNo,
           table.tableNumber,
           activeTab,
-          branch
+          branch,
         );
 
         setUnbillData(res);
@@ -231,82 +269,109 @@ if (isFastFood) {
   };
 
   /* ---------------- SPLIT FASTFOOD ---------------- */
-  const fastFoodTab = tabs.find((t) =>
-    t.label.toUpperCase().includes("FAST")
-  );
+  const fastFoodTab = tabs.find((t) => t.label.toUpperCase().includes("FAST"));
 
   const normalTabs = tabs.filter(
-    (t) => !t.label.toUpperCase().includes("FAST")
+    (t) => !t.label.toUpperCase().includes("FAST"),
   );
 
   /* ---------------- UI ---------------- */
 
-
   const handleSettleBill = async (data: any) => {
-  const { paymentDetails, difference, payableAmount } = data;
+    const { paymentDetails, difference, payableAmount } = data;
 
-  if (difference !== 0) {
-    toast.error(`Amount must match ₹${payableAmount}`);
-    return;
-  }
-
-  // ✅ VALIDATION
-  for (let p of paymentDetails) {
-    const mode = paymentModes.find((m) => m.modeType === p.mode);
-
-    if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
-      toast.error(`Select sub mode for ${p.mode}`);
+    if (difference !== 0) {
+      toast.error(`Amount must match ₹${payableAmount}`);
       return;
     }
 
-    if (!p.amount || p.amount <= 0) {
-      toast.error(`Enter valid amount for ${p.mode}`);
-      return;
+    // ✅ VALIDATION
+    for (let p of paymentDetails) {
+      const mode = paymentModes.find((m) => m.modeType === p.mode);
+
+      if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
+        toast.error(`Select sub mode for ${p.mode}`);
+        return;
+      }
+
+      if (!p.amount || p.amount <= 0) {
+        toast.error(`Enter valid amount for ${p.mode}`);
+        return;
+      }
     }
-  }
 
-  const bill = unbillData?.[0] || {};
-  const branch = localStorage.getItem("branch") || "";
+    const bill = unbillData?.[0] || {};
+    const branch = localStorage.getItem("branch") || "";
 
-  const finalPayload = {
-    oltCode: bill?.oltCode || 0,
-    userCode: bill?.userCode || 0,
-    billId: selectedTable?.BillNo || 0,
-    billNo: selectedTable?.BillNo || 0,
-    tableNo: bill?.tableNo || "",
-    subTableNo: bill?.subTableNo || "",
-    discount: bill?.discount || 0,
-    taxAmount: bill?.taxAmount || 0,
-    tips: bill?.tips || 0,
-    changeAmount: bill?.changeAmount || 0,
-    grandAmount: payableAmount,
-    billDate: new Date().toISOString(),
-    branchCode: branch,
+    const finalPayload = {
+      oltCode: bill?.oltCode || 0,
+      userCode: bill?.userCode || 0,
+      billId: selectedTable?.BillNo || 0,
+      billNo: selectedTable?.BillNo || 0,
+      tableNo: bill?.tableNo || "",
+      subTableNo: bill?.subTableNo || "",
+      discount: bill?.discount || 0,
+      taxAmount: bill?.taxAmount || 0,
+      tips: bill?.tips || 0,
+      changeAmount: bill?.changeAmount || 0,
+      grandAmount: payableAmount,
+      billDate: new Date().toISOString(),
+      branchCode: branch,
 
-    paymentDetails: paymentDetails.map((p: any) => ({
-      mode: p.mode,
-      subMode: p.subMode || "",
-      amount: p.amount,
-      remarks: (p.remarks || "").trim() || "",
-    })),
+      paymentDetails: paymentDetails.map((p: any) => ({
+        mode: p.mode,
+        subMode: p.subMode || "",
+        amount: p.amount,
+        remarks: (p.remarks || "").trim() || "",
+      })),
+    };
+
+    console.log("FINAL DATA:", finalPayload);
+
+    try {
+      const res = await settleBill(finalPayload);
+
+      console.log("SETTLE RESPONSE:", res);
+
+      toast.success("Bill Settled Successfully ✅");
+
+      setOpenPayment(false);
+      setSelectedTable(null);
+
+      fetchData(); // 🔥 refresh tables
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to settle bill ❌");
+    }
   };
 
-  console.log("FINAL DATA:", finalPayload);
-
+  const handleTransfer = async () => {
   try {
-    const res = await settleBill(finalPayload);
+  
+    
+const payload = {
+  oldOutlet: outletCode,
+  oldTableNo: selectedTable?.tableNumber || "",   // ✅ FIXED
+  oldSubTable: selectedSubTableTable || "",
 
-    console.log("SETTLE RESPONSE:", res);
+  newOutlet: outletCode,
+  newTable: TransformSelectedTable || "",
+  newSubTable: 'A',
 
-    toast.success("Bill Settled Successfully ✅");
+  userCode: appData?.userRights?.[0]?.userId||"",
+  branch: localStorage.getItem("branch") || "",
 
-    setOpenPayment(false);
-    setSelectedTable(null);
+  transferType: selectedTransferType,
 
-    fetchData(); // 🔥 refresh tables
+  kotNo: [],
+  itemId: [],
+};
+    const res = await postKotTransferTable(payload);
+    console.log("TRANSFER SUCCESS:", res);
+    setOpenTableTransfer(false)
+    fetchData()
   } catch (err) {
-    console.error(err);
-    toast.error("Failed to settle bill ❌");
+    console.error("TRANSFER FAILED:", err);
   }
 };
   return (
@@ -314,35 +379,36 @@ if (isFastFood) {
       {loading && <Loader />}
 
       {/* Tabs + FASTFOOD Button */}
-   <div className="flex border-b overflow-x-auto">
-  <div className="flex min-w-max w-full">
-    <Tabs
-      tabs={normalTabs}
-      activeTab={activeTab}
-      onChange={handleTabChange}
-    />
+      <div className="flex border-b overflow-x-auto">
+        <div className="flex min-w-max w-full">
+          <Tabs
+            tabs={normalTabs}
+            activeTab={activeTab}
+            onChange={handleTabChange}
+          />
 
-    {fastFoodTab && (
-      <button
-        onClick={() => handleTabChange(fastFoodTab.id)}
-        className="
+          {fastFoodTab && (
+            <button
+              onClick={() => handleTabChange(fastFoodTab.id)}
+              className="
           px-4 py-3 text-sm font-medium whitespace-nowrap
           text-gray-500
           hover:text-[#0576B2]
           hover:bg-[#026388]/10
         "
-      >
-        {fastFoodTab.label}
-      </button>
-    )}
-  </div>
-</div>
+            >
+              {fastFoodTab.label}
+            </button>
+          )}
+        </div>
+      </div>
       {/* Table Grid */}
       <div className="flex-1 overflow-y-auto p-2 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
           {activeTab &&
             tablesData[activeTab]?.map((table) => (
               <TableCard
+                handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
                 key={table.tableNumber}
                 billNo={table.BillNo}
                 tableNumber={table.tableNumber}
@@ -354,24 +420,34 @@ if (isFastFood) {
             ))}
         </div>
       </div>
-<PaymentModal
-  paymentModes={paymentModes}
-  isOpen={openPayment}
-  unbillData={unbillData}
-  billNo={selectedTable?.BillNo} // ✅ correct bill
-  refresh={fetchData}
-  onClose={() => {
-    setOpenPayment(false);
-    setSelectedTable(null); // reset
-  
-  }}
-  onPay={handleSettleBill}
-
-/>
+      <PaymentModal
+        paymentModes={paymentModes}
+        isOpen={openPayment}
+        unbillData={unbillData}
+        billNo={selectedTable?.BillNo} // ✅ correct bill
+        refresh={fetchData}
+        onClose={() => {
+          setOpenPayment(false);
+          setSelectedTable(null); // reset
+        }}
+        onPay={handleSettleBill}
+      />
+      <TableTransferPopup
+        tableData={tablesData[outletCode]}
+        subTables={subTables}
+        isOpen={openTableTransfer}
+        onClose={() => setOpenTableTransfer(false)}
+        transferTypes={transferTypes}
+        selectedSubTableTable={selectedSubTableTable}
+        setselectedSubTableTable={setselectedSubTableTable}
+        TransformSelectedTable={TransformSelectedTable}
+        setTransformSelectedTable={setTransformSelectedTable}
+        selectedTransferType={selectedTransferType}
+        setSelectedTransferType={setSelectedTransferType}
+        handleSubmit={handleTransfer}
+      />
     </div>
   );
 };
 
 export default NewOrder;
-
-
