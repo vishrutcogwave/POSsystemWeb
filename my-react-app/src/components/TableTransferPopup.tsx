@@ -1,9 +1,10 @@
 import React from "react";
+import type { SubTable } from "../utils";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  subTables: string[];
+  subTables: SubTable[];
   tableData: any;
   transferTypes: any[];
   selectedSubTableTable: string | null;
@@ -14,7 +15,7 @@ type Props = {
 
   selectedTransferType: string;
   setSelectedTransferType: (val: string) => void;
-  handleSubmit:()=>void
+  handleSubmit: () => void;
 };
 
 const TableTransferPopup: React.FC<Props> = ({
@@ -32,6 +33,7 @@ const TableTransferPopup: React.FC<Props> = ({
   handleSubmit,
 }) => {
   if (!isOpen) return null;
+  console.log(subTables, "subtablessssssssssss");
 
   // ✅ SUB TABLE (NO RESTRICTION)
   const selectSubTable = (table: string) => {
@@ -41,7 +43,7 @@ const TableTransferPopup: React.FC<Props> = ({
       setselectedSubTableTable(table);
     }
   };
-console.log("tardsfsdf",transferTypes);
+  console.log("tardsfsdf", transferTypes);
 
   // ✅ MAIN TABLE
   const selectMainTable = (table: string) => {
@@ -96,26 +98,32 @@ console.log("tardsfsdf",transferTypes);
             <p className="mb-2 text-gray-600 font-semibold">
               Select Sub Table:
             </p>
-            {subTables.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {subTables.map((table) => (
-                  <button
-                    key={table}
-                    onClick={() => selectSubTable(table)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium border transition
-                      ${
-                        selectedSubTableTable === table
-                          ? "bg-[#0576B2] text-white border-[#0576B2]"
-                          : "bg-blue-100 text-blue-800 border-transparent"
-                      }`}
-                  >
-                    {table}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">No tables available</p>
-            )}
+        {subTables.length > 0 ? (
+  <div className="flex flex-wrap gap-2">
+    {subTables
+      .filter((item) => item.tableStatus !== "Available") // ✅ HIDE AVAILABLE
+      .map((item) => {
+        const sub = item.subTable;
+
+        return (
+          <button
+            key={sub}
+            onClick={() => selectSubTable(sub)}
+            className={`px-3 py-1 rounded-full text-sm font-medium border transition
+              ${
+                selectedSubTableTable === sub
+                  ? "bg-[#0576B2] text-white border-[#0576B2]"
+                  : "bg-blue-100 text-blue-800 border-transparent"
+              }`}
+          >
+            {sub}
+          </button>
+        );
+      })}
+  </div>
+) : (
+  <p className="text-gray-500">No tables available</p>
+)}
           </div>
 
           {/* MAIN TABLE (ONLY AVAILABLE) */}

@@ -31,3 +31,10 @@ grpCode: number;
   note?: string;
   spcodes?: string;
 };
+export type SubTable = {
+  subTable: string;
+  tableStatus: "Available" | "Occupied" | "Unsettled" | string;
+  billNo?: number | null;
+  billAmount?: number | null;
+  kotStatus?: "KOT" | "NCKOT" | string;
+};

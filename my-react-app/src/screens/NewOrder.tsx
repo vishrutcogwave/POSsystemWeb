@@ -9,7 +9,6 @@ import {
   getKotTransferType,
   getPaymentModeMaster,
   getSubTables,
-  getUnbillDetails,
   postKotTransferTable,
   settleBill,
 } from "../api/services/products.service";
@@ -51,13 +50,13 @@ const NewOrder: React.FC = () => {
   const [openTableTransfer, setOpenTableTransfer] = useState(false);
   const navigate = useNavigate();
   const { activeOltCode, setActiveOLT } = useActiveOLT();
-  const [subTables, setSubTables] = useState<string[]>([]);
-  const [unbillData, setUnbillData] = useState<any>(null);
+  const [subTables, setSubTables] = useState<any[]>([]);
+  const [unbillData, _setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const outletCode = localStorage.getItem("activeOltCode") || "";
   const [transferTypes, setTransferTypes] = useState<any[]>([]);
-    const { appData } = useAppContext();
-  
+  const { appData } = useAppContext();
+
   const [selectedSubTableTable, setselectedSubTableTable] = useState<
     string | null
   >(null); // sub table
@@ -65,27 +64,19 @@ const NewOrder: React.FC = () => {
     string | null
   >(null);
   const [selectedTransferType, setSelectedTransferType] = useState<string>("");
-  const handleOpenTableTransfer = async (table: Table) => {
-     setSelectedTable(table);
-    try {
-      const outlet = localStorage.getItem("activeOltCode") || "";
+const handleOpenTableTransfer = async (table: Table) => {
+  setSelectedTable(table);
+  try {
+    const outlet = localStorage.getItem("activeOltCode") || "";
 
-      const data = await getSubTables(outlet, table.tableNumber);
+    const data = await getSubTables(outlet, table.tableNumber);
 
-      const cleaned = (data || []).filter((s: string) => s && s.trim() !== "");
-
-      if (cleaned.length === 0) {
-        setSubTables(["A"]);
-      } else {
-        setSubTables(cleaned);
-      }
-      setOpenTableTransfer(true);
-    } catch (error) {
-      console.error("Failed to open table transfer:", error);
-      // Optionally, show a user-friendly error message
-      // e.g., toast.error("Unable to fetch sub-tables. Please try again.");
-    }
-  };
+    setSubTables(data);
+    setOpenTableTransfer(true);
+  } catch (error) {
+    console.error("Failed to open table transfer:", error);
+  }
+};
   /* ---------------- FETCH PAYMENT MODES ---------------- */
   const fetchPaymentModes = async () => {
     try {
@@ -185,8 +176,8 @@ const NewOrder: React.FC = () => {
     try {
       const branch = localStorage.getItem("branch") || "";
       const data = await getKotTransferType(branch);
-      console.log("typedata",data);
-      
+      console.log("typedata", data);
+
       setTransferTypes(data || []);
     } catch (err) {
       console.error("Failed to fetch transfer types", err);
@@ -241,23 +232,7 @@ const NewOrder: React.FC = () => {
   /* ---------------- TABLE CLICK ---------------- */
   const handleTableClick = async (table: Table) => {
     setSelectedTable(table);
-    if (table.status === "Unsettled") {
-      try {
-        const branch = localStorage.getItem("branch") || "";
-        const res = await getUnbillDetails(
-          table.BillNo,
-          table.tableNumber,
-          activeTab,
-          branch,
-        );
-
-        setUnbillData(res);
-        setOpenPayment(true);
-      } catch (err) {
-        console.error("Failed to fetch unbill details", err);
-      }
-      return;
-    }
+  
 
     navigate("/OrderingBoard", {
       state: {
@@ -346,34 +321,32 @@ const NewOrder: React.FC = () => {
   };
 
   const handleTransfer = async () => {
-  try {
-  
-    
-const payload = {
-  oldOutlet: outletCode,
-  oldTableNo: selectedTable?.tableNumber || "",   // ✅ FIXED
-  oldSubTable: selectedSubTableTable || "",
+    try {
+      const payload = {
+        oldOutlet: outletCode,
+        oldTableNo: selectedTable?.tableNumber || "", // ✅ FIXED
+        oldSubTable: selectedSubTableTable || "",
 
-  newOutlet: outletCode,
-  newTable: TransformSelectedTable || "",
-  newSubTable: 'A',
+        newOutlet: outletCode,
+        newTable: TransformSelectedTable || "",
+        newSubTable: "A",
 
-  userCode: appData?.userRights?.[0]?.userId||"",
-  branch: localStorage.getItem("branch") || "",
+        userCode: appData?.userRights?.[0]?.userId || "",
+        branch: localStorage.getItem("branch") || "",
 
-  transferType: selectedTransferType,
+        transferType: selectedTransferType,
 
-  kotNo: [],
-  itemId: [],
-};
-    const res = await postKotTransferTable(payload);
-    console.log("TRANSFER SUCCESS:", res);
-    setOpenTableTransfer(false)
-    fetchData()
-  } catch (err) {
-    console.error("TRANSFER FAILED:", err);
-  }
-};
+        kotNo: [],
+        itemId: [],
+      };
+      const res = await postKotTransferTable(payload);
+      console.log("TRANSFER SUCCESS:", res);
+      setOpenTableTransfer(false);
+      fetchData();
+    } catch (err) {
+      console.error("TRANSFER FAILED:", err);
+    }
+  };
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
@@ -408,7 +381,7 @@ const payload = {
           {activeTab &&
             tablesData[activeTab]?.map((table) => (
               <TableCard
-                handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
+              handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
                 key={table.tableNumber}
                 billNo={table.BillNo}
                 tableNumber={table.tableNumber}

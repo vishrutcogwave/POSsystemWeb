@@ -22,6 +22,7 @@ import {
   getSpecialInfo,
   getSubTables,
   getTaxSettings,
+  getUnbillDetails,
   postBill,
   settleBill,
 } from "../api/services/products.service";
@@ -32,6 +33,7 @@ import toast from "react-hot-toast";
 import { printBill, printKOT } from "../api/services/printer";
 import InvoicePopup from "../components/InvoicePopup";
 import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
+import PaymentModal from "../components/PaymentModal";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -51,11 +53,36 @@ function OrderingBoard() {
   console.log("items", items);
   const [oldCartData, setOldCartData] = useState<any[]>([]);
   const [openPayment, setOpenPayment] = useState(false);
+  const [openUnsettledPayment, setOpenUnsettledPayment] = useState(false);
+const [unbillData, setUnbillData] = useState<any>(null);
+const handleUnsettledSubTable = async (item: any) => {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = localStorage.getItem("activeOltCode") || "";
+    const table = tableData.tableNumber || "";
+
+    const res = await getUnbillDetails(
+      item.billNo,
+      table,
+      outlet,
+      branch
+    );
+
+    console.log("Unsettled bill:", res);
+
+    setUnbillData(res);
+    setOpenUnsettledPayment(true); // ✅ OPEN MODAL
+    setOpenKOTModal(false);
+
+  } catch (err) {
+    console.error("Unsettled fetch failed", err);
+  }
+};
 
   const tableData =
     (location.state as {
       tableNumber?: string;
-      status?: "Available" | "Occupied";
+      status?: "Available" | "Occupied" | "Unsettled";
       kotStatus: string;
       fastFood?: boolean;
       waiter?: string;
@@ -84,7 +111,7 @@ function OrderingBoard() {
   const [instructions, setInstructions] = useState<any[]>([]);
   const [ncRemarks, setNcRemarks] = useState("");
   const [ncReasons, setNcReasons] = useState<any[]>([]);
-  const [subTables, setSubTables] = useState<string[]>([]);
+  const [subTables, setSubTables] = useState<any[]>([]);
   const [pastItems, setPastItems] = useState<CartItem[]>([]);
   const [selectedSubTable, setSelectedSubTable] = useState<string>("");
   const [kot, setKot] = useState<Bill[]>([]);
@@ -210,18 +237,15 @@ function OrderingBoard() {
 
       const data = await getSubTables(outlet, table);
 
-      const cleaned = (data || []).filter((s: string) => s && s.trim() !== "");
-
-      if (cleaned.length === 0) {
-        setSubTables(["A"]);
+      if (!data || data.length === 0) {
+        setSubTables(data);
       } else {
-        setSubTables(cleaned);
+        setSubTables(data);
       }
     } catch (err) {
       console.error("Failed to load subtables", err);
     }
   };
-
   const fetchOldCart = async (sub: string) => {
     try {
       const outlet = localStorage.getItem("activeOltCode") || "";
@@ -299,14 +323,30 @@ function OrderingBoard() {
 
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-  const getNextSubTable = (list: string[]) => {
-    if (!list || list.length === 0) return "A";
+const getNextSubTable = (list: any[]) => {
+  if (!list || list.length === 0) return "A";
 
-    const last = list[list.length - 1];
-    const index = ALPHABETS.indexOf(last);
+  // ✅ Ignore Available subtables
+  const subTables = list
+    .filter((item) => item.tableStatus !== "Available") // 🔥 FIX
+    .map((item) => (item?.subTable || "").trim().toUpperCase())
+    .filter((s) => /^[A-Z]$/.test(s));
 
-    return ALPHABETS[index + 1];
-  };
+  if (subTables.length === 0) return "A";
+
+  // ✅ Sort
+  subTables.sort((a, b) => a.localeCompare(b));
+
+  const last = subTables[subTables.length - 1];
+  const index = ALPHABETS.indexOf(last);
+
+  // ✅ Edge case (Z)
+  if (index === -1 || index === ALPHABETS.length - 1) {
+    return last; // or "A"
+  }
+
+  return ALPHABETS[index + 1];
+};
   useEffect(() => {
     if (!items.length) return;
 
@@ -333,7 +373,7 @@ function OrderingBoard() {
 
     if (tableData.status === "Available") {
       setOpenSessionModal(true);
-    } else if (tableData.status === "Occupied") {
+    } else if (tableData.status === "Occupied" || tableData.status === "Unsettled" ) {
       fetchSubTables();
       setOpenKOTModal(true);
     }
@@ -1302,6 +1342,76 @@ function OrderingBoard() {
 
   const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
+
+  const handleBillSettlement = async (data: any) => {
+  const { paymentDetails, difference, payableAmount } = data;
+
+  // ❌ Amount mismatch check
+  if (difference !== 0) {
+    toast.error(`Amount must match ₹${payableAmount}`);
+    return;
+  }
+
+  // ✅ VALIDATION
+  for (let p of paymentDetails) {
+    const mode = paymentModes.find((m) => m.modeType === p.mode);
+
+    if (mode && mode.subModes?.length > 0 && !p.subMode) {
+      toast.error(`Select sub mode for ${p.mode}`);
+      return;
+    }
+
+    if (!p.amount || p.amount <= 0) {
+      toast.error(`Enter valid amount for ${p.mode}`);
+      return;
+    }
+  }
+
+  const bill = unbillData?.[0] || {};
+
+  const finalPayload = {
+    oltCode: Number(bill?.oltCode || 0),
+    userCode: Number(bill?.userCode || 0),
+
+    billId: Number(bill?.ksmBillNo || 0),
+    billNo: Number(bill?.ksmBillNo || 0),
+
+    tableNo: bill?.ksmTblNo || "",
+    subTableNo: bill?.ksmsubtblno || "",
+
+    discount: Number(bill?.ksmBillDiscount || 0),
+    taxAmount: Number(bill?.ksmBillTaxAmt || 0),
+    tips: Number(bill?.tips || 0),
+
+    changeAmount: 0,
+    grandAmount: payableAmount,
+
+    billDate: new Date().toISOString(),
+    branchCode: bill?.branch_Code || "",
+
+    paymentDetails: paymentDetails.map((p: any) => ({
+      mode: p.mode,
+      subMode: p.subMode || "",
+      amount: Number(p.amount),
+      remarks: (p.remarks || "").trim(),
+    })),
+  };
+
+  console.log("FINAL DATA:", finalPayload);
+
+  try {
+    await settleBill(finalPayload);
+
+    toast.success("Bill Settled Successfully ✅");
+
+    setOpenUnsettledPayment(false);
+    setUnbillData(null);
+    navigate("/NewOrder");
+  } catch (err) {
+    console.error(err);
+    toast.error("Settlement Failed ❌");
+  }
+};
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
       {/* SIDEBAR */}
@@ -1365,7 +1475,7 @@ function OrderingBoard() {
                   ✏ Edit
                 </button>
               )}
-            {tableData.status === "Occupied" && (
+            {(tableData.status === "Occupied" || tableData.status === "Unsettled")&& (
               <button
                 onClick={() => setOpenKOTModal(true)}
                 className="flex items-center gap-1 rounded-md bg-[#0576B2] px-2 sm:px-3 py-1 text-xs sm:text-sm font-semibold text-white hover:bg-blue-700 transition whitespace-nowrap"
@@ -1501,13 +1611,14 @@ function OrderingBoard() {
       {/* KOT MODAL */}
       <KotModal
         isOpen={openKOTModal}
+          onUnsettledClick={handleUnsettledSubTable}
         bills={subTables}
         onClose={() => navigate("/NewOrder")}
         onSelectBill={async (sub) => {
+          console.log("subbbb",sub);
+          
           setSelectedSubTable(sub);
-
-          await fetchOldCart(sub); // call GetOldCart API
-
+          await fetchOldCart(sub);
           setOpenKOTModal(false);
         }}
         onNewBill={() => {
@@ -1525,9 +1636,10 @@ function OrderingBoard() {
           groupOptions={groups}
           cart={billData.cart}
           tax={billData.tax}
-          onClose={() => {setShowInvoice(false)
-            setDiscountType("")
-            setDiscountValue("")
+          onClose={() => {
+            setShowInvoice(false);
+            setDiscountType("");
+            setDiscountValue("");
           }}
           onPrint={() => handlePrintBill(billData)}
           showDiscount={showDiscount}
@@ -1558,6 +1670,20 @@ function OrderingBoard() {
           setOpenInstructionModal(false);
         }}
       />
+      <PaymentModal
+  paymentModes={paymentModes}
+  isOpen={openUnsettledPayment}
+  unbillData={unbillData}
+  billNo={unbillData?.[0]?.billNo || 0}
+  refresh={() => navigate("/NewOrder")}
+  onClose={() => {
+    setOpenUnsettledPayment(false);
+    setUnbillData(null);
+    setOpenKOTModal(true);
+  }}
+  onPay={handleBillSettlement}
+
+/>
       <PaymentModalForFastFood
         paymentModes={paymentModes}
         isOpen={openPayment}
