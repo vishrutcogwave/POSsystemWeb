@@ -476,7 +476,7 @@ export const postKotTransferTable = async (payload: {
   branch: string;
   transferType: string;
   kotNo: string[];
-  itemId: number[];
+  itemCode: number[];
 }) => {
   try {
     const token = localStorage.getItem("token");

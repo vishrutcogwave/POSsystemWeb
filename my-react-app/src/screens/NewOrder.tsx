@@ -46,6 +46,7 @@ const NewOrder: React.FC = () => {
   const [tablesData, setTablesData] = useState<Record<string, Table[]>>({});
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [activeTab, setActiveTab] = useState("");
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [openPayment, setOpenPayment] = useState(false);
   const [openTableTransfer, setOpenTableTransfer] = useState(false);
@@ -356,11 +357,16 @@ const NewOrder: React.FC = () => {
         transferType: selectedTransferType,
 
         kotNo: selectedKotIds.map(String),
-        itemId: [],
+        itemCode: selectedItems,
       };
       const res = await postKotTransferTable(payload);
       console.log("TRANSFER SUCCESS:", res);
       setOpenTableTransfer(false);
+        setselectedSubTableTable("");
+          setSelectedKotIds([]);
+          setSelectedTransferType("");
+          setTransformSelectedTable("");
+          setOldcartData([]);
       fetchData();
     } catch (err) {
       console.error("TRANSFER FAILED:", err);
@@ -448,6 +454,8 @@ const NewOrder: React.FC = () => {
         handleSubmit={handleTransfer}
         oldcartdata={oldCartData}
         selectedTable={selectedTable}
+          selectedItems={selectedItems}
+  setSelectedItems={setSelectedItems}
       />
     </div>
   );

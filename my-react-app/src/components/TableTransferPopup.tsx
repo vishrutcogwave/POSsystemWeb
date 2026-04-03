@@ -18,6 +18,8 @@ type Props = {
   setSelectedTransferType: (val: string) => void;
   handleSubmit: () => void;
   oldcartdata: any;
+    selectedItems: any[];
+  setSelectedItems: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
 const TableTransferPopup: React.FC<Props> = ({
@@ -37,9 +39,12 @@ const TableTransferPopup: React.FC<Props> = ({
   selectedKotId,
   setSelectedKotId,
   selectedTable,
+  selectedItems,
+  setSelectedItems
 }) => {
   if (!isOpen) return null;
-  console.log(tableData, "tableNooooooooo");
+  console.log(oldcartdata, "oldcartdata");
+  const [activeKot, setActiveKot] = React.useState<any>(null);
   const getStatusStyles = (status: string, kotStatus: string) => {
     if (status === "Available") {
       return "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]";
@@ -56,15 +61,26 @@ const TableTransferPopup: React.FC<Props> = ({
     return "bg-gray-100 text-gray-600 border-gray-300";
   };
 
-  const toggleKot = (kotId: number) => {
+const toggleKot = (kotId: number) => {
+  // ✅ ItemWise → allow only single selection
+  if (selectedTransferType === "ItemWise") {
     if (selectedKotId.includes(kotId)) {
-      // remove
-      setSelectedKotId(selectedKotId.filter((id) => id !== kotId));
+      // unselect if clicked again
+      setSelectedKotId([]);
+      setActiveKot(null); // optional reset items
     } else {
-      // add
-      setSelectedKotId([...selectedKotId, kotId]);
+      setSelectedKotId([kotId]); // ✅ only one allowed
     }
-  };
+    return;
+  }
+
+  // ✅ Existing multi-select logic (unchanged)
+  if (selectedKotId.includes(kotId)) {
+    setSelectedKotId(selectedKotId.filter((id) => id !== kotId));
+  } else {
+    setSelectedKotId([...selectedKotId, kotId]);
+  }
+};
   // ✅ SUB TABLE (NO RESTRICTION)
   const selectSubTable = (table: string) => {
     if (selectedSubTableTable === table) {
@@ -169,7 +185,10 @@ const TableTransferPopup: React.FC<Props> = ({
                       return (
                         <button
                           key={kot.kotId}
-                          onClick={() => toggleKot(kot.kotId)}
+                          onClick={() => {
+  toggleKot(kot.kotId); // ✅ existing logic
+  setActiveKot(kot);    // ✅ NEW (for items)
+}}
                           className={`px-3 py-1 rounded-full text-sm font-medium border transition
                   ${
                     isSelected
@@ -187,7 +206,45 @@ const TableTransferPopup: React.FC<Props> = ({
                 )}
               </div>
             )}
+{/* ---------------- ITEMS SECTION (NEW) ---------------- */}
+{activeKot?.food?.length > 0  &&  selectedTransferType === "ItemWise" &&(
+  <div>
+    <p className="mb-2 text-gray-600 font-semibold">Items:</p>
 
+    <div className="flex flex-wrap gap-2 max-h-[150px] overflow-y-auto">
+      {activeKot.food.map((item: any, index: number) => {
+      const isSelected = selectedItems.includes(item.itemCode);
+
+        return (
+          <div
+            key={index}
+           onClick={() => {
+  setSelectedItems((prev: number[]) => {
+    const exists = prev.includes(item.itemCode);
+
+    if (exists) {
+      // ❌ remove
+      return prev.filter((id) => id !== item.itemCode);
+    }
+
+    // ✅ add
+    return [...prev, item.itemCode];
+  });
+}}
+            className={`px-3 py-1 rounded text-sm font-medium border cursor-pointer
+              ${
+                isSelected
+                  ? "bg-green-500 text-white border-green-500"
+                  : "bg-gray-100 text-gray-700"
+              }`}
+          >
+            {item.food}
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
           {/* MAIN TABLE (ONLY AVAILABLE) */}
           <div>
             <p className="mb-2 text-gray-600 font-semibold">Transform To:</p>
