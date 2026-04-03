@@ -1048,7 +1048,7 @@ function OrderingBoard() {
       discountType: "",
       discountRemarks: "",
       vRemarks: "1",
-
+      discountGroups: [""],
       mode: "VOID",
 
       subBillType: "S",
