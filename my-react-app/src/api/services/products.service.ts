@@ -95,7 +95,7 @@ export const getSubTables = async (outlet: string, tableno: string) => {
 };
 
 export const getOldCart = async (
-  tableno: string,
+  tableno: string | null,
   outlet: string,
   subtable: string
 ) => {
@@ -471,7 +471,7 @@ export const postKotTransferTable = async (payload: {
   oldSubTable: string;
   newOutlet: string;
   newTable: string;
-  newSubTable: string;
+  newSubTable: string | null;
   userCode: string;
   branch: string;
   transferType: string;

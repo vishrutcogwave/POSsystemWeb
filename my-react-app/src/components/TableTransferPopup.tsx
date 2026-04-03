@@ -9,13 +9,15 @@ type Props = {
   transferTypes: any[];
   selectedSubTableTable: string | null;
   setselectedSubTableTable: (val: string | null) => void;
-
+  selectedKotId: number[];
+  setSelectedKotId: (id: number[]) => void;
   TransformSelectedTable: string | null;
   setTransformSelectedTable: (val: string | null) => void;
-
+  selectedTable: any;
   selectedTransferType: string;
   setSelectedTransferType: (val: string) => void;
   handleSubmit: () => void;
+  oldcartdata: any;
 };
 
 const TableTransferPopup: React.FC<Props> = ({
@@ -31,10 +33,38 @@ const TableTransferPopup: React.FC<Props> = ({
   setTransformSelectedTable,
   setselectedSubTableTable,
   handleSubmit,
+  oldcartdata,
+  selectedKotId,
+  setSelectedKotId,
+  selectedTable,
 }) => {
   if (!isOpen) return null;
-  console.log(subTables, "subtablessssssssssss");
+  console.log(tableData, "tableNooooooooo");
+  const getStatusStyles = (status: string, kotStatus: string) => {
+    if (status === "Available") {
+      return "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]";
+    }
+    if (status === "Unsettled") {
+      return "bg-yellow-100 text-yellow-700 border-yellow-400";
+    }
+    if (status === "Occupied" && kotStatus === "KOT") {
+      return "bg-red-100 text-red-600 border-red-400";
+    }
+    if (status === "Occupied" && kotStatus === "NCKOT") {
+      return "bg-purple-100 text-purple-700 border-purple-400";
+    }
+    return "bg-gray-100 text-gray-600 border-gray-300";
+  };
 
+  const toggleKot = (kotId: number) => {
+    if (selectedKotId.includes(kotId)) {
+      // remove
+      setSelectedKotId(selectedKotId.filter((id) => id !== kotId));
+    } else {
+      // add
+      setSelectedKotId([...selectedKotId, kotId]);
+    }
+  };
   // ✅ SUB TABLE (NO RESTRICTION)
   const selectSubTable = (table: string) => {
     if (selectedSubTableTable === table) {
@@ -55,10 +85,11 @@ const TableTransferPopup: React.FC<Props> = ({
     const formatted = value.replace(/\s+/g, "");
     setSelectedTransferType(formatted);
   };
+  console.log("selectedTable", selectedTable);
 
   // ✅ ONLY AVAILABLE TABLES
   const filteredTables = tableData?.filter(
-    (t: any) => t.status === "Available",
+    (t: any) => t.tableNumber !== selectedTable.tableNumber,
   );
 
   return (
@@ -98,33 +129,64 @@ const TableTransferPopup: React.FC<Props> = ({
             <p className="mb-2 text-gray-600 font-semibold">
               Select Sub Table:
             </p>
-        {subTables.length > 0 ? (
-  <div className="flex flex-wrap gap-2">
-    {subTables
-      .filter((item) => item.tableStatus !== "Available") // ✅ HIDE AVAILABLE
-      .map((item) => {
-        const sub = item.subTable;
+            {subTables.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {subTables
+                  .filter((item) => item.tableStatus !== "Available") // ✅ HIDE AVAILABLE
+                  .map((item) => {
+                    const sub = item.subTable;
 
-        return (
-          <button
-            key={sub}
-            onClick={() => selectSubTable(sub)}
-            className={`px-3 py-1 rounded-full text-sm font-medium border transition
+                    return (
+                      <button
+                        key={sub}
+                        onClick={() => selectSubTable(sub)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium border transition
               ${
                 selectedSubTableTable === sub
                   ? "bg-[#0576B2] text-white border-[#0576B2]"
                   : "bg-blue-100 text-blue-800 border-transparent"
               }`}
-          >
-            {sub}
-          </button>
-        );
-      })}
-  </div>
-) : (
-  <p className="text-gray-500">No tables available</p>
-)}
+                      >
+                        {sub}
+                      </button>
+                    );
+                  })}
+              </div>
+            ) : (
+              <p className="text-gray-500">No tables available</p>
+            )}
           </div>
+          {selectedTransferType !== "TableTransfer" &&
+            selectedTransferType !== "" && (
+              <div>
+                <p className="mb-2 text-gray-600 font-semibold">KOT:</p>
+
+                {oldcartdata?.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {oldcartdata.map((kot: any) => {
+                      const isSelected = selectedKotId.includes(kot.kotId);
+
+                      return (
+                        <button
+                          key={kot.kotId}
+                          onClick={() => toggleKot(kot.kotId)}
+                          className={`px-3 py-1 rounded-full text-sm font-medium border transition
+                  ${
+                    isSelected
+                      ? "bg-[#0576B2] text-white border-[#0576B2]"
+                      : "bg-yellow-100 text-yellow-800 border-transparent"
+                  }`}
+                        >
+                          {kot.kotId}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No KOT available</p>
+                )}
+              </div>
+            )}
 
           {/* MAIN TABLE (ONLY AVAILABLE) */}
           <div>
@@ -136,17 +198,20 @@ const TableTransferPopup: React.FC<Props> = ({
                   const isSelected =
                     TransformSelectedTable === table.tableNumber;
 
+                  const statusStyles = getStatusStyles(
+                    table.status,
+                    table.kotStatus,
+                  );
+
                   return (
                     <button
                       key={table.tableNumber}
                       onClick={() => selectMainTable(table.tableNumber)}
                       className={`px-3 py-1 rounded text-sm font-medium border transition
-                        ${
-                          isSelected
-                            ? "bg-[#0576B2] text-white border-[#0576B2]"
-                            : "bg-[#E6F3FA] text-[#0576B2] border-[#0576B2]"
-                        }
-                      `}
+        ${
+          isSelected ? "bg-[#0576B2] text-white border-[#0576B2]" : statusStyles
+        }
+      `}
                     >
                       {table.tableNumber}
                     </button>

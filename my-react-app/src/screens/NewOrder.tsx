@@ -7,6 +7,7 @@ import {
   getCombinedOutletAndTableMasterList,
   getFastfoodDetails,
   getKotTransferType,
+  getOldCart,
   getPaymentModeMaster,
   getSubTables,
   postKotTransferTable,
@@ -49,12 +50,14 @@ const NewOrder: React.FC = () => {
   const [openPayment, setOpenPayment] = useState(false);
   const [openTableTransfer, setOpenTableTransfer] = useState(false);
   const navigate = useNavigate();
+  const [selectedKotIds, setSelectedKotIds] = useState<number[]>([]);
   const { activeOltCode, setActiveOLT } = useActiveOLT();
   const [subTables, setSubTables] = useState<any[]>([]);
   const [unbillData, _setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const outletCode = localStorage.getItem("activeOltCode") || "";
   const [transferTypes, setTransferTypes] = useState<any[]>([]);
+  const [oldCartData, setOldcartData] = useState<any[]>([]);
   const { appData } = useAppContext();
 
   const [selectedSubTableTable, setselectedSubTableTable] = useState<
@@ -64,19 +67,36 @@ const NewOrder: React.FC = () => {
     string | null
   >(null);
   const [selectedTransferType, setSelectedTransferType] = useState<string>("");
-const handleOpenTableTransfer = async (table: Table) => {
-  setSelectedTable(table);
-  try {
-    const outlet = localStorage.getItem("activeOltCode") || "";
+  const handleOpenTableTransfer = async (table: Table) => {
+    setSelectedTable(table);
+    try {
+      const outlet = localStorage.getItem("activeOltCode") || "";
 
-    const data = await getSubTables(outlet, table.tableNumber);
+      const data = await getSubTables(outlet, table.tableNumber);
 
-    setSubTables(data);
-    setOpenTableTransfer(true);
-  } catch (error) {
-    console.error("Failed to open table transfer:", error);
-  }
-};
+      setSubTables(data);
+      setOpenTableTransfer(true);
+    } catch (error) {
+      console.error("Failed to open table transfer:", error);
+    }
+  };
+
+  const getOldcartData = async () => {
+    try {
+      const res = await getOldCart(
+        selectedTable?.tableNumber || null,
+        outletCode,
+        selectedSubTableTable || "",
+      );
+      console.log(res, "oldcartdetils");
+      setOldcartData(res);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+  useEffect(() => {
+    void getOldcartData();
+  }, [selectedSubTableTable]);
   /* ---------------- FETCH PAYMENT MODES ---------------- */
   const fetchPaymentModes = async () => {
     try {
@@ -232,7 +252,6 @@ const handleOpenTableTransfer = async (table: Table) => {
   /* ---------------- TABLE CLICK ---------------- */
   const handleTableClick = async (table: Table) => {
     setSelectedTable(table);
-  
 
     navigate("/OrderingBoard", {
       state: {
@@ -329,14 +348,14 @@ const handleOpenTableTransfer = async (table: Table) => {
 
         newOutlet: outletCode,
         newTable: TransformSelectedTable || "",
-        newSubTable: "A",
+        newSubTable: selectedSubTableTable,
 
         userCode: appData?.userRights?.[0]?.userId || "",
         branch: localStorage.getItem("branch") || "",
 
         transferType: selectedTransferType,
 
-        kotNo: [],
+        kotNo: selectedKotIds.map(String),
         itemId: [],
       };
       const res = await postKotTransferTable(payload);
@@ -381,7 +400,7 @@ const handleOpenTableTransfer = async (table: Table) => {
           {activeTab &&
             tablesData[activeTab]?.map((table) => (
               <TableCard
-              handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
+                handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
                 key={table.tableNumber}
                 billNo={table.BillNo}
                 tableNumber={table.tableNumber}
@@ -406,10 +425,19 @@ const handleOpenTableTransfer = async (table: Table) => {
         onPay={handleSettleBill}
       />
       <TableTransferPopup
+        selectedKotId={selectedKotIds}
+        setSelectedKotId={setSelectedKotIds}
         tableData={tablesData[outletCode]}
         subTables={subTables}
         isOpen={openTableTransfer}
-        onClose={() => setOpenTableTransfer(false)}
+        onClose={() => {
+          setOpenTableTransfer(false);
+          setselectedSubTableTable("");
+          setSelectedKotIds([]);
+          setSelectedTransferType("");
+          setTransformSelectedTable("");
+          setOldcartData([]);
+        }}
         transferTypes={transferTypes}
         selectedSubTableTable={selectedSubTableTable}
         setselectedSubTableTable={setselectedSubTableTable}
@@ -418,6 +446,8 @@ const handleOpenTableTransfer = async (table: Table) => {
         selectedTransferType={selectedTransferType}
         setSelectedTransferType={setSelectedTransferType}
         handleSubmit={handleTransfer}
+        oldcartdata={oldCartData}
+        selectedTable={selectedTable}
       />
     </div>
   );
