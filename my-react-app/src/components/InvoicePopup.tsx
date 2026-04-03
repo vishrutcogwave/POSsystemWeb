@@ -143,6 +143,7 @@ const InvoicePopup: React.FC<Props> = ({
       : tax.totalAmount;
 
   let calculatedDiscount = 0;
+console.log(calculatedDiscount);
 
   if (discountMode === "per") {
     calculatedDiscount = (discountableTotal * discountNum) / 100;
