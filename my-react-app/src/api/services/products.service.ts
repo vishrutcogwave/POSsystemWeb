@@ -501,3 +501,35 @@ export const postKotTransferTable = async (payload: {
     throw error;
   }
 };
+export const postKotToNcKot = async (payload: {
+  kotId: number[];
+  tableNo: string;
+  subTable: string;
+  branch: string;
+  ncCode: number;
+  ncRemarks: string;
+  actionType: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/kot2nckot",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error in KOT → NC KOT:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

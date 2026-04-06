@@ -24,6 +24,7 @@ import {
   getTaxSettings,
   getUnbillDetails,
   postBill,
+  postKotToNcKot,
   settleBill,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
@@ -83,7 +84,7 @@ function OrderingBoard() {
       waiterName?: string; // ✅ ADD THIS
       pax?: number;
     }) || {};
-  console.log(tableData.fastFood, "tableData");
+  console.log(tableData, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
       const newSession = {
@@ -1409,6 +1410,49 @@ function OrderingBoard() {
       toast.error("Settlement Failed ❌");
     }
   };
+  const handleKotToNcKot = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+
+      // ✅ collect selected KOT IDs from oldCartData
+   const selectedKotIds = oldCartData
+  .map((i: any) => Number(i.kotId))
+  .filter((id: number) => !isNaN(id));
+
+      if (!selectedKotIds.length) {
+        toast.error("No KOT selected");
+        return;
+      }
+
+      if (!selectedNcCode) {
+        toast.error("Select NC Reason");
+        return;
+      }
+
+      const payload = {
+        kotId: selectedKotIds, // ✅ number[]
+        tableNo: tableData.tableNumber || "",
+        subTable: selectedSubTable || "A",
+        branch: branch,
+        ncCode: selectedNcCode,
+        ncRemarks: ncRemarks || "",
+        actionType: tableData.kotStatus==="KOT"? "KOT2NC":"NC2KOT",
+      };
+
+      console.log("KOT2NC Payload:", payload);
+
+      const res = await postKotToNcKot(payload);
+
+      console.log("KOT → NC Success:", res);
+      toast.success("Converted to NC successfully ✅");
+
+      // ✅ optional refresh
+      await fetchOldCart(selectedSubTable);
+    } catch (err) {
+      console.error("KOT → NC Failed:", err);
+      toast.error("Conversion failed ❌");
+    }
+  };
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
       {/* SIDEBAR */}
@@ -1512,6 +1556,7 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          onConvertion={handleKotToNcKot}
           handleGetBill={handleGetBill}
           instructions={instructions}
           status={tableData?.status}
@@ -1546,6 +1591,7 @@ function OrderingBoard() {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        onConvertion={handleKotToNcKot}
         handleGetBill={handleGetBill}
         onVoid={handleVoid}
         selectedVoidItems={selectedVoidItems}

@@ -8,6 +8,7 @@ type MobileCartProps = {
   selectedVoidItems: CartItem[];
   setSelectedVoidItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
   onVoid: () => void;
+  onConvertion:()=>void
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
@@ -48,6 +49,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   setSelectedNcCode,
   ncRemarks,
   setNcRemarks,
+  onConvertion
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -78,6 +80,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              onConvertion={onConvertion}
                 onVoid={onVoid}
                 selectedVoidItems={selectedVoidItems}
                 setSelectedVoidItems={setSelectedVoidItems}
