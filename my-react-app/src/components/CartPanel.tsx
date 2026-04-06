@@ -49,11 +49,15 @@ export default function CartPanel({
   setNcRemarks,
   instructions
 }: CartPanelProps) {
-  useEffect(() => {
+useEffect(() => {
   if (kotStatus === "NCKOT") {
-    setSelectedNcCode(-1); // any value to enable toggle
+    // Pick EXCISE or first NC reason as default
+    const defaultNc = ncReasons.find((r) => r.ncDepName === "EXCISE") || ncReasons[0];
+    if (defaultNc) {
+      setSelectedNcCode(defaultNc.ncDepCode);
+    }
   }
-}, [kotStatus]);
+}, [kotStatus, ncReasons, setSelectedNcCode]);
 
   const [showPast, setShowPast] = useState(false);
   const [openNcModal, setOpenNcModal] = useState(false);
