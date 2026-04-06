@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
-import ReportTable from "../components/ReportDataTable";
 import { getCombinedOutletAndTableMasterList, getItemSalesReport } from "../api/services/products.service";
+import ReportTable from "../components/ItemsSaltesreportTable";
 
 type Row = Record<string, any>; // Generic row type
 
@@ -46,14 +46,16 @@ export default function ItemSales() {
 
       const res = await getItemSalesReport(fromDate, toDate, outletId);
 
-      if (res.length > 0) {
-        const dynamicColumns = Object.keys(res[0]).map((key) => ({
-          key,
-          label: key.charAt(0).toUpperCase() + key.slice(1),
-        }));
-        setColumns(dynamicColumns);
-      }
+  if (res.length > 0 && res[0].items?.length > 0) {
+ const dynamicColumns = Object.keys(res[0].items[0])
+  .filter((key) => key !== "groupName" && key !== "outletName")
+  .map((key) => ({
+    key,
+    label: key.charAt(0).toUpperCase() + key.slice(1),
+  }));
 
+  setColumns(dynamicColumns);
+}
       setData(res);
     } catch (error) {
       console.error("API Error:", error);
