@@ -8,18 +8,29 @@ const BASE_URL = window.location.origin; // ✅ THIS, not localStorage
 console.log("BASE_URL",BASE_URL);
 
 qz.security.setCertificatePromise(
-  (
-    resolve:
-      | ((value: string) => string | PromiseLike<string>)
-      | null
-      | undefined,
-    reject: ((reason: any) => PromiseLike<never>) | null | undefined,
+  async (
+    resolve: (value: string) => void,
+    reject: (reason?: any) => void
   ) => {
-    fetch(`${BASE_URL}/keys/digital-certificate.txt`)
-      .then((res) => res.text())
-      .then(resolve)
-      .catch(reject);
-  },
+    try {
+      const res = await fetch(
+        `${BASE_URL}/keys/digital-certificate.txt?nocache=${Date.now()}`
+      );
+
+      if (!res.ok) {
+        throw new Error("Certificate fetch failed");
+      }
+
+      const cert = await res.text();
+
+      console.log("CERT LOADED:", cert.substring(0, 50));
+
+      resolve(cert);
+    } catch (err) {
+      console.error("CERT ERROR:", err);
+      reject(err);
+    }
+  }
 );
 
 /* ---------------- SIGNATURE ---------------- */
@@ -33,9 +44,15 @@ qz.security.setSignaturePromise((toSign: any) => {
   ) => {
     try {
       if (!privateKey) {
-        const key = await fetch(`${BASE_URL}/keys/private-key.txt`);
+     const res = await fetch(`${BASE_URL}/keys/private-key.txt?nocache=${Date.now()}`);
 
-        privateKey = await key.text();
+if (!res.ok) {
+  throw new Error("Private key fetch failed");
+}
+
+privateKey = await res.text();
+
+console.log("PRIVATE KEY LOADED:", privateKey.substring(0, 30));
       }
 
       const sig = new KJUR.crypto.Signature({
