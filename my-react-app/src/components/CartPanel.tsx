@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import {  useEffect } from "react";
 import type { CartItem } from "../utils";
 
 type CartPanelProps = {

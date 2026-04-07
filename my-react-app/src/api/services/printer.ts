@@ -5,6 +5,8 @@ let privateKey: string | null = null;
 
 /* ---------------- CERTIFICATE ---------------- */
 const BASE_URL = window.location.origin; // ✅ THIS, not localStorage
+console.log("BASE_URL",BASE_URL);
+
 qz.security.setCertificatePromise(
   (
     resolve:
