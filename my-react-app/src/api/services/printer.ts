@@ -3,6 +3,23 @@ import { KJUR } from "jsrsasign";
 qz.api.setPromiseType((resolver: any) => new Promise(resolver));
 let privateKey: string | null = null;
 
+let certLoaded = false;
+
+export const initQZ = async () => {
+  if (certLoaded) return;
+
+  const res = await fetch(
+    `${BASE_URL}/keys/digital-certificate.txt?nocache=${Date.now()}`
+  );
+
+  const cert = await res.text();
+
+  qz.security.setCertificatePromise((resolve: (arg0: string) => any) => resolve(cert));
+
+  certLoaded = true;
+
+  console.log("✅ CERT READY BEFORE CONNECT");
+};
 /* ---------------- CERTIFICATE ---------------- */
 const BASE_URL = window.location.origin; // ✅ THIS, not localStorage
 console.log("BASE_URL",BASE_URL);
@@ -81,11 +98,10 @@ console.log("PRIVATE KEY LOADED:", privateKey.substring(0, 30));
 /* ---------------- CONNECT ---------------- */
 
 export const connectPrinter = async () => {
+  await initQZ(); // ✅ IMPORTANT
+
   if (!qz.websocket.isActive()) {
-    await qz.websocket.connect({
-      retries: 2,
-      delay: 1,
-    });
+    await qz.websocket.connect();
   }
 };
 
