@@ -25,9 +25,17 @@ type CartPanelProps = {
   onVoid: () => void;
   handleGetBill: () => void;
   onConvertion: () => void;
+  showPast: boolean;
+  setShowPast: React.Dispatch<React.SetStateAction<boolean>>;
+  openNcModal: boolean;
+  setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
 export default function CartPanel({
+  openNcModal,
+  setOpenNcModal,
+  setShowPast,
+  showPast,
   onConvertion,
   selectedVoidItems,
   setSelectedVoidItems,
@@ -63,8 +71,7 @@ export default function CartPanel({
     }
   }, [kotStatus, ncReasons, setSelectedNcCode]);
 
-  const [showPast, setShowPast] = useState(false);
-  const [openNcModal, setOpenNcModal] = useState(false);
+
 
   console.log("ncReasons", ncReasons);
 

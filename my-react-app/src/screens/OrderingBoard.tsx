@@ -102,6 +102,8 @@ function OrderingBoard() {
   }, [tableData]);
 
   /* ---------------- CATEGORY STATE ---------------- */
+  const [showPast, setShowPast] = useState(false);
+  const [openNcModal, setOpenNcModal] = useState(false);
   const [selectedNcCode, setSelectedNcCode] = useState<number | null>(null);
   const [instructions, setInstructions] = useState<any[]>([]);
   const [ncRemarks, setNcRemarks] = useState("");
@@ -1411,13 +1413,19 @@ function OrderingBoard() {
     }
   };
   const handleKotToNcKot = async () => {
+      const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    if (!openNcModal && !isNC ){
+      setOpenNcModal(true)
+      return
+
+    }
     try {
       const branch = localStorage.getItem("branch") || "";
 
       // ✅ collect selected KOT IDs from oldCartData
-   const selectedKotIds = oldCartData
-  .map((i: any) => Number(i.kotId))
-  .filter((id: number) => !isNaN(id));
+      const selectedKotIds = oldCartData
+        .map((i: any) => Number(i.kotId))
+        .filter((id: number) => !isNaN(id));
 
       if (!selectedKotIds.length) {
         toast.error("No KOT selected");
@@ -1436,7 +1444,7 @@ function OrderingBoard() {
         branch: branch,
         ncCode: selectedNcCode,
         ncRemarks: ncRemarks || "",
-        actionType: tableData.kotStatus==="KOT"? "KOT2NC":"NC2KOT",
+        actionType: tableData.kotStatus === "KOT" ? "KOT2NC" : "NC2KOT",
       };
 
       console.log("KOT2NC Payload:", payload);
@@ -1448,6 +1456,7 @@ function OrderingBoard() {
 
       // ✅ optional refresh
       await fetchOldCart(selectedSubTable);
+      navigate("/NewOrder")
     } catch (err) {
       console.error("KOT → NC Failed:", err);
       toast.error("Conversion failed ❌");
@@ -1556,6 +1565,10 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          showPast={showPast}
+          setShowPast={setShowPast}
+          openNcModal={openNcModal}
+          setOpenNcModal={setOpenNcModal}
           onConvertion={handleKotToNcKot}
           handleGetBill={handleGetBill}
           instructions={instructions}
@@ -1591,6 +1604,10 @@ function OrderingBoard() {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        showPast={showPast}
+          setShowPast={setShowPast}
+          openNcModal={openNcModal}
+          setOpenNcModal={setOpenNcModal}
         onConvertion={handleKotToNcKot}
         handleGetBill={handleGetBill}
         onVoid={handleVoid}
