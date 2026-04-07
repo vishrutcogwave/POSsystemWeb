@@ -1,6 +1,6 @@
 import qz from "qz-tray";
 import { KJUR } from "jsrsasign";
-
+qz.api.setPromiseType((resolver: any) => new Promise(resolver));
 let privateKey: string | null = null;
 
 /* ---------------- CERTIFICATE ---------------- */
@@ -82,7 +82,10 @@ console.log("PRIVATE KEY LOADED:", privateKey.substring(0, 30));
 
 export const connectPrinter = async () => {
   if (!qz.websocket.isActive()) {
-    await qz.websocket.connect();
+    await qz.websocket.connect({
+      retries: 2,
+      delay: 1,
+    });
   }
 };
 
