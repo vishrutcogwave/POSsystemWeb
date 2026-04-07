@@ -33,7 +33,7 @@ qz.security.setSignaturePromise((toSign: any) => {
   ) => {
     try {
       if (!privateKey) {
-        const key = await fetch(`${BASE_URL}/keys/private-key.pem`);
+        const key = await fetch(`${BASE_URL}/keys/private-key.txt`);
 
         privateKey = await key.text();
       }
