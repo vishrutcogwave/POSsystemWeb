@@ -1,5 +1,6 @@
 import {  useEffect } from "react";
 import type { CartItem } from "../utils";
+import toast from "react-hot-toast";
 
 type CartPanelProps = {
   items: CartItem[];
@@ -355,23 +356,39 @@ export default function CartPanel({
             {/* ACTION BUTTONS */}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setOpenNcModal(false)}
+                onClick={() => {
+                  setOpenNcModal(false)
+                 setSelectedNcCode(null);
+                    setNcRemarks("");
+                }}
                 className="px-3 py-1 text-sm border rounded"
               >
                 Cancel
               </button>
 
-              <button
-                onClick={() => {
-                  console.log("NC Code:", selectedNcCode);
-                  console.log("NC Remarks:", ncRemarks);
+            <button
+  onClick={() => {
+    // VALIDATION
+    if (!selectedNcCode) {
+      toast.error("Please select NC Reason");
+      return;
+    }
 
-                  setOpenNcModal(false);
-                }}
-                className="px-3 py-1 text-sm bg-orange-500 text-white rounded"
-              >
-                Confirm
-              </button>
+    if (!ncRemarks || ncRemarks.trim() === "") {
+      toast.error("Please enter remarks");
+      return;
+    }
+
+    // SUCCESS → proceed
+    console.log("NC Code:", selectedNcCode);
+    console.log("NC Remarks:", ncRemarks);
+
+    setOpenNcModal(false);
+  }}
+  className="px-3 py-1 text-sm bg-orange-500 text-white rounded"
+>
+  Confirm
+</button>
             </div>
           </div>
         </div>
