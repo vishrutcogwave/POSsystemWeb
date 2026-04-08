@@ -36,6 +36,7 @@ const DashboardHeader: React.FC = () => {
     { name: "ChanceSheet", icon: ClipboardList },
     { name: "VoidKot", icon: Ban },
     { name: "Nckot", icon: FileX },
+      { name: "BillReprint", icon: FileText },
   ];
 
   // 🔥 Navigation map
@@ -46,6 +47,7 @@ const DashboardHeader: React.FC = () => {
     ChanceSheet: "/pos/chancesheet",
     VoidKot: "/pos/voidkot",
     Nckot: "/pos/nckot",
+      BillReprint: "/pos/billreprint",
   };
 
   const handleNavigation = (name: string) => {

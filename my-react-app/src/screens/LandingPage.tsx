@@ -11,6 +11,7 @@ import Nckot from "./Nckot";
 import Voidkot from "./Voidkot";
 import Dailysales from "./DailySales";
 import Itemsales from "./Itemsales";
+import BilreprintReport from "./BilreprintReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -71,6 +72,7 @@ function LandingPage() {
         <Route path="/pos/chancesheet" element={<Chancesheet />} />
         <Route path="/pos/voidkot" element={<Voidkot />} />
         <Route path="/pos/nckot" element={<Nckot />} />
+        <Route path="/pos/billreprint" element={<BilreprintReport />} />
       </Routes>
     </>
   );
