@@ -101,11 +101,11 @@ const toggleKot = (kotId: number) => {
     const formatted = value.replace(/\s+/g, "");
     setSelectedTransferType(formatted);
   };
-  console.log("selectedTable", selectedTable);
+  console.log("selectedTableeeeeeeeeeeeeee", tableData);
 
   // ✅ ONLY AVAILABLE TABLES
   const filteredTables = tableData?.filter(
-    (t: any) => t.tableNumber !== selectedTable.tableNumber,
+    (t: any) => t.tableNumber !== selectedTable.tableNumber && t.status !== "Unsettled" ,
   );
 
   return (

@@ -17,7 +17,7 @@ export default function CursorEffect() {
   return (
     <div
       ref={cursorRef}
-      className="fixed pointer-events-none z-[9999] transition-transform duration-75 ease-out"
+      className="hidden md:block fixed pointer-events-none z-[9999] transition-transform duration-75 ease-out"
     >
       <div className="w-10 h-10 border border-gray-400 rounded-full flex items-center justify-center">
         <div className="w-1.5 h-1.5 bg-gray-600 rounded-full"></div>
