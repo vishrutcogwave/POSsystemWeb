@@ -533,3 +533,33 @@ export const postKotToNcKot = async (payload: {
     throw error;
   }
 };
+
+export const getFilteredBillDetails = async (payload: {
+  fromDate: string;
+  toDate: string;
+  branchCode: string;
+  outlet: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/GetFilteredBillDetails",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching filtered bill details:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

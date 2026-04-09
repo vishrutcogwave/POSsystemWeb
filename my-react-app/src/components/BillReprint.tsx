@@ -8,9 +8,7 @@ type Props = {
     outlet: string;
     billDate: string;
     billNo: string;
-    billTime: string;
     discount: number;
-    reason: string;
     guestName: string;
     address: string;
     gstNo: string;
@@ -20,6 +18,7 @@ type Props = {
 
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   onPrint: () => void;
+  outlets: { id: string; label: string }[];
 };
 
 const BillReprint: React.FC<Props> = ({
@@ -28,6 +27,7 @@ const BillReprint: React.FC<Props> = ({
   formData,
   setFormData,
   onPrint,
+  outlets,
 }) => {
   if (!isOpen) return null;
 
@@ -41,78 +41,67 @@ const BillReprint: React.FC<Props> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       
-      {/* MAIN CONTAINER (HEIGHT FIXED) */}
-      <div className="w-full max-w-5xl h-[90vh] bg-white sm:rounded-xl rounded-none shadow-xl flex flex-col">
+      <div className="w-full max-w-5xl h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col">
 
-        {/* HEADER (FIXED) */}
-        <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center shrink-0">
-          <h2 className="font-semibold text-lg">BILL REPRINT : =====</h2>
+        {/* HEADER */}
+        <div className="bg-[#0576B2] text-white px-4 py-3 flex justify-between items-center">
+          <h2 className="font-semibold text-lg">
+            BILL REPRINT : {formData.billNo}
+          </h2>
           <button onClick={onClose}>×</button>
         </div>
 
-        {/* SCROLLABLE CONTENT */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 pr-2">
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto p-4">
 
-          <div className="border p-4 grid grid-cols-1 md:grid-cols-[1fr_1fr] gap-4">
+          <div className="border p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* LEFT SECTION */}
-            <div className="border p-4 min-w-0">
+            {/* LEFT (READ ONLY) */}
+            <div className="border p-4">
 
-              <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] gap-y-4 items-start">
+              <div className="grid grid-cols-[140px_1fr] gap-y-4">
 
-                <label>Outlet</label>
-                <select
-                  value={formData.outlet}
-                  onChange={(e) => handleChange("outlet", e.target.value)}
-                  className="border px-2 py-1 w-full"
-                >
-                  <option>Select</option>
-                  <option value="Outlet1">Outlet 1</option>
-                </select>
+                {/* OUTLET */}
+         <label>Outlet</label>
+<input
+  value={
+    outlets.find((o) => o.id === String(formData.outlet))?.label || ""
+  }
+  disabled
+  className="border px-2 py-1 w-full bg-gray-100"
+/>
 
+                {/* BILL DATE */}
                 <label>Bill Date</label>
                 <input
                   type="date"
                   value={formData.billDate}
-                  onChange={(e) => handleChange("billDate", e.target.value)}
-                  className="border px-2 py-1 w-full"
+                  disabled
+                  className="border px-2 py-1 w-full bg-gray-100"
                 />
 
+                {/* BILL NO */}
                 <label>Bill No.</label>
                 <input
                   value={formData.billNo}
-                  onChange={(e) => handleChange("billNo", e.target.value)}
-                  className="border px-2 py-1 w-full"
+                  disabled
+                  className="border px-2 py-1 w-full bg-gray-100"
                 />
 
-                <label>Bill Time</label>
-                <input
-                  value={formData.billTime}
-                  onChange={(e) => handleChange("billTime", e.target.value)}
-                  className="border px-2 py-1 w-full"
-                />
-
+                {/* DISCOUNT */}
                 <label>Discount (Rs.)</label>
                 <input
                   value={formData.discount}
-                  onChange={(e) => handleChange("discount", e.target.value)}
-                  className="border px-2 py-1 w-full"
-                />
-
-                <label>Reason</label>
-                <input
-                  value={formData.reason}
-                  onChange={(e) => handleChange("reason", e.target.value)}
-                  className="border px-2 py-1 w-full"
+                  disabled
+                  className="border px-2 py-1 w-full bg-gray-100"
                 />
 
               </div>
 
-
             </div>
 
-            {/* RIGHT SECTION */}
-            <div className="border p-4 min-w-0">
+            {/* RIGHT (EDITABLE) */}
+            <div className="border p-4">
 
               <div className="flex items-center gap-2 mb-4">
                 <input
@@ -123,7 +112,7 @@ const BillReprint: React.FC<Props> = ({
                 <label>Guest GST</label>
               </div>
 
-              <div className="grid grid-cols-[120px_1fr] sm:grid-cols-[140px_1fr] gap-y-4 items-start">
+              <div className="grid grid-cols-[140px_1fr] gap-y-4">
 
                 <label>Guest Name</label>
                 <input
@@ -164,15 +153,15 @@ const BillReprint: React.FC<Props> = ({
 
         </div>
 
-        {/* FOOTER (FIXED) */}
-        <div className="border-t p-3 flex justify-between shrink-0">
+        {/* FOOTER */}
+        <div className="border-t p-3 flex justify-between">
           <button onClick={onClose} className="border px-4 py-2 rounded">
             Cancel
           </button>
 
           <button
             onClick={onPrint}
-            className="px-4 py-2 rounded bg-gray-400 text-white"
+            className="px-4 py-2 rounded bg-blue-600 text-white"
           >
             Print
           </button>

@@ -1,69 +1,140 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "../components/Header";
-import BillReprintTable from "../components/BillReprintTable";
 import BillReprint from "../components/BillReprint";
+import {
+  getFilteredBillDetails,
+  getCombinedOutletAndTableMasterList,
+} from "../api/services/products.service";
+import BillReprintAdvancedTable from "../components/BillReprintTable";
 
 export default function BillReprintReport() {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [data] = useState([
-    { billNo: "101", date: "2026-04-08", amount: 500 },
-    { billNo: "102", date: "2026-04-08", amount: 800 },
-  ]);
+  const [data, setData] = useState<any[]>([]);
 
-  const [formData, setFormData] = useState({
-    outlet: "Outlet 1",
-    billDate: "",
-    billNo: "",
-    billTime: "",
-    discount: 0,
-    reason: "",
-    guestName: "",
-    address: "",
-    gstNo: "",
-    stateCode: "",
-    guestGST: false,
-  });
+  // ✅ OUTLETS STATE (same as ItemSales)
+  const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
 
-  const handleReprintClick = (row: any) => {
-    // ✅ pass row data to popup
-    setFormData((prev) => ({
-      ...prev,
-      billNo: row.billNo,
-      billDate: row.date,
-    }));
+  const today = new Date().toISOString().split("T")[0];
 
-    setIsOpen(true);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+  const [outlet, setOutlet] = useState("");
+
+const [formData, setFormData] = useState({
+  outlet: "",
+  billDate: "",
+  billNo: "",
+  discount: 0,
+  guestName: "",
+  address: "",
+  gstNo: "",
+  stateCode: "",
+  guestGST: false,
+});
+
+  const fetchOutletData = async () => {
+    try {
+      const res: any[] = await getCombinedOutletAndTableMasterList(
+        localStorage.getItem("branch") || "",
+      );
+
+      const formatted = res.map((o) => ({
+        id: o.oltCode.toString(),
+        label: o.oltName.trim(),
+      }));
+
+      setOutlets(formatted);
+
+      // ✅ AUTO SELECT FIRST OUTLET
+      if (formatted.length > 0) {
+        setOutlet(formatted[0].id);
+      }
+    } catch (err) {
+      console.error("Outlet fetch error:", err);
+    }
   };
 
-  const handlePrint = () => {
-    console.log("PRINT DATA:", formData);
-    setIsOpen(false);
+  // ✅ FETCH BILLS
+  const fetchBills = async () => {
+    try {
+      setLoading(true);
+
+      const outletId = outlet;
+
+      if (!outletId) return;
+
+      const res = await getFilteredBillDetails({
+        fromDate,
+        toDate,
+        branchCode: "DEROY",
+        outlet: outletId,
+      });
+
+      console.log("API RESPONSE:", res);
+
+      setData(res || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ✅ LOAD OUTLETS FIRST
+  useEffect(() => {
+    fetchOutletData();
+  }, []);
+
+  // ✅ LOAD DATA AFTER OUTLETS + FILTERS
+  useEffect(() => {
+    if (outlets.length > 0) {
+      fetchBills();
+    }
+  }, [fromDate, toDate, outlet, outlets]);
+
+  // ✅ REPRINT CLICK
+ const handleReprintClick = (row: any) => {
+  setFormData((prev) => ({
+    ...prev,
+    billNo: row.ksmBillNo,
+    billDate: row.kbsValidDate?.split("T")[0],
+    discount: row.kbsDiscount || 0,
+    outlet: row.oltCode?.toString(), // ✅ FIXED (important)
+  }));
+
+  setIsOpen(true);
+};
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-
-      {/* HEADER */}
       <Header showNeworderButton={false} />
 
-      {/* TABLE */}
       <div className="flex-1 overflow-auto">
-        <BillReprintTable
-          title="Bill Reprint Report"
-          data={data}
-          onReprint={handleReprintClick}
-        />
+        {loading ? (
+          <p className="text-center mt-10">Loading...</p>
+        ) : (
+          <BillReprintAdvancedTable
+            title="Bill Reprint Report"
+            data={data}
+            outlets={outlets} // ✅ SAME AS ITEM SALES
+            fromDate={fromDate}
+            toDate={toDate}
+            outlet={outlet}
+            setFromDate={setFromDate}
+            setToDate={setToDate}
+            setOutlet={setOutlet}
+            onReprint={handleReprintClick}
+          />
+        )}
       </div>
 
-      {/* POPUP */}
       <BillReprint
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         formData={formData}
         setFormData={setFormData}
-        onPrint={handlePrint}
-      />
+        onPrint={() => setIsOpen(false)} outlets={outlets}      />
     </div>
   );
 }
