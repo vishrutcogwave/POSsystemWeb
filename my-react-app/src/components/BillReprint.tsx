@@ -19,6 +19,7 @@ type Props = {
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   onPrint: () => void;
   outlets: { id: string; label: string }[];
+  
 };
 
 const BillReprint: React.FC<Props> = ({

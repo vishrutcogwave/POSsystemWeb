@@ -5,13 +5,15 @@ import {
   getFilteredBillDetails,
   getCombinedOutletAndTableMasterList,
   getReprintBill,
+  getCompanyInfo,
 } from "../api/services/products.service";
 import BillReprintAdvancedTable from "../components/BillReprintTable";
+import { reprintBill } from "../api/services/printer";
 
 export default function BillReprintReport() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [companyInfo, setCompanyInfo] = useState<any>(null);
   const [data, setData] = useState<any[]>([]);
 
   // ✅ OUTLETS STATE (same as ItemSales)
@@ -34,6 +36,18 @@ const [formData, setFormData] = useState({
   stateCode: "",
   guestGST: false,
 });
+
+  const fetchCompany = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
+      const data = await getCompanyInfo(branch);
+
+      console.log("Company Info:", data);
+      setCompanyInfo(data);
+    } catch (err) {
+      console.error("Company fetch failed", err);
+    }
+  };
 
   const fetchOutletData = async () => {
     try {
@@ -86,6 +100,7 @@ const [formData, setFormData] = useState({
   // ✅ LOAD OUTLETS FIRST
   useEffect(() => {
     fetchOutletData();
+    fetchCompany()
   }, []);
 
   // ✅ LOAD DATA AFTER OUTLETS + FILTERS
@@ -129,7 +144,12 @@ const handlePrint = async () => {
     // ✅ FIXED CALL
     const res = await getReprintBill(payload);
 
-    console.log("REPRINT DATA:", res);
+        const printRes = await reprintBill(
+                res,
+                formData,
+                companyInfo,
+              );
+    console.log("printRes", printRes);
 
     setIsOpen(false);
   } catch (error) {
