@@ -534,7 +534,7 @@ export const postKotToNcKot = async (payload: {
   }
 };
 
-export const getFilteredBillDetails = async (payload: {
+export const getFilteredBillDetails = async (params: {
   fromDate: string;
   toDate: string;
   branchCode: string;
@@ -543,13 +543,17 @@ export const getFilteredBillDetails = async (payload: {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.post(
+    const response = await api.get(
       "/api/POS/GetFilteredBillDetails",
-      payload,
       {
+        params: {
+          fromDate: params.fromDate,
+          toDate: params.toDate,
+          branchCode: params.branchCode,
+          outlet: params.outlet,
+        },
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
         },
       }
     );
@@ -562,4 +566,35 @@ export const getFilteredBillDetails = async (payload: {
     );
     throw error;
   }
+};
+
+export const getReprintBill = async (payload: {
+  guestName?: string;
+  gstNo?: string;
+  address?: string;
+  stateCode?: number;
+  billno: number;
+  oltcode: string | number;
+  billDate?: string;
+  branchcode: string;
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/POS/GetReprintBill", {
+    params: {
+      guestName: payload.guestName,
+      gstNo: payload.gstNo,
+      address: payload.address,
+      stateCode: payload.stateCode,
+      billno: payload.billno,
+      oltcode: payload.oltcode,
+      billDate: payload.billDate,
+      branchcode: payload.branchcode,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
 };

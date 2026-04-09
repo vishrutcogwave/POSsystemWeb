@@ -4,6 +4,7 @@ import BillReprint from "../components/BillReprint";
 import {
   getFilteredBillDetails,
   getCombinedOutletAndTableMasterList,
+  getReprintBill,
 } from "../api/services/products.service";
 import BillReprintAdvancedTable from "../components/BillReprintTable";
 
@@ -106,6 +107,35 @@ const [formData, setFormData] = useState({
 
   setIsOpen(true);
 };
+
+const handlePrint = async () => {
+  try {
+    const payload: any = {
+      billno: Number(formData.billNo),
+      oltcode: formData.outlet,
+      branchcode: localStorage.getItem("branch"),
+    };
+
+    // ✅ GST fields only if checkbox checked
+    if (formData.guestGST) {
+      payload.guestName = formData.guestName;
+      payload.address = formData.address;
+      payload.gstNo = formData.gstNo;
+      payload.stateCode = Number(formData.stateCode);
+    }
+
+    console.log("FINAL PAYLOAD:", payload);
+
+    // ✅ FIXED CALL
+    const res = await getReprintBill(payload);
+
+    console.log("REPRINT DATA:", res);
+
+    setIsOpen(false);
+  } catch (error) {
+    console.error("Print Error:", error);
+  }
+};
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Header showNeworderButton={false} />
@@ -134,7 +164,7 @@ const [formData, setFormData] = useState({
         onClose={() => setIsOpen(false)}
         formData={formData}
         setFormData={setFormData}
-        onPrint={() => setIsOpen(false)} outlets={outlets}      />
+        onPrint={handlePrint} outlets={outlets}      />
     </div>
   );
 }
