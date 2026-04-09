@@ -55,47 +55,60 @@ const filteredData = useMemo(() => {
       <h2 className="text-lg font-semibold text-center mb-4">{title}</h2>
 
       {/* FILTER BAR */}
-      <div className="flex flex-wrap gap-3 mb-4 items-end">
-        <div>
-          <label className="text-sm">From Date</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
+   {/* FILTER BAR */}
+<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
 
-        <div>
-          <label className="text-sm">To Date</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="border px-2 py-1 rounded"
-          />
-        </div>
-      <select
-  value={outlet}
-  onChange={(e) => setOutlet(e.target.value)}
-  className="border px-2 py-1 rounded"
->
-  {outlets.map((o) => (
-    <option key={o.id} value={o.id}>
-      {o.label}
-    </option>
-  ))}
-</select>
+  {/* LEFT SIDE */}
+  <div className="flex flex-wrap items-center gap-3">
 
-        {/* SEARCH */}
-        <input
-          type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded text-sm"
-        />
-      </div>
+    {/* FROM DATE */}
+    <input
+      type="date"
+      value={fromDate}
+      onChange={(e) => setFromDate(e.target.value)}
+      className="h-9 border rounded px-3 text-sm w-[140px]"
+    />
+
+    {/* TO DATE */}
+    <input
+      type="date"
+      value={toDate}
+      onChange={(e) => setToDate(e.target.value)}
+      className="h-9 border rounded px-3 text-sm w-[140px]"
+    />
+
+    {/* OUTLET */}
+    <select
+      value={outlet}
+      onChange={(e) => setOutlet(e.target.value)}
+      className="h-9 border rounded px-3 text-sm min-w-[200px]"
+    >
+      {outlets.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+
+  </div>
+
+  {/* RIGHT SIDE */}
+  <div className="flex items-center gap-2">
+
+    {/* SEARCH */}
+    <input
+      type="text"
+      placeholder="Search..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      className="h-9 border rounded px-3 text-sm w-[220px]"
+    />
+
+
+
+  </div>
+
+</div>
 
       {/* TABLE */}
       <div className="overflow-x-auto border rounded">
