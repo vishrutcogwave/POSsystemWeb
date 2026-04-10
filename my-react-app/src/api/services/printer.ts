@@ -566,6 +566,9 @@ export const reprintBill = async (
   formData: any,
   companyInfo: any,
 ) => {
+
+  console.log(apiData,"apidta");
+  
   try {
     await connectPrinter();
 
@@ -782,21 +785,36 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   }
 
   /* ===== TOTAL ===== */
-  let totalBlock = "";
+  /* ===== TOTAL ===== */
+let totalBlock = "";
 
-  if (c.roundOff !== 0) {
-    totalBlock +=
-      line2Col("Round Off", c.roundOff.toFixed(2)) + "\n";
+/* ✅ DISCOUNT (SHOW ONLY IF > 0) */
+/* ✅ DISCOUNT (SHOW ONLY IF > 0) */
+if ((tax.discount || 0) > 0) {
+  let discountLabel = "Discount";
+
+  if (tax.discountIn === "amt") {
+    discountLabel +=" (Rs.)";
+  } else if (tax.discountIn === "per") {
+    discountLabel += " (%)";
   }
 
   totalBlock +=
-    boldOn +
-    line2Col("GRAND TOTAL", c.grandTotal.toFixed(2)) +
-    boldOff +
-    "\n";
+    line2Col(discountLabel, `-${tax.discount.toFixed(2)}`) + "\n";
+}
+/* ROUND OFF */
+if (c.roundOff !== 0) {
+  totalBlock += line2Col("Round Off", c.roundOff.toFixed(2)) + "\n";
+}
 
-  d += totalBlock;
+/* GRAND TOTAL */
+totalBlock +=
+  boldOn +
+  line2Col("GRAND TOTAL", c.grandTotal.toFixed(2)) +
+  boldOff +
+  "\n";
 
+d += totalBlock;
   d += "\n\n\n";
   d += "\x1D\x56\x41\x10";
 
