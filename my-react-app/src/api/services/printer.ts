@@ -209,6 +209,8 @@ export const printBill = async (
       taxType: tax.taxType,
       grandTotal: tax.grandTotal,
       roundOff: tax.roundOff, // ✅ ADD THIS
+        discount: tax.discount || 0,
+  discountIn: tax.discountIn || "amt",
     };
 
     /* ---------------- THERMAL FORMAT ---------------- */
@@ -526,20 +528,36 @@ export const printBill = async (
   }
 
   /* -------- TOTAL -------- */
-  d += "-".repeat(width) + "\n";
-  d += "-".repeat(width) + "\n";
+ /* -------- TOTAL -------- */
+/* -------- TOTAL -------- */
+d += "-".repeat(width) + "\n";
+d += "-".repeat(width) + "\n";
 
-  d += boldOn;
+d += boldOn;
 
-  const roundOff = c.roundOff || 0;
+/* ✅ DISCOUNT */
+if ((c.discount || 0) > 0) {
+  let discountLabel = "Discount";
 
-  if (roundOff !== 0) {
-    d += line2Col("Round Off", roundOff.toFixed(2));
+  if (c.discountIn === "amt") {
+    discountLabel += " (Rs.)";
+    d += line2Col(discountLabel, `-${c.discount.toFixed(2)}`);
+  } else if (c.discountIn === "per") {
+    discountLabel += " (%)";
+    d += line2Col(discountLabel, `-${c.discount}%`);
   }
+}
 
-  d += line2Col("GRAND TOTAL", c.grandTotal.toFixed(2));
+/* ✅ ROUND OFF */
+const roundOff = c.roundOff || 0;
+if (roundOff !== 0) {
+  d += line2Col("Round Off", roundOff.toFixed(2));
+}
 
-  d += boldOff;
+/* ✅ GRAND TOTAL */
+d += line2Col("GRAND TOTAL", c.grandTotal.toFixed(2));
+
+d += boldOff;
 
   d += "\n\n\n";
   d += "\x1D\x56\x41\x10";

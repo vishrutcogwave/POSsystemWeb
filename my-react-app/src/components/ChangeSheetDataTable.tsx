@@ -339,8 +339,9 @@ const handlePrint = () => {
                   <th className="px-4 py-2 text-right">Round</th>
                   <th className="px-4 py-2 text-right">Grand</th>
                   <th className="px-4 py-2 text-right">Cash</th>
+                   <th className="px-4 py-2 text-right">Card</th>
                   <th className="px-4 py-2 text-right">Online</th>
-                  <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">kbsRefName</th>
                 </tr>
               </thead>
 
@@ -363,8 +364,9 @@ const handlePrint = () => {
                     <td className="px-4 py-2 text-right">{row.roundOff}</td>
                     <td className="px-4 py-2 text-right font-medium">{row.grand}</td>
                     <td className="px-4 py-2 text-right">{row.cash}</td>
+                       <td className="px-4 py-2 text-right">{row.card}</td>
                     <td className="px-4 py-2 text-right">{row.online}</td>
-                    <td className="px-4 py-2">{row.kbsRefName}</td>
+                    <td className="px-4 py-2">{row.kbsRefName===""?"-":row.kbsRefName}</td>
                   </tr>
                 ))}
               </tbody>
