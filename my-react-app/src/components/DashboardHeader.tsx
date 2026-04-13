@@ -18,16 +18,22 @@ import {
   FileX,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import DayEntryPopup from "./DayEntryPopup";
 
 const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showDayPopup, setShowDayPopup] = useState(false);
+  
 
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // 🔥 POS dropdown items
-  const posDropdownItems = [{ name: "Touch Screen", icon: Monitor }];
+  const posDropdownItems = [
+  { name: "Touch Screen", icon: Monitor },
+  { name: "Day Close", icon: LogOut }, // or any icon you like
+];
 
   // 🔥 POS Reports dropdown items WITH ICONS
   const posReportItems = [
@@ -50,13 +56,20 @@ const DashboardHeader: React.FC = () => {
       BillReprint: "/pos/billreprint",
   };
 
-  const handleNavigation = (name: string) => {
-    if (routeMap[name]) {
-      navigate(routeMap[name]);
-    }
+const handleNavigation = (name: string) => {
+  if (name === "Day Close") {
+    setShowDayPopup(true);
     setActiveMenu(null);
-    setMobileOpen(false);
-  };
+    return;
+  }
+
+  if (routeMap[name]) {
+    navigate(routeMap[name]);
+  }
+
+  setActiveMenu(null);
+  setMobileOpen(false);
+};
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -285,6 +298,10 @@ const DashboardHeader: React.FC = () => {
           <button>Utility</button>
         </div>
       )}
+      <DayEntryPopup
+  isOpen={showDayPopup}
+  onClose={() => setShowDayPopup(false)}
+/>
     </div>
   );
 };

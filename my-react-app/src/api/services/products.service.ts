@@ -598,3 +598,73 @@ export const getReprintBill = async (payload: {
 
   return response.data;
 };
+
+
+export const getOpenDayDetails = async (userid: number | string) => {
+  const response = await api.post(
+    "/api/KOT/GetOpenDayDetais",
+    null,
+    {
+      params: { userid }, // ✅ IMPORTANT FIX
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const dayClose = async (payload: {
+  userId: number;
+  systemTime: string;
+  posEntryDate: string;
+  branchCode: string;
+}) => {
+  try {
+    const response = await api.post(
+      "/api/KOT/Dayclose",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error in Day Close:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+export const dayOpen = async (payload: {
+  userId: number;
+  systemTime: string;
+  systemDate: string;
+}) => {
+  try {
+    const response = await api.post(
+      "/api/KOT/Dayopen",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error in Day Open:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

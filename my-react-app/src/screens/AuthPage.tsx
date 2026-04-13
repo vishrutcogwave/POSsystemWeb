@@ -43,17 +43,25 @@ export default function AuthPage() {
     }
 
     try {
-      setLoading(true); // show full loader
+      setLoading(true);
 
       const data = await getBranchesByUser(username);
+      console.log("API response:", data);
 
-      setBranches(data);
+      // ✅ FORCE ARRAY SAFETY
+      if (Array.isArray(data)) {
+        setBranches(data);
+      } else {
+        console.error("Invalid branches format:", data);
+        setBranches([]); // fallback
+        toast.error("Invalid branch data");
+      }
 
       toast.success("Branches loaded");
     } catch (error) {
       toast.error("Failed to load branches");
     } finally {
-      setLoading(false); // hide loader
+      setLoading(false);
     }
   };
 
@@ -71,8 +79,8 @@ export default function AuthPage() {
         branch_code: branch?.branch_code || "",
       };
       const data = await login(payload);
-      console.log("logingdtatails",data);
-      
+      console.log("logingdtatails", data);
+
       setAppData(data);
       console.log("Token:", data.token);
 
@@ -188,11 +196,12 @@ export default function AuthPage() {
               >
                 <option value="">Select Location</option>
 
-                {branches.map((b: any) => (
-                  <option key={b.branch_code} value={b.branch_code}>
-                    {b.branch_name}
-                  </option>
-                ))}
+                {Array.isArray(branches) &&
+                  branches.map((b) => (
+                    <option key={b.branch_code} value={b.branch_code}>
+                      {b.branch_name}
+                    </option>
+                  ))}
               </select>
 
               <ChevronDown
