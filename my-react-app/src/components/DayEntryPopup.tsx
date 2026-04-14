@@ -60,13 +60,14 @@ const getISODateTime = () => {
 };
 
 const handleDayClose = async () => {
-  const shiftDate = data?.shiftOpenTime?.split("T")[0];
+  debugger
+  const shiftDate = data?.shiftDate?.split("T")[0];
   const today = new Date().toISOString().split("T")[0];
 
   console.log("date", shiftDate, today);
 
   // ✅ block if same or past date
-  if (shiftDate && shiftDate <= today) {
+  if (today <= shiftDate) {
     return;
   }
 
@@ -74,7 +75,7 @@ const handleDayClose = async () => {
     const payload = {
       userId: appData?.user?.userCode,
       systemTime: getISODateTime(),
-      posEntryDate: data?.shiftOpenTime,
+      posEntryDate: data?.shiftDate,
       branchCode: appData?.user?.branch_code,
     };
 

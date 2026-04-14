@@ -18,6 +18,7 @@ import {
   getItemGroupList,
   getNCKOT,
   getOldCart,
+  getOpenDayDetails,
   getPaymentModeMaster,
   getSpecialInfo,
   getSubTables,
@@ -35,6 +36,8 @@ import { printBill, printKOT } from "../api/services/printer";
 import InvoicePopup from "../components/InvoicePopup";
 import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 import PaymentModal from "../components/PaymentModal";
+import { useAppContext } from "../context/AppContext";
+import AlertPopup from "../components/AlertPopup";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -142,6 +145,22 @@ function OrderingBoard() {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [discountValue, setDiscountValue] = useState("");
   const [discountMode, setDiscountMode] = useState<"amt" | "per">("amt");
+  const [dayDetails, setdayDetails] = useState<any>({});
+  const [alertOpen, setAlertOpen] = useState(false);
+const [alertMsg, setAlertMsg] = useState("");
+const [alertType, setAlertType] = useState<"success" | "error">("error");
+
+    const { appData } = useAppContext();
+    console.log("appData", appData);
+  
+    const fetchdayDeatilsData = async () => {
+      try {
+        const data = await getOpenDayDetails(appData?.user?.userCode);
+        setdayDetails(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
   const fetchPaymentModes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -225,6 +244,7 @@ function OrderingBoard() {
     void fetchCompany();
     void fetchPaymentModes();
     void fetchDiscountTypes();
+    void fetchdayDeatilsData();
   }, []);
 
   const fetchSubTables = async () => {
@@ -646,6 +666,15 @@ function OrderingBoard() {
 </html>
 `;
   const handleKOT = async () => {
+     if (dayDetails?.openDayResponse?.success === false) {
+    setAlertMsg(
+      dayDetails?.openDayResponse?.message ||
+        "Please open the day first to continue further!"
+    );
+    setAlertType("error");
+    setAlertOpen(true);
+    return; // 🚨 STOP KOT
+  }
     if (!session || cart.length === 0) return;
 
     setKotLoading(true);
@@ -1752,6 +1781,12 @@ function OrderingBoard() {
         runApi={handleGetBill}
         unbillData={billData}
       />
+      <AlertPopup
+  isOpen={alertOpen}
+  message={alertMsg}
+  type={alertType}
+  onClose={() => setAlertOpen(false)}
+/>
     </div>
   );
 }
