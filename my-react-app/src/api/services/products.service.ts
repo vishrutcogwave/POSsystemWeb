@@ -668,3 +668,142 @@ export const dayOpen = async (payload: {
     throw error;
   }
 };
+
+export const getNextCompanyCode = async () => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/Master/GetFindnextnumber",
+    {
+      params: {
+        table_name: "CompanyMaster",
+        column_name: "CompanyCode",
+        condition_name: "Branch_Code",
+        branch: "DEROY",
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const createCompany = async (payload: {
+  companyCode: number;
+  companyName: string;
+  contactPerson: string;
+  address: string;
+  city: string;
+  pincode: string;
+  phone: string;
+  email: string;
+  gstNo: string;
+  userCode: string;
+  lastModify: string;
+  branch_code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateCompany",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating company:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const getCompanyList = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/Master/GetCompanieslist",
+    {
+      params: { branchcode }, // ✅ dynamic
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+export const updateCompany = async (payload: {
+  companyCode: number;
+  companyName: string;
+  contactPerson: string;
+  address: string;
+  city: string;
+  pincode: string;
+  phone: string;
+  email: string;
+  gstNo: string;
+  userCode: string;
+  lastModify: string;
+  branch_code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateCompany",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating company:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const deleteCompany = async (id: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteCompany",
+      {
+        params: { id }, // ✅ query param
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting company:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

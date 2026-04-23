@@ -12,6 +12,7 @@ import Voidkot from "./Voidkot";
 import Dailysales from "./DailySales";
 import Itemsales from "./Itemsales";
 import BilreprintReport from "./BilreprintReport";
+import CompanyCreation from "../components/CompanyCreation";
 
 function LandingPage() {
   const location = useLocation();
@@ -60,7 +61,7 @@ function LandingPage() {
 
   return (
     <>
-      {showHeader && <Header showNeworderButton/>}
+      {showHeader && <Header showNeworderButton />}
 
       <Routes>
         <Route path="/" element={<AuthPage />} />
@@ -73,6 +74,8 @@ function LandingPage() {
         <Route path="/pos/voidkot" element={<Voidkot />} />
         <Route path="/pos/nckot" element={<Nckot />} />
         <Route path="/pos/billreprint" element={<BilreprintReport />} />
+
+        <Route path="/master/company" element={<CompanyCreation />} />
       </Routes>
     </>
   );

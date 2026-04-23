@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Ban,
   FileX,
+  Building2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -44,6 +45,10 @@ const DashboardHeader: React.FC = () => {
     { name: "Nckot", icon: FileX },
       { name: "BillReprint", icon: FileText },
   ];
+  // 🔥 MASTER DROPDOWN
+const masterItems = [
+  { name: "Company Master", icon: Building2 },
+];
 
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -54,6 +59,7 @@ const DashboardHeader: React.FC = () => {
     VoidKot: "/pos/voidkot",
     Nckot: "/pos/nckot",
       BillReprint: "/pos/billreprint",
+        "Company Master": "/master/company",
   };
 
 const handleNavigation = (name: string) => {
@@ -126,10 +132,35 @@ const handleNavigation = (name: string) => {
 
           {/* Desktop Menu */}
           <div className="hidden sm:flex items-center gap-6">
-            <button className="flex items-center gap-2 hover:text-blue-600">
-              <Settings size={16} className="text-blue-600" />
-              Master
-            </button>
+       {/* MASTER DROPDOWN */}
+<div className="relative">
+  <button
+    onClick={() => toggleMenu("MASTER")}
+    className="flex items-center gap-2 hover:text-blue-600"
+  >
+    <Settings size={16} className="text-blue-600" />
+    Master
+    <ChevronDown size={14} />
+  </button>
+
+  {activeMenu === "MASTER" && (
+    <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50">
+      {masterItems.map((item, index) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={index}
+            onClick={() => handleNavigation(item.name)}
+            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+          >
+            <Icon size={16} />
+            {item.name}
+          </div>
+        );
+      })}
+    </div>
+  )}
+</div>
 
             <button className="flex items-center gap-2 hover:text-purple-600">
               <Database size={16} className="text-purple-600" />
@@ -226,10 +257,33 @@ const handleNavigation = (name: string) => {
       {/* MOBILE MENU */}
       {mobileOpen && (
         <div className="sm:hidden flex flex-col gap-3 px-4 py-3 bg-white border-t shadow-md text-sm">
-          <button className="flex items-center gap-2">
-            <Settings size={16} /> Master
-          </button>
+        {/* MASTER MOBILE */}
+<div>
+  <button
+    onClick={() => toggleMenu("MASTER")}
+    className="flex justify-between w-full"
+  >
+    Master <ChevronDown size={16} />
+  </button>
 
+  {activeMenu === "MASTER" && (
+    <div className="ml-4 mt-2 flex flex-col gap-2">
+      {masterItems.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={i}
+            onClick={() => handleNavigation(item.name)}
+            className="flex items-center gap-2"
+          >
+            <Icon size={16} />
+            {item.name}
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
           <button className="flex items-center gap-2">
             <Database size={16} /> Sub Master
           </button>

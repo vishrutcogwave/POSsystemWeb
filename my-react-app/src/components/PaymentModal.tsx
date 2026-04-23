@@ -43,8 +43,10 @@ const PaymentModal: React.FC<Props> = ({
     setSelectedMulti({});
     setPaymentDetails([]);
     onClose();
+    setUpiType("");
   };
   console.log("billNo", billNo);
+  const [upiType, setUpiType] = useState<"own" | "device" | "">("");
 
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
     {},
@@ -115,11 +117,14 @@ const PaymentModal: React.FC<Props> = ({
       const currentTotal = prev.reduce((sum, p) => sum + p.amount, 0);
       const remaining = PAYABLE_AMOUNT - currentTotal;
 
+      const modeObj = paymentModes.find((m) => m.modeType === modeType);
+      const firstSubMode = modeObj?.subModes?.[0]?.subModeType || "";
+
       return [
         ...prev,
         {
           mode: modeType,
-          subMode: "",
+          subMode: firstSubMode, // ✅ auto select
           amount:
             prev.length === 0 ? PAYABLE_AMOUNT : remaining > 0 ? remaining : 0,
           remarks: "",
@@ -136,7 +141,6 @@ const PaymentModal: React.FC<Props> = ({
 
   const difference = PAYABLE_AMOUNT - total;
 
-
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
@@ -152,21 +156,23 @@ const PaymentModal: React.FC<Props> = ({
           <div>
             <p className="font-semibold mb-2">Select Payment Mode</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {paymentModes.map((m) => {
-                const isSelected = selectedMulti[m.modeType] !== undefined;
+              {paymentModes
+                .filter((m) => m.modeType !== "Online")
+                .map((m) => {
+                  const isSelected = selectedMulti[m.modeType] !== undefined;
 
-                return (
-                  <button
-                    key={m.modeId}
-                    onClick={() => handleModeClick(m.modeType)}
-                    className={`border rounded px-3 py-3 text-sm font-semibold ${
-                      isSelected ? "bg-[#0576B2] text-white" : ""
-                    }`}
-                  >
-                    {m.modeType}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={m.modeId}
+                      onClick={() => handleModeClick(m.modeType)}
+                      className={`border rounded px-3 py-3 text-sm font-semibold ${
+                        isSelected ? "bg-[#0576B2] text-white" : ""
+                      }`}
+                    >
+                      {m.modeType}
+                    </button>
+                  );
+                })}
             </div>
           </div>
 
@@ -204,31 +210,49 @@ const PaymentModal: React.FC<Props> = ({
                   />
                 </div>
 
-                {/* ✅ SUB MODE DROPDOWN */}
-                {(() => {
-                  const mode = paymentModes.find((m) => m.modeType === p.mode);
-
-                  if (!mode || !mode.subModes || mode.subModes.length === 0)
-                    return null;
-
-                  return (
-                    <select
-                      value={p.subMode || ""}
-                      onChange={(e) =>
-                        updatePayment(p.mode, "subMode", e.target.value)
-                      }
-                      className="w-full border rounded px-2 py-1 text-sm"
+                {p.mode === "UPI" && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setUpiType("own")}
+                      className={`flex-1 border rounded py-1 ${
+                        upiType === "own" ? "bg-blue-500 text-white" : ""
+                      }`}
                     >
-                      <option value="">Select Sub Mode</option>
+                      Own Device
+                    </button>
 
-                      {mode.subModes.map((s) => (
-                        <option key={s.subModeId} value={s.subModeType}>
-                          {s.subModeType}
-                        </option>
-                      ))}
-                    </select>
-                  );
-                })()}
+                    <button
+                      onClick={() => setUpiType("device")}
+                      className={`flex-1 border rounded py-1 ${
+                        upiType === "device" ? "bg-blue-500 text-white" : ""
+                      }`}
+                    >
+                      QR Device
+                    </button>
+                  </div>
+                )}
+
+                {p.mode === "UPI" && upiType === "own" && (
+                  <div className="border p-3 rounded text-center">
+                    <p className="text-sm mb-2">Scan QR to Pay</p>
+
+                    {/* Dummy QR */}
+                    <div className="w-32 h-32 mx-auto bg-gray-200 flex items-center justify-center">
+                      QR CODE
+                    </div>
+                  </div>
+                )}
+
+                {p.mode === "UPI" && upiType === "device" && (
+                  <div className="border p-3 rounded text-center">
+                    <p className="text-orange-500 font-semibold">
+                      Waiting for payment from QR device...
+                    </p>
+                  </div>
+                )}
+
+                {/* ✅ SUB MODE DROPDOWN */}
+              
                 <textarea
                   value={p.remarks || ""}
                   onChange={(e) =>
@@ -286,14 +310,14 @@ const PaymentModal: React.FC<Props> = ({
           </button>
 
           <button
-          onClick={() =>
-  onPay({
-    paymentDetails,
-    total,
-    difference,
-    payableAmount: PAYABLE_AMOUNT,
-  })
-}
+            onClick={() =>
+              onPay({
+                paymentDetails,
+                total,
+                difference,
+                payableAmount: PAYABLE_AMOUNT,
+              })
+            }
             disabled={difference !== 0}
             className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
               difference === 0
