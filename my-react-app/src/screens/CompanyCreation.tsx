@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
-import Header from "./Header";
-import { DataTable, type Column } from "./DataTableForMasters";
+import Header from "../components/Header";
+import { DataTable, type Column } from "../components/DataTableForMasters";
 import {
   createCompany,
   deleteCompany,
   getCompanyList,
-  getNextCompanyCode,
+  getNextIdCode,
   updateCompany,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
-import Loader from "./Loader";
+import Loader from "../components/Loader";
 
 /* =========================
    Reusable Table Component
@@ -184,7 +184,12 @@ export default function CompanyCreation() {
   };
 const fetchNextCode = async () => {
   try {
-    const res = await getNextCompanyCode();
+   const res = await getNextIdCode({
+  tableName: "CompanyMaster",
+  columnName: "CompanyCode",
+  conditionName: "Branch_Code",
+  branch: appData?.user?.branch_code,
+});
 
     if (res?.success) {
       setForm((prev) => ({

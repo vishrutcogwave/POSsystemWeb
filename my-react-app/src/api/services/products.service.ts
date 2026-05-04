@@ -669,17 +669,27 @@ export const dayOpen = async (payload: {
   }
 };
 
-export const getNextCompanyCode = async () => {
+export const getNextIdCode = async ({
+  tableName,
+  columnName,
+  conditionName,
+  branch,
+}: {
+  tableName: string;
+  columnName: string;
+  conditionName: string;
+  branch: string;
+}) => {
   const token = localStorage.getItem("token");
 
   const response = await api.get(
     "/api/Master/GetFindnextnumber",
     {
       params: {
-        table_name: "CompanyMaster",
-        column_name: "CompanyCode",
-        condition_name: "Branch_Code",
-        branch: "DEROY",
+        table_name: tableName,
+        column_name: columnName,
+        condition_name: conditionName,
+        branch,
       },
       headers: {
         Authorization: `Bearer ${token}`,
@@ -802,6 +812,116 @@ export const deleteCompany = async (id: number) => {
   } catch (error: any) {
     console.error(
       "Error deleting company:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const getTaxMasterList = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/Master/GetTaxMasterlist",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+export const createTaxMaster = async (payload: {
+  taxCode: number;
+  taxName: string;
+  taxPercentage: number;
+  isActive: boolean;
+  fromDate: string;
+  toDate: string | null;
+  userCode: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateTaxMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating tax:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const updateTaxMaster = async (payload: {
+  taxCode: number;
+  taxName: string;
+  taxPercentage: number;
+  isActive: boolean;
+  fromDate: string;
+  toDate: string | null;
+  userCode: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateTaxMaster", // 🔥 changed endpoint
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating tax:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const deleteTaxMaster = async (id: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteTaxMaster",
+      {
+        params: { id }, // 🔥 query param
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting tax:",
       error.response?.data || error.message
     );
     throw error;

@@ -17,6 +17,7 @@ import {
   Ban,
   FileX,
   Building2,
+  Receipt,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -48,6 +49,7 @@ const DashboardHeader: React.FC = () => {
   // 🔥 MASTER DROPDOWN
 const masterItems = [
   { name: "Company Master", icon: Building2 },
+    { name: "Tax Master", icon: Receipt  },
 ];
 
   // 🔥 Navigation map
@@ -60,6 +62,8 @@ const masterItems = [
     Nckot: "/pos/nckot",
       BillReprint: "/pos/billreprint",
         "Company Master": "/master/company",
+         "Tax Master": "/master/tax",
+
   };
 
 const handleNavigation = (name: string) => {

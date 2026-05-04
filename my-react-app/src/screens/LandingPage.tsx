@@ -12,7 +12,8 @@ import Voidkot from "./Voidkot";
 import Dailysales from "./DailySales";
 import Itemsales from "./Itemsales";
 import BilreprintReport from "./BilreprintReport";
-import CompanyCreation from "../components/CompanyCreation";
+import CompanyCreation from "./CompanyCreation";
+import TaxMaster from "./TaxMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -76,6 +77,7 @@ function LandingPage() {
         <Route path="/pos/billreprint" element={<BilreprintReport />} />
 
         <Route path="/master/company" element={<CompanyCreation />} />
+         <Route path="/master/tax" element={<TaxMaster />} />
       </Routes>
     </>
   );
