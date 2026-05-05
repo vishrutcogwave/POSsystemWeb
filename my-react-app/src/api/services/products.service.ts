@@ -927,3 +927,230 @@ export const deleteTaxMaster = async (id: number) => {
     throw error;
   }
 };
+
+export const getTaxDescriptionList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetTaxDescriptionlist",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching tax description list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const createTaxDescription = async (payload: {
+  taxCode: number;
+  taxDescription: string;
+  taxPercentage: number;
+  isActive: boolean;
+  userCode: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateTaxDescription",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating tax description:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const updateTaxDescription = async (payload: {
+  taxCode: number;
+  taxDescription: string;
+  taxPercentage: number;
+  isActive: boolean;
+  userCode: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateTaxDescription", // ✅ PUT API
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating tax description:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const deleteTaxDescription = async (id: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteTaxDescription",
+      {
+        params: { id }, // ✅ query param
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting tax description:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const getDepartmentList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetDepartmentList",
+      {
+        params: { branchcode }, // 👈 same as ?branchcode=DEROY
+        headers: {
+          Authorization: `Bearer ${token}`, // remove if not required
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching department list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const createDepartment = async (payload: {
+  depCode: number;
+  depName: string;
+  depHead: string;
+  posCode: string;
+  branch_code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateDepartment",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating department:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const updateDepartment = async (payload: {
+  depCode: number;
+  depName: string;
+  depHead: string;
+  posCode: string;
+  branch_code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateDepartment",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating department:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const deleteDepartment = async (id: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteDepartment",
+      {
+        params: { id }, // 👈 ?id=6
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting department:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

@@ -248,7 +248,7 @@ const handleUpdate = async () => {
   ];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 bg-gray-50">
+  <div className="h-screen overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
       {loading && <Loader />}
       <Header showNeworderButton={false} />
 
