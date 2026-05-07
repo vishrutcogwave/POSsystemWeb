@@ -1154,3 +1154,104 @@ export const deleteDepartment = async (id: number) => {
     throw error;
   }
 };
+export const getOutletList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetOutletList",
+      {
+        params: { branchcode }, // 👈 same as ?branchcode=DEROY
+        headers: {
+          Authorization: `Bearer ${token}`, // remove if not needed
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching outlet list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const createOutlet = async (payload: any) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateOutlet",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating outlet:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const updateOutlet = async (payload: any) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateOutlet",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating outlet:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const deleteOutlet = async (id: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteOutlet",
+      {
+        params: { id }, // 👉 this creates ?id=89
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting outlet:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

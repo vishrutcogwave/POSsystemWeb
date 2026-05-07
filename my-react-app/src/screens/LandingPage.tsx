@@ -16,6 +16,7 @@ import CompanyCreation from "./CompanyCreation";
 import TaxMaster from "./TaxMaster";
 import TaxDescriptionMaster from "./TaxDescriptionMaster";
 import DepartmentMaster from "./DepartmentMaster";
+import OutletMaster from "./OutletMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -82,6 +83,9 @@ function LandingPage() {
         <Route path="/master/tax" element={<TaxMaster />} />
         <Route path="/master/taxdescrip" element={<TaxDescriptionMaster />} />
           <Route path="/master/departmentmaster" element={<DepartmentMaster />} />
+          
+          <Route path="/master/outletmaster" element={<OutletMaster />} />
+
       </Routes>
     </>
   );

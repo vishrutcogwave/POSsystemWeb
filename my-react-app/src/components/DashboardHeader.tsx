@@ -18,6 +18,7 @@ import {
   FileX,
   Building2,
   Receipt,
+  Store,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -50,7 +51,8 @@ const DashboardHeader: React.FC = () => {
     { name: "Company Master", icon: Building2 },
     { name: "Tax Master", icon: Receipt },
     { name: "Tax Description Master", icon: Receipt },
-    { name: "Department Master", icon: Boxes }
+    { name: "Department Master", icon: Boxes },
+    { name: "Outlet Master", icon: Store }
   ];
 
   // 🔥 Navigation map
@@ -66,6 +68,7 @@ const DashboardHeader: React.FC = () => {
     "Tax Master": "/master/tax",
     "Tax Description Master": "/master/taxdescrip",
      "Department Master": "/master/departmentmaster",
+     "Outlet Master": "/master/outletmaster",
   };
 
   const handleNavigation = (name: string) => {
