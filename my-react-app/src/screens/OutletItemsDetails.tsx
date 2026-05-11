@@ -602,16 +602,16 @@ itemGroup: appliedTax?.itemGroup || "",
           </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer pb-2">
+        <div className="flex items-center gap-2 pb-2">
           <input
             type="checkbox"
             checked={isAvailableOnly}
             onChange={(e) => setIsAvailableOnly(e.target.checked)}
-            className="h-4 w-4"
+            className="h-4 w-4  cursor-pointer"
           />
 
           <span className="text-sm font-medium">Is Available</span>
-        </label>
+        </div>
 
         <h2 className="text-lg font-semibold mb-3">Outlet Item Details</h2>
 
