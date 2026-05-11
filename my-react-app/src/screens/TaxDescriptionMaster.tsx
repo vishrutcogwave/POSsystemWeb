@@ -283,9 +283,11 @@ const handleEdit = (row: TaxDescription) => {
   ];
 
   return (
+    <>
+      <Header showNeworderButton={false} />
+
   <div className="h-screen overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
       {loading && <Loader />}
-      <Header showNeworderButton={false} />
 
       {/* FORM */}
       <div className="bg-white rounded-xl shadow p-4 md:p-6">
@@ -400,6 +402,6 @@ const handleEdit = (row: TaxDescription) => {
           </div>
         </div>
       )}
-    </div>
+    </div></>
   );
 }

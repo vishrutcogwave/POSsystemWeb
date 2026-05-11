@@ -524,10 +524,12 @@ itemGroup: appliedTax?.itemGroup || "",
   };
 
   return (
+    <>
+      <Header showNeworderButton={false} />
+
     <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 bg-gray-50">
       {loading && <Loader />}
 
-      <Header showNeworderButton={false} />
 
       <div className="mt-4 bg-white rounded-xl shadow p-4">
         {/* TOP CONTROLS */}
@@ -756,6 +758,6 @@ itemGroup: appliedTax?.itemGroup || "",
           </div>
         </div>
       )}
-    </div>
+    </div></>
   );
 }

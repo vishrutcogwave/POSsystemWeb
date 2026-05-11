@@ -314,9 +314,11 @@ export default function OutletMaster() {
   ];
 
   return (
+    <>
+      <Header showNeworderButton={false} />
+
     <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
       {loading && <Loader />}
-      <Header showNeworderButton={false} />
 
       {/* FORM */}
       <div className="bg-white rounded-xl shadow p-4 md:p-6">
@@ -430,6 +432,6 @@ export default function OutletMaster() {
           </div>
         </div>
       )}
-    </div>
+    </div></>
   );
 }

@@ -254,10 +254,12 @@ const fetchNextCode = async () => {
   };
 
   return (
+    <>
+      <Header showNeworderButton={false} />
+
     <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
       {/* FORM */}
       {loading && <Loader />}
-      <Header showNeworderButton={false} />
 
       <div className="bg-white rounded-xl shadow p-4 md:p-6">
         <h2 className="text-lg font-semibold mb-4">Company Creation</h2>
@@ -346,6 +348,6 @@ const fetchNextCode = async () => {
           </div>
         )}
       </div>
-    </div>
+    </div></>
   );
 }
