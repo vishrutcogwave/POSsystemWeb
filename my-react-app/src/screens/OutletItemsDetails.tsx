@@ -389,6 +389,94 @@ const handleApplyTax = () => {
       ),
     );
   };
+
+  const handlePrint = () => {
+  const printableData = data;
+
+  const printWindow = window.open("", "_blank");
+
+  if (!printWindow) return;
+
+  const html = `
+    <html>
+      <head>
+        <title>Outlet Items Print</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+          }
+
+          h2 {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+
+          th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            font-size: 12px;
+          }
+
+          th {
+            background: #f3f3f3;
+          }
+        </style>
+      </head>
+
+      <body>
+        <h2>Outlet Item Details</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item Code</th>
+              <th>Item Name</th>
+              <th>OID Rate</th>
+              <th>Available</th>
+              <th>Happy Hour</th>
+              <th>Discount</th>
+              <th>Free Item</th>
+              <th>Free Qty</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${printableData
+              .map(
+                (item) => `
+                  <tr>
+                    <td>${item.itemCode}</td>
+                    <td>${item.itemName}</td>
+                    <td>${item.oidRate}</td>
+                    <td>${item.oidAvailable ? "Yes" : "No"}</td>
+                    <td>${item.isHappyHour ? "Yes" : "No"}</td>
+                    <td>${item.discount}</td>
+                    <td>${item.freeItemName || "-"}</td>
+                    <td>${item.freeItemQty || "-"}</td>
+                  </tr>
+                `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
+
+  printWindow.focus();
+  printWindow.print();
+};
+  
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -504,10 +592,13 @@ itemGroup: appliedTax?.itemGroup || "",
               Save
             </button>
 
-            <button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm transition">
-              <Printer size={18} />
-              Print
-            </button>
+           <button
+  onClick={handlePrint}
+  className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-lg font-medium shadow-sm transition"
+>
+  <Printer size={18} />
+  Print
+</button>
           </div>
         </div>
 
