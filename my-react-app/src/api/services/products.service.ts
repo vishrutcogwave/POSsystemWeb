@@ -1364,3 +1364,28 @@ export const createOltItemMaster = async (payload: {
     throw error;
   }
 };
+
+export const getItemMasterList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetItemMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`, // remove if API doesn't need token
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item master list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
