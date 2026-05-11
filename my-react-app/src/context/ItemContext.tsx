@@ -55,53 +55,116 @@ export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { activeOltCode } = useActiveOLT();
   const branch = localStorage.getItem("branch") || "";
 
-  /* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
-  useEffect(() => {
-    const fetchItems = async () => {
-      if (!activeOltCode) return;
+//   /* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
+//   useEffect(() => {
+//     const fetchItems = async () => {
+//       if (!activeOltCode) return;
 
-      try {
-        setLoading(true);
+//       try {
+//         setLoading(true);
 
-        const data = await getCombinedOltItemList(
-          activeOltCode,
-          branch,
-          activeGroup
-        );
+//         const data = await getCombinedOltItemList(
+//           activeOltCode,
+//           branch,
+//           activeGroup
+//         );
+// console.log("new items",data);
 
-        setItems(data);
-      } catch (err) {
-        console.error("Error fetching items:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+//         setItems(data);
+//       } catch (err) {
+//         console.error("Error fetching items:", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
 
-    fetchItems();
-  }, [activeOltCode, branch, activeGroup]);
+//     fetchItems();
+//   }, [activeOltCode, branch, activeGroup]);
 
-  /* ---------------- FETCH MASTER ITEMS (NEW 🔥) ---------------- */
-  useEffect(() => {
-    const fetchAllItems = async () => {
-      if (!activeOltCode) return;
+//   /* ---------------- FETCH MASTER ITEMS (NEW 🔥) ---------------- */
+//   useEffect(() => {
+//     const fetchAllItems = async () => {
+//       if (!activeOltCode) return;
 
-      try {
-        const groups = await getItemGroupList(branch);
+//       try {
+//         const groups = await getItemGroupList(branch);
 
-        const results = await Promise.all(
-          groups.map((g: any) =>
-            getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
-          )
-        );
+//         const results = await Promise.all(
+//           groups.map((g: any) =>
+//             getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
+//           )
+//         );
 
-        setMasterItems(results.flat());
-      } catch (err) {
-        console.error("Error fetching master items:", err);
-      }
-    };
+//         setMasterItems(results.flat());
+//       } catch (err) {
+//         console.error("Error fetching master items:", err);
+//       }
+//     };
 
-    fetchAllItems();
-  }, [activeOltCode, branch]);
+//     fetchAllItems();
+//   }, [activeOltCode, branch]);
+
+/* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
+useEffect(() => {
+  const fetchItems = async () => {
+    if (!activeOltCode) return;
+
+    try {
+      setLoading(true);
+
+      const data = await getCombinedOltItemList(
+        activeOltCode,
+        branch,
+        activeGroup
+      );
+
+      // ✅ only available items
+      const filteredData = data.map((category: CategoryItem) => ({
+        ...category,
+        items: category.items.filter((item) => item.oidAvailable),
+      }));
+
+      console.log("new items", filteredData);
+
+      setItems(filteredData);
+    } catch (err) {
+      console.error("Error fetching items:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchItems();
+}, [activeOltCode, branch, activeGroup]);
+
+/* ---------------- FETCH MASTER ITEMS (NEW 🔥) ---------------- */
+useEffect(() => {
+  const fetchAllItems = async () => {
+    if (!activeOltCode) return;
+
+    try {
+      const groups = await getItemGroupList(branch);
+
+      const results = await Promise.all(
+        groups.map((g: any) =>
+          getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
+        )
+      );
+
+      // ✅ only available items
+      const filteredResults = results.map((category: CategoryItem) => ({
+        ...category,
+        items: category.items.filter((item) => item.oidAvailable),
+      }));
+
+      setMasterItems(filteredResults.flat());
+    } catch (err) {
+      console.error("Error fetching master items:", err);
+    }
+  };
+
+  fetchAllItems();
+}, [activeOltCode, branch]);
 
   return (
     <ItemContext.Provider
