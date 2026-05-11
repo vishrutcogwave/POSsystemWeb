@@ -212,10 +212,10 @@ const subMasterItems = [
     </div>
   )}
 </div>
-            <button className="flex items-center gap-2 hover:text-green-600">
+            {/* <button className="flex items-center gap-2 hover:text-green-600">
               <Boxes size={16} className="text-green-600" />
               Inventory
-            </button>
+            </button> */}
 
             {/* POS Dropdown */}
             <div className="relative">
@@ -276,7 +276,7 @@ const subMasterItems = [
                 </div>
               )}
             </div>
-
+{/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
               Inventory Reports
@@ -285,7 +285,7 @@ const subMasterItems = [
             <button className="flex items-center gap-2 hover:text-teal-600">
               <Wrench size={16} className="text-teal-600" />
               Utility
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -358,9 +358,9 @@ const subMasterItems = [
   )}
 </div>
 
-          <button className="flex items-center gap-2">
+          {/* <button className="flex items-center gap-2">
             <Boxes size={16} /> Inventory
-          </button>
+          </button> */}
 
           {/* POS */}
           <div>
@@ -417,9 +417,9 @@ const subMasterItems = [
               </div>
             )}
           </div>
-
+{/* 
           <button>Inventory Reports</button>
-          <button>Utility</button>
+          <button>Utility</button> */}
         </div>
       )}
       <DayEntryPopup
