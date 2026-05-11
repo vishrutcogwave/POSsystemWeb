@@ -1254,4 +1254,113 @@ export const deleteOutlet = async (id: number) => {
     );
     throw error;
   }
+};  export const getOutletItemList = async (
+  branchcode: string,
+  oltcode: number,
+  isavaliable: boolean
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetOutletItemList",
+      {
+        params: {
+          branchcode,
+          oltcode,
+          isavaliable,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching outlet item list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const bulkIncrementItems = async (payload: {
+  amount: number | null;
+  percentage: number | null;
+  grpCode: number;
+  items: any[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/bulkincrement",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error in bulk increment:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const createOltItemMaster = async (payload: {
+  oltCode: string;
+  branchCode: string;
+  userCode: string;
+  isTaxIncluded: boolean;
+  taxCode: string;
+  taxName: string;
+  itemGroup: string;
+  oltDetails: {
+    itemCode: number;
+    itemName: string;
+    oidRate: number;
+    oidAvailable: boolean;
+    discount: number;
+    freeItemCode: string;
+    freeItemName: string;
+    freeItemQty: string;
+    isHappyHour: boolean;
+    grpCode: number;
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateOltItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating outlet item master:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };
