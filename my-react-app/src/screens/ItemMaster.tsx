@@ -12,6 +12,7 @@ import {
   GetSubCategoryMasterList,
   getTaxMasterList,
   GetUnitMasterList,
+  updateItemMaster,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
@@ -366,6 +367,7 @@ const handleEdit = (row: any) => {
   });
 };
 
+
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -453,6 +455,94 @@ const handleEdit = (row: any) => {
       setLoading(false);
     }
   };
+  const handleUpdate = async () => {
+    try {
+      setLoading(true);
+
+      const selectedUnit = units.find((u) => u.unitName === form.unitName);
+
+      const selectedDepartment = departments.find(
+        (d) => d.depName === form.dep,
+      );
+
+      const selectedTax = taxes.find((t) => t.taxName === form.taxName);
+      const selectedPrintDepartment = printingDepartments.find(
+        (p) => p.depName === form.printDepartment,
+      );
+      const payload = {
+        itemCode: form.itemCode,
+        itemName: form.itemName,
+
+        catCode: form.catCode,
+        subCatCode: form.subCatCode,
+        grpCode: form.grpCode,
+
+        itemDiscountAllowed: form.itemDiscountAllowed,
+        itemRate: form.itemRate,
+
+        userCode: String(appData?.user?.userCode) || "",
+        lastModify: new Date().toISOString(),
+
+        unitCode: selectedUnit?.unitCode || 0,
+        unitName: form.unitName,
+
+        dep: form.dep,
+        depCode: String(selectedDepartment?.depCode || ""),
+
+        taxCode: selectedTax?.taxCode || 0,
+        taxName: form.taxName,
+        printDepartment: String(selectedPrintDepartment?.depCode || ""),
+        branchCode: appData?.user?.branch_code || "",
+
+        sacCode: form.sacCode,
+        thumb: "",
+
+        barcode: form.barcode,
+        isVeg: form.isVeg,
+      };
+
+      const res = await updateItemMaster(payload);
+
+      if (res?.success) {
+        toast.success(res.message || "Item created successfully");
+
+        fetchItems();
+        fetchNextCode();
+    setIsEdit(false);
+        setForm({
+          id: 0,
+
+          itemCode: 0,
+          itemName: "",
+
+          catCode: "",
+          subCatCode: "",
+          grpCode: "",
+
+          itemDiscountAllowed: false,
+          itemRate: 0,
+
+          unitName: "",
+          dep: "",
+          taxName: "",
+
+          printDepartment: "",
+          sacCode: "",
+          barcode: "",
+
+          isVeg: true,
+        });
+      } else {
+        toast.error(res?.message || "Failed to create item");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Error creating item");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <>
@@ -729,11 +819,12 @@ const handleEdit = (row: any) => {
 
   {isEdit && (
     <>
-      <button
-        className="bg-green-500 text-white px-4 py-2 rounded-lg"
-      >
-        Update
-      </button>
+    <button
+  onClick={handleUpdate}
+  className="bg-green-500 text-white px-4 py-2 rounded-lg"
+>
+  Update
+</button>
 
       <button
         onClick={async () => {
