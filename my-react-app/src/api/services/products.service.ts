@@ -1389,3 +1389,81 @@ export const getItemMasterList = async (branchcode: string) => {
     throw error;
   }
 };
+
+
+
+  export const GetCategoryMasterList = async (branchcode: string) => {
+    const response = await api.get(
+      "/api/Master/GetCategoryMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+
+  export const GetSubCategoryMasterList = async (branchcode: string) => {
+    const response = await api.get(
+      "/api/Master/GetSubCategoryMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+    export const GetGroupMasterList = async (branchcode: string) => {
+    const response = await api.get(
+      "/api/Master/GetGroupMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+     export const GetUnitMasterList = async (branchcode: string) => {
+    const response = await api.get(
+      "/api/Master/GetUnitMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  };
+
+     export const GetPrintingMasterList = async (branchcode: string) => {
+    const response = await api.get(
+      "/api/Master/GetPrintingMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  };

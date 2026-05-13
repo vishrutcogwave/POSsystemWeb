@@ -54,12 +54,10 @@ const DashboardHeader: React.FC = () => {
     { name: "Tax Description Master", icon: Receipt },
     { name: "Department Master", icon: Boxes },
     { name: "Outlet Master", icon: Store },
-    { name: "Item Master", icon: Package }
+    { name: "Item Master", icon: Package },
   ];
   // 🔥 SUB MASTER DROPDOWN
-const subMasterItems = [
-  { name: "Outlet Items Details", icon: Package },
-];
+  const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
 
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -73,10 +71,10 @@ const subMasterItems = [
     "Company Master": "/master/company",
     "Tax Master": "/master/tax",
     "Tax Description Master": "/master/taxdescrip",
-     "Department Master": "/master/departmentmaster",
-     "Outlet Master": "/master/outletmaster",
-     "Outlet Items Details": "/submaster/outletitemsdetails",
-     "Item Master":"/master/itemmaster",
+    "Department Master": "/master/departmentmaster",
+    "Outlet Master": "/master/outletmaster",
+    "Outlet Items Details": "/submaster/outletitemsdetails",
+    "Item Master": "/master/itemmaster",
   };
 
   const handleNavigation = (name: string) => {
@@ -182,36 +180,36 @@ const subMasterItems = [
               )}
             </div>
 
-      {/* SUB MASTER DROPDOWN */}
-<div className="relative">
-  <button
-    onClick={() => toggleMenu("SUB_MASTER")}
-    className="flex items-center gap-2 hover:text-purple-600"
-  >
-    <Database size={16} className="text-purple-600" />
-    Sub Master
-    <ChevronDown size={14} />
-  </button>
+            {/* SUB MASTER DROPDOWN */}
+            <div className="relative">
+              <button
+                onClick={() => toggleMenu("SUB_MASTER")}
+                className="flex items-center gap-2 hover:text-purple-600"
+              >
+                <Database size={16} className="text-purple-600" />
+                Sub Master
+                <ChevronDown size={14} />
+              </button>
 
-  {activeMenu === "SUB_MASTER" && (
-    <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
-      {subMasterItems.map((item, index) => {
-        const Icon = item.icon;
+              {activeMenu === "SUB_MASTER" && (
+                <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+                  {subMasterItems.map((item, index) => {
+                    const Icon = item.icon;
 
-        return (
-          <div
-            key={index}
-            onClick={() => handleNavigation(item.name)}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
-          >
-            <Icon size={16} />
-            {item.name}
-          </div>
-        );
-      })}
-    </div>
-  )}
-</div>
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => handleNavigation(item.name)}
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                      >
+                        <Icon size={16} />
+                        {item.name}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             {/* <button className="flex items-center gap-2 hover:text-green-600">
               <Boxes size={16} className="text-green-600" />
               Inventory
@@ -276,7 +274,7 @@ const subMasterItems = [
                 </div>
               )}
             </div>
-{/* 
+            {/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
               Inventory Reports
@@ -329,34 +327,34 @@ const subMasterItems = [
               </div>
             )}
           </div>
-       {/* SUB MASTER */}
-<div>
-  <button
-    onClick={() => toggleMenu("SUB_MASTER")}
-    className="flex justify-between w-full"
-  >
-    Sub Master <ChevronDown size={16} />
-  </button>
+          {/* SUB MASTER */}
+          <div>
+            <button
+              onClick={() => toggleMenu("SUB_MASTER")}
+              className="flex justify-between w-full"
+            >
+              Sub Master <ChevronDown size={16} />
+            </button>
 
-  {activeMenu === "SUB_MASTER" && (
-    <div className="ml-4 mt-2 flex flex-col gap-2">
-      {subMasterItems.map((item, i) => {
-        const Icon = item.icon;
+            {activeMenu === "SUB_MASTER" && (
+              <div className="ml-4 mt-2 flex flex-col gap-2">
+                {subMasterItems.map((item, i) => {
+                  const Icon = item.icon;
 
-        return (
-          <button
-            key={i}
-            onClick={() => handleNavigation(item.name)}
-            className="flex items-center gap-2"
-          >
-            <Icon size={16} />
-            {item.name}
-          </button>
-        );
-      })}
-    </div>
-  )}
-</div>
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center gap-2"
+                    >
+                      <Icon size={16} />
+                      {item.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* <button className="flex items-center gap-2">
             <Boxes size={16} /> Inventory
@@ -417,7 +415,7 @@ const subMasterItems = [
               </div>
             )}
           </div>
-{/* 
+          {/* 
           <button>Inventory Reports</button>
           <button>Utility</button> */}
         </div>
