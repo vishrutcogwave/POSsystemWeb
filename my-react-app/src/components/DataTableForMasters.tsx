@@ -242,25 +242,50 @@ export function DataTable<T extends { id: number }>({
   };
 
   // ✅ global search
-  const filteredData = data.filter((row) =>
-    Object.values(row).some((value) =>
-      String(value)
-        .toLowerCase()
-        .includes(searchText.toLowerCase())
-    )
-  );
+ // ✅ global search
+const filteredData = data.filter((row) =>
+  Object.values(row).some((value) => {
+    const text = String(value).toLowerCase();
+    const search = searchText.toLowerCase();
+
+    // ✅ exact match first
+    return (
+      text === search ||
+      text.startsWith(search) ||
+      text.includes(search)
+    );
+  })
+);
 
   // ✅ sorting after filtering
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortKey) return 0;
+ // ✅ sorting after filtering
+const sortedData = [...filteredData].sort((a, b) => {
+  if (!sortKey) return 0;
 
-    const aValue = a[sortKey];
-    const bValue = b[sortKey];
+  const aValue = a[sortKey];
+  const bValue = b[sortKey];
 
+  // ✅ handle numbers properly
+  const aNum = Number(aValue);
+  const bNum = Number(bValue);
+
+  const isNumber =
+    !isNaN(aNum) &&
+    !isNaN(bNum) &&
+    aValue !== "" &&
+    bValue !== "";
+
+  if (isNumber) {
     return sortOrder === "asc"
-      ? String(aValue).localeCompare(String(bValue))
-      : String(bValue).localeCompare(String(aValue));
-  });
+      ? aNum - bNum
+      : bNum - aNum;
+  }
+
+  // ✅ string sorting
+  return sortOrder === "asc"
+    ? String(aValue).localeCompare(String(bValue))
+    : String(bValue).localeCompare(String(aValue));
+});
 
   return (
     <div className="w-full bg-white rounded-xl shadow p-2">
