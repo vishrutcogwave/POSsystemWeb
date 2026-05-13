@@ -1467,3 +1467,51 @@ export const getItemMasterList = async (branchcode: string) => {
 
     return response.data;
   };
+
+  export const createItemMaster = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: string;
+  subCatCode: string;
+  grpCode: string;
+  itemDiscountAllowed: boolean;
+  itemRate: number;
+  userCode: string;
+  lastModify: string;
+  unitCode: number;
+  unitName: string;
+  dep: string;
+  depCode: string;
+  taxCode: number;
+  taxName: string;
+  printDepartment: string;
+  branchCode: string;
+  sacCode: string;
+  thumb: string;
+  barcode: string;
+  isVeg: boolean;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating item master:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
