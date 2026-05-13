@@ -280,6 +280,7 @@ export default function ItemMaster() {
 
           unitName: item.unit || "",
           dep: item.dep || "",
+          depCode: item.depCode || "",
           taxName: item.taxName || "",
 
           printDepartment: item.printDepartment || "",
@@ -314,33 +315,56 @@ export default function ItemMaster() {
     fetchTaxes();
     fetchPrintingDepartments();
   }, []);
-  const handleEdit = (row: ItemMaster) => {
-    setIsEdit(true);
+const handleEdit = (row: any) => {
+  setIsEdit(true);
 
-    setForm({
-      id: row.itemCode,
+  const selectedCategory = categories.find(
+    (c) => String(c.catCode) === String(row.catCode)
+  );
 
-      itemCode: row.itemCode,
-      itemName: row.itemName,
+  const selectedSubCategory = subCategories.find(
+    (s) => String(s.subCatCode) === String(row.qpb)
+  );
 
-      catCode: row.catCode,
-      subCatCode: row.subCatCode,
-      grpCode: row.grpCode,
+  const selectedGroup = groups.find(
+    (g) => String(g.grpCode) === String(row.grpCode)
+  );
 
-      itemDiscountAllowed: row.itemDiscountAllowed,
-      itemRate: row.itemRate,
+  const selectedDepartment = departments.find(
+    (d) => String(d.depCode) === String(row.depCode)
+  );
 
-      unitName: row.unitName,
-      dep: row.dep,
-      taxName: row.taxName,
+  const selectedPrintDepartment = printingDepartments.find(
+    (p) => String(p.depCode) === String(row.mostRunningItemSrNo)
+  );
 
-      printDepartment: row.printDepartment,
-      sacCode: row.sacCode,
-      barcode: row.barcode,
+  setForm({
+    id: row.itemCode,
 
-      isVeg: row.isVeg,
-    });
-  };
+    itemCode: row.itemCode,
+    itemName: row.itemName,
+
+    catCode: String(selectedCategory?.catCode || ""),
+    subCatCode: String(selectedSubCategory?.subCatCode || ""),
+    grpCode: String(selectedGroup?.grpCode || ""),
+
+    itemDiscountAllowed: row.itemDiscountAllowed,
+    itemRate: row.itemRate,
+
+    unitName: row.unitName,
+
+    dep: selectedDepartment?.depName || "",
+
+    taxName: row.taxName || "",
+
+    printDepartment: selectedPrintDepartment?.depName || "",
+
+    sacCode: row.picture || "",
+    barcode: row.barcode || "",
+
+    isVeg: row.isVeg,
+  });
+};
 
   const handleSave = async () => {
     try {

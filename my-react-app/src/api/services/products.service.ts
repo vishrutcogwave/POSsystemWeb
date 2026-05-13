@@ -1515,3 +1515,51 @@ export const getItemMasterList = async (branchcode: string) => {
     throw error;
   }
 };
+
+export const updateItemMaster = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: string;
+  subCatCode: string;
+  grpCode: string;
+  itemDiscountAllowed: boolean;
+  itemRate: number;
+  userCode: string;
+  lastModify: string;
+  unitCode: number;
+  unitName: string;
+  dep: string;
+  depCode: string;
+  taxCode: number;
+  taxName: string;
+  printDepartment: string;
+  branchCode: string;
+  sacCode: string;
+  thumb: string;
+  barcode: string;
+  isVeg: boolean;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating item master:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
