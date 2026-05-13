@@ -245,23 +245,44 @@ const cancelDelete = () => {
           ))}
         </div>
 
-        <div className="flex gap-3 justify-end mt-6">
-          <button
-            onClick={handleSave}
-            disabled={isEdit}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-          >
-            Save
-          </button>
+       <div className="flex gap-3 justify-end mt-6">
+  {!isEdit && (
+    <button
+      onClick={handleSave}
+      className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
+  )}
 
-          <button
-            onClick={handleUpdate}
-            disabled={!isEdit}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-          >
-            Update
-          </button>
-        </div>
+  {isEdit && (
+    <>
+      <button
+        onClick={handleUpdate}
+        className="bg-green-500 text-white px-4 py-2 rounded-lg"
+      >
+        Update
+      </button>
+
+      <button
+        onClick={async () => {
+          setIsEdit(false);
+
+          setForm({
+            code: "",
+            name: "",
+            head: "",
+          });
+
+          await fetchNextCode();
+        }}
+        className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+      >
+        Cancel
+      </button>
+    </>
+  )}
+</div>
       </div>
 
       {/* TABLE */}

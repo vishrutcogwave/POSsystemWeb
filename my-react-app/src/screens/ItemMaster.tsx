@@ -717,22 +717,61 @@ const handleEdit = (row: any) => {
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-6">
-            <button
-              disabled={isEdit}
-              onClick={handleSave}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-            >
-              Save
-            </button>
+       <div className="flex gap-3 justify-end mt-6">
+  {!isEdit && (
+    <button
+      onClick={handleSave}
+      className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+    >
+      Save
+    </button>
+  )}
 
-            <button
-              disabled={!isEdit}
-              className="bg-green-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-            >
-              Update
-            </button>
-          </div>
+  {isEdit && (
+    <>
+      <button
+        className="bg-green-500 text-white px-4 py-2 rounded-lg"
+      >
+        Update
+      </button>
+
+      <button
+        onClick={async () => {
+          setIsEdit(false);
+
+          setForm({
+            id: 0,
+
+            itemCode: 0,
+            itemName: "",
+
+            catCode: "",
+            subCatCode: "",
+            grpCode: "",
+
+            itemDiscountAllowed: false,
+            itemRate: 0,
+
+            unitName: "",
+            dep: "",
+            taxName: "",
+
+            printDepartment: "",
+            sacCode: "",
+            barcode: "",
+
+            isVeg: true,
+          });
+
+          await fetchNextCode();
+        }}
+        className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+      >
+        Cancel
+      </button>
+    </>
+  )}
+</div>
         </div>
 
         {/* TABLE */}

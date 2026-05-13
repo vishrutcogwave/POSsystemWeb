@@ -320,23 +320,48 @@ const handleUpdate = async () => {
   </div>
 
   {/* Buttons */}
-  <div className="flex gap-3 mt-6 justify-end">
+{/* Buttons */}
+<div className="flex gap-3 mt-6 justify-end">
+  {!isEdit && (
     <button
       onClick={handleSave}
-      disabled={isEdit}
       className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
     >
       Save
     </button>
+  )}
 
-    <button
-      onClick={handleUpdate}
-      disabled={!isEdit}
-      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-    >
-      Update
-    </button>
-  </div>
+  {isEdit && (
+    <>
+      <button
+        onClick={handleUpdate}
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+      >
+        Update
+      </button>
+
+      <button
+        onClick={async () => {
+          setIsEdit(false);
+
+          setForm({
+            taxCode: "",
+            taxName: "",
+            taxPercentage: "",
+            isActive: true,
+            fromDate: "",
+            toDate: "",
+          });
+
+          await fetchNextCode();
+        }}
+        className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+      >
+        Cancel
+      </button>
+    </>
+  )}
+</div>
 </div>
 
       {/* TABLE */}

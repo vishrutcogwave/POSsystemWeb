@@ -358,23 +358,47 @@ const handleEdit = (row: TaxDescription) => {
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3 mt-6 justify-end">
-          <button
-            onClick={handleSave}
-            disabled={isEdit}
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Save
-          </button>
+      {/* Buttons */}
+<div className="flex gap-3 mt-6 justify-end">
+  {!isEdit && (
+    <button
+      onClick={handleSave}
+      className="bg-blue-500 text-white px-4 py-2 rounded"
+    >
+      Save
+    </button>
+  )}
 
-          <button
-            onClick={handleUpdate}
-            disabled={!isEdit}
-            className="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Update
-          </button>
-        </div>
+  {isEdit && (
+    <>
+      <button
+        onClick={handleUpdate}
+        className="bg-green-500 text-white px-4 py-2 rounded"
+      >
+        Update
+      </button>
+
+      <button
+        onClick={() => {
+          setIsEdit(false);
+
+          setForm({
+            taxDescId: "",
+            taxCode: "",
+            taxName: "",
+            taxDescription: "",
+            taxPercentage: "",
+            maxTaxPercentage: 0,
+            isActive: true,
+          });
+        }}
+        className="bg-gray-500 text-white px-4 py-2 rounded"
+      >
+        Cancel
+      </button>
+    </>
+  )}
+</div>
       </div>
 
       {/* TABLE */}
