@@ -47,7 +47,7 @@ export default function OutletItemsDetails() {
   const [isAvailableOnly, setIsAvailableOnly] = useState(true);
 
   const [loading, setLoading] = useState(false);
-
+const [originalData, setOriginalData] = useState<OutletItem[]>([]);
   const [data, setData] = useState<OutletItem[]>([]);
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -351,6 +351,7 @@ const handleApplyTax = () => {
         );
 
         setData(formatted);
+        setOriginalData(formatted);
       } else {
         toast.error(res?.message || "Failed ❌");
       }
@@ -477,52 +478,126 @@ const handleApplyTax = () => {
   printWindow.print();
 };
   
-  const handleSave = async () => {
-    try {
-      setLoading(true);
+//   const handleSave = async () => {
+//     try {
+//       setLoading(true);
 
-      const payload = {
-        oltCode: String(selectedOutlet),
-        branchCode: appData?.user?.branch_code || "",
-        userCode: String(appData?.user?.userCode || ""),
-      isTaxIncluded: !!appliedTax,
-taxCode: appliedTax?.taxCode?.toString() || "",
-taxName: appliedTax?.taxName || "",
-itemGroup: appliedTax?.itemGroup || "",
-        oltDetails: data.map((item) => ({
-          itemCode: item.itemCode,
-          itemName: item.itemName,
-          oidRate: Number(item.oidRate || 0),
-          oidAvailable: item.oidAvailable,
-          discount: Number(item.discount || 0),
-          freeItemCode: item.freeItemCode || "",
-          freeItemName: item.freeItemName || "",
-          freeItemQty: item.freeItemQty || "",
-          isHappyHour: item.isHappyHour,
-          grpCode: item.grpCode,
-        })),
-      };
+//       const payload = {
+//         oltCode: String(selectedOutlet),
+//         branchCode: appData?.user?.branch_code || "",
+//         userCode: String(appData?.user?.userCode || ""),
+//       isTaxIncluded: !!appliedTax,
+// taxCode: appliedTax?.taxCode?.toString() || "",
+// taxName: appliedTax?.taxName || "",
+// itemGroup: appliedTax?.itemGroup || "",
+//         oltDetails: data.map((item) => ({
+//           itemCode: item.itemCode,
+//           itemName: item.itemName,
+//           oidRate: Number(item.oidRate || 0),
+//           oidAvailable: item.oidAvailable,
+//           discount: Number(item.discount || 0),
+//           freeItemCode: item.freeItemCode || "",
+//           freeItemName: item.freeItemName || "",
+//           freeItemQty: item.freeItemQty || "",
+//           isHappyHour: item.isHappyHour,
+//           grpCode: item.grpCode,
+//         })),
+//       };
 
-      const res = await createOltItemMaster(payload);
+//       const res = await createOltItemMaster(payload);
 
-      if (res?.success) {
-        toast.success(res.message || "Saved successfully ✅");
+//       if (res?.success) {
+//         toast.success(res.message || "Saved successfully ✅");
 
-        fetchOutletItems(selectedOutlet);
-      } else {
-        toast.error(res?.message || "Failed to save ❌");
-      }
-    } catch (err: any) {
-      console.error(err);
+//         fetchOutletItems(selectedOutlet);
+//       } else {
+//         toast.error(res?.message || "Failed to save ❌");
+//       }
+//     } catch (err: any) {
+//       console.error(err);
 
-      toast.error(
-        err?.response?.data?.message || "Error saving outlet items ❌",
+//       toast.error(
+//         err?.response?.data?.message || "Error saving outlet items ❌",
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+const handleSave = async () => {
+  try {
+    setLoading(true);
+
+    // ✅ only modified rows
+    const modifiedItems = data.filter((item) => {
+      const original = originalData.find(
+        (o) => o.itemCode === item.itemCode
       );
-    } finally {
-      setLoading(false);
-    }
-  };
 
+      if (!original) return false;
+
+      return (
+        original.oidRate !== item.oidRate ||
+        original.oidAvailable !== item.oidAvailable ||
+        original.discount !== item.discount ||
+        original.freeItemCode !== item.freeItemCode ||
+        original.freeItemName !== item.freeItemName ||
+        original.freeItemQty !== item.freeItemQty ||
+        original.isHappyHour !== item.isHappyHour
+      );
+    });
+
+    // ✅ no changes
+    if (modifiedItems.length === 0) {
+      toast.error("No changes detected ❌");
+      return;
+    }
+
+    const payload = {
+      oltCode: String(selectedOutlet),
+      branchCode: appData?.user?.branch_code || "",
+      userCode: String(appData?.user?.userCode || ""),
+
+      isTaxIncluded: !!appliedTax,
+      taxCode: appliedTax?.taxCode?.toString() || "",
+      taxName: appliedTax?.taxName || "",
+      itemGroup: appliedTax?.itemGroup || "",
+
+      oltDetails: modifiedItems.map((item) => ({
+        itemCode: item.itemCode,
+        itemName: item.itemName,
+        oidRate: Number(item.oidRate || 0),
+        oidAvailable: item.oidAvailable,
+        discount: Number(item.discount || 0),
+        freeItemCode: item.freeItemCode || "",
+        freeItemName: item.freeItemName || "",
+        freeItemQty: item.freeItemQty || "",
+        isHappyHour: item.isHappyHour,
+        grpCode: item.grpCode,
+      })),
+    };
+
+    console.log("SAVE PAYLOAD 👉", payload);
+
+    const res = await createOltItemMaster(payload);
+
+    if (res?.success) {
+      toast.success(res.message || "Saved successfully ✅");
+
+      fetchOutletItems(selectedOutlet);
+    } else {
+      toast.error(res?.message || "Failed to save ❌");
+    }
+  } catch (err: any) {
+    console.error(err);
+
+    toast.error(
+      err?.response?.data?.message ||
+        "Error saving outlet items ❌"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <>
       <Header showNeworderButton={false} />
