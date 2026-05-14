@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Header from "../components/Header";
 import { DataTable, type Column } from "../components/DataTableForMasters";
 import {
   createItemMaster,
+  createItemMasterWithImage,
   deleteItemMaster,
   downloadItemMasterExcel,
   GetCategoryMasterList,
@@ -41,7 +42,7 @@ type ItemMaster = {
   printDepartment: string;
   sacCode: string;
   barcode: string;
-
+  thumb?: string;
   isVeg: boolean;
   mostRunningItemSrNo?: string;
   qpb?: number;
@@ -78,7 +79,7 @@ type PrintingDepartment = {
 export default function ItemMaster() {
   const { appData } = useAppContext();
   console.log("appData", appData);
-const navigate = useNavigate();
+  const navigate = useNavigate();
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -86,6 +87,8 @@ const navigate = useNavigate();
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
+  const fileInputRef =
+  useRef<HTMLInputElement | null>(null);
   const [printingDepartments, setPrintingDepartments] = useState<
     PrintingDepartment[]
   >([]);
@@ -115,13 +118,7 @@ const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [data, setData] = useState<ItemMaster[]>([]);
   const [deleteRow, setDeleteRow] = useState<ItemMaster | null>(null);
-const [selectedImage, setSelectedImage] = useState<File | null>(null);
-const [previewImage, setPreviewImage] = useState("");
-
-useEffect(() => {
-  console.log("selectedImage:", selectedImage);
-  console.log("previewImage:", previewImage);
-}, [selectedImage, previewImage]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const fetchPrintingDepartments = async () => {
     try {
@@ -297,7 +294,7 @@ useEffect(() => {
           printDepartment: item.printDepartment || "",
           sacCode: item.sacCode || "",
           barcode: item.barcode || "",
-
+          thumb : item.thumb || "",
           isVeg: item.isVeg || false,
           qpb: item.qpb || 0,
           mostRunningItemSrNo: item.mostRunningItemSrNo || "",
@@ -331,119 +328,293 @@ useEffect(() => {
     setDeleteRow(row);
   };
 
-const confirmDelete = async () => {
-  if (!deleteRow) return;
+  const confirmDelete = async () => {
+    if (!deleteRow) return;
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const res = await deleteItemMaster(
-      deleteRow.itemCode,
-      appData?.user?.branch_code,
-    );
+      const res = await deleteItemMaster(
+        deleteRow.itemCode,
+        appData?.user?.branch_code,
+      );
 
-    if (res?.success) {
-      toast.success("Deleted successfully ✅");
+      if (res?.success) {
+        toast.success("Deleted successfully ✅");
 
-      await fetchItems();
+        await fetchItems();
 
-      if (isEdit && form.itemCode === deleteRow.itemCode) {
-        setIsEdit(false);
+        if (isEdit && form.itemCode === deleteRow.itemCode) {
+          setIsEdit(false);
 
-        setForm({
-          id: 0,
+          setForm({
+            id: 0,
 
-          itemCode: 0,
-          itemName: "",
+            itemCode: 0,
+            itemName: "",
 
-          catCode: "",
-          subCatCode: "",
-          grpCode: "",
+            catCode: "",
+            subCatCode: "",
+            grpCode: "",
 
-          itemDiscountAllowed: false,
-          itemRate: 0,
+            itemDiscountAllowed: false,
+            itemRate: 0,
 
-          unitName: "",
-          dep: "",
-          taxName: "",
+            unitName: "",
+            dep: "",
+            taxName: "",
 
-          printDepartment: "",
-          sacCode: "",
-          barcode: "",
+            printDepartment: "",
+            sacCode: "",
+            barcode: "",
 
-          isVeg: true,
-        });
+            isVeg: true,
+          });
 
-        await fetchNextCode();
+          await fetchNextCode();
+        }
+      } else {
+        toast.error(res?.message || "Delete failed ❌");
       }
-    } else {
-      toast.error(res?.message || "Delete failed ❌");
-    }
-  } catch (err: any) {
-    console.error(err);
+    } catch (err: any) {
+      console.error(err);
 
-    toast.error(
-      err?.response?.data?.message || "Error deleting ❌"
-    );
-  } finally {
-    setLoading(false);
-    setDeleteRow(null);
-  }
-};
+      toast.error(err?.response?.data?.message || "Error deleting ❌");
+    } finally {
+      setLoading(false);
+      setDeleteRow(null);
+    }
+  };
   const cancelDelete = () => {
     setDeleteRow(null);
   };
+  // const handleEdit = (row: any) => {
+  //   console.log("rowinthe edit",row);
+    
+  //   setIsEdit(true);
+
+  //   const selectedCategory = categories.find(
+  //     (c) => String(c.catCode) === String(row.catCode),
+  //   );
+
+  //   const selectedSubCategory = subCategories.find(
+  //     (s) => String(s.subCatCode) === String(row.qpb),
+  //   );
+
+  //   const selectedGroup = groups.find(
+  //     (g) => String(g.grpCode) === String(row.grpCode),
+  //   );
+
+  //   const selectedDepartment = departments.find(
+  //     (d) => String(d.depCode) === String(row.depCode),
+  //   );
+
+  //   const selectedPrintDepartment = printingDepartments.find(
+  //     (p) => String(p.depCode) === String(row.mostRunningItemSrNo),
+  //   );
+
+  //   setForm({
+  //     id: row.itemCode,
+
+  //     itemCode: row.itemCode,
+  //     itemName: row.itemName,
+
+  //     catCode: String(selectedCategory?.catCode || ""),
+  //     subCatCode: String(selectedSubCategory?.subCatCode || ""),
+  //     grpCode: String(selectedGroup?.grpCode || ""),
+
+  //     itemDiscountAllowed: row.itemDiscountAllowed,
+  //     itemRate: row.itemRate,
+
+  //     unitName: row.unitName,
+
+  //     dep: selectedDepartment?.depName || "",
+
+  //     taxName: row.taxName || "",
+
+  //     printDepartment: selectedPrintDepartment?.depName || "",
+
+  //     sacCode: row.picture || "",
+  //     barcode: row.barcode || "",
+
+  //     isVeg: row.isVeg,
+  //   });
+  // };
+
+  // const handleSave = async () => {
+  //   try {
+  //     setLoading(true);
+
+  //     const selectedUnit = units.find((u) => u.unitName === form.unitName);
+
+  //     const selectedDepartment = departments.find(
+  //       (d) => d.depName === form.dep,
+  //     );
+
+  //     const selectedTax = taxes.find((t) => t.taxName === form.taxName);
+  //     const selectedPrintDepartment = printingDepartments.find(
+  //       (p) => p.depName === form.printDepartment,
+  //     );
+  //     const payload = {
+  //       itemCode: form.itemCode,
+  //       itemName: form.itemName,
+
+  //       catCode: form.catCode,
+  //       subCatCode: form.subCatCode,
+  //       grpCode: form.grpCode,
+
+  //       itemDiscountAllowed: form.itemDiscountAllowed,
+  //       itemRate: form.itemRate,
+
+  //       userCode: String(appData?.user?.userCode) || "",
+  //       lastModify: new Date().toISOString(),
+
+  //       unitCode: selectedUnit?.unitCode || 0,
+  //       unitName: form.unitName,
+
+  //       dep: form.dep,
+  //       depCode: String(selectedDepartment?.depCode || ""),
+
+  //       taxCode: selectedTax?.taxCode || 0,
+  //       taxName: form.taxName,
+  //       printDepartment: String(selectedPrintDepartment?.depCode || ""),
+  //       branchCode: appData?.user?.branch_code || "",
+
+  //       sacCode: form.sacCode,
+  //       thumb: "",
+
+  //       barcode: form.barcode,
+  //       isVeg: form.isVeg,
+  //     };
+
+  //     const res = await createItemMaster(payload);
+
+  //     if (res?.success) {
+  //       toast.success(res.message || "Item created successfully");
+
+  //       fetchItems();
+  //       fetchNextCode();
+
+  //       setForm({
+  //         id: 0,
+
+  //         itemCode: 0,
+  //         itemName: "",
+
+  //         catCode: "",
+  //         subCatCode: "",
+  //         grpCode: "",
+
+  //         itemDiscountAllowed: false,
+  //         itemRate: 0,
+
+  //         unitName: "",
+  //         dep: "",
+  //         taxName: "",
+
+  //         printDepartment: "",
+  //         sacCode: "",
+  //         barcode: "",
+
+  //         isVeg: true,
+  //       });
+  //     } else {
+  //       toast.error(res?.message || "Failed to create item");
+  //     }
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     toast.error(err?.response?.data?.message || "Error creating item");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
   const handleEdit = (row: any) => {
-    setIsEdit(true);
+  console.log("rowinthe edit", row);
 
-    const selectedCategory = categories.find(
-      (c) => String(c.catCode) === String(row.catCode),
+  setIsEdit(true);
+
+  const selectedCategory = categories.find(
+    (c) =>
+      String(c.catCode) ===
+      String(row.catCode)
+  );
+
+  const selectedSubCategory =
+    subCategories.find(
+      (s) =>
+        String(s.subCatCode) ===
+        String(row.qpb)
     );
 
-    const selectedSubCategory = subCategories.find(
-      (s) => String(s.subCatCode) === String(row.qpb),
+  const selectedGroup = groups.find(
+    (g) =>
+      String(g.grpCode) ===
+      String(row.grpCode)
+  );
+
+  const selectedDepartment =
+    departments.find(
+      (d) =>
+        String(d.depCode) ===
+        String(row.depCode)
     );
 
-    const selectedGroup = groups.find(
-      (g) => String(g.grpCode) === String(row.grpCode),
+  const selectedPrintDepartment =
+    printingDepartments.find(
+      (p) =>
+        String(p.depCode) ===
+        String(row.mostRunningItemSrNo)
     );
 
-    const selectedDepartment = departments.find(
-      (d) => String(d.depCode) === String(row.depCode),
-    );
+ setForm({
+  id: row.itemCode,
 
-    const selectedPrintDepartment = printingDepartments.find(
-      (p) => String(p.depCode) === String(row.mostRunningItemSrNo),
-    );
+  itemCode: row.itemCode,
+  itemName: row.itemName,
 
-    setForm({
-      id: row.itemCode,
+  catCode:
+    String(selectedCategory?.catCode || ""),
 
-      itemCode: row.itemCode,
-      itemName: row.itemName,
+  subCatCode: String(
+    selectedSubCategory?.subCatCode || ""
+  ),
 
-      catCode: String(selectedCategory?.catCode || ""),
-      subCatCode: String(selectedSubCategory?.subCatCode || ""),
-      grpCode: String(selectedGroup?.grpCode || ""),
+  grpCode:
+    String(selectedGroup?.grpCode || ""),
 
-      itemDiscountAllowed: row.itemDiscountAllowed,
-      itemRate: row.itemRate,
+  itemDiscountAllowed:
+    row.itemDiscountAllowed,
 
-      unitName: row.unitName,
+  itemRate: row.itemRate,
 
-      dep: selectedDepartment?.depName || "",
+  unitName: row.unitName,
 
-      taxName: row.taxName || "",
+  dep:
+    selectedDepartment?.depName || "",
 
-      printDepartment: selectedPrintDepartment?.depName || "",
+  taxName: row.taxName || "",
 
-      sacCode: row.picture || "",
-      barcode: row.barcode || "",
+  printDepartment:
+    selectedPrintDepartment?.depName ||
+    "",
 
-      isVeg: row.isVeg,
-    });
-  };
+  sacCode: row.picture || "",
 
+  barcode: row.barcode || "",
+
+  // ✅ THIS IS IMPORTANT
+  thumb: row.thumb || "",
+
+  isVeg: row.isVeg,
+});
+
+// ✅ clear selected image
+setSelectedImage(null);
+
+  // ✅ show image name in edit mode
+
+};
   const handleSave = async () => {
     try {
       setLoading(true);
@@ -455,9 +626,33 @@ const confirmDelete = async () => {
       );
 
       const selectedTax = taxes.find((t) => t.taxName === form.taxName);
+
       const selectedPrintDepartment = printingDepartments.find(
         (p) => p.depName === form.printDepartment,
       );
+
+      let thumbUrl = "";
+
+      // ✅ Upload image first
+      if (selectedImage) {
+        const imageRes = await createItemMasterWithImage(selectedImage);
+
+        if (imageRes?.success) {
+          const baseUrl = localStorage.getItem("baseUrl") || "";
+
+          // remove last slash if exists
+          const cleanBaseUrl = baseUrl.endsWith("/")
+            ? baseUrl.slice(0, -1)
+            : baseUrl;
+
+          // get only filename
+          const fileName = imageRes.data.split("/").pop();
+
+          // final thumb url
+          thumbUrl = `${cleanBaseUrl}/Images/${fileName}`;
+        }
+      }
+
       const payload = {
         itemCode: form.itemCode,
         itemName: form.itemName,
@@ -467,24 +662,32 @@ const confirmDelete = async () => {
         grpCode: form.grpCode,
 
         itemDiscountAllowed: form.itemDiscountAllowed,
+
         itemRate: form.itemRate,
 
         userCode: String(appData?.user?.userCode) || "",
+
         lastModify: new Date().toISOString(),
 
         unitCode: selectedUnit?.unitCode || 0,
         unitName: form.unitName,
 
         dep: form.dep,
+
         depCode: String(selectedDepartment?.depCode || ""),
 
         taxCode: selectedTax?.taxCode || 0,
+
         taxName: form.taxName,
+
         printDepartment: String(selectedPrintDepartment?.depCode || ""),
+
         branchCode: appData?.user?.branch_code || "",
 
         sacCode: form.sacCode,
-        thumb: "",
+
+        // ✅ send uploaded image path
+        thumb: thumbUrl,
 
         barcode: form.barcode,
         isVeg: form.isVeg,
@@ -498,6 +701,12 @@ const confirmDelete = async () => {
         fetchItems();
         fetchNextCode();
 
+     setSelectedImage(null);
+
+if (fileInputRef.current) {
+  fileInputRef.current.value = "";
+}
+
         setForm({
           id: 0,
 
@@ -526,99 +735,261 @@ const confirmDelete = async () => {
       }
     } catch (err: any) {
       console.error(err);
+
       toast.error(err?.response?.data?.message || "Error creating item");
     } finally {
       setLoading(false);
     }
   };
+
+  // const handleUpdate = async () => {
+  //   try {
+  //     setLoading(true);
+
+  //     const selectedUnit = units.find((u) => u.unitName === form.unitName);
+
+  //     const selectedDepartment = departments.find(
+  //       (d) => d.depName === form.dep,
+  //     );
+
+  //     const selectedTax = taxes.find((t) => t.taxName === form.taxName);
+  //     const selectedPrintDepartment = printingDepartments.find(
+  //       (p) => p.depName === form.printDepartment,
+  //     );
+  //     const payload = {
+  //       itemCode: form.itemCode,
+  //       itemName: form.itemName,
+
+  //       catCode: form.catCode,
+  //       subCatCode: form.subCatCode,
+  //       grpCode: form.grpCode,
+
+  //       itemDiscountAllowed: form.itemDiscountAllowed,
+  //       itemRate: form.itemRate,
+
+  //       userCode: String(appData?.user?.userCode) || "",
+  //       lastModify: new Date().toISOString(),
+
+  //       unitCode: selectedUnit?.unitCode || 0,
+  //       unitName: form.unitName,
+
+  //       dep: form.dep,
+  //       depCode: String(selectedDepartment?.depCode || ""),
+
+  //       taxCode: selectedTax?.taxCode || 0,
+  //       taxName: form.taxName,
+  //       printDepartment: String(selectedPrintDepartment?.depCode || ""),
+  //       branchCode: appData?.user?.branch_code || "",
+
+  //       sacCode: form.sacCode,
+  //       thumb: "",
+
+  //       barcode: form.barcode,
+  //       isVeg: form.isVeg,
+  //     };
+
+  //     const res = await updateItemMaster(payload);
+
+  //     if (res?.success) {
+  //       toast.success(res.message || "Item created successfully");
+
+  //       fetchItems();
+  //       fetchNextCode();
+  //       setIsEdit(false);
+  //       setForm({
+  //         id: 0,
+
+  //         itemCode: 0,
+  //         itemName: "",
+
+  //         catCode: "",
+  //         subCatCode: "",
+  //         grpCode: "",
+
+  //         itemDiscountAllowed: false,
+  //         itemRate: 0,
+
+  //         unitName: "",
+  //         dep: "",
+  //         taxName: "",
+
+  //         printDepartment: "",
+  //         sacCode: "",
+  //         barcode: "",
+
+  //         isVeg: true,
+  //       });
+  //     } else {
+  //       toast.error(res?.message || "Failed to create item");
+  //     }
+  //   } catch (err: any) {
+  //     console.error(err);
+  //     toast.error(err?.response?.data?.message || "Error creating item");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
   const handleUpdate = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const selectedUnit = units.find((u) => u.unitName === form.unitName);
+    const selectedUnit = units.find(
+      (u) => u.unitName === form.unitName
+    );
 
-      const selectedDepartment = departments.find(
-        (d) => d.depName === form.dep,
+    const selectedDepartment = departments.find(
+      (d) => d.depName === form.dep
+    );
+
+    const selectedTax = taxes.find(
+      (t) => t.taxName === form.taxName
+    );
+
+    const selectedPrintDepartment =
+      printingDepartments.find(
+        (p) => p.depName === form.printDepartment
       );
 
-      const selectedTax = taxes.find((t) => t.taxName === form.taxName);
-      const selectedPrintDepartment = printingDepartments.find(
-        (p) => p.depName === form.printDepartment,
+    // ✅ keep old thumb if no new image
+    let thumbUrl = form.thumb || "";
+
+    // ✅ upload new image if selected
+    if (
+      selectedImage &&
+      selectedImage instanceof File
+    ) {
+      const imageRes =
+        await createItemMasterWithImage(
+          selectedImage
+        );
+
+      if (imageRes?.success) {
+        const baseUrl =
+          localStorage.getItem("baseUrl") || "";
+
+        const cleanBaseUrl = baseUrl.endsWith("/")
+          ? baseUrl.slice(0, -1)
+          : baseUrl;
+
+        const fileName =
+          imageRes.data.split("/").pop();
+
+        thumbUrl = `${cleanBaseUrl}/Images/${fileName}`;
+      }
+    }
+
+    const payload = {
+      itemCode: form.itemCode,
+      itemName: form.itemName,
+
+      catCode: form.catCode,
+      subCatCode: form.subCatCode,
+      grpCode: form.grpCode,
+
+      itemDiscountAllowed:
+        form.itemDiscountAllowed,
+
+      itemRate: form.itemRate,
+
+      userCode:
+        String(appData?.user?.userCode) || "",
+
+      lastModify: new Date().toISOString(),
+
+      unitCode: selectedUnit?.unitCode || 0,
+      unitName: form.unitName,
+
+      dep: form.dep,
+
+      depCode: String(
+        selectedDepartment?.depCode || ""
+      ),
+
+      taxCode: selectedTax?.taxCode || 0,
+
+      taxName: form.taxName,
+
+      printDepartment: String(
+        selectedPrintDepartment?.depCode || ""
+      ),
+
+      branchCode:
+        appData?.user?.branch_code || "",
+
+      sacCode: form.sacCode,
+
+      // ✅ updated image path
+      thumb: thumbUrl,
+
+      barcode: form.barcode,
+      isVeg: form.isVeg,
+    };
+
+    const res = await updateItemMaster(
+      payload
+    );
+
+    if (res?.success) {
+      toast.success(
+        res.message ||
+          "Item updated successfully"
       );
-      const payload = {
-        itemCode: form.itemCode,
-        itemName: form.itemName,
 
-        catCode: form.catCode,
-        subCatCode: form.subCatCode,
-        grpCode: form.grpCode,
+      fetchItems();
+      fetchNextCode();
 
-        itemDiscountAllowed: form.itemDiscountAllowed,
-        itemRate: form.itemRate,
+      setIsEdit(false);
 
-        userCode: String(appData?.user?.userCode) || "",
-        lastModify: new Date().toISOString(),
+    setSelectedImage(null);
 
-        unitCode: selectedUnit?.unitCode || 0,
-        unitName: form.unitName,
+if (fileInputRef.current) {
+  fileInputRef.current.value = "";
+}
 
-        dep: form.dep,
-        depCode: String(selectedDepartment?.depCode || ""),
+      setForm({
+        id: 0,
 
-        taxCode: selectedTax?.taxCode || 0,
-        taxName: form.taxName,
-        printDepartment: String(selectedPrintDepartment?.depCode || ""),
-        branchCode: appData?.user?.branch_code || "",
+        itemCode: 0,
+        itemName: "",
 
-        sacCode: form.sacCode,
+        catCode: "",
+        subCatCode: "",
+        grpCode: "",
+
+        itemDiscountAllowed: false,
+        itemRate: 0,
+
+        unitName: "",
+        dep: "",
+        taxName: "",
+
+        printDepartment: "",
+        sacCode: "",
+        barcode: "",
+
         thumb: "",
 
-        barcode: form.barcode,
-        isVeg: form.isVeg,
-      };
-
-      const res = await updateItemMaster(payload);
-
-      if (res?.success) {
-        toast.success(res.message || "Item created successfully");
-
-        fetchItems();
-        fetchNextCode();
-        setIsEdit(false);
-        setForm({
-          id: 0,
-
-          itemCode: 0,
-          itemName: "",
-
-          catCode: "",
-          subCatCode: "",
-          grpCode: "",
-
-          itemDiscountAllowed: false,
-          itemRate: 0,
-
-          unitName: "",
-          dep: "",
-          taxName: "",
-
-          printDepartment: "",
-          sacCode: "",
-          barcode: "",
-
-          isVeg: true,
-        });
-      } else {
-        toast.error(res?.message || "Failed to create item");
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.response?.data?.message || "Error creating item");
-    } finally {
-      setLoading(false);
+        isVeg: true,
+      });
+    } else {
+      toast.error(
+        res?.message ||
+          "Failed to update item"
+      );
     }
-  };
+  } catch (err: any) {
+    console.error(err);
 
+    toast.error(
+      err?.response?.data?.message ||
+        "Error updating item"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <>
       <Header showNeworderButton={false} />
@@ -627,40 +998,38 @@ const confirmDelete = async () => {
         {loading && <Loader />}
 
         {/* FORM */}
-<div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          {/* LEFT SIDE */}
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+              Item Master
+            </h1>
 
-  {/* LEFT SIDE */}
-  <div>
-    <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-      Item Master
-    </h1>
+            <p className="text-sm text-gray-500">
+              Manage item details and download/import excel template
+            </p>
+          </div>
 
-    <p className="text-sm text-gray-500">
-      Manage item details and download/import excel template
-    </p>
-  </div>
+          {/* RIGHT SIDE BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {/* DOWNLOAD BUTTON */}
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
 
-  {/* RIGHT SIDE BUTTONS */}
-  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  await downloadItemMasterExcel();
 
-    {/* DOWNLOAD BUTTON */}
-    <button
-      onClick={async () => {
-        try {
-          setLoading(true);
+                  toast.success("Excel downloaded successfully ✅");
+                } catch (err) {
+                  console.error(err);
 
-          await downloadItemMasterExcel();
-
-          toast.success("Excel downloaded successfully ✅");
-        } catch (err) {
-          console.error(err);
-
-          toast.error("Failed to download excel ❌");
-        } finally {
-          setLoading(false);
-        }
-      }}
-      className="
+                  toast.error("Failed to download excel ❌");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="
         w-full sm:w-auto
         bg-purple-600 hover:bg-purple-700
         text-white
@@ -673,15 +1042,15 @@ const confirmDelete = async () => {
         shadow-sm
         flex items-center justify-center gap-2
       "
-    >
-      <span>⬇</span>
-      <span>Download Excel</span>
-    </button>
+            >
+              <span>⬇</span>
+              <span>Download Excel</span>
+            </button>
 
-    {/* IMPORT BUTTON */}
-  <button
-  onClick={() => navigate("/item-master-import")}
-  className="
+            {/* IMPORT BUTTON */}
+            <button
+              onClick={() => navigate("/item-master-import")}
+              className="
     w-full sm:w-auto
     bg-green-600 hover:bg-green-700
     text-white
@@ -694,12 +1063,12 @@ const confirmDelete = async () => {
     shadow-sm
     flex items-center justify-center gap-2
   "
->
-  <span>⬆</span>
-  <span>Import Excel</span>
-</button>
-  </div>
-</div>
+            >
+              <span>⬆</span>
+              <span>Import Excel</span>
+            </button>
+          </div>
+        </div>
         <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <h2 className="text-lg font-semibold mb-4">Item Master</h2>
 
@@ -716,27 +1085,64 @@ const confirmDelete = async () => {
                 className="border rounded-lg px-3 py-2"
               />
             </div>
-<div className="flex flex-col">
-  <label className="text-sm mb-1">Item Image</label>
+            {/* <div className="flex flex-col">
+              <label className="text-sm mb-1">Item Image</label>
 
-  <input
-    type="file"
-    accept="image/*"
-    onChange={(e) => {
-      const file = e.target.files?.[0];
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
 
-      if (file) {
-        setSelectedImage(file);
-        setPreviewImage(URL.createObjectURL(file));
-      }
-    }}
-    className="border rounded-lg px-3 py-2"
-  />
+                  if (file) {
+                    setSelectedImage(file);
+                  }
+                }}
+                className="border rounded-lg px-3 py-2"
+              />
 
-  {previewImage && (
-    <div className="relative mt-2 w-fit">
+              {selectedImage && (
+                <div className="mt-2 flex items-center gap-2 text-sm">
+                  <span className="text-gray-700">{selectedImage.name}</span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImage(null);
+                    }}
+                    className="text-red-500 font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div> */}
+            <div className="flex flex-col">
+  <label className="text-sm mb-1">
+    Item Image
+  </label>
+
+ <input
+  ref={fileInputRef}
+  type="file"
+  accept="image/*"
+  onChange={(e) => {
+    const file = e.target.files?.[0];
+
+    if (file) {
+      setSelectedImage(file);
+    }
+  }}
+  className="border rounded-lg px-3 py-2"
+/>
+
+  {/* ✅ New uploaded image */}
+  {selectedImage instanceof File && (
+    <div className="mt-2">
       <img
-        src={previewImage}
+        src={URL.createObjectURL(
+          selectedImage
+        )}
         alt="Preview"
         className="w-24 h-24 object-cover rounded-lg border"
       />
@@ -745,11 +1151,34 @@ const confirmDelete = async () => {
         type="button"
         onClick={() => {
           setSelectedImage(null);
-          setPreviewImage("");
         }}
-        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+        className="text-red-500 text-sm mt-1"
       >
-        ✕
+        Remove
+      </button>
+    </div>
+  )}
+
+  {/* ✅ Existing thumb image in edit mode */}
+  {!selectedImage && form.thumb && (
+    <div className="mt-2">
+      <img
+        src={form.thumb}
+        alt="Thumb"
+        className="w-24 h-24 object-cover rounded-lg border"
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          setForm((prev) => ({
+            ...prev,
+            thumb: "",
+          }));
+        }}
+        className="text-red-500 text-sm mt-1"
+      >
+        Remove
       </button>
     </div>
   )}

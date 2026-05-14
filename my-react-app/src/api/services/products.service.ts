@@ -1713,3 +1713,37 @@ export const importItemMasterFromExcel =
       throw error;
     }
   };
+
+  export const createItemMasterWithImage = async (
+  image: File
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+
+    // "Image" should match API parameter name
+    formData.append("Image", image);
+
+    const response = await api.post(
+      "/api/Master/CreateItemMasterWithImage",
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error uploading image:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
