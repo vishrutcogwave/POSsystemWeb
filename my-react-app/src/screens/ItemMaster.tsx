@@ -1117,24 +1117,38 @@ if (fileInputRef.current) {
                 </div>
               )}
             </div> */}
-            <div className="flex flex-col">
+<div className="flex flex-col">
   <label className="text-sm mb-1">
     Item Image
   </label>
 
- <input
-  ref={fileInputRef}
-  type="file"
-  accept="image/*"
-  onChange={(e) => {
-    const file = e.target.files?.[0];
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
 
-    if (file) {
-      setSelectedImage(file);
-    }
-  }}
-  className="border rounded-lg px-3 py-2"
-/>
+      if (file) {
+        // ✅ Restrict max size to 100KB
+        const maxSize = 100 * 1024;
+
+        if (file.size > maxSize) {
+          toast.error(
+            "Image size must be less than 100 KB"
+          );
+
+          // clear input
+          e.target.value = "";
+
+          return;
+        }
+
+        setSelectedImage(file);
+      }
+    }}
+    className="border rounded-lg px-3 py-2"
+  />
 
   {/* ✅ New uploaded image */}
   {selectedImage instanceof File && (
@@ -1151,6 +1165,11 @@ if (fileInputRef.current) {
         type="button"
         onClick={() => {
           setSelectedImage(null);
+
+          // clear file input
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
         }}
         className="text-red-500 text-sm mt-1"
       >
@@ -1175,6 +1194,10 @@ if (fileInputRef.current) {
             ...prev,
             thumb: "",
           }));
+
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
         }}
         className="text-red-500 text-sm mt-1"
       >
