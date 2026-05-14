@@ -4,6 +4,7 @@ import { DataTable, type Column } from "../components/DataTableForMasters";
 import {
   createItemMaster,
   deleteItemMaster,
+  downloadItemMasterExcel,
   GetCategoryMasterList,
   getDepartmentList,
   GetGroupMasterList,
@@ -18,6 +19,7 @@ import {
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
+import { useNavigate } from "react-router-dom";
 
 type ItemMaster = {
   id: number;
@@ -76,7 +78,7 @@ type PrintingDepartment = {
 export default function ItemMaster() {
   const { appData } = useAppContext();
   console.log("appData", appData);
-
+const navigate = useNavigate();
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -113,6 +115,13 @@ export default function ItemMaster() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [data, setData] = useState<ItemMaster[]>([]);
   const [deleteRow, setDeleteRow] = useState<ItemMaster | null>(null);
+const [selectedImage, setSelectedImage] = useState<File | null>(null);
+const [previewImage, setPreviewImage] = useState("");
+
+useEffect(() => {
+  console.log("selectedImage:", selectedImage);
+  console.log("previewImage:", previewImage);
+}, [selectedImage, previewImage]);
 
   const fetchPrintingDepartments = async () => {
     try {
@@ -618,6 +627,79 @@ const confirmDelete = async () => {
         {loading && <Loader />}
 
         {/* FORM */}
+<div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+  {/* LEFT SIDE */}
+  <div>
+    <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+      Item Master
+    </h1>
+
+    <p className="text-sm text-gray-500">
+      Manage item details and download/import excel template
+    </p>
+  </div>
+
+  {/* RIGHT SIDE BUTTONS */}
+  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+
+    {/* DOWNLOAD BUTTON */}
+    <button
+      onClick={async () => {
+        try {
+          setLoading(true);
+
+          await downloadItemMasterExcel();
+
+          toast.success("Excel downloaded successfully ✅");
+        } catch (err) {
+          console.error(err);
+
+          toast.error("Failed to download excel ❌");
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="
+        w-full sm:w-auto
+        bg-purple-600 hover:bg-purple-700
+        text-white
+        px-4 md:px-5
+        py-2.5
+        rounded-xl
+        font-medium
+        transition-all
+        duration-200
+        shadow-sm
+        flex items-center justify-center gap-2
+      "
+    >
+      <span>⬇</span>
+      <span>Download Excel</span>
+    </button>
+
+    {/* IMPORT BUTTON */}
+  <button
+  onClick={() => navigate("/item-master-import")}
+  className="
+    w-full sm:w-auto
+    bg-green-600 hover:bg-green-700
+    text-white
+    px-4 md:px-5
+    py-2.5
+    rounded-xl
+    font-medium
+    transition-all
+    duration-200
+    shadow-sm
+    flex items-center justify-center gap-2
+  "
+>
+  <span>⬆</span>
+  <span>Import Excel</span>
+</button>
+  </div>
+</div>
         <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <h2 className="text-lg font-semibold mb-4">Item Master</h2>
 
@@ -634,7 +716,44 @@ const confirmDelete = async () => {
                 className="border rounded-lg px-3 py-2"
               />
             </div>
+<div className="flex flex-col">
+  <label className="text-sm mb-1">Item Image</label>
 
+  <input
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const file = e.target.files?.[0];
+
+      if (file) {
+        setSelectedImage(file);
+        setPreviewImage(URL.createObjectURL(file));
+      }
+    }}
+    className="border rounded-lg px-3 py-2"
+  />
+
+  {previewImage && (
+    <div className="relative mt-2 w-fit">
+      <img
+        src={previewImage}
+        alt="Preview"
+        className="w-24 h-24 object-cover rounded-lg border"
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedImage(null);
+          setPreviewImage("");
+        }}
+        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs"
+      >
+        ✕
+      </button>
+    </div>
+  )}
+</div>
             <div className="flex flex-col">
               <label className="text-sm mb-1">Item Name</label>
 
@@ -648,7 +767,7 @@ const confirmDelete = async () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm mb-1">Category Code</label>
+              <label className="text-sm mb-1">Category</label>
 
               <select
                 name="catCode"
@@ -672,7 +791,7 @@ const confirmDelete = async () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm mb-1">Sub Category Code</label>
+              <label className="text-sm mb-1">Sub Category</label>
 
               <select
                 name="subCatCode"
@@ -696,7 +815,7 @@ const confirmDelete = async () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-sm mb-1">Group Code</label>
+              <label className="text-sm mb-1">Group</label>
 
               <select
                 name="grpCode"

@@ -19,6 +19,7 @@ import DepartmentMaster from "./DepartmentMaster";
 import OutletMaster from "./OutletMaster";
 import OutletItemsDetails from "./OutletItemsDetails";
 import ItemMaster from "./ItemMaster";
+import ItemMasterImport from "./ItemMasterImport";
 
 function LandingPage() {
   const location = useLocation();
@@ -93,6 +94,10 @@ function LandingPage() {
           path="/submaster/outletitemsdetails"
           element={<OutletItemsDetails />}
         />
+        <Route
+  path="/item-master-import"
+  element={<ItemMasterImport />}
+/>
       </Routes>
     </>
   );

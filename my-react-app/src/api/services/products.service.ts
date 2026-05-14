@@ -1594,3 +1594,122 @@ export const deleteItemMaster = async (
     throw error;
   }
 };
+
+
+
+export const downloadItemMasterExcel = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/ItemMasterDownloadExcel",
+      {
+        responseType: "blob", // ✅ important
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    // Create file download
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    );
+
+    const link = document.createElement("a");
+    link.href = url;
+
+    // file name
+    link.setAttribute("download", "ItemImport.xlsx");
+
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error: any) {
+    console.error(
+      "Error downloading excel:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const uploadItemMasterExcel = async (
+  file: File,
+  BranchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await api.post(
+      `/api/Master/uploadItemMasterFromExcel?BranchCode=${BranchCode}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type":
+            "multipart/form-data",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error uploading excel:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+export const importItemMasterFromExcel =
+  async (
+    payload: any[],
+    usercode: string,
+    branchcode: string
+  ) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/Master/ImportItemMasterFromExcel",
+        payload,
+        {
+          params: {
+            usercode,
+            branchcode,
+          },
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error importing item master:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
