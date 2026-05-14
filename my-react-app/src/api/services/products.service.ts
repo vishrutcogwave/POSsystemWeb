@@ -1563,3 +1563,34 @@ export const updateItemMaster = async (payload: {
     throw error;
   }
 };
+
+export const deleteItemMaster = async (
+  id: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteItemMaster",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting item master:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

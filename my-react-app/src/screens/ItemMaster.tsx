@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import { DataTable, type Column } from "../components/DataTableForMasters";
 import {
   createItemMaster,
+  deleteItemMaster,
   GetCategoryMasterList,
   getDepartmentList,
   GetGroupMasterList,
@@ -316,57 +317,123 @@ export default function ItemMaster() {
     fetchTaxes();
     fetchPrintingDepartments();
   }, []);
-const handleEdit = (row: any) => {
-  setIsEdit(true);
 
-  const selectedCategory = categories.find(
-    (c) => String(c.catCode) === String(row.catCode)
-  );
+  const handleDeleteRow = (row: ItemMaster) => {
+    setDeleteRow(row);
+  };
 
-  const selectedSubCategory = subCategories.find(
-    (s) => String(s.subCatCode) === String(row.qpb)
-  );
+const confirmDelete = async () => {
+  if (!deleteRow) return;
 
-  const selectedGroup = groups.find(
-    (g) => String(g.grpCode) === String(row.grpCode)
-  );
+  try {
+    setLoading(true);
 
-  const selectedDepartment = departments.find(
-    (d) => String(d.depCode) === String(row.depCode)
-  );
+    const res = await deleteItemMaster(
+      deleteRow.itemCode,
+      appData?.user?.branch_code,
+    );
 
-  const selectedPrintDepartment = printingDepartments.find(
-    (p) => String(p.depCode) === String(row.mostRunningItemSrNo)
-  );
+    if (res?.success) {
+      toast.success("Deleted successfully ✅");
 
-  setForm({
-    id: row.itemCode,
+      await fetchItems();
 
-    itemCode: row.itemCode,
-    itemName: row.itemName,
+      if (isEdit && form.itemCode === deleteRow.itemCode) {
+        setIsEdit(false);
 
-    catCode: String(selectedCategory?.catCode || ""),
-    subCatCode: String(selectedSubCategory?.subCatCode || ""),
-    grpCode: String(selectedGroup?.grpCode || ""),
+        setForm({
+          id: 0,
 
-    itemDiscountAllowed: row.itemDiscountAllowed,
-    itemRate: row.itemRate,
+          itemCode: 0,
+          itemName: "",
 
-    unitName: row.unitName,
+          catCode: "",
+          subCatCode: "",
+          grpCode: "",
 
-    dep: selectedDepartment?.depName || "",
+          itemDiscountAllowed: false,
+          itemRate: 0,
 
-    taxName: row.taxName || "",
+          unitName: "",
+          dep: "",
+          taxName: "",
 
-    printDepartment: selectedPrintDepartment?.depName || "",
+          printDepartment: "",
+          sacCode: "",
+          barcode: "",
 
-    sacCode: row.picture || "",
-    barcode: row.barcode || "",
+          isVeg: true,
+        });
 
-    isVeg: row.isVeg,
-  });
+        await fetchNextCode();
+      }
+    } else {
+      toast.error(res?.message || "Delete failed ❌");
+    }
+  } catch (err: any) {
+    console.error(err);
+
+    toast.error(
+      err?.response?.data?.message || "Error deleting ❌"
+    );
+  } finally {
+    setLoading(false);
+    setDeleteRow(null);
+  }
 };
+  const cancelDelete = () => {
+    setDeleteRow(null);
+  };
+  const handleEdit = (row: any) => {
+    setIsEdit(true);
 
+    const selectedCategory = categories.find(
+      (c) => String(c.catCode) === String(row.catCode),
+    );
+
+    const selectedSubCategory = subCategories.find(
+      (s) => String(s.subCatCode) === String(row.qpb),
+    );
+
+    const selectedGroup = groups.find(
+      (g) => String(g.grpCode) === String(row.grpCode),
+    );
+
+    const selectedDepartment = departments.find(
+      (d) => String(d.depCode) === String(row.depCode),
+    );
+
+    const selectedPrintDepartment = printingDepartments.find(
+      (p) => String(p.depCode) === String(row.mostRunningItemSrNo),
+    );
+
+    setForm({
+      id: row.itemCode,
+
+      itemCode: row.itemCode,
+      itemName: row.itemName,
+
+      catCode: String(selectedCategory?.catCode || ""),
+      subCatCode: String(selectedSubCategory?.subCatCode || ""),
+      grpCode: String(selectedGroup?.grpCode || ""),
+
+      itemDiscountAllowed: row.itemDiscountAllowed,
+      itemRate: row.itemRate,
+
+      unitName: row.unitName,
+
+      dep: selectedDepartment?.depName || "",
+
+      taxName: row.taxName || "",
+
+      printDepartment: selectedPrintDepartment?.depName || "",
+
+      sacCode: row.picture || "",
+      barcode: row.barcode || "",
+
+      isVeg: row.isVeg,
+    });
+  };
 
   const handleSave = async () => {
     try {
@@ -508,7 +575,7 @@ const handleEdit = (row: any) => {
 
         fetchItems();
         fetchNextCode();
-    setIsEdit(false);
+        setIsEdit(false);
         setForm({
           id: 0,
 
@@ -542,7 +609,6 @@ const handleEdit = (row: any) => {
       setLoading(false);
     }
   };
-
 
   return (
     <>
@@ -807,62 +873,62 @@ const handleEdit = (row: any) => {
             </div>
           </div>
 
-       <div className="flex gap-3 justify-end mt-6">
-  {!isEdit && (
-    <button
-      onClick={handleSave}
-      className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-    >
-      Save
-    </button>
-  )}
+          <div className="flex gap-3 justify-end mt-6">
+            {!isEdit && (
+              <button
+                onClick={handleSave}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+              >
+                Save
+              </button>
+            )}
 
-  {isEdit && (
-    <>
-    <button
-  onClick={handleUpdate}
-  className="bg-green-500 text-white px-4 py-2 rounded-lg"
->
-  Update
-</button>
+            {isEdit && (
+              <>
+                <button
+                  onClick={handleUpdate}
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg"
+                >
+                  Update
+                </button>
 
-      <button
-        onClick={async () => {
-          setIsEdit(false);
+                <button
+                  onClick={async () => {
+                    setIsEdit(false);
 
-          setForm({
-            id: 0,
+                    setForm({
+                      id: 0,
 
-            itemCode: 0,
-            itemName: "",
+                      itemCode: 0,
+                      itemName: "",
 
-            catCode: "",
-            subCatCode: "",
-            grpCode: "",
+                      catCode: "",
+                      subCatCode: "",
+                      grpCode: "",
 
-            itemDiscountAllowed: false,
-            itemRate: 0,
+                      itemDiscountAllowed: false,
+                      itemRate: 0,
 
-            unitName: "",
-            dep: "",
-            taxName: "",
+                      unitName: "",
+                      dep: "",
+                      taxName: "",
 
-            printDepartment: "",
-            sacCode: "",
-            barcode: "",
+                      printDepartment: "",
+                      sacCode: "",
+                      barcode: "",
 
-            isVeg: true,
-          });
+                      isVeg: true,
+                    });
 
-          await fetchNextCode();
-        }}
-        className="bg-gray-500 text-white px-4 py-2 rounded-lg"
-      >
-        Cancel
-      </button>
-    </>
-  )}
-</div>
+                    await fetchNextCode();
+                  }}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* TABLE */}
@@ -873,7 +939,7 @@ const handleEdit = (row: any) => {
             columns={columns}
             data={data}
             onEdit={handleEdit}
-            onDelete={(row) => setDeleteRow(row)}
+            onDelete={handleDeleteRow}
           />
 
           {deleteRow && (
@@ -888,14 +954,14 @@ const handleEdit = (row: any) => {
 
                 <div className="flex justify-end gap-3">
                   <button
-                    onClick={() => setDeleteRow(null)}
+                    onClick={cancelDelete}
                     className="px-4 py-2 rounded-lg border"
                   >
                     Cancel
                   </button>
 
                   <button
-                    onClick={() => setDeleteRow(null)}
+                    onClick={confirmDelete}
                     className="px-4 py-2 rounded-lg bg-red-500 text-white"
                   >
                     Delete
