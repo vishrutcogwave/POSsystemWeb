@@ -7,7 +7,6 @@ import {
   Database,
   Boxes,
   FileBarChart,
-  Wrench,
   LogOut,
   Menu,
   X,
