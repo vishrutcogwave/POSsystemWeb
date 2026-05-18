@@ -294,6 +294,7 @@ export default function OutletMaster() {
 
       if (res?.success) {
         toast.success("Deleted ✅");
+           await fetchNextCode()
         fetchOutlets();
       } else {
         toast.error("Delete failed ❌");

@@ -68,6 +68,8 @@ export default function CompanyCreation() {
 
       if (res?.success) {
         toast.success("Deleted successfully ✅");
+            await fetchNextCode();
+
         fetchCompanies(); // refresh
       } else {
         toast.error(res?.message || "Delete failed ❌");

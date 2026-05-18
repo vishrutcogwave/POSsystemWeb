@@ -1747,3 +1747,263 @@ export const importItemMasterFromExcel =
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+export const getUnitMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetUnitMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching unit master list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createUnitMaster = async (payload: {
+  unitCode: number;
+  unitName: string;
+  unitSymbol: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateUnitMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating unit master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateUnitMaster = async (payload: {
+  unitCode: number;
+  unitName: string;
+  unitSymbol: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateUnitMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating unit master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteUnitMaster = async (
+  id: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteUnitMaster",
+      {
+        params: { id },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting unit master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+export const getGroupMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetGroupMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching group master list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createGroupMaster = async (payload: {
+  grpCode: number;
+  grpName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  isuploaded: string;
+  dep: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateGroupMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating group master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateGroupMaster = async (payload: {
+  grpCode: number;
+  grpName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  isuploaded: string;
+  dep: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateGroupMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating group master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteGroupMaster = async (
+  id: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteGroupMaster",
+      {
+        params: { id },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting group master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

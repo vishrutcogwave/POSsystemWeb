@@ -244,6 +244,7 @@ const handleUpdate = async () => {
 
       if (res?.success) {
         toast.success("Deleted ✅");
+        
         fetchData();
       }
     } catch {

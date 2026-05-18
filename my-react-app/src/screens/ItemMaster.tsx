@@ -341,7 +341,7 @@ export default function ItemMaster() {
 
       if (res?.success) {
         toast.success("Deleted successfully ✅");
-
+   await fetchNextCode()
         await fetchItems();
 
         if (isEdit && form.itemCode === deleteRow.itemCode) {
