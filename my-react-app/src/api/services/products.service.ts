@@ -2007,3 +2007,138 @@ export const deleteGroupMaster = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+export const getCategoryMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetCategoryMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching category master list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  subCat: string;
+  imageUrl: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating category master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  subCat: string;
+  imageUrl: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating category master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteCategoryMaster = async (
+  id: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteCategoryMaster",
+      {
+        params: { id },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting category master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

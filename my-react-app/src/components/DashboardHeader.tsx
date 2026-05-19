@@ -56,6 +56,7 @@ const DashboardHeader: React.FC = () => {
     { name: "Item Master", icon: Package },
      { name: "Unit Master", icon: Package },
        { name: "Group Master", icon: Package },
+         { name: "Category Master", icon: Package },
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -78,6 +79,8 @@ const DashboardHeader: React.FC = () => {
     "Item Master": "/master/itemmaster",
       "Unit Master": "/master/unitmaster",
         "Group Master": "/master/groupmaster",
+        "Category Master": "/master/categorymaster",
+        
       
   };
 

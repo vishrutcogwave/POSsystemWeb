@@ -22,6 +22,7 @@ import ItemMaster from "./ItemMaster";
 import ItemMasterImport from "./ItemMasterImport";
 import UnitMaster from "./UnitMaster";
 import GroupMaster from "./GroupMaster";
+import CategoryMaster from "./CategoryMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -107,6 +108,10 @@ function LandingPage() {
 <Route
   path="/master/groupmaster"
   element={<GroupMaster />}
+/>
+<Route
+  path="/master/categorymaster"
+  element={<CategoryMaster />}
 />
       </Routes>
     </>
