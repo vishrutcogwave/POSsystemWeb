@@ -2142,3 +2142,151 @@ export const deleteCategoryMaster = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+export const getSubCategoryMasterList =
+  async (branchcode: string) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.get(
+        "/api/Master/GetSubCategoryMasterList",
+        {
+          params: { branchcode },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching sub category list:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const createSubCategoryMaster =
+  async (payload: {
+    catCode: number;
+    catName: string;
+    subCatCode: number;
+    subCatName: string;
+    userCode: string;
+    trDate: string;
+    branch_Code: string;
+    subCat: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/Master/CreateSubCategoryMaster",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error creating sub category:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const updateSubCategoryMaster =
+  async (payload: {
+    catCode: number;
+    catName: string;
+    subCatCode: number;
+    subCatName: string;
+    userCode: string;
+    trDate: string;
+    branch_Code: string;
+    subCat: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.put(
+        "/api/Master/UpdateSubCategoryMaster",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error updating sub category:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const deleteSubCategoryMaster =
+  async (id: number) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.delete(
+        "/api/Master/DeleteSubCategoryMaster",
+        {
+          params: { id },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error deleting sub category:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
