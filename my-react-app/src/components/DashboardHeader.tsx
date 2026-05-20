@@ -19,6 +19,7 @@ import {
   Receipt,
   Store,
   Package,
+  UserCog,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -45,6 +46,7 @@ const DashboardHeader: React.FC = () => {
     { name: "VoidKot", icon: Ban },
     { name: "Nckot", icon: FileX },
     { name: "BillReprint", icon: FileText },
+    
   ];
   // 🔥 MASTER DROPDOWN
   const masterItems = [
@@ -58,6 +60,10 @@ const DashboardHeader: React.FC = () => {
        { name: "Group Master", icon: Package },
          { name: "Category Master", icon: Package },
            { name: "Sub Category Master", icon: Package },
+             {
+    name: "Steward Master",
+    icon: UserCog,
+  },
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -83,6 +89,8 @@ const DashboardHeader: React.FC = () => {
         "Category Master": "/master/categorymaster",
         "Sub Category Master":
   "/master/subcategorymaster",
+  "Steward Master":
+  "/master/stewardmaster",
         
       
   };

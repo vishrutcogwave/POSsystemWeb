@@ -2290,3 +2290,139 @@ export const deleteSubCategoryMaster =
       throw error;
     }
   };
+
+
+
+
+
+
+
+  export const getStewardMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetStewardMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching steward master list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createStewardMaster = async (payload: {
+  stwCode: number;
+  posCode: string;
+  stwName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  mobNo: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateStewardMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating steward master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateStewardMaster = async (payload: {
+  stwCode: number;
+  posCode: string;
+  stwName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  mobNo: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateStewardMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating steward master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteStewardMaster = async (
+  id: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteStewardMaster",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting steward master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
