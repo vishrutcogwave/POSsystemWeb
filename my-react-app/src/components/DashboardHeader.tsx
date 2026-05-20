@@ -20,6 +20,7 @@ import {
   Store,
   Package,
   UserCog,
+  ShieldCheck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -64,6 +65,10 @@ const DashboardHeader: React.FC = () => {
     name: "Steward Master",
     icon: UserCog,
   },
+    {
+    name: "NC Department Master",
+    icon: ShieldCheck,
+  },
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -91,6 +96,8 @@ const DashboardHeader: React.FC = () => {
   "/master/subcategorymaster",
   "Steward Master":
   "/master/stewardmaster",
+  "NC Department Master":
+  "/master/ncdepartmentmaster",
         
       
   };

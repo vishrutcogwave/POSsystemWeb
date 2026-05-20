@@ -2426,3 +2426,156 @@ export const deleteStewardMaster = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+export const getNCDepartmentMasterList =
+  async (branchcode: string) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.get(
+        "/api/Master/GetNCDepartmentMasterList",
+        {
+          params: { branchcode },
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching NC Department list:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const createNCDepartmentMaster =
+  async (payload: {
+    ncDepCode: number;
+    ncDepName: string;
+    userid: string;
+    lastModify: string;
+    branch_Code: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/Master/CreateNCDepartmentMaster",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error creating NC Department:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const updateNCDepartmentMaster =
+  async (payload: {
+    ncDepCode: number;
+    ncDepName: string;
+    userid: string;
+    lastModify: string;
+    branch_Code: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.put(
+        "/api/Master/UpdateNCDepartmentMaster",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error updating NC Department:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const deleteNCDepartmentMaster =
+  async (
+    id: number,
+    branchcode: string
+  ) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.delete(
+        "/api/Master/DeleteNCDepartmentMaster",
+        {
+          params: {
+            id,
+            branchcode,
+          },
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error deleting NC Department:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };

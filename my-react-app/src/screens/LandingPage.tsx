@@ -25,6 +25,7 @@ import GroupMaster from "./GroupMaster";
 import CategoryMaster from "./CategoryMaster";
 import SubCategoryMaster from "./SubCategoryMaster";
 import StewardMaster from "./StewardMaster";
+import NCDepartmentMaster from "./NCDepartmentMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -122,6 +123,10 @@ function LandingPage() {
 <Route
   path="/master/stewardmaster"
   element={<StewardMaster />}
+/>
+<Route
+  path="/master/ncdepartmentmaster"
+  element={<NCDepartmentMaster />}
 />
       </Routes>
     </>
