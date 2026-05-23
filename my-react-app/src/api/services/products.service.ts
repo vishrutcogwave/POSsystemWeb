@@ -2735,3 +2735,155 @@ export const deletePrintingMaster =
       throw error;
     }
   };
+
+
+
+
+
+
+
+
+
+  export const getTableMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetTableMasterList",
+      {
+        params: { branchcode },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching table master list:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createTableMaster = async (
+  payload: {
+    tblCode: number;
+    oltCode: string;
+    tblNo: string;
+    tblSeatCount: number;
+    userCode: string;
+    lastModify: string;
+    poscode: string;
+    branch_Code: string;
+  }
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateTableMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type":
+            "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating table master:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateTableMaster = async (
+  payload: {
+    tblCode: number;
+    oltCode: string;
+    tblNo: string;
+    tblSeatCount: number;
+    userCode: string;
+    lastModify: string;
+    poscode: string;
+    branch_Code: string;
+  }
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateTableMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type":
+            "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating table master:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteTableMaster = async (
+  id: number
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteTableMaster",
+      {
+        params: { id },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting table master:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};

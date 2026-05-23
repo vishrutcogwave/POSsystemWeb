@@ -27,6 +27,7 @@ import SubCategoryMaster from "./SubCategoryMaster";
 import StewardMaster from "./StewardMaster";
 import NCDepartmentMaster from "./NCDepartmentMaster";
 import PrintingMaster from "./PrintingMaster";
+import TableMaster from "./TableMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -132,6 +133,10 @@ function LandingPage() {
 <Route
   path="/master/printingmaster"
   element={<PrintingMaster />}
+/>
+<Route
+  path="/master/tablemaster"
+  element={<TableMaster />}
 />
       </Routes>
     </>
