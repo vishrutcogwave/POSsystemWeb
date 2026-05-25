@@ -82,6 +82,10 @@ const DashboardHeader: React.FC = () => {
   name: "Property Master",
   icon: Building2,
 },
+{
+  name: "Branch Master",
+  icon: Store,
+},
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -116,6 +120,7 @@ const DashboardHeader: React.FC = () => {
     "Table Master":
 "/master/tablemaster",
 "Property Master": "/master/propertymaster",
+"Branch Master": "/master/branchmaster",
         
       
   };
@@ -205,7 +210,7 @@ const DashboardHeader: React.FC = () => {
               </button>
 
               {activeMenu === "MASTER" && (
-                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50">
+                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50 max-h-96 overflow-y-auto">
                   {masterItems.map((item, index) => {
                     const Icon = item.icon;
                     return (
@@ -270,7 +275,7 @@ const DashboardHeader: React.FC = () => {
               </button>
 
               {activeMenu === "POS" && (
-                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50">
+                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50 max-h-96 overflow-y-auto">
                   {posDropdownItems.map((item, index) => {
                     const Icon = item.icon;
                     return (
@@ -300,7 +305,7 @@ const DashboardHeader: React.FC = () => {
               </button>
 
               {activeMenu === "POS_REPORTS" && (
-                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50">
+                <div className="absolute left-0 mt-2 w-52 bg-white border rounded shadow-md z-50 max-h-96 overflow-y-auto">
                   {posReportItems.map((item, index) => {
                     const Icon = item.icon;
                     return (

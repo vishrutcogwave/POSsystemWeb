@@ -3011,7 +3011,6 @@ export const updatePropertyDetailsMaster = async (
 
 export const deletePropertyDetailsMaster = async (
   id: number,
-  branchcode: string
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -3021,7 +3020,6 @@ export const deletePropertyDetailsMaster = async (
       {
         params: {
           id,
-          branchcode,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -3034,6 +3032,151 @@ export const deletePropertyDetailsMaster = async (
   } catch (error: any) {
     console.error(
       "Error deleting property details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+// ================= BRANCH DETAILS MASTER =================
+
+export const getBranchDetailsList = async (
+  propertyid: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetBranchDetailsList",
+      {
+        params: { propertyid },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching branch details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createBranchDetailsMaster = async (
+  payload: {
+    brId: number;
+    company_code: number;
+    branch_code: string;
+    branch_name: string;
+    address1: string;
+    address2: string;
+    phone_number: number;
+    mob_number: number;
+    fax_number: number;
+    email_id: string;
+    tin_no: string;
+    licence_number: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreateBranchDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating branch details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateBranchDetailsMaster = async (
+  payload: {
+    brId: number;
+    company_code: number;
+    branch_code: string;
+    branch_name: string;
+    address1: string;
+    address2: string;
+    phone_number: number;
+    mob_number: number;
+    fax_number: number;
+    email_id: string;
+    tin_no: string;
+    licence_number: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdateBranchDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating branch details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteBranchDetailsMaster = async (
+  id: number,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeleteBranchDetailsMaster",
+      {
+        params: {
+          id,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting branch details:",
       error.response?.data || error.message
     );
 

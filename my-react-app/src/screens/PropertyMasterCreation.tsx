@@ -271,7 +271,6 @@ const handleDelete = async () => {
     const res =
       await deletePropertyDetailsMaster(
         deleteRow.company_code,
-        deleteRow.branch_code
       );
 
     if (res?.success) {
