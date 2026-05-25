@@ -78,6 +78,10 @@ const DashboardHeader: React.FC = () => {
   name: "Table Master",
   icon: LayoutGrid,
 },
+{
+  name: "Property Master",
+  icon: Building2,
+},
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -111,6 +115,7 @@ const DashboardHeader: React.FC = () => {
     "/master/printingmaster",
     "Table Master":
 "/master/tablemaster",
+"Property Master": "/master/propertymaster",
         
       
   };

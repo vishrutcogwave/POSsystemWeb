@@ -28,6 +28,7 @@ import StewardMaster from "./StewardMaster";
 import NCDepartmentMaster from "./NCDepartmentMaster";
 import PrintingMaster from "./PrintingMaster";
 import TableMaster from "./TableMaster";
+import PropertyMasterCreation from "./PropertyMasterCreation";
 
 function LandingPage() {
   const location = useLocation();
@@ -137,6 +138,10 @@ function LandingPage() {
 <Route
   path="/master/tablemaster"
   element={<TableMaster />}
+/>
+<Route
+  path="/master/propertymaster"
+  element={<PropertyMasterCreation />}
 />
       </Routes>
     </>

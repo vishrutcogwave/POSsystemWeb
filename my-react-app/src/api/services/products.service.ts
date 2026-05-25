@@ -2887,3 +2887,156 @@ export const deleteTableMaster = async (
     throw error;
   }
 };
+
+
+
+
+// ================= PROPERTY DETAILS MASTER =================
+
+export const getPropertyDetailsList = async (
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetPropertyDetailsList",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching property details list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createPropertyDetailsMaster = async (
+  payload: {
+    company_Name: string;
+    company_code: number;
+    startYear: string;
+    address1: string;
+    address2: string;
+    phone_number: string;
+    mob_number: string;
+    ownerName: string;
+    owner_Number: number;
+    fax_number: number;
+    email_id: string;
+    tin_no: string;
+    licence_number: string;
+    branch_code: string;
+    stdcode: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/CreatePropertyDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating property details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updatePropertyDetailsMaster = async (
+  payload: {
+    company_Name: string;
+    company_code: number;
+    startYear: string;
+    address1: string;
+    address2: string;
+    phone_number: string;
+    mob_number: string;
+    ownerName: string;
+    owner_Number: number;
+    fax_number: number;
+    email_id: string;
+    tin_no: string;
+    licence_number: string;
+    branch_code: string;
+    stdcode: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/Master/UpdatePropertyDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating property details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deletePropertyDetailsMaster = async (
+  id: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/Master/DeletePropertyDetailsMaster",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting property details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
