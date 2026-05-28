@@ -3406,6 +3406,7 @@ export const insertUserPermissionAccessMaster = async (
     roleName: string;
     mainMenuId: number;
     menuName: string;
+    menuPermission: boolean;
     subMenuId: number;
     subMenuName: string;
     isPermission: boolean;
