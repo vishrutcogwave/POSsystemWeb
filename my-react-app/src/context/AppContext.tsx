@@ -49,7 +49,7 @@ export const AppProvider = ({
 
       console.log("User Rights API Response:", response);
 
-      const rights = response?.data || response || [];
+      const rights = response?.data?.menus || response || [];
 
       setUserRights(rights);
 
