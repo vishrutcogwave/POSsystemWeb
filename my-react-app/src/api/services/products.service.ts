@@ -3438,3 +3438,51 @@ export const insertUserPermissionAccessMaster = async (
     throw error;
   }
 };
+
+
+
+
+
+export const getKotCancellationReport = async (params: {
+  BranchCode: string;
+  IsAsOnDate: boolean;
+  IsBetweenDates: boolean;
+  Date: any;
+  FromDate: string;
+  ToDate: string;
+  BillingType: string;
+  OutletCode: number | string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POSReports/KotCancellation",
+      {
+        params: {
+          BranchCode: params.BranchCode,
+          IsAsOnDate: params.IsAsOnDate,
+          IsBetweenDates: params.IsBetweenDates,
+          Date: params.Date,
+          FromDate: params.FromDate,
+          ToDate: params.ToDate,
+          BillingType: params.BillingType,
+          OutletCode: params.OutletCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching KOT cancellation report:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

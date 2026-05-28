@@ -32,6 +32,7 @@ import PropertyMasterCreation from "./PropertyMasterCreation";
 import BranchMaster from "./BranchMaster";
 import UserMaster from "./UserMaster";
 import UserRightsMaster from "./UserRightsMaster";
+import KotCancellationReport from "./KotCancellationReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -93,6 +94,10 @@ function LandingPage() {
         <Route path="/pos/voidkot" element={<Voidkot />} />
         <Route path="/pos/nckot" element={<Nckot />} />
         <Route path="/pos/billreprint" element={<BilreprintReport />} />
+        <Route
+  path="/pos/kotcancellation"
+  element={<KotCancellationReport />}
+/>
 
         <Route path="/master/company" element={<CompanyCreation />} />
         <Route path="/master/tax" element={<TaxMaster />} />
