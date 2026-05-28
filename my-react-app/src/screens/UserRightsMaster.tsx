@@ -25,25 +25,30 @@ export default function UserRightsMaster() {
       FETCH USERS
   ========================= */
 
-  const fetchUsers = async () => {
-    try {
-      const res = await getUserDetailsList(appData?.user?.branch_code);
+const fetchUsers = async () => {
+  try {
+    setLoading(true);
 
-      if (res?.success) {
-        setUsers(res.data || []);
-      }
-    } catch (err: any) {
-      console.error(err);
+    const res = await getUserDetailsList(
+      appData?.user?.branch_code,
+    );
 
-      toast.error(
-        err?.data?.message ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to fetch users ❌",
-      );
+    if (res?.success) {
+      setUsers(res.data || []);
     }
-  };
+  } catch (err: any) {
+    console.error(err);
 
+    toast.error(
+      err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to fetch users ❌",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -244,11 +249,19 @@ export default function UserRightsMaster() {
               >
                 <option value="">Select User</option>
 
-                {users.map((user) => (
-                  <option key={user.userCode} value={user.userCode}>
-                    {user.userCode} -{user.userName}
-                  </option>
-                ))}
+             {users
+  .filter(
+    (user) =>
+      user.userName?.toLowerCase() !== "admin"
+  )
+  .map((user) => (
+    <option
+      key={user.userCode}
+      value={user.userCode}
+    >
+      {user.userCode} - {user.userName}
+    </option>
+  ))}
               </select>
             </div>
           </div>
