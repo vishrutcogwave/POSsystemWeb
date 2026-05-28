@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
+import { useAppContext } from "../context/AppContext";
 
 const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -33,7 +34,9 @@ const DashboardHeader: React.FC = () => {
 
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
+const { userRights } = useAppContext();
 
+console.log("userRightsfromtheocntext",userRights);
   // 🔥 POS dropdown items
   const posDropdownItems = [
     { name: "Touch Screen", icon: Monitor },
