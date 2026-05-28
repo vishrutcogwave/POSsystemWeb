@@ -3183,3 +3183,257 @@ export const deleteBranchDetailsMaster = async (
     throw error;
   }
 };
+
+
+
+
+// ================= USER ACCESS MASTER =================
+
+export const getUserDetailsList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetUserDetailsList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching user details list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const createUserDetailsMaster = async (
+  payload: {
+    userCode: number;
+    userName: string;
+    userPassword: string;
+    userPrivilege: string;
+    enteredBy: string;
+    lastModify: string;
+    branch_code: string;
+    storeid: number;
+    disPercent: number;
+    disAmount: number;
+    roleId: number;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UserAccess/CreateUserDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating user details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateUserDetailsMaster = async (
+  payload: {
+    userCode: number;
+    userName: string;
+    userPassword: string;
+    userPrivilege: string;
+    enteredBy: string;
+    lastModify: string;
+    branch_code: string;
+    storeid: number;
+    disPercent: number;
+    disAmount: number;
+    roleId: number;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/UserAccess/UpdateUserDetailsMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating user details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteUserDetailsMaster = async (
+  id: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/UserAccess/DeleteUserDetailsMaster",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting user details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+// ================= ROLE MASTER =================
+
+export const getRoleMasterList = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetRoleMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching role master list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+// ================= USER PERMISSION ACCESS =================
+
+export const getUserPermissionAccessList = async (
+  branchcode: string,
+  usercode: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetUserPermissionAccessList",
+      {
+        params: {
+          branchcode,
+          usercode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching user permission access list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const insertUserPermissionAccessMaster = async (
+  payload: {
+    userCode: number;
+    userName: string;
+    roleId: number;
+    roleName: string;
+    mainMenuId: number;
+    menuName: string;
+    subMenuId: number;
+    subMenuName: string;
+    isPermission: boolean;
+    branchCode: string;
+  }[]
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UserAccess/InsertUserPermissionAccessMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error inserting user permission access:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

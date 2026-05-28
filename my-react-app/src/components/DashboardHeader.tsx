@@ -86,6 +86,14 @@ const DashboardHeader: React.FC = () => {
   name: "Branch Master",
   icon: Store,
 },
+{
+  name: "User Master",
+  icon: UserCog,
+},
+{
+  name: "User Rights Master",
+  icon: ShieldCheck,
+},
   ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [{ name: "Outlet Items Details", icon: Package }];
@@ -121,6 +129,9 @@ const DashboardHeader: React.FC = () => {
 "/master/tablemaster",
 "Property Master": "/master/propertymaster",
 "Branch Master": "/master/branchmaster",
+"User Master": "/master/usermaster",
+"User Rights Master":
+"/master/userrightsmaster",
         
       
   };

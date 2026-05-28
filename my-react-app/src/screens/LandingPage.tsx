@@ -30,6 +30,8 @@ import PrintingMaster from "./PrintingMaster";
 import TableMaster from "./TableMaster";
 import PropertyMasterCreation from "./PropertyMasterCreation";
 import BranchMaster from "./BranchMaster";
+import UserMaster from "./UserMaster";
+import UserRightsMaster from "./UserRightsMaster";
 
 function LandingPage() {
   const location = useLocation();
@@ -147,6 +149,14 @@ function LandingPage() {
 <Route
   path="/master/branchmaster"
   element={<BranchMaster />}
+/>
+<Route
+  path="/master/usermaster"
+  element={<UserMaster />}
+/>
+<Route
+  path="/master/userrightsmaster"
+  element={<UserRightsMaster />}
 />
       </Routes>
     </>
