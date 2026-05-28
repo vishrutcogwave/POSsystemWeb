@@ -33,6 +33,7 @@ import BranchMaster from "./BranchMaster";
 import UserMaster from "./UserMaster";
 import UserRightsMaster from "./UserRightsMaster";
 import KotCancellationReport from "./KotCancellationReport";
+import BillCancellationReport from "./BillCancellationReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -97,6 +98,11 @@ function LandingPage() {
         <Route
   path="/pos/kotcancellation"
   element={<KotCancellationReport />}
+/>
+
+<Route
+  path="/pos/billcancellation"
+  element={<BillCancellationReport />}
 />
 
         <Route path="/master/company" element={<CompanyCreation />} />

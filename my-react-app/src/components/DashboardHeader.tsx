@@ -702,6 +702,13 @@ const posReportItems = [
   icon: Ban,
   permissionName: "Bill Reprint",
 },
+
+{
+  name: "BillCancellation",
+  icon: Ban,
+  permissionName: "Bill Reprint",
+},
+
 ];
   // 🔥 MASTER DROPDOWN
 const masterItems = [
@@ -840,7 +847,8 @@ const subMasterItems = [
 "User Rights Master":
 "/master/userrightsmaster",
 KotCancellation: "/pos/kotcancellation",
-        
+BillCancellation: "/pos/billcancellation",
+
       
   };
 
