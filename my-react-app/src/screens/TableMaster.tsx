@@ -27,26 +27,20 @@ import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 
 import Loader from "../components/Loader";
+import { Download, ImageOff } from "lucide-react";
 
 type TableMaster = {
-      id: number;
+  id: number;
   tblCode: number;
-
   oltCode: string;
-
   tblNo: string;
-
   tblSeatCount: number;
-
   userCode: string;
-
   lastModify: string;
-
   poscode: string;
-
   branch_Code: string;
 
-  qR_Code?: string;
+  tableQRImage?: string;
 };
 type Outlet = {
   oltCode: number;
@@ -77,28 +71,21 @@ export default function TableMaster() {
     useState<TableMaster | null>(null);
 const [outlets, setOutlets] =
   useState<Outlet[]>([]);
-  const [form, setForm] =
-    useState<TableMaster>({
-        id:0,
-      tblCode: 0,
+const [form, setForm] =
+  useState<TableMaster>({
+    id: 0,
+    tblCode: 0,
+    oltCode: "",
+    tblNo: "",
+    tblSeatCount: 0,
+    userCode: "",
+    lastModify: "",
+    poscode: "1",
+    branch_Code:
+      appData?.user?.branch_code || "",
 
-      oltCode: "",
-
-      tblNo: "",
-
-      tblSeatCount: 0,
-
-      userCode: "",
-
-      lastModify: "",
-
-      poscode: "1",
-
-      branch_Code:
-        appData?.user?.branch_code || "",
-
-      qR_Code: "",
-    });
+    tableQRImage: "",
+  });
 const fetchOutlets = async () => {
   try {
     const branch =
@@ -157,6 +144,41 @@ const fetchOutlets = async () => {
       header: "Seats",
       accessor: "tblSeatCount",
     },
+{
+  header: "QR Code",
+  accessor: "tableQRImage",
+  className: "text-center",
+
+  cell: (row) => {
+    const isValidImage =
+      row.tableQRImage &&
+      row.tableQRImage.trim() !== "";
+
+    if (!isValidImage) {
+      return (
+        <div className="flex items-center justify-center">
+          <ImageOff
+            size={18}
+            className="text-gray-400"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-center">
+        <a
+          href={row.tableQRImage}
+          download={`QR_${row.tblNo}.png`}
+          className="text-blue-500 hover:text-blue-700"
+          title="Download QR"
+        >
+          <Download size={18} />
+        </a>
+      </div>
+    );
+  },
+},
   ];
 
   const fetchNextCode = async () => {
@@ -255,7 +277,7 @@ useEffect(() => {
       branch_Code:
         appData?.user?.branch_code || "",
 
-      qR_Code: "",
+      tableQRImage: "",
     });
 
     setSelectedImage(null);
@@ -325,7 +347,7 @@ useEffect(() => {
           appData?.user?.branch_code ||
           "",
 
-        qR_Code: qrUrl,
+        tableQRImage: qrUrl,
       };
 
       const res =
@@ -375,7 +397,7 @@ useEffect(() => {
       setLoading(true);
 
       let qrUrl =
-        form.qR_Code || "";
+        form.tableQRImage || "";
 
       if (selectedImage) {
         const imageRes =
@@ -418,7 +440,7 @@ useEffect(() => {
           appData?.user?.branch_code ||
           "",
 
-        qR_Code: qrUrl,
+        tableQRImage: qrUrl,
       };
 
       const res =
@@ -657,10 +679,10 @@ useEffect(() => {
               )}
 
               {!selectedImage &&
-                form.qR_Code && (
+                form.tableQRImage && (
                   <div className="mt-2">
                     <img
-                      src={form.qR_Code}
+                      src={form.tableQRImage}
                       alt="QR"
                       className="w-24 h-24 object-cover rounded-lg border"
                     />

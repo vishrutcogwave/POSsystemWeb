@@ -3543,3 +3543,111 @@ export const getBillCancellationReport = async (params: {
     throw error;
   }
 };
+
+
+
+
+
+
+
+export const getDailySaleCategoryWiseReport = async (params: {
+  BranchCode: string;
+  IsAsOnDate: boolean;
+  IsBetweenDates: boolean;
+  Date: any;
+  FromDate: string;
+  ToDate: string;
+  BillingType: string;
+  OutletCode: number | string;
+  CatCode: any;
+  SubCatCode: any;
+  IsSubCategory: boolean;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POSReports/DailysaleCategorywise",
+      {
+        params: {
+          BranchCode: params.BranchCode,
+          IsAsOnDate: params.IsAsOnDate,
+          IsBetweenDates: params.IsBetweenDates,
+          Date: params.Date,
+          FromDate: params.FromDate,
+          ToDate: params.ToDate,
+          BillingType: params.BillingType,
+          OutletCode: params.OutletCode,
+          CatCode: params.CatCode,
+          SubCatCode: params.SubCatCode,
+          IsSubCategory: params.IsSubCategory,
+        },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Daily Sale Category Wise report:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+export const getKotRegisterReport = async (params: {
+  BranchCode: string;
+  IsAsOnDate: boolean;
+  IsBetweenDates: boolean;
+  Date: any;
+  FromDate: string;
+  ToDate: string;
+  BillingType: string;
+  OutletCode: number | string;
+  TableNo: number | string;
+  IsPendingkot: boolean;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POSReports/KotRegister",
+      {
+        params: {
+          BranchCode: params.BranchCode,
+          IsAsOnDate: params.IsAsOnDate,
+          IsBetweenDates: params.IsBetweenDates,
+          Date: params.Date,
+          FromDate: params.FromDate,
+          ToDate: params.ToDate,
+          BillingType: params.BillingType,
+          OutletCode: params.OutletCode,
+          TableNo: params.TableNo,
+          IsPendingkot: params.IsPendingkot,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching KOT register report:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

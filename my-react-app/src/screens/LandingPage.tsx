@@ -34,6 +34,8 @@ import UserMaster from "./UserMaster";
 import UserRightsMaster from "./UserRightsMaster";
 import KotCancellationReport from "./KotCancellationReport";
 import BillCancellationReport from "./BillCancellationReport";
+import DailysaleCategorywisereport from "./DailySalesCategoryWiseReport";
+import KotRegister from "./KotRegisterReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -125,9 +127,14 @@ function LandingPage() {
   path="/master/unitmaster"
   element={<UnitMaster />}
 />
+<Route path="/pos/dailysalecategorywise" element={ <DailysaleCategorywisereport /> } />
 <Route
   path="/master/groupmaster"
   element={<GroupMaster />}
+/>
+<Route
+  path="/pos/kotregister"
+  element={<KotRegister />}
 />
 <Route
   path="/master/categorymaster"

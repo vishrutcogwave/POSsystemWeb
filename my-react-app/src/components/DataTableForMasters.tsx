@@ -205,6 +205,9 @@ export type Column<T> = {
   header: string;
   accessor: keyof T;
   cell?: (row: T) => React.ReactNode;
+
+  // ✅ add this
+  className?: string;
 };
 
 export type TableProps<T> = {
@@ -312,7 +315,9 @@ const sortedData = [...filteredData].sort((a, b) => {
               {columns.map((col, i) => (
                 <th
                   key={i}
-                  className="p-3 text-left cursor-pointer"
+                  className={`p-3 cursor-pointer ${
+  col.className || "text-left"
+}`}
                   onClick={() => handleSort(col.accessor)}
                 >
                   {col.header}
@@ -334,7 +339,12 @@ const sortedData = [...filteredData].sort((a, b) => {
                 <td className="p-3">{index + 1}</td>
 
                 {columns.map((col, i) => (
-                  <td key={i} className="p-3">
+                  <td
+  key={i}
+  className={`p-3 ${
+    col.className || "text-left"
+  }`}
+>
                     {col.cell
                       ? col.cell(row)
                       : String(row[col.accessor])}
