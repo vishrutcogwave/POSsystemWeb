@@ -57,33 +57,82 @@ const fetchUsers = async () => {
       FETCH USER RIGHTS
   ========================= */
 
+  // const fetchUserRights = async (userCode: number) => {
+  //   try {
+  //     setLoading(true);
+
+  //     const res = await getUserPermissionAccessList(
+  //       appData?.user?.branch_code,
+  //       userCode,
+  //     );
+
+  //     if (res?.success) {
+  //       setMenuData(res.data);
+  //     } else {
+  //       toast.error(res?.message || "Failed to fetch ❌");
+  //     }
+  //   } catch (err: any) {
+  //     console.error(err);
+
+  //     toast.error(
+  //       err?.data?.message ||
+  //         err?.response?.data?.message ||
+  //         err?.message ||
+  //         "Something went wrong ❌",
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+
   const fetchUserRights = async (userCode: number) => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await getUserPermissionAccessList(
-        appData?.user?.branch_code,
-        userCode,
-      );
+    // FIND SELECTED USER
+    const selected = users.find(
+      (u) => Number(u.userCode) === Number(userCode)
+    );
 
-      if (res?.success) {
-        setMenuData(res.data);
-      } else {
-        toast.error(res?.message || "Failed to fetch ❌");
-      }
-    } catch (err: any) {
-      console.error(err);
-
-      toast.error(
-        err?.data?.message ||
-          err?.response?.data?.message ||
-          err?.message ||
-          "Something went wrong ❌",
-      );
-    } finally {
-      setLoading(false);
+    if (!selected) {
+      toast.error("User not found ❌");
+      return;
     }
-  };
+
+    const roleId = selected.roleId;
+
+    console.log("Fetching Rights With:", {
+      branchcode: appData?.user?.branch_code,
+      userCode,
+      roleId,
+    });
+
+    // SEND 3 PARAMS
+    const res = await getUserPermissionAccessList(
+      appData?.user?.branch_code,
+      userCode,
+      roleId
+    );
+
+    if (res?.success) {
+      setMenuData(res.data);
+    } else {
+      toast.error(res?.message || "Failed to fetch ❌");
+    }
+  } catch (err: any) {
+    console.error(err);
+
+    toast.error(
+      err?.data?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong ❌",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* =========================
       USER CHANGE

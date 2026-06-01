@@ -3368,7 +3368,8 @@ export const getRoleMasterList = async (
 
 export const getUserPermissionAccessList = async (
   branchcode: string,
-  usercode: number
+  usercode: number,
+  roleId:number
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -3379,6 +3380,7 @@ export const getUserPermissionAccessList = async (
         params: {
           branchcode,
           usercode,
+          roleId
         },
         headers: {
           Authorization: `Bearer ${token}`,

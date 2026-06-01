@@ -4,7 +4,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getUserPermissionAccessList } from "../api/services/products.service";
+import { getUserDetailsList, getUserPermissionAccessList } from "../api/services/products.service";
 import toast from "react-hot-toast";
 
 interface AppContextType {
@@ -32,47 +32,127 @@ export const AppProvider = ({
     return stored ? JSON.parse(stored) : [];
   });
 
+  // const fetchUserRights = async (
+  //   branchcode: string,
+  //   usercode: number
+  // ) => {
+  //   try {
+  //     console.log("Calling User Rights API", {
+  //       branchcode,
+  //       usercode,
+  //     });
+
+  //     const response = await getUserPermissionAccessList(
+  //       branchcode,
+  //       usercode
+  //     );
+
+  //     console.log("User Rights API Response:", response);
+
+  //     const rights = response?.data?.menus || response || [];
+
+  //     setUserRights(rights);
+
+  //     localStorage.setItem(
+  //       "userRights",
+  //       JSON.stringify(rights)
+  //     );
+
+  //   } catch (error: any) {
+  //     console.error("Failed to fetch user rights:", error);
+
+  //     setUserRights([]);
+
+  //     localStorage.removeItem("userRights");
+
+  //     toast.error(
+  //       error?.response?.data?.message ||
+  //         error?.message ||
+  //         "Failed to fetch user rights"
+  //     );
+  //   }
+  // };
+
+
   const fetchUserRights = async (
-    branchcode: string,
-    usercode: number
-  ) => {
-    try {
-      console.log("Calling User Rights API", {
+  branchcode: string,
+  usercode: number
+) => {
+  try {
+    console.log("Calling User Details API", {
+      branchcode,
+      usercode,
+    });
+
+    // GET USER DETAILS
+    const userDetailsResponse =
+      await getUserDetailsList(branchcode);
+
+    console.log(
+      "User Details Response:",
+      userDetailsResponse
+    );
+
+    // MATCH USER
+    const matchedUser =
+      userDetailsResponse?.data?.find(
+        (item: any) =>
+          Number(item.userCode) === Number(usercode)
+      );
+
+    console.log("Matched User:", matchedUser);
+
+    const roleId = matchedUser?.roleId;
+
+    if (!roleId) {
+      throw new Error("RoleId not found");
+    }
+
+    console.log("Calling User Rights API", {
+      branchcode,
+      usercode,
+      roleId,
+    });
+
+    // SEND 3 PARAMS
+    const response =
+      await getUserPermissionAccessList(
         branchcode,
         usercode,
-      });
-
-      const response = await getUserPermissionAccessList(
-        branchcode,
-        usercode
+        roleId
       );
 
-      console.log("User Rights API Response:", response);
+    console.log(
+      "User Rights API Response:",
+      response
+    );
 
-      const rights = response?.data?.menus || response || [];
+    const rights =
+      response?.data?.menus || response || [];
 
-      setUserRights(rights);
+    setUserRights(rights);
 
-      localStorage.setItem(
-        "userRights",
-        JSON.stringify(rights)
-      );
+    localStorage.setItem(
+      "userRights",
+      JSON.stringify(rights)
+    );
+  } catch (error: any) {
+    console.error(
+      "Failed to fetch user rights:",
+      error
+    );
 
-    } catch (error: any) {
-      console.error("Failed to fetch user rights:", error);
+    setUserRights([]);
 
-      setUserRights([]);
+    localStorage.removeItem("userRights");
 
-      localStorage.removeItem("userRights");
-
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to fetch user rights"
-      );
-    }
-  };
-
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Failed to fetch user rights"
+    );
+  }
+};
   const setAppData = async (data: any) => {
     console.log("LOGIN RESPONSE:", data);
 
