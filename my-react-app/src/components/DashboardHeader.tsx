@@ -790,22 +790,22 @@ const DashboardHeader: React.FC = () => {
     {
       name: "Property Master",
       icon: Building2,
-      permissionName: "Company Definition",
+      permissionName: "Property Master",
     },
     {
       name: "Branch Master",
       icon: Store,
-      permissionName: "Outlet",
+      permissionName: "Branch Master",
     },
     {
       name: "User Master",
       icon: UserCog,
-      permissionName: "User Rights",
+      permissionName: "User Master",
     },
     {
       name: "User Rights Master",
       icon: ShieldCheck,
-      permissionName: "User Rights",
+      permissionName:"User Rights Master",
     },
     
   ];
