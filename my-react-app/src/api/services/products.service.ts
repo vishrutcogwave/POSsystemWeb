@@ -1468,176 +1468,321 @@
       return response.data;
     };
 
-    export const createItemMaster = async (payload: {
-    itemCode: number;
-    itemName: string;
-    catCode: string;
-    subCatCode: string;
-    grpCode: string;
-    itemDiscountAllowed: boolean;
-    itemRate: number;
-    userCode: string;
-    lastModify: string;
-    unitCode: number;
-    unitName: string;
-    dep: string;
-    depCode: string;
-    taxCode: number;
-    taxName: string;
-    printDepartment: string;
-    branchCode: string;
-    sacCode: string;
-    thumb: string;
-    barcode: string;
-    isVeg: boolean;
-  }) => {
-    try {
-      const token = localStorage.getItem("token");
+  //   export const createItemMaster = async (payload: {
+  //   itemCode: number;
+  //   itemName: string;
+  //   catCode: string;
+  //   subCatCode: string;
+  //   grpCode: string;
+  //   itemDiscountAllowed: boolean;
+  //   itemRate: number;
+  //   userCode: string;
+  //   lastModify: string;
+  //   unitCode: number;
+  //   unitName: string;
+  //   dep: string;
+  //   depCode: string;
+  //   taxCode: number;
+  //   taxName: string;
+  //   printDepartment: string;
+  //   branchCode: string;
+  //   sacCode: string;
+  //   thumb: string;
+  //   barcode: string;
+  //   isVeg: boolean;
+  // }) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const response = await api.post(
-        "/api/Master/CreateItemMaster",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            accept: "*/*",
-          },
-        }
-      );
+  //     const response = await api.post(
+  //       "/api/Master/CreateItemMaster",
+  //       payload,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //           accept: "*/*",
+  //         },
+  //       }
+  //     );
 
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "Error creating item master:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  };
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error(
+  //       "Error creating item master:",
+  //       error.response?.data || error.message
+  //     );
+  //     throw error;
+  //   }
+  // };
 
-  export const updateItemMaster = async (payload: {
-    itemCode: number;
-    itemName: string;
-    catCode: string;
-    subCatCode: string;
-    grpCode: string;
-    itemDiscountAllowed: boolean;
-    itemRate: number;
-    userCode: string;
-    lastModify: string;
-    unitCode: number;
-    unitName: string;
-    dep: string;
-    depCode: string;
-    taxCode: number;
-    taxName: string;
-    printDepartment: string;
-    branchCode: string;
-    sacCode: string;
-    thumb: string;
-    barcode: string;
-    isVeg: boolean;
-  }) => {
-    try {
-      const token = localStorage.getItem("token");
+  // export const updateItemMaster = async (payload: {
+  //   itemCode: number;
+  //   itemName: string;
+  //   catCode: string;
+  //   subCatCode: string;
+  //   grpCode: string;
+  //   itemDiscountAllowed: boolean;
+  //   itemRate: number;
+  //   userCode: string;
+  //   lastModify: string;
+  //   unitCode: number;
+  //   unitName: string;
+  //   dep: string;
+  //   depCode: string;
+  //   taxCode: number;
+  //   taxName: string;
+  //   printDepartment: string;
+  //   branchCode: string;
+  //   sacCode: string;
+  //   thumb: string;
+  //   barcode: string;
+  //   isVeg: boolean;
+  // }) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const response = await api.put(
-        "/api/Master/UpdateItemMaster",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            accept: "*/*",
-          },
-        }
-      );
+  //     const response = await api.put(
+  //       "/api/Master/UpdateItemMaster",
+  //       payload,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           "Content-Type": "application/json",
+  //           accept: "*/*",
+  //         },
+  //       }
+  //     );
 
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "Error updating item master:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  };
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error(
+  //       "Error updating item master:",
+  //       error.response?.data || error.message
+  //     );
+  //     throw error;
+  //   }
+  // };
 
-  export const deleteItemMaster = async (
-    id: number,
-    branchcode: string
-  ) => {
-    try {
-      const token = localStorage.getItem("token");
+  // export const deleteItemMaster = async (
+  //   id: number,
+  //   branchcode: string
+  // ) => {
+  //   try {
+  //     const token = localStorage.getItem("token");
 
-      const response = await api.delete(
-        "/api/Master/DeleteItemMaster",
-        {
-          params: {
-            id,
-            branchcode,
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            accept: "*/*",
-          },
-        }
-      );
+  //     const response = await api.delete(
+  //       "/api/Master/DeleteItemMaster",
+  //       {
+  //         params: {
+  //           id,
+  //           branchcode,
+  //         },
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //           accept: "*/*",
+  //         },
+  //       }
+  //     );
 
-      return response.data;
-    } catch (error: any) {
-      console.error(
-        "Error deleting item master:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  };
+  //     return response.data;
+  //   } catch (error: any) {
+  //     console.error(
+  //       "Error deleting item master:",
+  //       error.response?.data || error.message
+  //     );
+  //     throw error;
+  //   }
+  // };
 
+export const createItemMaster = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: string;
+  subCatCode: string;
+  grpCode: string;
+  itemDiscountAllowed: boolean;
+  itemRate: number;
+  userCode: string;
+  lastModify: string;
+  unitCode: number;
+  unitName: string;
+  dep: string;
+  depCode: string;
+  taxCode: number;
+  taxName: string;
+  printDepartment: string;
+  branchCode: string;
+  sacCode: string;
+  thumb: string;
+  barcode: string;
+  isVeg: boolean;
+  oltCodes: any[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
 
+    const response = await api.post(
+      "/api/Master/CreateItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
 
-  export const downloadItemMasterExcel = async () => {
-    try {
-      const token = localStorage.getItem("token");
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating item master:",
+      error.response?.data || error.message
+    );
 
-      const response = await api.get(
-        "/api/Master/ItemMasterDownloadExcel",
-        {
-          responseType: "blob", // ✅ important
-          headers: {
-            Authorization: `Bearer ${token}`,
-            accept: "*/*",
-          },
-        }
-      );
+    throw error;
+  }
+};
 
-      // Create file download
-      const url = window.URL.createObjectURL(
-        new Blob([response.data])
-      );
+export const updateItemMaster = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: string;
+  subCatCode: string;
+  grpCode: string;
+  itemDiscountAllowed: boolean;
+  itemRate: number;
+  userCode: string;
+  lastModify: string;
+  unitCode: number;
+  unitName: string;
+  dep: string;
+  depCode: string;
+  taxCode: number;
+  taxName: string;
+  printDepartment: string;
+  branchCode: string;
+  sacCode: string;
+  thumb: string;
+  barcode: string;
+  isVeg: boolean;
+  oltCodes: any[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
 
-      const link = document.createElement("a");
-      link.href = url;
+    const response = await api.put(
+      "/api/Master/UpdateItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
 
-      // file name
-      link.setAttribute("download", "ItemImport.xlsx");
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating item master:",
+      error.response?.data || error.message
+    );
 
-      document.body.appendChild(link);
-      link.click();
+    throw error;
+  }
+};
 
-      link.remove();
-      window.URL.revokeObjectURL(url);
+export const deleteItemMaster = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
 
-      return true;
-    } catch (error: any) {
-      console.error(
-        "Error downloading excel:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  };
+    const response = await api.delete(
+      "/api/Master/DeleteItemMaster",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting item master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const downloadItemMasterExcel = async (
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/ItemMasterDownloadExcel",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+
+        responseType: "blob",
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    // ✅ create download url
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    );
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    // ✅ file name
+    link.setAttribute(
+      "download",
+      "ItemImport.xlsx"
+    );
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error: any) {
+    console.error(
+      "Error downloading excel:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
 
   export const uploadItemMasterExcel = async (
     file: File,

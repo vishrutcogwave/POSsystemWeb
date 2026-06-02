@@ -670,17 +670,17 @@ const DashboardHeader: React.FC = () => {
     {
       name: "ItemSales",
       icon: FileText,
-      permissionName: "Item Rate List",
+      permissionName: "Daily Sales Report",
     },
     {
       name: "ChanceSheet",
       icon: ClipboardList,
-      permissionName: "Costing Report",
+      permissionName: "Daily Sales Report",
     },
     {
       name: "VoidKot",
       icon: Ban,
-      permissionName: "Bill Reprint",
+      permissionName: "Daily Sales Report",
     },
     {
       name: "Nckot",

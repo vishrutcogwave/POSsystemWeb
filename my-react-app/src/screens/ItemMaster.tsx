@@ -11,6 +11,7 @@ import {
   GetGroupMasterList,
   getItemMasterList,
   getNextIdCode,
+  getOutletList,
   GetPrintingMasterList,
   GetSubCategoryMasterList,
   getTaxMasterList,
@@ -87,8 +88,12 @@ export default function ItemMaster() {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const fileInputRef =
-  useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+const [outlets, setOutlets] = useState<any[]>([]);
+const [selectedOltCodes, setSelectedOltCodes] =
+  useState<string[]>([]);
+const [showOutletDropdown, setShowOutletDropdown] =
+  useState(false);
   const [printingDepartments, setPrintingDepartments] = useState<
     PrintingDepartment[]
   >([]);
@@ -273,33 +278,48 @@ export default function ItemMaster() {
       const res = await getItemMasterList(appData?.user?.branch_code);
 
       if (res?.success) {
-        const formatted = res.data.map((item: any) => ({
-          id: item.itemCode,
+      const formatted = res.data.map((item: any) => ({
+  id: item.itemCode,
 
-          itemCode: item.itemCode || 0,
-          itemName: item.itemName || "",
+  itemCode: item.itemCode || 0,
+  itemName: item.itemName || "",
 
-          catCode: item.catCode || "",
-          subCatCode: item.subCatCode || "",
-          grpCode: item.grpCode || "",
+  catCode: item.catCode || "",
+  subCatCode: item.subCatCode || "",
+  grpCode: item.grpCode || "",
 
-          itemDiscountAllowed: item.itemDiscountAllowed || false,
-          itemRate: item.itemRate || 0,
+  itemDiscountAllowed:
+    item.itemDiscountAllowed || false,
 
-          unitName: item.unit || "",
-          dep: item.dep || "",
-          depCode: item.depCode || "",
-          taxName: item.taxName || "",
+  itemRate: item.itemRate || 0,
 
-          printDepartment: item.printDepartment || "",
-          sacCode: item.sacCode || "",
-          barcode: item.barcode || "",
-          thumb : item.thumb || "",
-          isVeg: item.isVeg || false,
-          qpb: item.qpb || 0,
-          mostRunningItemSrNo: item.mostRunningItemSrNo || "",
-          picture: item.picture || "",
-        }));
+  unitName: item.unit || "",
+  dep: item.dep || "",
+  depCode: item.depCode || "",
+
+  taxName: item.taxName || "",
+
+  printDepartment:
+    item.printDepartment || "",
+
+  sacCode: item.sacCode || "",
+
+  barcode: item.barcode || "",
+
+  thumb: item.thumb || "",
+
+  isVeg: item.isVeg || false,
+
+  qpb: item.qpb || 0,
+
+  mostRunningItemSrNo:
+    item.mostRunningItemSrNo || "",
+
+  picture: item.picture || "",
+
+  // ✅ ADD THIS
+  oltCode: item.oltCode || "",
+}));
 
         setData(formatted);
       } else {
@@ -312,6 +332,23 @@ export default function ItemMaster() {
       setLoading(false);
     }
   };
+
+async function getOuletList() {
+  try {
+    const res = await getOutletList(
+      appData?.user?.branch_code
+    );
+
+    console.log("outletList", res);
+
+    if (res?.success) {
+      setOutlets(res.data || []);
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+
   useEffect(() => {
     fetchNextCode();
     fetchItems();
@@ -322,6 +359,7 @@ export default function ItemMaster() {
     fetchDepartments();
     fetchTaxes();
     fetchPrintingDepartments();
+    getOuletList();
   }, []);
 
   const handleDeleteRow = (row: ItemMaster) => {
@@ -334,14 +372,14 @@ export default function ItemMaster() {
     try {
       setLoading(true);
 
-      const res = await deleteItemMaster(
-        deleteRow.itemCode,
-        appData?.user?.branch_code,
-      );
+const res = await deleteItemMaster(
+  deleteRow.itemCode,
+  appData?.user?.branch_code,
+);
 
       if (res?.success) {
         toast.success("Deleted successfully ✅");
-   await fetchNextCode()
+        await fetchNextCode();
         await fetchItems();
 
         if (isEdit && form.itemCode === deleteRow.itemCode) {
@@ -390,7 +428,7 @@ export default function ItemMaster() {
   };
   // const handleEdit = (row: any) => {
   //   console.log("rowinthe edit",row);
-    
+
   //   setIsEdit(true);
 
   //   const selectedCategory = categories.find(
@@ -528,96 +566,91 @@ export default function ItemMaster() {
   //     setLoading(false);
   //   }
   // };
-  
+
   const handleEdit = (row: any) => {
-  console.log("rowinthe edit", row);
+    console.log("rowinthe edit", row);
 
-  setIsEdit(true);
+    setIsEdit(true);
 
-  const selectedCategory = categories.find(
-    (c) =>
-      String(c.catCode) ===
-      String(row.catCode)
-  );
+const selectedOutlets = row.oltCode
+  ? row.oltCode
+      .split(",")
+      .map((id: string) => id.trim())
+  : [];
 
-  const selectedSubCategory =
-    subCategories.find(
-      (s) =>
-        String(s.subCatCode) ===
-        String(row.qpb)
+console.log("selectedOutlets", selectedOutlets);
+
+setSelectedOltCodes(selectedOutlets);
+    const selectedCategory = categories.find(
+      (c) => String(c.catCode) === String(row.catCode),
     );
 
-  const selectedGroup = groups.find(
-    (g) =>
-      String(g.grpCode) ===
-      String(row.grpCode)
-  );
-
-  const selectedDepartment =
-    departments.find(
-      (d) =>
-        String(d.depCode) ===
-        String(row.depCode)
+    const selectedSubCategory = subCategories.find(
+      (s) => String(s.subCatCode) === String(row.qpb),
     );
 
-  const selectedPrintDepartment =
-    printingDepartments.find(
-      (p) =>
-        String(p.depCode) ===
-        String(row.mostRunningItemSrNo)
+    const selectedGroup = groups.find(
+      (g) => String(g.grpCode) === String(row.grpCode),
     );
 
- setForm({
-  id: row.itemCode,
+    const selectedDepartment = departments.find(
+      (d) => String(d.depCode) === String(row.depCode),
+    );
 
-  itemCode: row.itemCode,
-  itemName: row.itemName,
+    const selectedPrintDepartment = printingDepartments.find(
+      (p) => String(p.depCode) === String(row.mostRunningItemSrNo),
+    );
 
-  catCode:
-    String(selectedCategory?.catCode || ""),
+    setForm({
+      id: row.itemCode,
 
-  subCatCode: String(
-    selectedSubCategory?.subCatCode || ""
-  ),
+      itemCode: row.itemCode,
+      itemName: row.itemName,
 
-  grpCode:
-    String(selectedGroup?.grpCode || ""),
+      catCode: String(selectedCategory?.catCode || ""),
 
-  itemDiscountAllowed:
-    row.itemDiscountAllowed,
+      subCatCode: String(selectedSubCategory?.subCatCode || ""),
 
-  itemRate: row.itemRate,
+      grpCode: String(selectedGroup?.grpCode || ""),
 
-  unitName: row.unitName,
+      itemDiscountAllowed: row.itemDiscountAllowed,
 
-  dep:
-    selectedDepartment?.depName || "",
+      itemRate: row.itemRate,
 
-  taxName: row.taxName || "",
+      unitName: row.unitName,
 
-  printDepartment:
-    selectedPrintDepartment?.depName ||
-    "",
+      dep: selectedDepartment?.depName || "",
 
-  sacCode: row.picture || "",
+      taxName: row.taxName || "",
 
-  barcode: row.barcode || "",
+      printDepartment: selectedPrintDepartment?.depName || "",
 
-  // ✅ THIS IS IMPORTANT
-  thumb: row.thumb || "",
+      sacCode: row.picture || "",
 
-  isVeg: row.isVeg,
-});
+      barcode: row.barcode || "",
 
-// ✅ clear selected image
-setSelectedImage(null);
+      // ✅ THIS IS IMPORTANT
+      thumb: row.thumb || "",
 
-  // ✅ show image name in edit mode
+      isVeg: row.isVeg,
+    });
 
-};
+    // ✅ clear selected image
+    setSelectedImage(null);
+
+    // ✅ show image name in edit mode
+  };
   const handleSave = async () => {
     try {
       setLoading(true);
+          if (selectedOltCodes.length === 0) {
+      toast.error(
+        "Please select at least one outlet"
+      );
+
+      setLoading(false);
+      return;
+    }
 
       const selectedUnit = units.find((u) => u.unitName === form.unitName);
 
@@ -691,6 +724,7 @@ setSelectedImage(null);
 
         barcode: form.barcode,
         isVeg: form.isVeg,
+        oltCodes: selectedOltCodes,
       };
 
       const res = await createItemMaster(payload);
@@ -701,11 +735,11 @@ setSelectedImage(null);
         fetchItems();
         fetchNextCode();
 
-     setSelectedImage(null);
+        setSelectedImage(null);
 
-if (fileInputRef.current) {
-  fileInputRef.current.value = "";
-}
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
 
         setForm({
           id: 0,
@@ -730,6 +764,8 @@ if (fileInputRef.current) {
 
           isVeg: true,
         });
+      setSelectedOltCodes([]);
+setShowOutletDropdown(false);
       } else {
         toast.error(res?.message || "Failed to create item");
       }
@@ -830,166 +866,145 @@ if (fileInputRef.current) {
   //   }
   // };
 
-
   const handleUpdate = async () => {
-  try {
-    setLoading(true);
-
-    const selectedUnit = units.find(
-      (u) => u.unitName === form.unitName
-    );
-
-    const selectedDepartment = departments.find(
-      (d) => d.depName === form.dep
-    );
-
-    const selectedTax = taxes.find(
-      (t) => t.taxName === form.taxName
-    );
-
-    const selectedPrintDepartment =
-      printingDepartments.find(
-        (p) => p.depName === form.printDepartment
-      );
-
-    // ✅ keep old thumb if no new image
-    let thumbUrl = form.thumb || "";
-
-    // ✅ upload new image if selected
-    if (
-      selectedImage &&
-      selectedImage instanceof File
-    ) {
-      const imageRes =
-        await createItemMasterWithImage(
-          selectedImage
-        );
-
-      if (imageRes?.success) {
-        const baseUrl =
-          localStorage.getItem("baseUrl") || "";
-
-        const cleanBaseUrl = baseUrl.endsWith("/")
-          ? baseUrl.slice(0, -1)
-          : baseUrl;
-
-        const fileName =
-          imageRes.data.split("/").pop();
-
-        thumbUrl = `${cleanBaseUrl}/Images/${fileName}`;
-      }
-    }
-
-    const payload = {
-      itemCode: form.itemCode,
-      itemName: form.itemName,
-
-      catCode: form.catCode,
-      subCatCode: form.subCatCode,
-      grpCode: form.grpCode,
-
-      itemDiscountAllowed:
-        form.itemDiscountAllowed,
-
-      itemRate: form.itemRate,
-
-      userCode:
-        String(appData?.user?.userCode) || "",
-
-      lastModify: new Date().toISOString(),
-
-      unitCode: selectedUnit?.unitCode || 0,
-      unitName: form.unitName,
-
-      dep: form.dep,
-
-      depCode: String(
-        selectedDepartment?.depCode || ""
-      ),
-
-      taxCode: selectedTax?.taxCode || 0,
-
-      taxName: form.taxName,
-
-      printDepartment: String(
-        selectedPrintDepartment?.depCode || ""
-      ),
-
-      branchCode:
-        appData?.user?.branch_code || "",
-
-      sacCode: form.sacCode,
-
-      // ✅ updated image path
-      thumb: thumbUrl,
-
-      barcode: form.barcode,
-      isVeg: form.isVeg,
-    };
-
-    const res = await updateItemMaster(
-      payload
-    );
-
-    if (res?.success) {
-      toast.success(
-        res.message ||
-          "Item updated successfully"
-      );
-
-      fetchItems();
-      fetchNextCode();
-
-      setIsEdit(false);
-
-    setSelectedImage(null);
-
-if (fileInputRef.current) {
-  fileInputRef.current.value = "";
-}
-
-      setForm({
-        id: 0,
-
-        itemCode: 0,
-        itemName: "",
-
-        catCode: "",
-        subCatCode: "",
-        grpCode: "",
-
-        itemDiscountAllowed: false,
-        itemRate: 0,
-
-        unitName: "",
-        dep: "",
-        taxName: "",
-
-        printDepartment: "",
-        sacCode: "",
-        barcode: "",
-
-        thumb: "",
-
-        isVeg: true,
-      });
-    } else {
+    try {
+      setLoading(true);
+          if (selectedOltCodes.length === 0) {
       toast.error(
-        res?.message ||
-          "Failed to update item"
+        "Please select at least one outlet"
       );
-    }
-  } catch (err: any) {
-    console.error(err);
 
-    toast.error(
-      err?.response?.data?.message ||
-        "Error updating item"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      setLoading(false);
+      return;
+    }
+
+      const selectedUnit = units.find((u) => u.unitName === form.unitName);
+
+      const selectedDepartment = departments.find(
+        (d) => d.depName === form.dep,
+      );
+
+      const selectedTax = taxes.find((t) => t.taxName === form.taxName);
+
+      const selectedPrintDepartment = printingDepartments.find(
+        (p) => p.depName === form.printDepartment,
+      );
+
+      // ✅ keep old thumb if no new image
+      let thumbUrl = form.thumb || "";
+
+      // ✅ upload new image if selected
+      if (selectedImage && selectedImage instanceof File) {
+        const imageRes = await createItemMasterWithImage(selectedImage);
+
+        if (imageRes?.success) {
+          const baseUrl = localStorage.getItem("baseUrl") || "";
+
+          const cleanBaseUrl = baseUrl.endsWith("/")
+            ? baseUrl.slice(0, -1)
+            : baseUrl;
+
+          const fileName = imageRes.data.split("/").pop();
+
+          thumbUrl = `${cleanBaseUrl}/Images/${fileName}`;
+        }
+      }
+
+      const payload = {
+        itemCode: form.itemCode,
+        itemName: form.itemName,
+
+        catCode: form.catCode,
+        subCatCode: form.subCatCode,
+        grpCode: form.grpCode,
+
+        itemDiscountAllowed: form.itemDiscountAllowed,
+
+        itemRate: form.itemRate,
+
+        userCode: String(appData?.user?.userCode) || "",
+
+        lastModify: new Date().toISOString(),
+
+        unitCode: selectedUnit?.unitCode || 0,
+        unitName: form.unitName,
+
+        dep: form.dep,
+
+        depCode: String(selectedDepartment?.depCode || ""),
+
+        taxCode: selectedTax?.taxCode || 0,
+
+        taxName: form.taxName,
+
+        printDepartment: String(selectedPrintDepartment?.depCode || ""),
+
+        branchCode: appData?.user?.branch_code || "",
+
+        sacCode: form.sacCode,
+
+        // ✅ updated image path
+        thumb: thumbUrl,
+
+        barcode: form.barcode,
+        isVeg: form.isVeg,
+        oltCodes: selectedOltCodes,
+      };
+
+      const res = await updateItemMaster(payload);
+
+      if (res?.success) {
+        toast.success(res.message || "Item updated successfully");
+
+        fetchItems();
+        fetchNextCode();
+
+        setIsEdit(false);
+
+        setSelectedImage(null);
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
+        setForm({
+          id: 0,
+
+          itemCode: 0,
+          itemName: "",
+
+          catCode: "",
+          subCatCode: "",
+          grpCode: "",
+
+          itemDiscountAllowed: false,
+          itemRate: 0,
+
+          unitName: "",
+          dep: "",
+          taxName: "",
+
+          printDepartment: "",
+          sacCode: "",
+          barcode: "",
+
+          thumb: "",
+
+          isVeg: true,
+        });
+        setSelectedOltCodes([]);
+setShowOutletDropdown(false);
+      } else {
+        toast.error(res?.message || "Failed to update item");
+      }
+    } catch (err: any) {
+      console.error(err);
+
+      toast.error(err?.response?.data?.message || "Error updating item");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <>
       <Header showNeworderButton={false} />
@@ -1018,7 +1033,7 @@ if (fileInputRef.current) {
                 try {
                   setLoading(true);
 
-                  await downloadItemMasterExcel();
+                  await downloadItemMasterExcel(appData?.user?.branch_code);
 
                   toast.success("Excel downloaded successfully ✅");
                 } catch (err) {
@@ -1117,95 +1132,89 @@ if (fileInputRef.current) {
                 </div>
               )}
             </div> */}
-<div className="flex flex-col">
-  <label className="text-sm mb-1">
-    Item Image
-  </label>
+            <div className="flex flex-col">
+              <label className="text-sm mb-1">Item Image</label>
 
-  <input
-    ref={fileInputRef}
-    type="file"
-    accept="image/*"
-    onChange={(e) => {
-      const file = e.target.files?.[0];
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
 
-      if (file) {
-        // ✅ Restrict max size to 100KB
-        const maxSize = 100 * 1024;
+                  if (file) {
+                    // ✅ Restrict max size to 100KB
+                    const maxSize = 100 * 1024;
 
-        if (file.size > maxSize) {
-          toast.error(
-            "Image size must be less than 100 KB"
-          );
+                    if (file.size > maxSize) {
+                      toast.error("Image size must be less than 100 KB");
 
-          // clear input
-          e.target.value = "";
+                      // clear input
+                      e.target.value = "";
 
-          return;
-        }
+                      return;
+                    }
 
-        setSelectedImage(file);
-      }
-    }}
-    className="border rounded-lg px-3 py-2"
-  />
+                    setSelectedImage(file);
+                  }
+                }}
+                className="border rounded-lg px-3 py-2"
+              />
 
-  {/* ✅ New uploaded image */}
-  {selectedImage instanceof File && (
-    <div className="mt-2">
-      <img
-        src={URL.createObjectURL(
-          selectedImage
-        )}
-        alt="Preview"
-        className="w-24 h-24 object-cover rounded-lg border"
-      />
+              {/* ✅ New uploaded image */}
+              {selectedImage instanceof File && (
+                <div className="mt-2">
+                  <img
+                    src={URL.createObjectURL(selectedImage)}
+                    alt="Preview"
+                    className="w-24 h-24 object-cover rounded-lg border"
+                  />
 
-      <button
-        type="button"
-        onClick={() => {
-          setSelectedImage(null);
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImage(null);
 
-          // clear file input
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-        }}
-        className="text-red-500 text-sm mt-1"
-      >
-        Remove
-      </button>
-    </div>
-  )}
+                      // clear file input
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
 
-  {/* ✅ Existing thumb image in edit mode */}
-  {!selectedImage && form.thumb && (
-    <div className="mt-2">
-      <img
-        src={form.thumb}
-        alt="Thumb"
-        className="w-24 h-24 object-cover rounded-lg border"
-      />
+              {/* ✅ Existing thumb image in edit mode */}
+              {!selectedImage && form.thumb && (
+                <div className="mt-2">
+                  <img
+                    src={form.thumb}
+                    alt="Thumb"
+                    className="w-24 h-24 object-cover rounded-lg border"
+                  />
 
-      <button
-        type="button"
-        onClick={() => {
-          setForm((prev) => ({
-            ...prev,
-            thumb: "",
-          }));
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        thumb: "",
+                      }));
 
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-        }}
-        className="text-red-500 text-sm mt-1"
-      >
-        Remove
-      </button>
-    </div>
-  )}
-</div>
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
+                    className="text-red-500 text-sm mt-1"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex flex-col">
               <label className="text-sm mb-1">Item Name</label>
 
@@ -1217,6 +1226,129 @@ if (fileInputRef.current) {
                 className="border rounded-lg px-3 py-2"
               />
             </div>
+<div className="flex flex-col relative">
+  <label className="text-sm mb-1">
+    Outlets
+  </label>
+
+  {/* SELECT STYLE BOX */}
+  <div
+    onClick={() =>
+      setShowOutletDropdown(
+        !showOutletDropdown
+      )
+    }
+    className="
+      border rounded-lg px-3 py-2
+      bg-white cursor-pointer
+      h-[42px]
+      flex items-center justify-between
+    "
+  >
+    <span
+      className={`truncate ${
+        selectedOltCodes.length === 0
+          ? "text-gray-500"
+          : "text-black"
+      }`}
+    >
+      {selectedOltCodes.length > 0
+        ? selectedOltCodes.join(", ")
+        : "Select Outlets"}
+    </span>
+
+    {/* SAME DROPDOWN ARROW */}
+    <svg
+      className="w-4 h-4 text-gray-600"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </div>
+
+  {/* DROPDOWN */}
+  {showOutletDropdown && (
+    <div
+      className="
+        absolute top-full left-0 mt-1
+        w-full bg-white border rounded-lg
+        shadow-lg z-50 max-h-60 overflow-y-auto
+      "
+    >
+      {/* SELECT ALL */}
+      <label
+        className="
+          flex items-center gap-2
+          px-3 py-2 border-b
+          hover:bg-gray-100 cursor-pointer
+        "
+      >
+        <input
+          type="checkbox"
+          checked={
+            outlets.length > 0 &&
+            selectedOltCodes.length ===
+              outlets.length
+          }
+          onChange={(e) => {
+            if (e.target.checked) {
+             setSelectedOltCodes(
+  outlets.map((o) =>
+    String(o.oltCode)
+  )
+);
+            } else {
+              setSelectedOltCodes([]);
+            }
+          }}
+        />
+
+        Select All
+      </label>
+
+      {/* OUTLETS */}
+      {outlets.map((outlet) => (
+        <label
+          key={outlet.oltCode}
+          className="
+            flex items-center gap-2
+            px-3 py-2
+            hover:bg-gray-100
+            cursor-pointer
+          "
+        >
+          <input
+            type="checkbox"
+           checked={selectedOltCodes.includes(String(outlet.oltCode))}
+        onChange={(e) => {
+  const value = String(outlet.oltCode);
+
+  if (e.target.checked) {
+    setSelectedOltCodes((prev) => [
+      ...prev,
+      value,
+    ]);
+  } else {
+    setSelectedOltCodes((prev) =>
+      prev.filter((id) => id !== value)
+    );
+  }
+}}
+          />
+
+          {outlet.oltName}
+        </label>
+      ))}
+    </div>
+  )}
+</div>
 
             <div className="flex flex-col">
               <label className="text-sm mb-1">Category</label>
