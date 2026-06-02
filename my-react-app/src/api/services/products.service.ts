@@ -1698,6 +1698,7 @@ export const updateItemMaster = async (payload: {
 export const deleteItemMaster = async (
   id: number,
   branchcode: string,
+  outlets: number[]
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -1709,6 +1710,10 @@ export const deleteItemMaster = async (
           id,
           branchcode,
         },
+
+        // ✅ body data
+        data: outlets,
+
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -1819,46 +1824,44 @@ export const downloadItemMasterExcel = async (
       throw error;
     }
   };
-  export const importItemMasterFromExcel =
-    async (
-      payload: any[],
-      usercode: string,
-      branchcode: string
-    ) => {
-      try {
-        const token =
-          localStorage.getItem("token");
+export const importItemMasterFromExcel = async (
+  items: any[],
+  userCode: string,
+  branchCode: string,
+  oltCodes: number[]
+) => {
+  try {
+    const token = localStorage.getItem("token");
 
-        const response = await api.post(
-          "/api/Master/ImportItemMasterFromExcel",
-          payload,
-          {
-            params: {
-              usercode,
-              branchcode,
-            },
-
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type":
-                "application/json",
-              accept: "*/*",
-            },
-          }
-        );
-
-        return response.data;
-      } catch (error: any) {
-        console.error(
-          "Error importing item master:",
-          error.response?.data ||
-            error.message
-        );
-
-        throw error;
-      }
+    const payload = {
+      items,
+      userCode,
+      branchCode,
+      oltCodes,
     };
 
+    const response = await api.post(
+      "/api/Master/ImportItemMasterFromExcel",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error importing item master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
     export const createItemMasterWithImage = async (
     image: File
   ) => {

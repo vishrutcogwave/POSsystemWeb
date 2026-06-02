@@ -366,206 +366,76 @@ async function getOuletList() {
     setDeleteRow(row);
   };
 
-  const confirmDelete = async () => {
-    if (!deleteRow) return;
+const confirmDelete = async () => {
+  if (!deleteRow) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-const res = await deleteItemMaster(
-  deleteRow.itemCode,
-  appData?.user?.branch_code,
-);
+    // ✅ convert string[] -> number[]
+    const outletCodes = selectedOltCodes.map(Number);
 
-      if (res?.success) {
-        toast.success("Deleted successfully ✅");
+    const res = await deleteItemMaster(
+      deleteRow.itemCode,
+      appData?.user?.branch_code,
+      outletCodes
+    );
+
+    if (res?.success) {
+      toast.success("Deleted successfully ✅");
+
+      await fetchNextCode();
+      await fetchItems();
+
+      if (isEdit && form.itemCode === deleteRow.itemCode) {
+        setIsEdit(false);
+
+        setForm({
+          id: 0,
+
+          itemCode: 0,
+          itemName: "",
+
+          catCode: "",
+          subCatCode: "",
+          grpCode: "",
+
+          itemDiscountAllowed: false,
+          itemRate: 0,
+
+          unitName: "",
+          dep: "",
+          taxName: "",
+
+          printDepartment: "",
+          sacCode: "",
+          barcode: "",
+
+          isVeg: true,
+        });
+
+        setSelectedOltCodes([]);
+
         await fetchNextCode();
-        await fetchItems();
-
-        if (isEdit && form.itemCode === deleteRow.itemCode) {
-          setIsEdit(false);
-
-          setForm({
-            id: 0,
-
-            itemCode: 0,
-            itemName: "",
-
-            catCode: "",
-            subCatCode: "",
-            grpCode: "",
-
-            itemDiscountAllowed: false,
-            itemRate: 0,
-
-            unitName: "",
-            dep: "",
-            taxName: "",
-
-            printDepartment: "",
-            sacCode: "",
-            barcode: "",
-
-            isVeg: true,
-          });
-
-          await fetchNextCode();
-        }
-      } else {
-        toast.error(res?.message || "Delete failed ❌");
       }
-    } catch (err: any) {
-      console.error(err);
-
-      toast.error(err?.response?.data?.message || "Error deleting ❌");
-    } finally {
-      setLoading(false);
-      setDeleteRow(null);
+    } else {
+      toast.error(res?.message || "Delete failed ❌");
     }
-  };
+  } catch (err: any) {
+    console.error(err);
+
+    toast.error(
+      err?.response?.data?.message ||
+        "Error deleting ❌"
+    );
+  } finally {
+    setLoading(false);
+    setDeleteRow(null);
+  }
+};
   const cancelDelete = () => {
     setDeleteRow(null);
   };
-  // const handleEdit = (row: any) => {
-  //   console.log("rowinthe edit",row);
-
-  //   setIsEdit(true);
-
-  //   const selectedCategory = categories.find(
-  //     (c) => String(c.catCode) === String(row.catCode),
-  //   );
-
-  //   const selectedSubCategory = subCategories.find(
-  //     (s) => String(s.subCatCode) === String(row.qpb),
-  //   );
-
-  //   const selectedGroup = groups.find(
-  //     (g) => String(g.grpCode) === String(row.grpCode),
-  //   );
-
-  //   const selectedDepartment = departments.find(
-  //     (d) => String(d.depCode) === String(row.depCode),
-  //   );
-
-  //   const selectedPrintDepartment = printingDepartments.find(
-  //     (p) => String(p.depCode) === String(row.mostRunningItemSrNo),
-  //   );
-
-  //   setForm({
-  //     id: row.itemCode,
-
-  //     itemCode: row.itemCode,
-  //     itemName: row.itemName,
-
-  //     catCode: String(selectedCategory?.catCode || ""),
-  //     subCatCode: String(selectedSubCategory?.subCatCode || ""),
-  //     grpCode: String(selectedGroup?.grpCode || ""),
-
-  //     itemDiscountAllowed: row.itemDiscountAllowed,
-  //     itemRate: row.itemRate,
-
-  //     unitName: row.unitName,
-
-  //     dep: selectedDepartment?.depName || "",
-
-  //     taxName: row.taxName || "",
-
-  //     printDepartment: selectedPrintDepartment?.depName || "",
-
-  //     sacCode: row.picture || "",
-  //     barcode: row.barcode || "",
-
-  //     isVeg: row.isVeg,
-  //   });
-  // };
-
-  // const handleSave = async () => {
-  //   try {
-  //     setLoading(true);
-
-  //     const selectedUnit = units.find((u) => u.unitName === form.unitName);
-
-  //     const selectedDepartment = departments.find(
-  //       (d) => d.depName === form.dep,
-  //     );
-
-  //     const selectedTax = taxes.find((t) => t.taxName === form.taxName);
-  //     const selectedPrintDepartment = printingDepartments.find(
-  //       (p) => p.depName === form.printDepartment,
-  //     );
-  //     const payload = {
-  //       itemCode: form.itemCode,
-  //       itemName: form.itemName,
-
-  //       catCode: form.catCode,
-  //       subCatCode: form.subCatCode,
-  //       grpCode: form.grpCode,
-
-  //       itemDiscountAllowed: form.itemDiscountAllowed,
-  //       itemRate: form.itemRate,
-
-  //       userCode: String(appData?.user?.userCode) || "",
-  //       lastModify: new Date().toISOString(),
-
-  //       unitCode: selectedUnit?.unitCode || 0,
-  //       unitName: form.unitName,
-
-  //       dep: form.dep,
-  //       depCode: String(selectedDepartment?.depCode || ""),
-
-  //       taxCode: selectedTax?.taxCode || 0,
-  //       taxName: form.taxName,
-  //       printDepartment: String(selectedPrintDepartment?.depCode || ""),
-  //       branchCode: appData?.user?.branch_code || "",
-
-  //       sacCode: form.sacCode,
-  //       thumb: "",
-
-  //       barcode: form.barcode,
-  //       isVeg: form.isVeg,
-  //     };
-
-  //     const res = await createItemMaster(payload);
-
-  //     if (res?.success) {
-  //       toast.success(res.message || "Item created successfully");
-
-  //       fetchItems();
-  //       fetchNextCode();
-
-  //       setForm({
-  //         id: 0,
-
-  //         itemCode: 0,
-  //         itemName: "",
-
-  //         catCode: "",
-  //         subCatCode: "",
-  //         grpCode: "",
-
-  //         itemDiscountAllowed: false,
-  //         itemRate: 0,
-
-  //         unitName: "",
-  //         dep: "",
-  //         taxName: "",
-
-  //         printDepartment: "",
-  //         sacCode: "",
-  //         barcode: "",
-
-  //         isVeg: true,
-  //       });
-  //     } else {
-  //       toast.error(res?.message || "Failed to create item");
-  //     }
-  //   } catch (err: any) {
-  //     console.error(err);
-  //     toast.error(err?.response?.data?.message || "Error creating item");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleEdit = (row: any) => {
     console.log("rowinthe edit", row);

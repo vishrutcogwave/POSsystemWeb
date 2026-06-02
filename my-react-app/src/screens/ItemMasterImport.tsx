@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import Loader from "../components/Loader";
 import toast from "react-hot-toast";
 import {
+  getOutletList,
     importItemMasterFromExcel,
   uploadItemMasterExcel,
 } from "../api/services/products.service";
@@ -13,11 +14,35 @@ import { useAppContext } from "../context/AppContext";
 export default function ItemMasterImport() {
   const [loading, setLoading] = useState(false);
   const { appData } = useAppContext();
+  console.log("appData",appData);
+  
   const [selectedFile, setSelectedFile] =
     useState<File | null>(null);
 
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [outlets, setOutlets] = useState<any[]>([]);
 
+const [selectedOltCodes, setSelectedOltCodes] =
+  useState<string[]>([]);
+
+const [showOutletDropdown, setShowOutletDropdown] =
+  useState(false);
+async function getOuletList() {
+  try {
+    const res = await getOutletList(
+      appData?.user?.branch_code
+    );
+
+    if (res?.success) {
+      setOutlets(res.data || []);
+    }
+  } catch (e) {
+    console.log(e);
+  }
+}
+React.useEffect(() => {
+  getOuletList();
+}, []);
   const navigate = useNavigate();
 
   // PREVIEW EXCEL
@@ -136,6 +161,13 @@ const handleImport = async () => {
     return;
   }
 
+  if (selectedOltCodes.length === 0) {
+  toast.error(
+    "Please select at least one outlet"
+  );
+
+  return;
+}
   try {
     setLoading(true);
 
@@ -172,10 +204,11 @@ const handleImport = async () => {
     ) {
       const importRes =
         await importItemMasterFromExcel(
-          uploadRes.validRows,
-          String(appData?.user?.usercode),
-          appData?.user?.branch_code
-        );
+  uploadRes.validRows,
+  String(appData?.user?.userCode),
+  appData?.user?.branch_code,
+  selectedOltCodes.map(Number)
+);
 
       toast.success(
         importRes?.message ||
@@ -282,6 +315,137 @@ const handleImport = async () => {
             </label>
           </div>
         </div>
+
+        <div className="bg-white rounded-xl shadow p-4 mb-4">
+  <div className="flex flex-col relative max-w-md">
+    <label className="text-sm mb-1">
+      Outlets
+    </label>
+
+    <div
+      onClick={() =>
+        setShowOutletDropdown(
+          !showOutletDropdown
+        )
+      }
+      className="
+        border rounded-lg px-3 py-2
+        bg-white cursor-pointer
+        h-[42px]
+        flex items-center justify-between
+      "
+    >
+      <span
+        className={`truncate ${
+          selectedOltCodes.length === 0
+            ? "text-gray-500"
+            : "text-black"
+        }`}
+      >
+        {selectedOltCodes.length > 0
+          ? selectedOltCodes.join(", ")
+          : "Select Outlets"}
+      </span>
+
+      <svg
+        className="w-4 h-4 text-gray-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    </div>
+
+    {showOutletDropdown && (
+      <div
+        className="
+          absolute top-full left-0 mt-1
+          w-full bg-white border rounded-lg
+          shadow-lg z-50 max-h-60 overflow-y-auto
+        "
+      >
+        <label
+          className="
+            flex items-center gap-2
+            px-3 py-2 border-b
+            hover:bg-gray-100 cursor-pointer
+          "
+        >
+          <input
+            type="checkbox"
+            checked={
+              outlets.length > 0 &&
+              selectedOltCodes.length ===
+                outlets.length
+            }
+            onChange={(e) => {
+              if (e.target.checked) {
+                setSelectedOltCodes(
+                  outlets.map((o) =>
+                    String(o.oltCode)
+                  )
+                );
+              } else {
+                setSelectedOltCodes([]);
+              }
+            }}
+          />
+
+          Select All
+        </label>
+
+        {outlets.map((outlet) => (
+          <label
+            key={outlet.oltCode}
+            className="
+              flex items-center gap-2
+              px-3 py-2
+              hover:bg-gray-100
+              cursor-pointer
+            "
+          >
+            <input
+              type="checkbox"
+              checked={selectedOltCodes.includes(
+                String(outlet.oltCode)
+              )}
+              onChange={(e) => {
+                const value = String(
+                  outlet.oltCode
+                );
+
+                if (e.target.checked) {
+                  setSelectedOltCodes(
+                    (prev) => [
+                      ...prev,
+                      value,
+                    ]
+                  );
+                } else {
+                  setSelectedOltCodes(
+                    (prev) =>
+                      prev.filter(
+                        (id) =>
+                          id !== value
+                      )
+                  );
+                }
+              }}
+            />
+
+            {outlet.oltName}
+          </label>
+        ))}
+      </div>
+    )}
+  </div>
+</div>
 
         {/* TABLE */}
         <div
