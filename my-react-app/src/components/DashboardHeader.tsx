@@ -613,6 +613,7 @@ import {
   UserCog,
   ShieldCheck,
   Printer,
+  Wrench,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -817,7 +818,14 @@ const DashboardHeader: React.FC = () => {
       permissionName: "Outlet Items",
     },
   ];
-
+// 🔥 UTILITY DROPDOWN
+const utilityItems = [
+  {
+    name: "Utility Settings",
+    icon: Wrench,
+    permissionName: "Daily Sales Report",
+  },
+];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
     KotRegister: "/pos/kotregister",
@@ -850,6 +858,7 @@ const DashboardHeader: React.FC = () => {
     KotCancellation: "/pos/kotcancellation",
     BillCancellation: "/pos/billcancellation",
     DailysaleCategorywise: "/pos/dailysalecategorywise",
+    "Utility Settings": "/utility/utilitysettings",
   };
 
   const handleNavigation = (name: string) => {
@@ -1067,6 +1076,45 @@ const DashboardHeader: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* UTILITY DROPDOWN */}
+{hasMainMenuAccess("POS Reports") && (
+  <div className="relative">
+    <button
+      onClick={() => toggleMenu("UTILITY")}
+      className="flex items-center gap-2 hover:text-teal-600"
+    >
+      <Wrench size={16} className="text-teal-600" />
+      Utility
+      <ChevronDown size={14} />
+    </button>
+
+    {activeMenu === "UTILITY" && (
+      <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+        {utilityItems
+          .filter((item) =>
+            hasSubMenuAccess(item.permissionName)
+          )
+          .map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={index}
+                onClick={() =>
+                  handleNavigation(item.name)
+                }
+                className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+              >
+                <Icon size={16} />
+                {item.name}
+              </div>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
             {/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
@@ -1226,6 +1274,43 @@ const DashboardHeader: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* UTILITY */}
+{hasMainMenuAccess("POS Reports") && (
+  <div>
+    <button
+      onClick={() => toggleMenu("UTILITY")}
+      className="flex justify-between w-full"
+    >
+      Utility <ChevronDown size={16} />
+    </button>
+
+    {activeMenu === "UTILITY" && (
+      <div className="ml-4 mt-2 flex flex-col gap-2">
+        {utilityItems
+          .filter((item) =>
+            hasSubMenuAccess(item.permissionName)
+          )
+          .map((item, i) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={i}
+                onClick={() =>
+                  handleNavigation(item.name)
+                }
+                className="flex items-center gap-2"
+              >
+                <Icon size={16} />
+                {item.name}
+              </button>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
           {/* 
           <button>Inventory Reports</button>
           <button>Utility</button> */}

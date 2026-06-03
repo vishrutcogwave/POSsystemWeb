@@ -36,6 +36,7 @@ import KotCancellationReport from "./KotCancellationReport";
 import BillCancellationReport from "./BillCancellationReport";
 import DailysaleCategorywisereport from "./DailySalesCategoryWiseReport";
 import KotRegister from "./KotRegisterReport";
+import UtilitySettings from "./UtilitySettings";
 
 function LandingPage() {
   const location = useLocation();
@@ -139,6 +140,10 @@ function LandingPage() {
 <Route
   path="/master/categorymaster"
   element={<CategoryMaster />}
+/>
+<Route
+  path="/utility/utilitysettings"
+  element={<UtilitySettings />}
 />
 <Route
   path="/master/subcategorymaster"

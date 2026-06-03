@@ -3801,3 +3801,155 @@ export const getKotRegisterReport = async (params: {
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ================= HAPPY HOURS SETTINGS =================
+
+export const getHappyHoursSettings = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetHappyHoursSettings",
+      {
+        params: { branchcode },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching happy hours settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const saveOrUpdateHappyHoursSettings =
+  async (payload: {
+    inOrExOfTax: boolean;
+    happyHours: boolean;
+
+    hhFrom:string;
+
+    hhTo: string;
+
+    branchCode: string;
+  }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/UtilitySetting/SaveorUpdateHappyHoursSettings",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error saving happy hours settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+
+
+  // ================= KOT TIMER SETTINGS =================
+
+export const getKOTTimerSettings = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetKOTTimerSettings",
+      {
+        params: { branchcode },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching KOT timer settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const saveOrUpdateKOTTimerSettings =
+  async (payload: {
+    timerRequired: boolean;
+    timerMinute: number;
+    branchCode: string;
+  }) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/UtilitySetting/SaveorUpdateKOTTimerSettings",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error saving KOT timer settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
