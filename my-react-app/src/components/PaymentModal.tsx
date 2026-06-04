@@ -69,6 +69,8 @@ const paymentIntervalRef = useRef<any>(null);
 const startDevicePayment = async (
   amount: number
 ) => {
+  console.log(amount);
+  
   try {
     setDevicePaymentLoading(true);
 
@@ -77,7 +79,7 @@ const startDevicePayment = async (
     // SEND PAYMENT
     const sendRes =
       await sendPaymentRequestDQRDevice(
-        amount,
+        100,
         transNo
       );
 
@@ -116,17 +118,33 @@ const startDevicePayment = async (
           setDevicePaymentStatus(status);
 
           // SUCCESS
-          if (status === "SUCCESS") {
-            clearInterval(
-              paymentIntervalRef.current
-            );
+    // SUCCESS
+if (status === "SUCCESS") {
+  clearInterval(
+    paymentIntervalRef.current
+  );
 
-            setDevicePaymentLoading(false);
+  setDevicePaymentLoading(false);
 
-            toast.success(
-              "Payment Successful"
-            );
-          }
+  toast.success(
+    "Payment Successful"
+  );
+
+  // AUTO SUBMIT PAYMENT
+  onPay({
+    paymentDetails,
+    total:
+      paymentDetails.reduce(
+        (sum, p) =>
+          sum + Number(p.amount || 0),
+        0
+      ),
+    difference: 0,
+    payableAmount: PAYABLE_AMOUNT,
+  });
+
+  handleClose();
+}
 
           // FAILED
           if (
@@ -207,8 +225,15 @@ useEffect(() => {
   };
 
   /* ---------------- SELECT MODE ---------------- */
-  const handleModeClick = (modeType: string) => {
-    const isSelected = selectedMulti[modeType] !== undefined;
+const handleModeClick = (modeType: string) => {
+  // DEFAULT QR DEVICE FOR UPI
+  if (modeType === "UPI") {
+    setUpiType("device");
+  }
+
+  const isSelected =
+    selectedMulti[modeType] !==
+    undefined;
 
     if (isSelected) {
       setSelectedMulti((prev) => {
@@ -297,33 +322,174 @@ useEffect(() => {
 
             {paymentDetails.map((p) => (
               <div key={p.mode} className="border p-3 rounded space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <span className="font-medium">{p.mode}</span>
+               {p.mode === "Card" ? (
+  <>
+    {paymentModes
+      .find((m) => m.modeType === "Card")
+      ?.subModes?.map((sub) => (
+        <div
+          key={sub.subModeId}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded p-2"
+        >
+          <span className="font-medium">
+            {sub.subModeType}
+          </span>
 
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={p.amount || ""}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (!/^\d*$/.test(value)) return;
+          <input
+            type="text"
+            inputMode="numeric"
+            value={
+              paymentDetails.find(
+                (x) =>
+                  x.mode === "Card" &&
+                  x.subMode ===
+                    sub.subModeType
+              )?.amount || ""
+            }
+            onChange={(e) => {
+              const value =
+                e.target.value;
 
-                      const numValue = Number(value || 0);
+              if (!/^\d*$/.test(value))
+                return;
 
-                      const otherTotal = paymentDetails
-                        .filter((x) => x.mode !== p.mode)
-                        .reduce((sum, x) => sum + x.amount, 0);
+              const numValue = Number(
+                value || 0
+              );
 
-                      if (numValue + otherTotal > PAYABLE_AMOUNT) {
-                        toast.error("Total exceeds payable");
-                        return;
-                      }
+              setPaymentDetails(
+                (prev) => {
+                  const others =
+                    prev.filter(
+                      (x) =>
+                        !(
+                          x.mode ===
+                            "Card" &&
+                          x.subMode ===
+                            sub.subModeType
+                        )
+                    );
 
-                      updatePayment(p.mode, "amount", numValue);
-                    }}
-                    className="w-full sm:w-24 border rounded px-2 py-1 text-right"
-                  />
-                </div>
+                  const otherTotal =
+                    others.reduce(
+                      (sum, x) =>
+                        sum + x.amount,
+                      0
+                    );
+
+                  if (
+                    numValue +
+                      otherTotal >
+                    PAYABLE_AMOUNT
+                  ) {
+                    toast.error(
+                      "Total exceeds payable"
+                    );
+
+                    return prev;
+                  }
+
+                  const existing =
+                    prev.findIndex(
+                      (x) =>
+                        x.mode ===
+                          "Card" &&
+                        x.subMode ===
+                          sub.subModeType
+                    );
+
+                  if (
+                    existing !== -1
+                  ) {
+                    const updated = [
+                      ...prev,
+                    ];
+
+                    updated[
+                      existing
+                    ] = {
+                      ...updated[
+                        existing
+                      ],
+                      amount:
+                        numValue,
+                    };
+
+                    return updated;
+                  }
+
+                  return [
+                    ...prev,
+                    {
+                      mode: "Card",
+                      subMode:
+                        sub.subModeType,
+                      amount:
+                        numValue,
+                      remarks: "",
+                    },
+                  ];
+                }
+              );
+            }}
+            className="w-full sm:w-24 border rounded px-2 py-1 text-right"
+          />
+        </div>
+      ))}
+  </>
+) : (
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <span className="font-medium">
+      {p.mode}
+    </span>
+
+    <input
+      type="text"
+      inputMode="numeric"
+      value={p.amount || ""}
+      onChange={(e) => {
+        const value = e.target.value;
+
+        if (!/^\d*$/.test(value))
+          return;
+
+        const numValue = Number(
+          value || 0
+        );
+
+        const otherTotal =
+          paymentDetails
+            .filter(
+              (x) =>
+                x.mode !== p.mode
+            )
+            .reduce(
+              (sum, x) =>
+                sum + x.amount,
+              0
+            );
+
+        if (
+          numValue + otherTotal >
+          PAYABLE_AMOUNT
+        ) {
+          toast.error(
+            "Total exceeds payable"
+          );
+
+          return;
+        }
+
+        updatePayment(
+          p.mode,
+          "amount",
+          numValue
+        );
+      }}
+      className="w-full sm:w-24 border rounded px-2 py-1 text-right"
+    />
+  </div>
+)}
 
                 {p.mode === "UPI" && (
                   <div className="flex gap-2">
