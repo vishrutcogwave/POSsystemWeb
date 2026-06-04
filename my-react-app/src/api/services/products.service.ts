@@ -3953,3 +3953,66 @@ export const saveOrUpdateKOTTimerSettings =
       throw error;
     }
   };
+
+
+  // ================= PHONEPE DQR PAYMENT =================
+
+export const sendPaymentRequestDQRDevice = async (
+  amount: number,
+  transNo: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/PhonePeDQRDevice/SendPaymentRequestDQRDevice",
+      null,
+      {
+        params: {
+          amount,
+          TransNo: transNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error sending payment request:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const getPaymentStatusRequestDQRDevice = async (
+  transNo: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      `/api/PhonePeDQRDevice/PaymentStatusRequestDQRDevice/${transNo}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error getting payment status:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

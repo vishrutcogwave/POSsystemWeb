@@ -151,13 +151,16 @@ useEffect(() => {
         )
       );
 
-      // ✅ only available items
-      const filteredResults = results.map((category: CategoryItem) => ({
-        ...category,
-        items: category.items.filter((item) => item.oidAvailable),
+      // ✅ FLATTEN FIRST (correct structure)
+      const flatCategories = results.flat();
+
+      // ✅ THEN filter items
+      const filtered = flatCategories.map((cat: CategoryItem) => ({
+        ...cat,
+        items: cat.items.filter((item) => item.oidAvailable),
       }));
 
-      setMasterItems(filteredResults.flat());
+      setMasterItems(filtered);
     } catch (err) {
       console.error("Error fetching master items:", err);
     }

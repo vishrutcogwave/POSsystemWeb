@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice } from "../api/services/products.service";
 
 type SubMode = {
   subModeId: number;
@@ -54,6 +55,120 @@ const PaymentModal: React.FC<Props> = ({
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
 
   const PAYABLE_AMOUNT = Math.round(Number(unbillData?.[0]?.total || 0));
+  // inside component states
+
+const [devicePaymentLoading, setDevicePaymentLoading] =
+  useState(false);
+
+const [devicePaymentStatus, setDevicePaymentStatus] =
+  useState("");
+
+const paymentIntervalRef = useRef<any>(null);
+// add this inside component
+
+const startDevicePayment = async (
+  amount: number
+) => {
+  try {
+    setDevicePaymentLoading(true);
+
+    const transNo = `TXN${Date.now()}`;
+
+    // SEND PAYMENT
+    const sendRes =
+      await sendPaymentRequestDQRDevice(
+        amount,
+        transNo
+      );
+
+    console.log("SEND RES", sendRes);
+
+    if (!sendRes?.success) {
+      toast.error(
+        sendRes?.message ||
+          "Failed to send payment request"
+      );
+
+      setDevicePaymentLoading(false);
+
+      return;
+    }
+
+    setDevicePaymentStatus("PENDING");
+
+    // CHECK STATUS EVERY 2 SEC
+    paymentIntervalRef.current = setInterval(
+      async () => {
+        try {
+          const statusRes =
+            await getPaymentStatusRequestDQRDevice(
+              transNo
+            );
+
+          console.log(
+            "STATUS RES",
+            statusRes
+          );
+
+          const status =
+            statusRes?.data?.status;
+
+          setDevicePaymentStatus(status);
+
+          // SUCCESS
+          if (status === "SUCCESS") {
+            clearInterval(
+              paymentIntervalRef.current
+            );
+
+            setDevicePaymentLoading(false);
+
+            toast.success(
+              "Payment Successful"
+            );
+          }
+
+          // FAILED
+          if (
+            status === "FAILED" ||
+            status === "DECLINED"
+          ) {
+            clearInterval(
+              paymentIntervalRef.current
+            );
+
+            setDevicePaymentLoading(false);
+
+            toast.error("Payment Failed");
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      },
+      2000
+    );
+  } catch (error: any) {
+    console.log(error);
+
+    setDevicePaymentLoading(false);
+
+    toast.error(
+      error?.response?.data?.message ||
+        "Device payment failed"
+    );
+  }
+};
+// add cleanup useEffect
+
+useEffect(() => {
+  return () => {
+    if (paymentIntervalRef.current) {
+      clearInterval(
+        paymentIntervalRef.current
+      );
+    }
+  };
+}, []);
 
   useEffect(() => {
     if (isOpen && runApi) runApi();
@@ -243,15 +358,47 @@ const PaymentModal: React.FC<Props> = ({
                   </div>
                 )}
 
-                {p.mode === "UPI" && upiType === "device" && (
-                  <div className="border p-3 rounded text-center">
-                    <p className="text-orange-500 font-semibold">
-                      Waiting for payment from QR device...
-                    </p>
-                  </div>
-                )}
+              {p.mode === "UPI" && upiType === "device" && (
+  <div className="border p-3 rounded text-center space-y-3">
+    <p className="text-orange-500 font-semibold">
+      Waiting for payment from QR device...
+    </p>
 
-                {/* ✅ SUB MODE DROPDOWN */}
+    <div className="text-sm">
+      Status :{" "}
+      <span
+        className={`font-semibold ${
+          devicePaymentStatus === "SUCCESS"
+            ? "text-green-600"
+            : devicePaymentStatus ===
+                  "FAILED" ||
+                devicePaymentStatus ===
+                  "DECLINED"
+              ? "text-red-600"
+              : "text-orange-500"
+        }`}
+      >
+        {devicePaymentStatus ||
+          "NOT STARTED"}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      disabled={devicePaymentLoading}
+      onClick={() =>
+        startDevicePayment(PAYABLE_AMOUNT)
+      }
+      className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+    >
+      {devicePaymentLoading
+        ? "Waiting..."
+        : "Start Device Payment"}
+    </button>
+  </div>
+)}
+
+            
               
                 <textarea
                   value={p.remarks || ""}
