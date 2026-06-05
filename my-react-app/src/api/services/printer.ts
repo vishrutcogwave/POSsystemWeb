@@ -178,6 +178,7 @@ export const printBill = async (
   billNo: any,
   companyInfo: any,
 ) => {
+  debugger
   console.log("inside the print", billData, billNo, companyInfo);
 
   try {

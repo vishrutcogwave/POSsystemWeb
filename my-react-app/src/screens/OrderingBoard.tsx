@@ -1367,7 +1367,14 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     }
   };
   /* ---------------- GLOBAL LOADER ---------------- */
-  if (loading || categoryLoading) return <Loader />;
+  /* ---------------- GLOBAL LOADER ---------------- */
+if (
+  loading ||
+  categoryLoading ||
+  kotLoading
+) {
+  return <Loader />;
+}
 
   const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
