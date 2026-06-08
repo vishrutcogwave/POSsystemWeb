@@ -618,12 +618,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
 import { useAppContext } from "../context/AppContext";
+import BillCancellationPopup from "./BillCancellationPopup";
 
 const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showDayPopup, setShowDayPopup] = useState(false);
-
+const [showBillCancelPopup, setShowBillCancelPopup] =
+  useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { userRights } = useAppContext();
@@ -635,6 +637,27 @@ const DashboardHeader: React.FC = () => {
         menu.menuPermission === true,
     );
   };
+const handleNavigation = (name: string) => {
+
+  if (name === "Day Close") {
+    setShowDayPopup(true);
+    setActiveMenu(null);
+    return;
+  }
+
+  if (name === "Bill Cancellation") {
+    setShowBillCancelPopup(true);
+    setActiveMenu(null);
+    return;
+  }
+
+  if (routeMap[name]) {
+    navigate(routeMap[name]);
+  }
+
+  setActiveMenu(null);
+  setMobileOpen(false);
+};
 
   const hasSubMenuAccess = (subMenuName: string) => {
     return userRights?.some((menu: any) =>
@@ -659,6 +682,11 @@ const DashboardHeader: React.FC = () => {
       icon: LogOut,
       permissionName: "Day Wise Shift Entry",
     },
+    {
+  name: "Bill Cancellation",
+  icon: Ban,
+  permissionName: "Bill Reprint",
+},
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
@@ -859,22 +887,10 @@ const utilityItems = [
     BillCancellation: "/pos/billcancellation",
     DailysaleCategorywise: "/pos/dailysalecategorywise",
     "Utility Settings": "/utility/utilitysettings",
+    
   };
 
-  const handleNavigation = (name: string) => {
-    if (name === "Day Close") {
-      setShowDayPopup(true);
-      setActiveMenu(null);
-      return;
-    }
 
-    if (routeMap[name]) {
-      navigate(routeMap[name]);
-    }
-
-    setActiveMenu(null);
-    setMobileOpen(false);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -1320,6 +1336,13 @@ const utilityItems = [
         isOpen={showDayPopup}
         onClose={() => setShowDayPopup(false)}
       />
+
+      <BillCancellationPopup
+  isOpen={showBillCancelPopup}
+  onClose={() =>
+    setShowBillCancelPopup(false)
+  }
+/>
     </div>
   );
 };

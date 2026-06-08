@@ -11,14 +11,7 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { DataTable } from "../components/DataTableForMasters";
 
-type Row = {
-  id: number;
-  billNo: string;
-  billDate: string;
-  billTime: string;
-  totalAmount: number;
-  outlet: string;
-};
+type Row = { id: number; ksmBillNo: string; ksmBillDate: string; totalAmount: number; reason: string; };
 
 export default function BillCancellationReport() {
   const [data, setData] = useState<Row[]>([]);
@@ -108,14 +101,30 @@ export default function BillCancellationReport() {
           OutletCode: outletId,
         });
 
-      setData(
-        (response || []).map(
-          (item: any, index: number) => ({
-            id: index + 1,
-            ...item,
-          })
-        )
-      );
+setData(
+  (response || []).map(
+    (
+      item: any,
+      index: number
+    ) => ({
+      id: index + 1,
+
+      ksmBillNo:
+        item?.ksmBillNo || "",
+
+      ksmBillDate:
+        item?.ksmBillDate
+          ?.split("T")[0] || "",
+
+      totalAmount:
+        item?.totalAmount || 0,
+
+      reason:
+        item?.reason || "",
+    })
+  )
+);
+
     } catch (error) {
       console.error(
         "Error fetching Bill cancellation report:",
@@ -149,19 +158,19 @@ export default function BillCancellationReport() {
 
     if (!printWindow) return;
 
-    const rows = data
-      .map(
-        (row) => `
-      <tr>
-        <td>${row.billNo}</td>
-        <td>${row.billDate}</td>
-        <td>${row.billTime}</td>
-        <td>${row.totalAmount}</td>
-        <td>${row.outlet}</td>
-      </tr>
-    `
-      )
-      .join("");
+const rows = data
+  .map(
+    (row) => `
+    <tr>
+      <td>${row.ksmBillNo}</td>
+      <td>${row.ksmBillDate}</td>
+      <td>${row.totalAmount}</td>
+      <td>${row.reason}</td>
+    </tr>
+  `
+  )
+  .join("");
+
 
     printWindow.document.write(`
       <html>
@@ -198,11 +207,10 @@ export default function BillCancellationReport() {
           <table>
             <thead>
               <tr>
-                <th>Bill No</th>
-                <th>Bill Date</th>
-                <th>Bill Time</th>
-                <th>Total Amount</th>
-                <th>Outlet</th>
+               <th>Bill No</th>
+<th>Bill Date</th>
+<th>Total Amount</th>
+<th>Reason</th>
               </tr>
             </thead>
 
@@ -249,23 +257,20 @@ export default function BillCancellationReport() {
     );
 
     autoTable(doc, {
-      head: [
-        [
-          "Bill No",
-          "Bill Date",
-          "Bill Time",
-          "Total Amount",
-          "Outlet",
-        ],
-      ],
-
-      body: data.map((row) => [
-        row.billNo,
-        row.billDate,
-        row.billTime,
-        row.totalAmount,
-        row.outlet,
-      ]),
+    head: [
+  [
+    "Bill No",
+    "Bill Date",
+    "Total Amount",
+    "Reason",
+  ],
+],
+body: data.map((row) => [
+  row.ksmBillNo,
+  row.ksmBillDate,
+  row.totalAmount,
+  row.reason,
+]),
 
       startY: 25,
     });
@@ -400,31 +405,31 @@ export default function BillCancellationReport() {
           </div>
 
           {/* DATATABLE */}
-          <DataTable
-            columns={[
-              {
-                header: "Bill No",
-                accessor: "billNo",
-              },
-              {
-                header: "Bill Date",
-                accessor: "billDate",
-              },
-              {
-                header: "Bill Time",
-                accessor: "billTime",
-              },
-              {
-                header: "Total Amount",
-                accessor: "totalAmount",
-              },
-              {
-                header: "Outlet",
-                accessor: "outlet",
-              },
-            ]}
-            data={data}
-          />
+<DataTable
+  columns={[
+    {
+      header: "Bill No",
+      accessor: "ksmBillNo",
+    },
+
+    {
+      header: "Bill Date",
+      accessor: "ksmBillDate",
+    },
+
+    {
+      header: "Total Amount",
+      accessor: "totalAmount",
+    },
+
+    {
+      header: "Reason",
+      accessor: "reason",
+    },
+  ]}
+  data={data}
+/>
+
         </div>
       </div>
     </div>

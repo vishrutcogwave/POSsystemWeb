@@ -310,7 +310,7 @@ export const printBill = async (
     //   d += "-".repeat(width) + "\n";
 
     //   /* -------- GROUPED TAX -------- */
-    //   if (c.taxType === "groupedtax") {
+    //   if (c.taxType?.toLowerCase() === "groupedtax") {
     //     const groupMap: Record<number, any[]> = {};
 
     //     mergeItems(c.items).forEach((item: any) => {
@@ -480,7 +480,7 @@ export const printBill = async (
   d += "-".repeat(width) + "\n";
 
   /* -------- GROUPED TAX -------- */
-  if (c.taxType === "groupedtax") {
+  if (c.taxType?.toLowerCase() === "groupedtax") {
     const groupMap: Record<number, any[]> = {};
 
     mergeItems(c.items).forEach((item: any) => {
@@ -745,7 +745,7 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   d += headerBlock;
 
   /* ===== GROUPED ITEMS (UNCHANGED LOGIC) ===== */
-  if (c.taxType === "groupedtax") {
+  if (c.taxType?.toLowerCase() === "groupedtax") {
     const groupMap: Record<number, any[]> = {};
 
     mergeItems(c.items).forEach((item: any) => {

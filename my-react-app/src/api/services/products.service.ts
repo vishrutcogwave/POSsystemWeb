@@ -4321,3 +4321,93 @@ export const saveOrUpdateSMSSenderSettings =
       throw error;
     }
   };
+
+
+
+
+
+
+
+
+
+  // ================= BILL DETAILS =================
+
+export const getBillDetails = async (
+  OutletCode: number,
+  BranchCode: string,
+  FromDate: string,
+  ToDate: string
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POS/GetBillDetails",
+      {
+        params: {
+          OutletCode,
+          BranchCode,
+          FromDate,
+          ToDate,
+        },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching bill details:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
+
+// ================= CANCEL BILL =================
+
+export const cancelBill = async (
+  payload: {
+    outlet: number;
+    billNo: number;
+    branch: string;
+    billDate: string;
+    userId: number;
+    reason: string;
+  }
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/CancelBill",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type":
+            "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error cancelling bill:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};
