@@ -4016,3 +4016,308 @@ export const getPaymentStatusRequestDQRDevice = async (
     throw error;
   }
 };
+
+
+
+// ================= FINANCIAL SETTINGS =================
+
+export const getFinancialSettings = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetFinancialSettings",
+      {
+        params: { branchcode },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching financial settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const saveOrUpdateFinancialSettings = async (
+  payload: {
+    finId: number;
+    finFromDate: string;
+    finToDate: string;
+    fincurrentYear: number;
+    finEndYear: number;
+    currentStatus: number;
+    logUser: string;
+    ipAddress: string;
+    finalClose: string;
+    finCode: string;
+    branchCode: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/SaveOrUpdateFinancialSettings",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving financial settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+// ================= TAX MODE SETTINGS =================
+
+export const getTaxModeSettings = async (
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetTaxModeSettings",
+      {
+        params: { branchcode },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching tax mode settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const updateTaxModeSettings = async (
+  payload: {
+    taxId: number;
+    taxRequired: boolean;
+    taxType: string;
+    branchCode: string;
+  }
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/UpdateTaxModeSettings",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating tax mode settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+// ================= DISCOUNT MODE SETTINGS =================
+
+export const getDiscountModeSettings =
+  async (branchcode: string) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.get(
+        "/api/UtilitySetting/GetDiscountModeSettings",
+        {
+          params: { branchcode },
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching discount mode settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const updateDiscountModeSettings =
+  async (payload: {
+    discId: number;
+    discountRequired: boolean;
+    discountType: string;
+    branchCode: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/UtilitySetting/UpdateDiscountModeSettings",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error updating discount mode settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+
+
+
+
+
+
+
+
+  // ================= SMS SENDER SETTINGS =================
+
+export const getSMSSenderSettings =
+  async (branchcode: string) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.get(
+        "/api/UtilitySetting/GetSMSSenderSettings",
+        {
+          params: { branchcode },
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching SMS sender settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };
+
+export const saveOrUpdateSMSSenderSettings =
+  async (payload: {
+    smsId: string;
+    smsPwd: string;
+    smsSenderId: string;
+    smsProvider: string;
+    mobileNo: string;
+    backUpLocation: string;
+    dbName: string;
+    isKotPrinter: boolean;
+    isHomeDelivery: boolean;
+    isCustomerEntry: boolean;
+    emailID: string;
+    password: string;
+    isSMS: boolean;
+    isMail: boolean;
+    isPriceShow: boolean;
+    isDescriptionShow: boolean;
+    dayCloseGraceHour: number;
+    branchCode: string;
+  }) => {
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      const response = await api.post(
+        "/api/UtilitySetting/SaveOrUpdateSMSSenderSettings",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            accept: "*/*",
+          },
+        }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error saving SMS sender settings:",
+        error.response?.data ||
+          error.message
+      );
+
+      throw error;
+    }
+  };

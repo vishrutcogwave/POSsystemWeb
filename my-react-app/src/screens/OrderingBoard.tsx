@@ -533,49 +533,105 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
       .filter(Boolean);
   };
-  const formatThermal = (c: any) => {
-    let d = "";
+const formatThermal = (c: any) => {
+  const width = 42;
 
-    d += "\x1B\x40";
+const center = (text: string) => {
+  const padding = Math.floor(
+    (42 - text.length) / 2
+  );
 
-    d += "\x1B\x61\x01";
-    d += "\x1B\x45\x01";
-    d += c.title + "\n";
-    d += "\x1B\x45\x00";
+  return (
+    " ".repeat(Math.max(0, padding - 2)) +
+    text +
+    "\n"
+  );
+};
 
-    d += "--------------------------------\n";
 
-    d += "\x1B\x61\x00";
+  const line = "-".repeat(width);
 
-    d += `Table : ${c.table}\n`;
-    d += `SubTbl: ${c.subTable}\n`;
-    d += `Waiter: ${c.waiter}\n`;
-    d += `Pax   : ${c.pax}\n`;
-
-    d += "--------------------------------\n";
-
-    c.items.forEach((item: any) => {
-      const qty = String(item.qty).padEnd(3, " ");
-      const name = item.name.substring(0, 24);
-
-      d += qty + " " + name.padEnd(24, " ") + "\n";
-
-      item.instructions.forEach((i: string) => {
-        d += "    * " + i + "\n";
-      });
-    });
-
-    d += "--------------------------------\n";
-
-    const total = c.items.reduce((s: number, i: any) => s + i.qty, 0);
-    d += `Total Items : ${total}\n`;
-
-    d += "\n\n\n";
-    d += "\x1B\x64\x05";
-    d += "\x1D\x56\x41\x10";
-
-    return d;
+  // LEFT SAFE MARGIN
+  const pad = (text: string) => {
+    return "  " + text + "\n";
   };
+
+  let d = "";
+
+  // RESET
+  d += "\x1B\x40";
+
+  // CENTER ALIGN
+  d += "\x1B\x61\x01";
+
+  // OUTLET NAME
+  d += "\x1B\x45\x01";
+  d += center(
+    localStorage.getItem("activeOltName") ||
+      "BAR & RESTAURANT"
+  );
+  d += "\x1B\x45\x00";
+
+  // TITLE
+  d += center(c.title);
+
+  d += line + "\n";
+
+  // LEFT ALIGN
+  d += "\x1B\x61\x00";
+
+  // DETAILS
+  d += pad(`KOT : ${c.kotId || ""}`);
+  d += pad(`TBL : ${c.table}-${c.subTable}`);
+  d += pad(`WTR : ${c.waiter}`);
+  d += pad(`PAX : ${c.pax}`);
+  d += pad(
+    `TIME: ${new Date().toLocaleTimeString()}`
+  );
+
+  d += line + "\n";
+
+  // HEADER
+  d += "\x1B\x45\x01";
+  d += pad("QTY   ITEM");
+  d += "\x1B\x45\x00";
+
+  d += line + "\n";
+
+  // ITEMS
+  c.items.forEach((item: any) => {
+    const qty = String(item.qty).padEnd(5);
+
+    d += pad(`${qty}${item.name}`);
+
+    // INSTRUCTIONS
+    item.instructions?.forEach((i: string) => {
+      d += pad(`* ${i}`);
+    });
+  });
+
+  d += line + "\n";
+
+  // TOTAL
+  const total = c.items.reduce(
+    (s: number, i: any) => s + i.qty,
+    0
+  );
+
+  d += "\x1B\x45\x01";
+  d += pad(`ITEMS : ${total}`);
+  d += "\x1B\x45\x00";
+
+  d += line + "\n";
+
+  // FEED
+  d += "\n\n\n";
+
+  // CUT
+  d += "\x1D\x56\x41\x10";
+
+  return d;
+};
 
   /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
   const formatHTML = (c: any) => `
@@ -666,6 +722,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
 </html>
 `;
   const handleKOT = async () => {
+    debugger
      if (dayDetails?.openDayResponse?.success === false) {
     setAlertMsg(
       dayDetails?.openDayResponse?.message ||
@@ -792,7 +849,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
         const content = generateContent(items);
 
         // ✅ STEP 1: resolve default printer if empty
-        let printerName = rawPrinterName;
+        let printerName = "POS USB PRINTER";
         console.log("printerName", printerName);
 
         console.log("Using Printer:", printerName);
@@ -976,18 +1033,20 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
         }
       });
 
-      const generateContent = (items: any[]) => ({
-        title: isNC ? "NC KOT" : "KOT",
-        table: tableData?.tableNumber,
-        subTable: selectedSubTable || "A",
-        waiter: session.waiterName,
-        pax: session.pax,
-        items: items.map((item) => ({
-          qty: item.origQty,
-          name: item.food,
-          instructions: getInstructionLines(item.comment),
-        })),
-      });
+const generateContent = (items: any[]) => ({
+  title: isNC ? "NC KOT" : "KOT",
+  kotId: res.kotId || "",
+  table: tableData?.tableNumber,
+  subTable: selectedSubTable || "A",
+  waiter: session.waiterName,
+  pax: session.pax,
+
+  items: items.map((item) => ({
+    qty: item.origQty,
+    name: item.food,
+    instructions: getInstructionLines(item.comment),
+  })),
+});
 
       for (const printerName in printerItemMap) {
         const content = generateContent(printerItemMap[printerName]);
