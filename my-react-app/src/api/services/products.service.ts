@@ -4411,3 +4411,109 @@ export const cancelBill = async (
     throw error;
   }
 };
+
+
+export const getItemWiseAddOnDetailsList = async (
+  BranchCode: string,
+  Itemcode: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetItemWiseAddOnDetailsList",
+      {
+        params: {
+          BranchCode,
+          Itemcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item wise add-on details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+// ================= ADDON DETAILS =================
+
+export const getAdditionalAddonDetailsList = async (
+  Itemcode: number,
+  BranchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/Master/GetAdditionalAddonDetailsList",
+      {
+        params: {
+          Itemcode,
+          BranchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching addon details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const insertorUpdateAddOnDetails = async (
+  payload: {
+    itemCode: number;
+    addOnItemCode: number;
+    addOnName: string;
+    itemRate: number;
+    isActive: boolean;
+    userCode: string;
+    branchCode: string;
+  }[]
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/Master/InsertorUpdateAddOnDetails",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving addon details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

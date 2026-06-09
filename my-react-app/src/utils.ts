@@ -30,6 +30,7 @@ grpCode: number;
  itemDiscountAllowed: boolean;
   note?: string;
   spcodes?: string;
+  isAddon?: boolean;
 };
 export type SubTable = {
   subTable: string;

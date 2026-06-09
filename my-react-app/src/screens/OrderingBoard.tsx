@@ -16,6 +16,7 @@ import {
   getCompanyInfo,
   getDiscountModeMaster,
   getItemGroupList,
+  getItemWiseAddOnDetailsList,
   getNCKOT,
   getOldCart,
   getOpenDayDetails,
@@ -59,6 +60,14 @@ function OrderingBoard() {
   const [openPayment, setOpenPayment] = useState(false);
   const [openUnsettledPayment, setOpenUnsettledPayment] = useState(false);
   const [unbillData, setUnbillData] = useState<any>(null);
+
+  const [openAddonModal, setOpenAddonModal] = useState(false);
+
+const [addonItems, setAddonItems] = useState<any[]>([]);
+
+const [selectedFood, setSelectedFood] = useState<any>(null);
+
+const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
   const handleUnsettledSubTable = async (item: any) => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -265,6 +274,8 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
   };
   const fetchOldCart = async (sub: string) => {
     try {
+    setKotLoading(true)
+
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
@@ -335,6 +346,9 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       console.log("All old items:", oldItems);
     } catch (err) {
       console.error("Failed to fetch old cart", err);
+    }finally{
+    setKotLoading(false)
+
     }
   };
 
@@ -431,61 +445,108 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     );
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-  const handleAdd = (itemCode: number) => {
-    if (!session) {
-      toast.error("Start table session first");
+  const addItemToCart = (
+  food: any,
+  selectedCategory: any
+) => {
+  setCart((prev) => {
+    const existing = prev.find(
+      (i) =>
+        i.id === food.itemCode &&
+        !i.isAddon
+    );
+
+    if (existing) {
+      return prev.map((i) =>
+        i.id === food.itemCode
+          ? { ...i, qty: i.qty + 1 }
+          : i
+      );
+    }
+
+    return [
+      ...prev,
+      {
+        id: food.itemCode,
+        name: food.itemName.trim(),
+        price: food.oidRate,
+        qty: 1,
+        category: selectedCategory.catCode,
+        grpCode: Number(selectedCategory.grpCode),
+        spcodes: "",
+        note: "",
+        itemDiscountAllowed:
+          food.itemDiscountAllowed,
+      },
+    ];
+  });
+};
+const handleAdd = async (
+  itemCode: number
+) => {
+  if (!session) {
+    toast.error("Start table session first");
+    return;
+  }
+
+  let selectedCategory: any = null;
+  let food: any = null;
+
+  for (const cat of items) {
+    const found = cat.items.find(
+      (i: any) => i.itemCode === itemCode
+    );
+
+    if (found) {
+      selectedCategory = cat;
+      food = found;
+      break;
+    }
+  }
+
+  if (!food || !selectedCategory) return;
+
+  try {
+    const branch =
+      localStorage.getItem("branch") || "";
+
+    const res =
+      await getItemWiseAddOnDetailsList(
+        branch,
+        itemCode
+      );
+
+    console.log("ADDON RESPONSE", res);
+
+    // ✅ HAS ADDONS
+    if (
+      res?.success &&
+      res?.data &&
+      res.data.length > 0
+    ) {
+      setSelectedFood({
+        food,
+        category: selectedCategory,
+      });
+
+      setAddonItems(res.data);
+
+      setSelectedAddons([]);
+
+      setOpenAddonModal(true);
+
       return;
     }
 
-    // 🔥 FIND CATEGORY + ITEM TOGETHER
-    let selectedCategory: any = null;
-    let food: any = null;
+    // ✅ NORMAL FOOD
+    addItemToCart(food, selectedCategory);
 
-    for (const cat of items) {
-      const found = cat.items.find((i: any) => i.itemCode === itemCode);
-      if (found) {
-        selectedCategory = cat;
-        food = found;
-        break;
-      }
-    }
+  } catch (err) {
+    console.error(err);
 
-    if (!food || !selectedCategory) return;
-
-    setCart((prev) => {
-      const existing = prev.find(
-        (i) =>
-          i.id === itemCode &&
-          (!i.spcodes || i.spcodes === "") &&
-          (!i.note || i.note === ""),
-      );
-
-      if (existing) {
-        return prev.map((i) =>
-          i.id === itemCode &&
-          (!i.spcodes || i.spcodes === "") &&
-          (!i.note || i.note === "")
-            ? { ...i, qty: i.qty + 1 }
-            : i,
-        );
-      }
-
-      return [
-        ...prev,
-        {
-          id: food.itemCode,
-          name: food.itemName.trim(),
-          price: food.oidRate,
-          qty: 1,
-          category: selectedCategory.catCode, // ✅ FIXED
-          grpCode: Number(selectedCategory.grpCode), // ✅ ADD THIS
-          spcodes: "",
-          note: "",
-          itemDiscountAllowed: food.itemDiscountAllowed,
-        },
-      ];
-    });
-  };
+    addItemToCart(food, selectedCategory);
+  }
+};
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
@@ -524,6 +585,39 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     });
   };
 
+
+  const handleAddonConfirm = () => {
+  if (!selectedFood) return;
+
+  // MAIN FOOD
+  addItemToCart(
+    selectedFood.food,
+    selectedFood.category
+  );
+
+  // ADDONS
+  selectedAddons.forEach((addon) => {
+    setCart((prev) => [
+      ...prev,
+      {
+        id: addon.addOnItemCode,
+        name: addon.addOnName,
+        price: addon.itemRate,
+        qty: 1,
+        category:
+          selectedFood.category.catCode,
+        grpCode:
+          selectedFood.category.grpCode,
+        spcodes: "",
+        note: "",
+       isAddon: true,
+itemDiscountAllowed: true,
+      },
+    ]);
+  });
+
+  setOpenAddonModal(false);
+};
   const getInstructionLines = (codes?: string) => {
     if (!codes) return [];
 
@@ -1853,6 +1947,176 @@ if (
   type={alertType}
   onClose={() => setAlertOpen(false)}
 />
+
+{openAddonModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+
+    {/* POPUP */}
+    <div className="w-[42vw] min-w-[750px] max-w-[95vw] rounded-2xl bg-white shadow-2xl overflow-hidden animate-[fadeIn_.2s_ease]">
+
+      {/* HEADER */}
+      <div className="bg-gradient-to-r from-[#0576B2] to-[#0EA5E9] px-5 py-4">
+        <h2 className="text-white text-xl font-bold">
+          Select Add Ons
+        </h2>
+
+        <p className="text-blue-100 text-sm mt-1">
+          Customize your item with extra add-ons
+        </p>
+      </div>
+
+      {/* BODY */}
+      <div className="p-5 max-h-[65vh] overflow-y-auto">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+
+          {addonItems.map((addon) => {
+            const checked = selectedAddons.some(
+              (a) =>
+                a.addOnItemCode ===
+                addon.addOnItemCode
+            );
+
+            return (
+              <label
+                key={addon.addOnItemCode}
+                className={`
+                  relative overflow-hidden rounded-2xl border cursor-pointer
+                  transition-all duration-300 group
+                  
+                  ${
+                    checked
+                      ? "border-[#0576B2] bg-gradient-to-r from-blue-50 to-cyan-50 shadow-lg scale-[1.02]"
+                      : "border-gray-200 bg-white hover:border-[#0576B2] hover:shadow-md"
+                  }
+                `}
+              >
+                {/* HIDDEN INPUT */}
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={checked}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedAddons((prev) => [
+                        ...prev,
+                        addon,
+                      ]);
+                    } else {
+                      setSelectedAddons((prev) =>
+                        prev.filter(
+                          (a) =>
+                            a.addOnItemCode !==
+                            addon.addOnItemCode
+                        )
+                      );
+                    }
+                  }}
+                />
+
+                <div className="p-3">
+
+                  {/* IMAGE */}
+                  <div className="relative">
+                    <img
+                      src={
+                        addon.thumb ||
+                        addon.image ||
+                        "https://placehold.co/400x250/png"
+                      }
+                      alt={addon.addOnName}
+                      className="h-28 w-full rounded-xl object-cover border border-gray-200"
+                    />
+
+                    {checked && (
+                      <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-[#0576B2] flex items-center justify-center shadow-md">
+                        <span className="text-white text-xs">
+                          ✓
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DETAILS */}
+                  <div className="mt-3">
+
+                    <h3 className="font-bold text-gray-800 text-sm line-clamp-1">
+                      {addon.addOnName}
+                    </h3>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                      Extra Add-On
+                    </p>
+
+                    <div className="mt-3 flex items-center justify-between">
+
+                      <p className="text-xl font-extrabold text-[#0576B2]">
+                        ₹{addon.itemRate}
+                      </p>
+
+                      <div
+                        className={`
+                          px-3 py-1 rounded-full text-xs font-semibold transition-all
+                          
+                          ${
+                            checked
+                              ? "bg-[#0576B2] text-white"
+                              : "bg-gray-100 text-gray-600"
+                          }
+                        `}
+                      >
+                        {checked
+                          ? "Added"
+                          : "Add"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="flex items-center justify-between border-t bg-gray-50 px-5 py-4">
+
+        {/* TOTAL */}
+        <div>
+          <p className="text-xs text-gray-500">
+            Selected Add Ons
+          </p>
+
+          <p className="font-bold text-xl text-[#0576B2]">
+            {selectedAddons.length}
+          </p>
+        </div>
+
+        {/* BUTTONS */}
+        <div className="flex gap-3">
+
+          <button
+            onClick={() =>
+              setOpenAddonModal(false)
+            }
+            className="rounded-xl border border-gray-300 px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 transition"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={handleAddonConfirm}
+            className="rounded-xl bg-[#0576B2] px-5 py-2 font-semibold text-white shadow-lg hover:bg-[#04659A] transition"
+          >
+            Add To Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 }
