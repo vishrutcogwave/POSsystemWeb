@@ -6,6 +6,7 @@ import {
   createItemMasterWithImage,
   deleteItemMaster,
   downloadItemMasterExcel,
+  getAdditionalAddonDetailsList,
   GetCategoryMasterList,
   getDepartmentList,
   GetGroupMasterList,
@@ -16,6 +17,7 @@ import {
   GetSubCategoryMasterList,
   getTaxMasterList,
   GetUnitMasterList,
+  insertorUpdateAddOnDetails,
   updateItemMaster,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
@@ -97,6 +99,14 @@ const [showOutletDropdown, setShowOutletDropdown] =
   const [printingDepartments, setPrintingDepartments] = useState<
     PrintingDepartment[]
   >([]);
+  const [changedAddons, setChangedAddons] =
+  useState<any[]>([]);
+useEffect(() => {
+ console.log("changedAddons",changedAddons);
+ 
+}, [changedAddons])
+
+
   const [form, setForm] = useState<ItemMaster>({
     id: 0,
 
@@ -124,6 +134,118 @@ const [showOutletDropdown, setShowOutletDropdown] =
   const [data, setData] = useState<ItemMaster[]>([]);
   const [deleteRow, setDeleteRow] = useState<ItemMaster | null>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const [showAddonModal, setShowAddonModal] =
+  useState(false);
+
+const [addonList, setAddonList] = useState<any[]>(
+  []
+);
+const [addonSearch, setAddonSearch] =
+  useState("");
+
+const [selectedAddons, setSelectedAddons] =
+  useState<any[]>([]);
+
+const fetchAddonList = async (
+  itemCode: number
+) => {
+  try {
+    const res =
+      await getAdditionalAddonDetailsList(
+        itemCode,
+        appData?.user?.branch_code
+      );
+
+    if (res?.success) {
+      const data = res.data || [];
+
+      setAddonList([...data]);
+
+      const activeAddons = data.filter(
+        (item: any) =>
+          item.isActive === true
+      );
+
+      // IMPORTANT
+      setSelectedAddons([
+        ...activeAddons,
+      ]);
+
+      console.log(
+        "ACTIVE ADDONS",
+        activeAddons
+      );
+    }
+  } catch (err) {
+    console.log(err);
+
+    toast.error(
+      "Failed to fetch addons"
+    );
+  }
+};
+const handleSaveAddons = async () => {
+  try {
+    setLoading(true);
+
+    // SEND ALL ADDONS
+  const payload = changedAddons.map(
+  (item: any) => ({
+    itemCode: form.itemCode,
+
+    addOnItemCode:
+      item.itemCode || 0,
+
+    addOnName: item.addOnName,
+
+    itemRate: item.itemRate,
+
+    // TRUE OR FALSE
+    isActive: item.isActive,
+
+    userCode: String(
+      appData?.user?.userCode
+    ),
+
+    branchCode:
+      appData?.user?.branch_code,
+      thumb:item.thumb
+  })
+);
+
+    console.log(
+      "ADDON PAYLOAD",
+      payload
+    );
+
+    const res =
+      await insertorUpdateAddOnDetails(
+        payload
+      );
+
+    if (res?.success) {
+      toast.success(
+        "Addons updated successfully"
+      );
+
+      setShowAddonModal(false);
+    } else {
+      toast.error(
+        res?.message || "Failed"
+      );
+    }
+  } catch (err: any) {
+    console.log(err);
+
+    toast.error(
+      err?.response?.data?.message ||
+        "Error saving addons"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchPrintingDepartments = async () => {
     try {
@@ -599,44 +721,44 @@ setSelectedOltCodes(selectedOutlets);
 
       const res = await createItemMaster(payload);
 
-      if (res?.success) {
-        toast.success(res.message || "Item created successfully");
+    if (res?.success) {
+  // ✅ SAVE ADDONS AFTER ITEM SAVE SUCCESS
+  if (changedAddons.length > 0) {
+    await handleSaveAddons();
+  }
 
-        fetchItems();
-        fetchNextCode();
+  toast.success(res.message || "Item created successfully");
 
-        setSelectedImage(null);
+  fetchItems();
+  fetchNextCode();
 
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+  setSelectedImage(null);
 
-        setForm({
-          id: 0,
+  if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
 
-          itemCode: 0,
-          itemName: "",
+  setForm({
+    id: 0,
+    itemCode: 0,
+    itemName: "",
+    catCode: "",
+    subCatCode: "",
+    grpCode: "",
+    itemDiscountAllowed: false,
+    itemRate: 0,
+    unitName: "",
+    dep: "",
+    taxName: "",
+    printDepartment: "",
+    sacCode: "",
+    barcode: "",
+    isVeg: true,
+  });
 
-          catCode: "",
-          subCatCode: "",
-          grpCode: "",
-
-          itemDiscountAllowed: false,
-          itemRate: 0,
-
-          unitName: "",
-          dep: "",
-          taxName: "",
-
-          printDepartment: "",
-          sacCode: "",
-          barcode: "",
-
-          isVeg: true,
-        });
-      setSelectedOltCodes([]);
-setShowOutletDropdown(false);
-      } else {
+  setSelectedOltCodes([]);
+  setShowOutletDropdown(false);
+}else {
         toast.error(res?.message || "Failed to create item");
       }
     } catch (err: any) {
@@ -648,93 +770,6 @@ setShowOutletDropdown(false);
     }
   };
 
-  // const handleUpdate = async () => {
-  //   try {
-  //     setLoading(true);
-
-  //     const selectedUnit = units.find((u) => u.unitName === form.unitName);
-
-  //     const selectedDepartment = departments.find(
-  //       (d) => d.depName === form.dep,
-  //     );
-
-  //     const selectedTax = taxes.find((t) => t.taxName === form.taxName);
-  //     const selectedPrintDepartment = printingDepartments.find(
-  //       (p) => p.depName === form.printDepartment,
-  //     );
-  //     const payload = {
-  //       itemCode: form.itemCode,
-  //       itemName: form.itemName,
-
-  //       catCode: form.catCode,
-  //       subCatCode: form.subCatCode,
-  //       grpCode: form.grpCode,
-
-  //       itemDiscountAllowed: form.itemDiscountAllowed,
-  //       itemRate: form.itemRate,
-
-  //       userCode: String(appData?.user?.userCode) || "",
-  //       lastModify: new Date().toISOString(),
-
-  //       unitCode: selectedUnit?.unitCode || 0,
-  //       unitName: form.unitName,
-
-  //       dep: form.dep,
-  //       depCode: String(selectedDepartment?.depCode || ""),
-
-  //       taxCode: selectedTax?.taxCode || 0,
-  //       taxName: form.taxName,
-  //       printDepartment: String(selectedPrintDepartment?.depCode || ""),
-  //       branchCode: appData?.user?.branch_code || "",
-
-  //       sacCode: form.sacCode,
-  //       thumb: "",
-
-  //       barcode: form.barcode,
-  //       isVeg: form.isVeg,
-  //     };
-
-  //     const res = await updateItemMaster(payload);
-
-  //     if (res?.success) {
-  //       toast.success(res.message || "Item created successfully");
-
-  //       fetchItems();
-  //       fetchNextCode();
-  //       setIsEdit(false);
-  //       setForm({
-  //         id: 0,
-
-  //         itemCode: 0,
-  //         itemName: "",
-
-  //         catCode: "",
-  //         subCatCode: "",
-  //         grpCode: "",
-
-  //         itemDiscountAllowed: false,
-  //         itemRate: 0,
-
-  //         unitName: "",
-  //         dep: "",
-  //         taxName: "",
-
-  //         printDepartment: "",
-  //         sacCode: "",
-  //         barcode: "",
-
-  //         isVeg: true,
-  //       });
-  //     } else {
-  //       toast.error(res?.message || "Failed to create item");
-  //     }
-  //   } catch (err: any) {
-  //     console.error(err);
-  //     toast.error(err?.response?.data?.message || "Error creating item");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   const handleUpdate = async () => {
     try {
@@ -823,48 +858,48 @@ setShowOutletDropdown(false);
 
       const res = await updateItemMaster(payload);
 
-      if (res?.success) {
-        toast.success(res.message || "Item updated successfully");
+     if (res?.success) {
 
-        fetchItems();
-        fetchNextCode();
+  // ✅ SAVE ADDONS AFTER UPDATE SUCCESS
+  if (changedAddons.length > 0) {
+    await handleSaveAddons();
+  }
 
-        setIsEdit(false);
+  toast.success(res.message || "Item updated successfully");
 
-        setSelectedImage(null);
+  fetchItems();
+  fetchNextCode();
 
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+  setIsEdit(false);
 
-        setForm({
-          id: 0,
+  setSelectedImage(null);
 
-          itemCode: 0,
-          itemName: "",
+  if (fileInputRef.current) {
+    fileInputRef.current.value = "";
+  }
 
-          catCode: "",
-          subCatCode: "",
-          grpCode: "",
+  setForm({
+    id: 0,
+    itemCode: 0,
+    itemName: "",
+    catCode: "",
+    subCatCode: "",
+    grpCode: "",
+    itemDiscountAllowed: false,
+    itemRate: 0,
+    unitName: "",
+    dep: "",
+    taxName: "",
+    printDepartment: "",
+    sacCode: "",
+    barcode: "",
+    thumb: "",
+    isVeg: true,
+  });
 
-          itemDiscountAllowed: false,
-          itemRate: 0,
-
-          unitName: "",
-          dep: "",
-          taxName: "",
-
-          printDepartment: "",
-          sacCode: "",
-          barcode: "",
-
-          thumb: "",
-
-          isVeg: true,
-        });
-        setSelectedOltCodes([]);
-setShowOutletDropdown(false);
-      } else {
+  setSelectedOltCodes([]);
+  setShowOutletDropdown(false);
+} else {
         toast.error(res?.message || "Failed to update item");
       }
     } catch (err: any) {
@@ -875,9 +910,18 @@ setShowOutletDropdown(false);
       setLoading(false);
     }
   };
+       const filteredAddons =
+  addonList.filter((item: any) =>
+    item.addOnName
+      ?.toLowerCase()
+      .includes(
+        addonSearch.toLowerCase()
+      )
+  );
   return (
     <>
       <Header showNeworderButton={false} />
+
 
       <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
         {loading && <Loader />}
@@ -1422,6 +1466,31 @@ setShowOutletDropdown(false);
                 className="border rounded-lg px-3 py-2"
               />
             </div>
+            <div className="col-span-1 flex items-end">
+  <button
+    type="button"
+    onClick={() => {
+      fetchAddonList(form.itemCode);
+
+      setShowAddonModal(true);
+    }}
+    className="flex w-full items-center justify-center gap-3 rounded-xl border border-green-200 bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-3 text-white shadow-md transition-all duration-200 hover:scale-[1.02] hover:shadow-xl"
+  >
+    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-2xl font-bold">
+      +
+    </div>
+
+    <div className="flex flex-col items-start">
+      <span className="text-sm font-semibold">
+        Add Addons
+      </span>
+
+      <span className="text-xs text-white/80">
+        Select extra items for this product
+      </span>
+    </div>
+  </button>
+</div>
 
             <div className="flex items-center gap-2 mt-6">
               <input
@@ -1544,6 +1613,169 @@ setShowOutletDropdown(false);
             </div>
           )}
         </div>
+        {showAddonModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="w-[500px] max-w-[95%] rounded-2xl bg-white p-5 shadow-2xl">
+      
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          Add Addons
+        </h2>
+        {/* SEARCH */}
+<div className="mb-4">
+  <div className="relative">
+    <input
+      type="text"
+      placeholder="Search addons..."
+      value={addonSearch}
+      onChange={(e) =>
+        setAddonSearch(e.target.value)
+      }
+      className="w-full rounded-xl border border-gray-300 py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-200"
+    />
+
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      🔍
+    </div>
+  </div>
+</div>
+
+        <button
+          onClick={() =>
+            setShowAddonModal(false)
+          }
+          className="text-xl font-bold text-red-500"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* MULTI SELECT */}
+      <div className="max-h-[400px] overflow-y-auto rounded-xl border p-3">
+        <div className="grid grid-cols-2 gap-3">
+         {filteredAddons.map(
+  (addon: any, index: number) => {
+    const checked =
+      selectedAddons.some(
+        (x) =>
+          x.addOnName?.trim() ===
+            addon.addOnName?.trim() &&
+          Number(x.itemRate) ===
+            Number(addon.itemRate)
+      );
+
+ 
+    return (
+      <label
+        key={index}
+        className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all ${
+          checked
+            ? "border-green-500 bg-green-50"
+            : "border-gray-200 hover:bg-gray-50"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+        onChange={(e) => {
+  const isChecked =
+    e.target.checked;
+
+  // selected addons UI
+  if (isChecked) {
+    setSelectedAddons((prev) => [
+      ...prev,
+      addon,
+    ]);
+  } else {
+    setSelectedAddons((prev) =>
+      prev.filter(
+        (x) =>
+          !(
+            x.addOnName?.trim() ===
+              addon.addOnName?.trim() &&
+            Number(x.itemRate) ===
+              Number(addon.itemRate)
+          )
+      )
+    );
+  }
+
+  // track only manipulated items
+  setChangedAddons((prev) => {
+    const exists = prev.find(
+      (x) =>
+        x.addOnName?.trim() ===
+          addon.addOnName?.trim() &&
+        Number(x.itemRate) ===
+          Number(addon.itemRate)
+    );
+
+    const updatedItem = {
+      ...addon,
+      isActive: isChecked,
+    };
+
+    if (exists) {
+      return prev.map((x) =>
+        x.addOnName?.trim() ===
+          addon.addOnName?.trim() &&
+        Number(x.itemRate) ===
+          Number(addon.itemRate)
+          ? updatedItem
+          : x
+      );
+    }
+
+    return [...prev, updatedItem];
+  });
+}}
+          className="h-4 w-4 accent-green-600"
+        />
+
+        <div className="flex flex-1 items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">
+              {addon.addOnName}
+            </p>
+
+            <p className="text-xs text-gray-500">
+              Addon Item
+            </p>
+          </div>
+
+          <div className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
+            ₹ {addon.itemRate}
+          </div>
+        </div>
+      </label>
+    );
+  }
+)}
+        </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="mt-5 flex justify-end gap-3">
+        <button
+          onClick={() =>
+            setShowAddonModal(false)
+          }
+          className="rounded-lg border px-4 py-2"
+        >
+          Cancel
+        </button>
+
+        <button
+   onClick={() => setShowAddonModal(false)}
+          className="rounded-lg bg-green-600 px-5 py-2 font-semibold text-white hover:bg-green-700"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </>
   );
