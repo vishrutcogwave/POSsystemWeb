@@ -7,3 +7,12 @@ html, body, #root {
   height: 100%;
   overflow: hidden;
 }
+body {
+  cursor: default;
+  caret-color: transparent;
+}
+
+input,
+textarea {
+  caret-color: auto;
+}

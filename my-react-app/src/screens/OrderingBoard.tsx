@@ -586,37 +586,73 @@ const handleAdd = async (
   };
 
 
-  const handleAddonConfirm = () => {
+const handleAddonConfirm = () => {
   if (!selectedFood) return;
 
-  // MAIN FOOD
+  // ✅ MAIN ITEM
   addItemToCart(
     selectedFood.food,
     selectedFood.category
   );
 
-  // ADDONS
-  selectedAddons.forEach((addon) => {
-    setCart((prev) => [
-      ...prev,
-      {
-        id: addon.addOnItemCode,
-        name: addon.addOnName,
-        price: addon.itemRate,
-        qty: 1,
-        category:
-          selectedFood.category.catCode,
-        grpCode:
-          selectedFood.category.grpCode,
-        spcodes: "",
-        note: "",
-       isAddon: true,
-itemDiscountAllowed: true,
-      },
-    ]);
+  // ✅ ADDONS MERGE
+  setCart((prev) => {
+    let updatedCart = [...prev];
+
+    selectedAddons.forEach((addon) => {
+
+      const existingIndex =
+        updatedCart.findIndex(
+          (i) =>
+            i.id === addon.addOnItemCode &&
+            i.isAddon
+        );
+
+      // ✅ ALREADY EXISTS
+      if (existingIndex !== -1) {
+
+        updatedCart[existingIndex] = {
+          ...updatedCart[existingIndex],
+
+          qty:
+            updatedCart[existingIndex].qty +
+            addon.qty,
+        };
+
+      } else {
+
+        // ✅ NEW ADDON
+        updatedCart.push({
+          id: addon.addOnItemCode,
+
+          name: addon.addOnName,
+
+          price: addon.itemRate,
+
+          qty: addon.qty,
+
+          category:
+            selectedFood.category.catCode,
+
+          grpCode:
+            selectedFood.category.grpCode,
+
+          spcodes: "",
+          note: "",
+
+          isAddon: true,
+
+          itemDiscountAllowed: true,
+        });
+      }
+    });
+
+    return updatedCart;
   });
 
   setOpenAddonModal(false);
+
+  setSelectedAddons([]);
 };
   const getInstructionLines = (codes?: string) => {
     if (!codes) return [];
@@ -1463,6 +1499,7 @@ const generateContent = (items: any[]) => ({
     };
   };
   const handlePrintBill = async (billData: any) => {
+        setKotLoading(true);
     try {
       if (!billData) {
         throw new Error("No bill data");
@@ -1517,6 +1554,8 @@ const generateContent = (items: any[]) => ({
       setShowInvoice(true);
     } catch (err) {
       console.error("GetBill failed", err);
+    }finally{
+          setKotLoading(false);
     }
   };
   /* ---------------- GLOBAL LOADER ---------------- */
@@ -1947,148 +1986,284 @@ if (
   type={alertType}
   onClose={() => setAlertOpen(false)}
 />
-
 {openAddonModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
 
     {/* POPUP */}
-    <div className="w-[42vw] min-w-[750px] max-w-[95vw] rounded-2xl bg-white shadow-2xl overflow-hidden animate-[fadeIn_.2s_ease]">
+    <div
+      className="
+        w-full
+        sm:w-[95vw]
+        md:w-[85vw]
+        lg:w-[70vw]
+        xl:w-[65vw]
+
+        max-w-6xl
+
+        h-[85vh]   /* FIXED HEIGHT */
+        rounded-3xl
+        bg-white
+        shadow-2xl
+
+        overflow-hidden
+        flex flex-col
+      "
+    >
 
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-[#0576B2] to-[#0EA5E9] px-5 py-4">
-        <h2 className="text-white text-xl font-bold">
-          Select Add Ons
-        </h2>
+      <div className="bg-gradient-to-r from-[#0576B2] to-[#0EA5E9] px-4 sm:px-6 py-4">
 
-        <p className="text-blue-100 text-sm mt-1">
-          Customize your item with extra add-ons
-        </p>
+        <div className="flex items-start justify-between gap-3">
+
+          <div>
+            <h2 className="text-white text-xl sm:text-2xl font-bold">
+              Select Add Ons
+            </h2>
+
+            <p className="text-blue-100 text-xs sm:text-sm mt-1">
+              Customize your item with extra add-ons
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              setOpenAddonModal(false)
+            }
+            className="
+              h-9 w-9 rounded-full
+              bg-white/20 text-white
+              flex items-center justify-center
+              text-lg font-bold
+            "
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* BODY */}
-      <div className="p-5 max-h-[65vh] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-3 sm:p-5">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div
+          className="
+            grid grid-cols-1
+            sm:grid-cols-2
+            md:grid-cols-3
+            lg:grid-cols-4
+            gap-4
+          "
+        >
 
           {addonItems.map((addon) => {
-            const checked = selectedAddons.some(
-              (a) =>
-                a.addOnItemCode ===
-                addon.addOnItemCode
-            );
+
+            const selectedAddon =
+              selectedAddons.find(
+                (a) =>
+                  a.addOnItemCode ===
+                  addon.addOnItemCode
+              );
+
+            const qty =
+              selectedAddon?.qty || 0;
 
             return (
-              <label
+              <div
                 key={addon.addOnItemCode}
                 className={`
-                  relative overflow-hidden rounded-2xl border cursor-pointer
-                  transition-all duration-300 group
-                  
+                  rounded-2xl border overflow-hidden
+                  transition-all duration-300
                   ${
-                    checked
-                      ? "border-[#0576B2] bg-gradient-to-r from-blue-50 to-cyan-50 shadow-lg scale-[1.02]"
-                      : "border-gray-200 bg-white hover:border-[#0576B2] hover:shadow-md"
+                    qty > 0
+                      ? "border-[#0576B2] shadow-lg bg-blue-50"
+                      : "border-gray-200 bg-white"
                   }
                 `}
               >
-                {/* HIDDEN INPUT */}
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={checked}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedAddons((prev) => [
-                        ...prev,
-                        addon,
-                      ]);
-                    } else {
-                      setSelectedAddons((prev) =>
-                        prev.filter(
-                          (a) =>
-                            a.addOnItemCode !==
-                            addon.addOnItemCode
-                        )
-                      );
-                    }
-                  }}
-                />
 
+                {/* IMAGE */}
+                <div className="relative">
+
+                  <img
+                    src={
+                      addon.thumb ||
+                      addon.image ||
+                      "https://placehold.co/400x250/png"
+                    }
+                    alt={addon.addOnName}
+                    className="
+                      h-32 sm:h-36 w-full
+                      object-cover
+                    "
+                  />
+
+                  {qty > 0 && (
+                    <div
+                      className="
+                        absolute top-2 right-2
+                        h-7 min-w-[28px]
+                        px-2 rounded-full
+                        bg-[#0576B2]
+                        text-white text-xs font-bold
+                        flex items-center justify-center
+                      "
+                    >
+                      {qty}
+                    </div>
+                  )}
+                </div>
+
+                {/* CONTENT */}
                 <div className="p-3">
 
-                  {/* IMAGE */}
-                  <div className="relative">
-                    <img
-                      src={
-                        addon.thumb ||
-                        addon.image ||
-                        "https://placehold.co/400x250/png"
-                      }
-                      alt={addon.addOnName}
-                      className="h-28 w-full rounded-xl object-cover border border-gray-200"
-                    />
+                  <h3
+                    className="
+                      text-sm sm:text-base
+                      font-bold text-gray-800
+                      line-clamp-1
+                    "
+                  >
+                    {addon.addOnName}
+                  </h3>
 
-                    {checked && (
-                      <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-[#0576B2] flex items-center justify-center shadow-md">
-                        <span className="text-white text-xs">
-                          ✓
+                  <p className="text-xs text-gray-500 mt-1">
+                    Extra Add-On
+                  </p>
+
+                  {/* PRICE + QTY */}
+                  <div className="mt-4 flex items-center justify-between">
+
+                    <div>
+                      <p
+                        className="
+                          text-lg sm:text-xl
+                          font-extrabold
+                          text-[#0576B2]
+                        "
+                      >
+                        ₹{addon.itemRate}
+                      </p>
+                    </div>
+
+                    {/* QTY CONTROLS */}
+                    {qty === 0 ? (
+                      <button
+                        onClick={() => {
+                          setSelectedAddons(
+                            (prev) => [
+                              ...prev,
+                              {
+                                ...addon,
+                                qty: 1,
+                              },
+                            ]
+                          );
+                        }}
+                        className="
+                          rounded-xl
+                          bg-[#0576B2]
+                          px-4 py-2
+                          text-sm font-semibold
+                          text-white
+                        "
+                      >
+                        ADD
+                      </button>
+                    ) : (
+                      <div
+                        className="
+                          flex items-center gap-3
+                          rounded-xl
+                          bg-[#0576B2]
+                          px-3 py-2
+                          text-white
+                        "
+                      >
+
+                        {/* MINUS */}
+                        <button
+                          onClick={() => {
+                            setSelectedAddons(
+                              (prev) =>
+                                prev
+                                  .map((a) =>
+                                    a.addOnItemCode ===
+                                    addon.addOnItemCode
+                                      ? {
+                                          ...a,
+                                          qty:
+                                            a.qty -
+                                            1,
+                                        }
+                                      : a
+                                  )
+                                  .filter(
+                                    (a) =>
+                                      a.qty > 0
+                                  )
+                            );
+                          }}
+                          className="text-lg font-bold"
+                        >
+                          -
+                        </button>
+
+                        {/* QTY */}
+                        <span className="min-w-[20px] text-center text-sm font-bold">
+                          {qty}
                         </span>
+
+                        {/* PLUS */}
+                        <button
+                          onClick={() => {
+                            setSelectedAddons(
+                              (prev) =>
+                                prev.map((a) =>
+                                  a.addOnItemCode ===
+                                  addon.addOnItemCode
+                                    ? {
+                                        ...a,
+                                        qty:
+                                          a.qty +
+                                          1,
+                                      }
+                                    : a
+                                )
+                            );
+                          }}
+                          className="text-lg font-bold"
+                        >
+                          +
+                        </button>
                       </div>
                     )}
                   </div>
-
-                  {/* DETAILS */}
-                  <div className="mt-3">
-
-                    <h3 className="font-bold text-gray-800 text-sm line-clamp-1">
-                      {addon.addOnName}
-                    </h3>
-
-                    <p className="text-xs text-gray-500 mt-1">
-                      Extra Add-On
-                    </p>
-
-                    <div className="mt-3 flex items-center justify-between">
-
-                      <p className="text-xl font-extrabold text-[#0576B2]">
-                        ₹{addon.itemRate}
-                      </p>
-
-                      <div
-                        className={`
-                          px-3 py-1 rounded-full text-xs font-semibold transition-all
-                          
-                          ${
-                            checked
-                              ? "bg-[#0576B2] text-white"
-                              : "bg-gray-100 text-gray-600"
-                          }
-                        `}
-                      >
-                        {checked
-                          ? "Added"
-                          : "Add"}
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </label>
+              </div>
             );
           })}
         </div>
       </div>
 
       {/* FOOTER */}
-      <div className="flex items-center justify-between border-t bg-gray-50 px-5 py-4">
+      <div
+        className="
+          border-t bg-white
+          px-4 sm:px-6 py-4
+          flex items-center justify-between
+        "
+      >
 
-        {/* TOTAL */}
+        {/* LEFT */}
         <div>
           <p className="text-xs text-gray-500">
             Selected Add Ons
           </p>
 
-          <p className="font-bold text-xl text-[#0576B2]">
-            {selectedAddons.length}
+          <p className="text-xl font-bold text-[#0576B2]">
+            {selectedAddons.reduce(
+              (s, i) => s + i.qty,
+              0
+            )}
           </p>
         </div>
 
@@ -2099,14 +2274,25 @@ if (
             onClick={() =>
               setOpenAddonModal(false)
             }
-            className="rounded-xl border border-gray-300 px-4 py-2 font-medium text-gray-600 hover:bg-gray-100 transition"
+            className="
+              rounded-xl border
+              border-gray-300
+              px-4 py-2
+              text-sm sm:text-base
+            "
           >
             Cancel
           </button>
 
           <button
             onClick={handleAddonConfirm}
-            className="rounded-xl bg-[#0576B2] px-5 py-2 font-semibold text-white shadow-lg hover:bg-[#04659A] transition"
+            className="
+              rounded-xl
+              bg-[#0576B2]
+              px-5 py-2
+              text-sm sm:text-base
+              font-semibold text-white
+            "
           >
             Add To Cart
           </button>
