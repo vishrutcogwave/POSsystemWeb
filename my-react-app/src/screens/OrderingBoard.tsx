@@ -978,7 +978,7 @@ const center = (text: string) => {
         const content = generateContent(items);
 
         // ✅ STEP 1: resolve default printer if empty
-        let printerName = "POS USB PRINTER";
+        let printerName = rawPrinterName;
         console.log("printerName", printerName);
 
         console.log("Using Printer:", printerName);
