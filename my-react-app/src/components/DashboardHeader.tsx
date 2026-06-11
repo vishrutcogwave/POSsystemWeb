@@ -682,70 +682,68 @@ const handleNavigation = (name: string) => {
     {
       name: "Day Close",
       icon: LogOut,
-      permissionName: "Day Wise Shift Entry",
+      permissionName: "Day Close",
     },
     {
   name: "Bill Cancellation",
   icon: Ban,
-  permissionName: "Bill Reprint",
+  permissionName: "Bill Cancellation",
 },
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
-  const posReportItems = [
-    {
-      name: "DailySales",
-      icon: BarChart3,
-      permissionName: "Daily Sales Report",
-    },
-    {
-      name: "ItemSales",
-      icon: FileText,
-      permissionName: "Daily Sales Report",
-    },
-    {
-      name: "ChanceSheet",
-      icon: ClipboardList,
-      permissionName: "Daily Sales Report",
-    },
-    {
-      name: "VoidKot",
-      icon: Ban,
-      permissionName: "Daily Sales Report",
-    },
-    {
-      name: "Nckot",
-      icon: FileX,
-      permissionName: "Bill Reprint",
-    },
-    {
-      name: "BillReprint",
-      icon: FileText,
-      permissionName: "Bill Reprint",
-    },
-    {
-      name: "KotCancellation",
-      icon: Ban,
-      permissionName: "Bill Reprint",
-    },
-
-    {
-      name: "BillCancellation",
-      icon: Ban,
-      permissionName: "Bill Reprint",
-    },
-
-    {
-      name: "DailysaleCategorywise",
-      icon: BarChart3,
-      permissionName: "Daily Sales Report",
-    },
-    {
-  name: "KotRegister",
-  icon: ClipboardList,
-  permissionName: "Daily Sales Report",
-},
-  ];
+const posReportItems = [
+  {
+    name: "DailySales",
+    icon: BarChart3,
+    permissionName: "DailySales",
+  },
+  {
+    name: "ItemSales",
+    icon: FileText,
+    permissionName: "ItemSales",
+  },
+  {
+    name: "ChanceSheet",
+    icon: ClipboardList,
+    permissionName: "ChanceSheet",
+  },
+  {
+    name: "VoidKot",
+    icon: Ban,
+    permissionName: "VoidKot",
+  },
+  {
+    name: "Nckot",
+    icon: FileX,
+    permissionName: "Nckot",
+  },
+  {
+    name: "BillReprint",
+    icon: FileText,
+    permissionName: "BillReprint",
+  },
+  {
+    name: "KotCancellation",
+    icon: Ban,
+    permissionName: "KotCancellation",
+  },
+  {
+    name: "BillCancellation",
+    icon: Ban,
+    permissionName: "BillCancellation",
+  },
+  {
+    name: "DailysaleCategorywise",
+    icon: BarChart3,
+    permissionName: "DailysaleCategorywise",
+  },
+  {
+    name: "KotRegister",
+    icon: ClipboardList,
+    permissionName: "KotRegister",
+  },
+];
   // 🔥 MASTER DROPDOWN
 const masterItems = [
   {
@@ -852,7 +850,7 @@ const utilityItems = [
   {
     name: "Utility Settings",
     icon: Wrench,
-    permissionName: "Daily Sales Report",
+    permissionName: "Utility Settings",
   },
 ];
   // 🔥 Navigation map
