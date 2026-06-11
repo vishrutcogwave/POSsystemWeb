@@ -112,6 +112,8 @@ export const printKOT = async (
   data: string,
   isThermal: boolean,
 ) => {
+  debugger
+
   try {
     await connectPrinter();
 
@@ -513,10 +515,19 @@ export const printBill = async (
 
       /* TAX */
       groupTaxes.forEach((tax: any) => {
-        const halfPer = (tax.taxper || 0) / 2;
+ /* ✅ SPLIT TAX NAME DYNAMICALLY */
+const taxParts = (tax.taxName || "")
+  .split("+")
+  .map((x: string) => x.trim());
 
-        d += line2Col(`CGST ${halfPer}%`, (tax.cgst || 0).toFixed(2));
-        d += line2Col(`SGST ${halfPer}%`, (tax.sgst || 0).toFixed(2));
+if (taxParts.length >= 2) {
+  d += line2Col(taxParts[0], (tax.cgst || 0).toFixed(2));
+  d += line2Col(taxParts[1], (tax.sgst || 0).toFixed(2));
+} else {
+  // fallback
+  d += line2Col("CGST", (tax.cgst || 0).toFixed(2));
+  d += line2Col("SGST", (tax.sgst || 0).toFixed(2));
+}
 
         d += "-".repeat(width) + "\n";
 
