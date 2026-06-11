@@ -507,6 +507,7 @@ const handleAdd = async (
   if (!food || !selectedCategory) return;
 
   try {
+    setKotLoading(true)
     const branch =
       localStorage.getItem("branch") || "";
 
@@ -545,6 +546,8 @@ const handleAdd = async (
     console.error(err);
 
     addItemToCart(food, selectedCategory);
+  }finally{
+    setKotLoading(false)
   }
 };
 
