@@ -1,6 +1,7 @@
-import {  useEffect } from "react";
+import { useEffect } from "react";
 import type { CartItem } from "../utils";
 import toast from "react-hot-toast";
+import { useAppContext } from "../context/AppContext";
 
 type CartPanelProps = {
   items: CartItem[];
@@ -60,7 +61,8 @@ export default function CartPanel({
   instructions,
 }: CartPanelProps) {
   console.log("status", status);
-
+  const { userRights } = useAppContext();
+  console.log("userRightslllllllllllll", userRights);
   useEffect(() => {
     if (kotStatus === "NCKOT") {
       // Pick EXCISE or first NC reason as default
@@ -71,8 +73,6 @@ export default function CartPanel({
       }
     }
   }, [kotStatus, ncReasons, setSelectedNcCode]);
-
-
 
   console.log("ncReasons", ncReasons);
 
@@ -85,6 +85,57 @@ export default function CartPanel({
       .filter(Boolean)
       .join(" • ");
   };
+
+  const hasSubMenuAccess = (subMenuName: string) => {
+    return userRights?.some((menu: any) =>
+      menu.subMenus?.some(
+        (sub: any) =>
+          sub.subMenuName?.toLowerCase() === subMenuName.toLowerCase() &&
+          sub.isPermission === true,
+      ),
+    );
+  };
+
+  const hasNcKotPermission =
+    hasSubMenuAccess("NC KOT") &&
+    userRights?.some(
+      (menu: any) =>
+        menu.menuName === "KOT" &&
+        menu.subMenus?.some((sub: any) => sub.subMenuName === "NC KOT"),
+    );
+  const hasKotPermission =
+    hasSubMenuAccess("KOT") &&
+    userRights?.some(
+      (menu: any) =>
+        menu.menuName === "KOT" &&
+        menu.subMenus?.some((sub: any) => sub.subMenuName === "KOT"),
+    );
+
+  const hasBillPermission =
+    hasSubMenuAccess("BILL") &&
+    userRights?.some(
+      (menu: any) =>
+        menu.menuName === "KOT" &&
+        menu.subMenus?.some((sub: any) => sub.subMenuName === "BILL"),
+    );
+      const hasVoidPermission =
+    hasSubMenuAccess("KOT VOID") &&
+    userRights?.some(
+      (menu: any) =>
+        menu.menuName === "KOT" &&
+        menu.subMenus?.some((sub: any) => sub.subMenuName === "KOT VOID"),
+    );
+
+        const hasNtKPermission =
+ hasSubMenuAccess("NC -> KOT || KOT - >NC") &&
+    userRights?.some(
+      (menu: any) =>
+        menu.menuName === "KOT" &&
+        menu.subMenus?.some((sub: any) => sub.subMenuName === "NC -> KOT || KOT - >NC"),
+    );
+       
+
+
   return (
     <>
       <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
@@ -259,69 +310,76 @@ export default function CartPanel({
         <div className="border-t p-4 bg-white">
           <div className="border-t p-4 bg-white space-y-3">
             {/* NC TOGGLE BUTTON */}
-            <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
-              {/* LEFT SIDE */}
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-orange-700">
-                  NC (Non Chargeable)
-                </span>
-              </div>
+            {hasNcKotPermission && (
+              <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                {/* LEFT SIDE */}
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-orange-700">
+                    NC (Non Chargeable)
+                  </span>
+                </div>
 
-              {/* TOGGLE */}
-              <button
-                disabled={status !== "Available"}
-                onClick={() => {
-                  if (selectedNcCode) {
-                    setSelectedNcCode(null);
-                    setNcRemarks("");
-                  } else {
-                    setOpenNcModal(true);
-                  }
-                }}
-                className={`relative inline-flex h-6 w-12 items-center rounded-full transition ${
-                  selectedNcCode ? "bg-orange-500" : "bg-gray-300"
-                } ${
-                  status !== "Available" && kotStatus !== "NCKOT"
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
-                    selectedNcCode ? "translate-x-6" : "translate-x-1"
+                {/* TOGGLE */}
+                <button
+                  disabled={status !== "Available"}
+                  onClick={() => {
+                    if (selectedNcCode) {
+                      setSelectedNcCode(null);
+                      setNcRemarks("");
+                    } else {
+                      setOpenNcModal(true);
+                    }
+                  }}
+                  className={`relative inline-flex h-6 w-12 items-center rounded-full transition ${
+                    selectedNcCode ? "bg-orange-500" : "bg-gray-300"
+                  } ${
+                    status !== "Available" && kotStatus !== "NCKOT"
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
                   }`}
-                />
-              </button>
-            </div>
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                      selectedNcCode ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            )}
             {/* OTHER BUTTONS */}
             <div className="grid grid-cols-2 gap-3">
-              <button
-                disabled={kotLoading}
-                onClick={onKOT}
-                className="bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm"
-              >
-                {kotLoading ? "Creating..." : "KOT"}
-              </button>
-
+              {hasKotPermission && (
+                <button
+                  disabled={kotLoading}
+                  onClick={onKOT}
+                  className="bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm"
+                >
+                  {kotLoading ? "Creating..." : "KOT"}
+                </button>
+              )}
+{hasVoidPermission&&(
               <button
                 disabled={selectedVoidItems.length < 0}
                 onClick={onVoid}
                 className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
               >
                 Void
-              </button>
-
+              </button>)}
+{hasBillPermission&&(
               <button
                 onClick={handleGetBill}
                 className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"
               >
                 Bill
-              </button>
-              {status === "Occupied" && (
-                <button onClick={onConvertion} className="bg-orange-600 hover:bg-orange-700 text-white py-2 rounded text-sm">
-                  {kotStatus === "NCKOT" ? "NC → KOT" : "KOT → NC"}
-                </button>
-              )}
+              </button>)}
+            {hasNtKPermission && status === "Occupied" && (
+  <button
+    onClick={onConvertion}
+    className="bg-orange-600 hover:bg-orange-700 text-white py-2 rounded text-sm"
+  >
+    {kotStatus === "NCKOT" ? "NC → KOT" : "KOT → NC"}
+  </button>
+)}
             </div>
           </div>
         </div>
@@ -357,38 +415,38 @@ export default function CartPanel({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
-                  setOpenNcModal(false)
-                 setSelectedNcCode(null);
-                    setNcRemarks("");
+                  setOpenNcModal(false);
+                  setSelectedNcCode(null);
+                  setNcRemarks("");
                 }}
                 className="px-3 py-1 text-sm border rounded"
               >
                 Cancel
               </button>
 
-            <button
-  onClick={() => {
-    // VALIDATION
-    if (!selectedNcCode) {
-      toast.error("Please select NC Reason");
-      return;
-    }
+              <button
+                onClick={() => {
+                  // VALIDATION
+                  if (!selectedNcCode) {
+                    toast.error("Please select NC Reason");
+                    return;
+                  }
 
-    if (!ncRemarks || ncRemarks.trim() === "") {
-      toast.error("Please enter remarks");
-      return;
-    }
+                  if (!ncRemarks || ncRemarks.trim() === "") {
+                    toast.error("Please enter remarks");
+                    return;
+                  }
 
-    // SUCCESS → proceed
-    console.log("NC Code:", selectedNcCode);
-    console.log("NC Remarks:", ncRemarks);
+                  // SUCCESS → proceed
+                  console.log("NC Code:", selectedNcCode);
+                  console.log("NC Remarks:", ncRemarks);
 
-    setOpenNcModal(false);
-  }}
-  className="px-3 py-1 text-sm bg-orange-500 text-white rounded"
->
-  Confirm
-</button>
+                  setOpenNcModal(false);
+                }}
+                className="px-3 py-1 text-sm bg-orange-500 text-white rounded"
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>
