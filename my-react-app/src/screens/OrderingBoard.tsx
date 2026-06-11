@@ -669,17 +669,6 @@ const handleAddonConfirm = () => {
 const formatThermal = (c: any) => {
   const width = 42;
 
-const center = (text: string) => {
-  const padding = Math.floor(
-    (42 - text.length) / 2
-  );
-
-  return (
-    " ".repeat(Math.max(0, padding - 2)) +
-    text +
-    "\n"
-  );
-};
 
 
   const line = "-".repeat(width);
@@ -693,25 +682,25 @@ const center = (text: string) => {
 
   // RESET
   d += "\x1B\x40";
+// CENTER ALIGN
+d += "\x1B\x61\x01";
 
-  // CENTER ALIGN
-  d += "\x1B\x61\x01";
+// TITLE FIRST
+d += "\x1B\x45\x01";
+d += (c.title || "") + "\n";
+d += "\x1B\x45\x00";
 
-  // OUTLET NAME
-  d += "\x1B\x45\x01";
-  d += center(
-    localStorage.getItem("activeOltName") ||
-      "BAR & RESTAURANT"
-  );
-  d += "\x1B\x45\x00";
+// OUTLET NAME BELOW
+d += "\x1B\x45\x01";
+d +=
+  (localStorage.getItem("activeOltName") ||
+    "BAR & RESTAURANT") + "\n";
+d += "\x1B\x45\x00";
 
-  // TITLE
-  d += center(c.title);
+d += line + "\n";
 
-  d += line + "\n";
-
-  // LEFT ALIGN
-  d += "\x1B\x61\x00";
+// LEFT ALIGN
+d += "\x1B\x61\x00";
 
   // DETAILS
   d += pad(`KOT : ${c.kotId || ""}`);
@@ -956,18 +945,32 @@ const center = (text: string) => {
         }
       });
       /* -------- COMMON CONTENT -------- */
-      const generateContent = (items: any[]) => ({
-        title: isNC ? "NC KOT" : "KOT",
-        table: tableData?.tableNumber,
-        subTable: selectedSubTable || "A",
-        waiter: session.waiterName,
-        pax: session.pax,
-        items: items.map((item) => ({
-          qty: item.origQty,
-          name: item.food,
-          instructions: getInstructionLines(item.comment),
-        })),
-      });
+     const generateContent = (items: any[]) => ({
+  title: isNC ? "NC KOT" : "KOT",
+
+  kotId:
+    res.kotId ||
+    res.kotID ||
+    res.kotNo ||
+    "",
+
+  table: tableData?.tableNumber,
+
+  subTable: selectedSubTable || "A",
+
+  waiter: session.waiterName,
+
+  pax: session.pax,
+
+  items: items.map((item) => ({
+    qty: item.origQty,
+
+    name: item.food,
+
+    instructions: getInstructionLines(item.comment),
+
+  })),
+});
 
       /* -------- THERMAL FORMAT -------- */
 
