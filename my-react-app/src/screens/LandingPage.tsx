@@ -37,6 +37,7 @@ import BillCancellationReport from "./BillCancellationReport";
 import DailysaleCategorywisereport from "./DailySalesCategoryWiseReport";
 import KotRegister from "./KotRegisterReport";
 import UtilitySettings from "./UtilitySettings";
+import UserMenuOrSubmenuCreation from "./UserMenuOrSubmenuCreation";
 
 function LandingPage() {
   const location = useLocation();
@@ -148,6 +149,10 @@ function LandingPage() {
 <Route
   path="/master/subcategorymaster"
   element={<SubCategoryMaster />}
+/>
+<Route
+  path="/user-menu-submenu-creation"
+  element={<UserMenuOrSubmenuCreation />}
 />
 <Route
   path="/master/stewardmaster"

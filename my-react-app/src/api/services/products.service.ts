@@ -4517,3 +4517,132 @@ export const insertorUpdateAddOnDetails = async (
     throw error;
   }
 };
+
+
+
+export const saveMenuWithSubMenu = async (payload: {
+  mainMenuId: number;
+  menuName: string;
+  menuPermission: boolean;
+  subMenuId: number;
+  subMenuName: string;
+  subMenuPermission: boolean;
+  branchCode: string;
+  isExistingMainMenu: boolean;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UserAccess/SaveMenuWithSubMenu",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving menu/submenu:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const getMainMenuList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetMainMenuList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching main menu list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+export const deleteMainMenuDetail = async (
+  mainMenuId: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/UserAccess/DeleteMainMenuDetail",
+      {
+        params: {
+          MainMenuId: mainMenuId,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting main menu:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const deleteSubMenuDetail = async (
+  subMenuId: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/UserAccess/DeleteSubMenuDetail",
+      {
+        params: {
+          SubMenuId: subMenuId,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting submenu:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

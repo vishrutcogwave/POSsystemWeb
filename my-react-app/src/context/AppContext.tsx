@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
@@ -31,6 +32,14 @@ export const AppProvider = ({
     const stored = localStorage.getItem("userRights");
     return stored ? JSON.parse(stored) : [];
   });
+  useEffect(() => {
+  if (appData?.user) {
+    fetchUserRights(
+      appData.user.branch_code,
+      Number(appData.user.userCode)
+    );
+  }
+}, []);
 
   // const fetchUserRights = async (
   //   branchcode: string,

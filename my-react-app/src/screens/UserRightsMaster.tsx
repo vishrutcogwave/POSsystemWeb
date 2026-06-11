@@ -10,9 +10,10 @@ import {
   insertUserPermissionAccessMaster,
   getUserDetailsList,
 } from "../api/services/products.service";
+import { useNavigate } from "react-router-dom";
 export default function UserRightsMaster() {
   const { appData } = useAppContext();
-
+const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   const [menuData, setMenuData] = useState<any>(null);
@@ -281,8 +282,26 @@ const fetchUsers = async () => {
         {/* HEADER */}
 
         <div className="bg-white rounded-xl shadow p-4 md:p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-5">User Rights Master</h2>
 
+  {/* HEADER TOP */}
+  <div className="flex items-center justify-between mb-5">
+    
+    <h2 className="text-xl font-semibold">
+      User Rights Master
+    </h2>
+
+    {/* ADD MENU BUTTON */}
+  <button
+  type="button"
+  onClick={() =>
+    navigate("/user-menu-submenu-creation")
+  }
+  className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg"
+>
+  Add Menu / Submenu
+</button>
+
+  </div>
           {/* USER DROPDOWN */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
