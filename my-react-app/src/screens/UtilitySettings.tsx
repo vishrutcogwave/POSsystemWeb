@@ -25,7 +25,17 @@ import {
 export default function UtilitySettings() {
   const { appData } = useAppContext();
 
-  const [loading, setLoading] = useState(false);
+const [happyHoursLoading, setHappyHoursLoading] = useState(false);
+
+const [kotLoading, setKotLoading] = useState(false);
+
+const [financialLoading, setFinancialLoading] = useState(false);
+
+const [taxLoading, setTaxLoading] = useState(false);
+
+const [discountLoading, setDiscountLoading] = useState(false);
+
+const [smsLoading, setSmsLoading] = useState(false);
 
   const [form, setForm] = useState({
     inOrExOfTax: false,
@@ -47,20 +57,17 @@ export default function UtilitySettings() {
     currentStatus: false,
   });
 
-  const [taxModeForm, setTaxModeForm] =
-  useState({
+  const [taxModeForm, setTaxModeForm] = useState({
     groupedTax: false,
     onbillTax: false,
   });
 
-  const [discountModeForm, setDiscountModeForm] =
-  useState({
+  const [discountModeForm, setDiscountModeForm] = useState({
     onbill: false,
     groupwise: false,
   });
 
-  const [smsForm, setSmsForm] =
-  useState({
+  const [smsForm, setSmsForm] = useState({
     smsId: "",
     smsPwd: "",
     smsSenderId: "",
@@ -80,88 +87,47 @@ export default function UtilitySettings() {
     dayCloseGraceHour: 0,
   });
 
-  const fetchSMSSenderSettings =
-  async () => {
+  const fetchSMSSenderSettings = async () => {
     try {
-      const res =
-        await getSMSSenderSettings(
-          appData?.user?.branch_code
-        );
+    setSmsLoading(true)
+
+      const res = await getSMSSenderSettings(appData?.user?.branch_code);
 
       if (res?.success) {
         setSmsForm({
-          smsId:
-            res?.data?.smsId || "",
+          smsId: res?.data?.smsId || "",
 
-          smsPwd:
-            res?.data?.smsPwd || "",
+          smsPwd: res?.data?.smsPwd || "",
 
-          smsSenderId:
-            res?.data?.smsSenderId ||
-            "",
+          smsSenderId: res?.data?.smsSenderId || "",
 
-          smsProvider:
-            res?.data?.smsProvider ||
-            "",
+          smsProvider: res?.data?.smsProvider || "",
 
-          mobileNo:
-            res?.data?.mobileNo ||
-            "",
+          mobileNo: res?.data?.mobileNo || "",
 
-          backUpLocation:
-            res?.data
-              ?.backUpLocation ||
-            "",
+          backUpLocation: res?.data?.backUpLocation || "",
 
-          dbName:
-            res?.data?.dbName ||
-            "",
+          dbName: res?.data?.dbName || "",
 
-          isKotPrinter:
-            res?.data
-              ?.isKotPrinter ||
-            false,
+          isKotPrinter: res?.data?.isKotPrinter || false,
 
-          isHomeDelivery:
-            res?.data
-              ?.isHomeDelivery ||
-            false,
+          isHomeDelivery: res?.data?.isHomeDelivery || false,
 
-          isCustomerEntry:
-            res?.data
-              ?.isCustomerEntry ||
-            false,
+          isCustomerEntry: res?.data?.isCustomerEntry || false,
 
-          emailID:
-            res?.data?.emailID ||
-            "",
+          emailID: res?.data?.emailID || "",
 
-          password:
-            res?.data?.password ||
-            "",
+          password: res?.data?.password || "",
 
-          isSMS:
-            res?.data?.isSMS ||
-            false,
+          isSMS: res?.data?.isSMS || false,
 
-          isMail:
-            res?.data?.isMail ||
-            false,
+          isMail: res?.data?.isMail || false,
 
-          isPriceShow:
-            res?.data
-              ?.isPriceShow ||
-            false,
+          isPriceShow: res?.data?.isPriceShow || false,
 
-          isDescriptionShow:
-            res?.data
-              ?.isDescriptionShow ||
-            false,
+          isDescriptionShow: res?.data?.isDescriptionShow || false,
 
-          dayCloseGraceHour:
-            res?.data
-              ?.dayCloseGraceHour ||
-            0,
+          dayCloseGraceHour: res?.data?.dayCloseGraceHour || 0,
         });
       }
     } catch (err: any) {
@@ -170,43 +136,32 @@ export default function UtilitySettings() {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to load SMS Sender Settings ❌"
+          "Failed to load SMS Sender Settings ❌",
       );
+    }finally{
+    setSmsLoading(false)
+
     }
   };
-  const fetchDiscountModeSettings =
-  async () => {
+  const fetchDiscountModeSettings = async () => {
     try {
-      const res =
-        await getDiscountModeSettings(
-          appData?.user?.branch_code
-        );
+    setDiscountLoading(true)
+
+      const res = await getDiscountModeSettings(appData?.user?.branch_code);
 
       if (res?.success) {
-        const onbill =
-          res?.data?.find(
-            (x: any) =>
-              x?.discountType
-                ?.toLowerCase() ===
-              "onbill"
-          );
+        const onbill = res?.data?.find(
+          (x: any) => x?.discountType?.toLowerCase() === "onbill",
+        );
 
-        const groupwise =
-          res?.data?.find(
-            (x: any) =>
-              x?.discountType
-                ?.toLowerCase() ===
-              "groupwise"
-          );
+        const groupwise = res?.data?.find(
+          (x: any) => x?.discountType?.toLowerCase() === "groupwise",
+        );
 
         setDiscountModeForm({
-          onbill:
-            onbill?.discountRequired ===
-            true,
+          onbill: onbill?.discountRequired === true,
 
-          groupwise:
-            groupwise?.discountRequired ===
-            true,
+          groupwise: groupwise?.discountRequired === true,
         });
       }
     } catch (err: any) {
@@ -215,44 +170,32 @@ export default function UtilitySettings() {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to load Discount Mode Settings ❌"
+          "Failed to load Discount Mode Settings ❌",
       );
+    }finally{
+    setDiscountLoading(false)
+
     }
   };
-  const fetchTaxModeSettings =
-  async () => {
+  const fetchTaxModeSettings = async () => {
     try {
-      const res =
-        await getTaxModeSettings(
-          appData?.user?.branch_code
-        );
+      setTaxLoading(true)
+      const res = await getTaxModeSettings(appData?.user?.branch_code);
 
       if (res?.success) {
- const grouped =
-  res?.data?.find(
-    (x: any) =>
-      x?.taxType
-        ?.toLowerCase() ===
-      "groupedtax"
-  );
+        const grouped = res?.data?.find(
+          (x: any) => x?.taxType?.toLowerCase() === "groupedtax",
+        );
 
-const onbill =
-  res?.data?.find(
-    (x: any) =>
-      x?.taxType
-        ?.toLowerCase() ===
-      "onbilltax"
-  );
+        const onbill = res?.data?.find(
+          (x: any) => x?.taxType?.toLowerCase() === "onbilltax",
+        );
 
-setTaxModeForm({
-  groupedTax:
-    grouped?.taxRequired ===
-    true,
+        setTaxModeForm({
+          groupedTax: grouped?.taxRequired === true,
 
-  onbillTax:
-    onbill?.taxRequired ===
-    true,
-});
+          onbillTax: onbill?.taxRequired === true,
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -260,12 +203,16 @@ setTaxModeForm({
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Failed to load Tax Mode Settings ❌"
+          "Failed to load Tax Mode Settings ❌",
       );
+    }finally{
+      setTaxLoading(false)
+
     }
   };
   const fetchFinancialSettings = async () => {
     try {
+      setFinancialLoading(true)
       const res = await getFinancialSettings(appData?.user?.branch_code);
 
       if (res?.success) {
@@ -291,12 +238,15 @@ setTaxModeForm({
           err?.message ||
           "Failed to load Financial Settings ❌",
       );
+    }finally{
+      setFinancialLoading(false)
+
     }
   };
 
   const handleFinancialSave = async () => {
     try {
-      setLoading(true);
+     setFinancialLoading(true);
 
       const payload = {
         finId: 0,
@@ -339,9 +289,9 @@ setTaxModeForm({
           err?.message ||
           "Error saving Financial Settings ❌",
       );
-    } finally {
-      setLoading(false);
-    }
+    }finally {
+  setFinancialLoading(false);
+}
   };
 
   /* =========================
@@ -350,7 +300,7 @@ setTaxModeForm({
 
   const fetchHappyHoursSettings = async () => {
     try {
-      setLoading(true);
+      setHappyHoursLoading(true);
 
       const res = await getHappyHoursSettings(appData?.user?.branch_code);
 
@@ -374,7 +324,7 @@ setTaxModeForm({
           "Failed to load settings ❌",
       );
     } finally {
-      setLoading(false);
+     setHappyHoursLoading(false);
     }
   };
   const fetchKOTTimerSettings = async () => {
@@ -399,48 +349,37 @@ setTaxModeForm({
     }
   };
 
-useEffect(() => {
-  fetchHappyHoursSettings();
-  fetchKOTTimerSettings();
-  fetchFinancialSettings();
-  fetchTaxModeSettings();
-  fetchDiscountModeSettings();
-  fetchSMSSenderSettings();
-}, []);
+  useEffect(() => {
+    fetchHappyHoursSettings();
+    fetchKOTTimerSettings();
+    fetchFinancialSettings();
+    fetchTaxModeSettings();
+    fetchDiscountModeSettings();
+    fetchSMSSenderSettings();
+  }, []);
 
   /* =========================
         SAVE
   ========================= */
 
-  const handleSMSSenderSave =
-  async () => {
+  const handleSMSSenderSave = async () => {
     try {
-      setLoading(true);
+  setSmsLoading(true);
 
       const payload = {
         ...smsForm,
 
-        branchCode:
-          appData?.user
-            ?.branch_code,
+        branchCode: appData?.user?.branch_code,
       };
 
-      const res =
-        await saveOrUpdateSMSSenderSettings(
-          payload
-        );
+      const res = await saveOrUpdateSMSSenderSettings(payload);
 
       if (res?.success) {
-        toast.success(
-          "SMS Sender Settings Saved ✅"
-        );
+        toast.success("SMS Sender Settings Saved ✅");
 
         fetchSMSSenderSettings();
       } else {
-        toast.error(
-          res?.message ||
-            "Failed to save ❌"
-        );
+        toast.error(res?.message || "Failed to save ❌");
       }
     } catch (err: any) {
       console.error(err);
@@ -448,57 +387,41 @@ useEffect(() => {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Error saving SMS Sender Settings ❌"
+          "Error saving SMS Sender Settings ❌",
       );
     } finally {
-      setLoading(false);
+      setSmsLoading(false);
     }
   };
-  const handleDiscountModeSave =
-  async () => {
+  const handleDiscountModeSave = async () => {
     try {
-      setLoading(true);
+      setDiscountLoading(true);
 
       const payloads = [
         {
           discId: 1,
 
-          discountRequired:
-            discountModeForm.onbill,
+          discountRequired: discountModeForm.onbill,
 
           discountType: "Onbill",
 
-          branchCode:
-            appData?.user
-              ?.branch_code,
+          branchCode: appData?.user?.branch_code,
         },
 
         {
           discId: 2,
 
-          discountRequired:
-            discountModeForm.groupwise,
+          discountRequired: discountModeForm.groupwise,
 
-          discountType:
-            "Groupwise",
+          discountType: "Groupwise",
 
-          branchCode:
-            appData?.user
-              ?.branch_code,
+          branchCode: appData?.user?.branch_code,
         },
       ];
 
-      await Promise.all(
-        payloads.map((p) =>
-          updateDiscountModeSettings(
-            p
-          )
-        )
-      );
+      await Promise.all(payloads.map((p) => updateDiscountModeSettings(p)));
 
-      toast.success(
-        "Discount Mode Settings Saved ✅"
-      );
+      toast.success("Discount Mode Settings Saved ✅");
 
       fetchDiscountModeSettings();
     } catch (err: any) {
@@ -507,49 +430,36 @@ useEffect(() => {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Error saving Discount Mode Settings ❌"
+          "Error saving Discount Mode Settings ❌",
       );
     } finally {
-      setLoading(false);
+     setDiscountLoading(false)
     }
   };
 
-  const handleTaxModeSave =
-  async () => {
+  const handleTaxModeSave = async () => {
     try {
-      setLoading(true);
+   setTaxLoading(true);
 
       const payloads = [
         {
           taxId: 1,
-          taxRequired:
-            taxModeForm.groupedTax,
+          taxRequired: taxModeForm.groupedTax,
           taxType: "GroupedTax",
-          branchCode:
-            appData?.user
-              ?.branch_code,
+          branchCode: appData?.user?.branch_code,
         },
 
         {
           taxId: 2,
-          taxRequired:
-            taxModeForm.onbillTax,
+          taxRequired: taxModeForm.onbillTax,
           taxType: "OnbillTax",
-          branchCode:
-            appData?.user
-              ?.branch_code,
+          branchCode: appData?.user?.branch_code,
         },
       ];
 
-      await Promise.all(
-        payloads.map((p) =>
-          updateTaxModeSettings(p)
-        )
-      );
+      await Promise.all(payloads.map((p) => updateTaxModeSettings(p)));
 
-      toast.success(
-        "Tax Mode Settings Saved ✅"
-      );
+      toast.success("Tax Mode Settings Saved ✅");
 
       fetchTaxModeSettings();
     } catch (err: any) {
@@ -558,17 +468,16 @@ useEffect(() => {
       toast.error(
         err?.response?.data?.message ||
           err?.message ||
-          "Error saving Tax Mode Settings ❌"
+          "Error saving Tax Mode Settings ❌",
       );
     } finally {
-      setLoading(false);
+      setTaxLoading(false);
     }
   };
 
-  
   const handleHappyHouirsSave = async () => {
     try {
-      setLoading(true);
+      setHappyHoursLoading(true);
 
       const payload = {
         inOrExOfTax: form.inOrExOfTax,
@@ -600,12 +509,12 @@ useEffect(() => {
           "Error saving settings ❌",
       );
     } finally {
-      setLoading(false);
+      setHappyHoursLoading(false);
     }
   };
   const handleKOTSave = async () => {
     try {
-      setLoading(true);
+      setKotLoading(true);
 
       const payload = {
         timerRequired: kotForm.timerRequired,
@@ -633,7 +542,7 @@ useEffect(() => {
           "Error saving KOT settings ❌",
       );
     } finally {
-      setLoading(false);
+      setKotLoading(false);
     }
   };
   return (
@@ -641,7 +550,14 @@ useEffect(() => {
       <Header showNeworderButton={false} />
 
       <div className="h-[calc(100vh-100px)] overflow-y-auto bg-gray-100 p-3 sm:p-4 md:p-6">
-        {loading && <Loader />}
+      {(
+  happyHoursLoading ||
+  kotLoading ||
+  financialLoading ||
+  taxLoading ||
+  discountLoading ||
+  smsLoading
+) && <Loader />}
 
         {/* PAGE TITLE */}
 
@@ -654,7 +570,6 @@ useEffect(() => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {/* ================= HAPPY HOURS ================= */}
 
-      
           {/* EMPTY DIV 2 */}
 
           {/* ================= KOT TIMER SETTINGS ================= */}
@@ -728,201 +643,161 @@ useEffect(() => {
 
           {/* ================= TAX MODE SETTINGS ================= */}
 
-<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+            {/* HEADER */}
 
-  {/* HEADER */}
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-800 text-base">
+                Tax Mode Settings
+              </h2>
+            </div>
 
-  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-    <h2 className="font-semibold text-gray-800 text-base">
-      Tax Mode Settings
-    </h2>
-  </div>
+            {/* BODY */}
 
-  {/* BODY */}
+            <div className="p-4 space-y-5 min-h-[220px]">
+              {/* GROUPED TAX */}
 
-  <div className="p-4 space-y-5 min-h-[220px]">
+              <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={taxModeForm.groupedTax}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
 
-    {/* GROUPED TAX */}
+                    // prevent both false
+                    if (!checked && !taxModeForm.onbillTax) {
+                      toast.error("At least one Tax Mode must be enabled");
 
-    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
-      <input
-        type="checkbox"
-        checked={
-          taxModeForm.groupedTax
-        }
-      onChange={(e) => {
-  const checked =
-    e.target.checked;
+                      return;
+                    }
 
-  // prevent both false
-  if (
-    !checked &&
-    !taxModeForm.onbillTax
-  ) {
-    toast.error(
-      "At least one Tax Mode must be enabled"
-    );
+                    setTaxModeForm({
+                      ...taxModeForm,
+                      groupedTax: checked,
+                    });
+                  }}
+                  className="w-4 h-4"
+                />
+                Grouped Tax
+              </label>
 
-    return;
-  }
+              {/* ON BILL TAX */}
 
-  setTaxModeForm({
-    ...taxModeForm,
-    groupedTax: checked,
-  });
-}}
-        className="w-4 h-4"
-      />
+              <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={taxModeForm.onbillTax}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
 
-      Grouped Tax
-    </label>
+                    // prevent both false
+                    if (!checked && !taxModeForm.groupedTax) {
+                      toast.error("At least one Tax Mode must be enabled");
 
-    {/* ON BILL TAX */}
+                      return;
+                    }
 
-    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
-      <input
-        type="checkbox"
-        checked={
-          taxModeForm.onbillTax
-        }
-     onChange={(e) => {
-  const checked =
-    e.target.checked;
+                    setTaxModeForm({
+                      ...taxModeForm,
+                      onbillTax: checked,
+                    });
+                  }}
+                  className="w-4 h-4"
+                />
+                On Bill Tax
+              </label>
 
-  // prevent both false
-  if (
-    !checked &&
-    !taxModeForm.groupedTax
-  ) {
-    toast.error(
-      "At least one Tax Mode must be enabled"
-    );
+              {/* SAVE BUTTON */}
 
-    return;
-  }
-
-  setTaxModeForm({
-    ...taxModeForm,
-    onbillTax: checked,
-  });
-}}
-        className="w-4 h-4"
-      />
-
-      On Bill Tax
-    </label>
-
-    {/* SAVE BUTTON */}
-
-    <button
-      onClick={handleTaxModeSave}
-      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
-    >
-      Save
-    </button>
-  </div>
-</div>
+              <button
+                onClick={handleTaxModeSave}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
 
           {/* EMPTY DIV 5 */}
 
           {/* ================= DISCOUNT MODE SETTINGS ================= */}
 
-<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+            {/* HEADER */}
 
-  {/* HEADER */}
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-800 text-base">
+                Discount Mode Settings
+              </h2>
+            </div>
 
-  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-    <h2 className="font-semibold text-gray-800 text-base">
-      Discount Mode Settings
-    </h2>
-  </div>
+            {/* BODY */}
 
-  {/* BODY */}
+            <div className="p-4 space-y-5 min-h-[220px]">
+              {/* ON BILL */}
 
-  <div className="p-4 space-y-5 min-h-[220px]">
+              <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={discountModeForm.onbill}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
 
-    {/* ON BILL */}
+                    if (!checked && !discountModeForm.groupwise) {
+                      toast.error("At least one Discount Mode must be enabled");
 
-    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
-      <input
-        type="checkbox"
-        checked={
-          discountModeForm.onbill
-        }
-     onChange={(e) => {
-  const checked =
-    e.target.checked;
+                      return;
+                    }
 
-  if (
-    !checked &&
-    !discountModeForm.groupwise
-  ) {
-    toast.error(
-      "At least one Discount Mode must be enabled"
-    );
+                    setDiscountModeForm({
+                      ...discountModeForm,
+                      onbill: checked,
+                    });
+                  }}
+                  className="w-4 h-4"
+                />
+                On Bill Discount
+              </label>
 
-    return;
-  }
+              {/* GROUPWISE */}
 
-  setDiscountModeForm({
-    ...discountModeForm,
-    onbill: checked,
-  });
-}}
-        className="w-4 h-4"
-      />
+              <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={discountModeForm.groupwise}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
 
-      On Bill Discount
-    </label>
+                    if (!checked && !discountModeForm.onbill) {
+                      toast.error("At least one Discount Mode must be enabled");
 
-    {/* GROUPWISE */}
+                      return;
+                    }
 
-    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
-      <input
-        type="checkbox"
-        checked={
-          discountModeForm.groupwise
-        }
-   onChange={(e) => {
-  const checked =
-    e.target.checked;
+                    setDiscountModeForm({
+                      ...discountModeForm,
+                      groupwise: checked,
+                    });
+                  }}
+                  className="w-4 h-4"
+                />
+                Groupwise Discount
+              </label>
 
-  if (
-    !checked &&
-    !discountModeForm.onbill
-  ) {
-    toast.error(
-      "At least one Discount Mode must be enabled"
-    );
+              {/* SAVE BUTTON */}
 
-    return;
-  }
-
-  setDiscountModeForm({
-    ...discountModeForm,
-    groupwise: checked,
-  });
-}}
-        className="w-4 h-4"
-      />
-
-      Groupwise Discount
-    </label>
-
-    {/* SAVE BUTTON */}
-
-    <button
-      onClick={handleDiscountModeSave}
-      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
-    >
-      Save
-    </button>
-  </div>
-</div>
+              <button
+                onClick={handleDiscountModeSave}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
 
           {/* EMPTY DIV 6 */}
 
-              <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
             {/* HEADER */}
 
             <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
@@ -1019,7 +894,6 @@ useEffect(() => {
             </div>
           </div>
 
-          
           <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
             {/* HEADER */}
 
@@ -1168,308 +1042,271 @@ useEffect(() => {
             </div>
           </div>
 
-
           {/* ================= SMS SENDER SETTINGS ================= */}
 
-<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+          <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+            {/* HEADER */}
 
-  {/* HEADER */}
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+              <h2 className="font-semibold text-gray-800 text-base">
+                SMS Sender Settings
+              </h2>
+            </div>
 
-  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-    <h2 className="font-semibold text-gray-800 text-base">
-      SMS Sender Settings
-    </h2>
-  </div>
+            {/* BODY */}
 
-  {/* BODY */}
+            <div className="p-4 space-y-4 max-h-[650px] overflow-y-auto">
+              {/* SMS ID */}
 
-  <div className="p-4 space-y-4 max-h-[650px] overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SMS ID
+                </label>
 
-    {/* SMS ID */}
+                <input
+                  type="text"
+                  value={smsForm.smsId}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      smsId: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
 
-   <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    SMS ID
-  </label>
+              {/* SMS PASSWORD */}
 
-  <input
-    type="text"
-    value={smsForm.smsId}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        smsId: e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SMS Password
+                </label>
 
-    {/* SMS PASSWORD */}
+                <input
+                  type="text"
+                  value={smsForm.smsPwd}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      smsPwd: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              {/* SMS SENDER ID */}
 
- <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    SMS Password
-  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SMS Sender ID
+                </label>
 
-  <input
-    type="text"
-    value={smsForm.smsPwd}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        smsPwd: e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
-    {/* SMS SENDER ID */}
+                <input
+                  type="text"
+                  value={smsForm.smsSenderId}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      smsSenderId: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
 
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    SMS Sender ID
-  </label>
+              {/* SMS PROVIDER */}
 
-  <input
-    type="text"
-    value={smsForm.smsSenderId}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        smsSenderId:
-          e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  SMS Provider
+                </label>
 
-    {/* SMS PROVIDER */}
+                <input
+                  type="text"
+                  value={smsForm.smsProvider}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      smsProvider: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              {/* MOBILE */}
 
-  <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    SMS Provider
-  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mobile Number
+                </label>
 
-  <input
-    type="text"
-    value={smsForm.smsProvider}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        smsProvider:
-          e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
-    {/* MOBILE */}
+                <input
+                  type="text"
+                  value={smsForm.mobileNo}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      mobileNo: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
 
-  <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Mobile Number
-  </label>
+              {/* EMAIL */}
 
-  <input
-    type="text"
-    value={smsForm.mobileNo}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        mobileNo:
-          e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
+              {/* PASSWORD */}
 
-    {/* EMAIL */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email Password
+                </label>
 
+                <input
+                  type="password"
+                  value={smsForm.password}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      password: e.target.value,
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
 
-    {/* PASSWORD */}
+              {/* DAY CLOSE */}
 
-  <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Email Password
-  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Day Close Grace Hour
+                </label>
 
-  <input
-    type="password"
-    value={smsForm.password}
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        password:
-          e.target.value,
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
+                <input
+                  type="number"
+                  value={smsForm.dayCloseGraceHour}
+                  onChange={(e) =>
+                    setSmsForm({
+                      ...smsForm,
+                      dayCloseGraceHour: Number(e.target.value),
+                    })
+                  }
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              {/* CHECKBOXES */}
 
-    {/* DAY CLOSE */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isKotPrinter}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isKotPrinter: e.target.checked,
+                      })
+                    }
+                  />
+                  KOT Printer
+                </label>
 
-  <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Day Close Grace Hour
-  </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isHomeDelivery}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isHomeDelivery: e.target.checked,
+                      })
+                    }
+                  />
+                  Home Delivery
+                </label>
 
-  <input
-    type="number"
-    value={
-      smsForm.dayCloseGraceHour
-    }
-    onChange={(e) =>
-      setSmsForm({
-        ...smsForm,
-        dayCloseGraceHour:
-          Number(
-            e.target.value
-          ),
-      })
-    }
-    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-  />
-</div>
-    {/* CHECKBOXES */}
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isCustomerEntry}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isCustomerEntry: e.target.checked,
+                      })
+                    }
+                  />
+                  Customer Entry
+                </label>
 
-    <div className="grid grid-cols-2 gap-3 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isSMS}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isSMS: e.target.checked,
+                      })
+                    }
+                  />
+                  SMS
+                </label>
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isKotPrinter
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isKotPrinter:
-                e.target.checked,
-            })
-          }
-        />
-        KOT Printer
-      </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isMail}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isMail: e.target.checked,
+                      })
+                    }
+                  />
+                  Mail
+                </label>
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isHomeDelivery
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isHomeDelivery:
-                e.target.checked,
-            })
-          }
-        />
-        Home Delivery
-      </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isPriceShow}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isPriceShow: e.target.checked,
+                      })
+                    }
+                  />
+                  Price Show
+                </label>
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isCustomerEntry
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isCustomerEntry:
-                e.target.checked,
-            })
-          }
-        />
-        Customer Entry
-      </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={smsForm.isDescriptionShow}
+                    onChange={(e) =>
+                      setSmsForm({
+                        ...smsForm,
+                        isDescriptionShow: e.target.checked,
+                      })
+                    }
+                  />
+                  Description Show
+                </label>
+              </div>
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isSMS
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isSMS:
-                e.target.checked,
-            })
-          }
-        />
-        SMS
-      </label>
+              {/* SAVE */}
 
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isMail
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isMail:
-                e.target.checked,
-            })
-          }
-        />
-        Mail
-      </label>
-
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isPriceShow
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isPriceShow:
-                e.target.checked,
-            })
-          }
-        />
-        Price Show
-      </label>
-
-      <label className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={
-            smsForm.isDescriptionShow
-          }
-          onChange={(e) =>
-            setSmsForm({
-              ...smsForm,
-              isDescriptionShow:
-                e.target.checked,
-            })
-          }
-        />
-        Description Show
-      </label>
-    </div>
-
-    {/* SAVE */}
-
-    <button
-      onClick={
-        handleSMSSenderSave
-      }
-      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
-    >
-      Save
-    </button>
-  </div>
-</div>
+              <button
+                onClick={handleSMSSenderSave}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>
