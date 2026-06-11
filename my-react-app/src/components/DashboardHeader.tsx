@@ -629,6 +629,8 @@ const [showBillCancelPopup, setShowBillCancelPopup] =
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { userRights } = useAppContext();
+  console.log("userRightslllllllllllll",userRights);
+  
 
   const hasMainMenuAccess = (menuName: string) => {
     return userRights?.some(
@@ -745,105 +747,104 @@ const handleNavigation = (name: string) => {
 },
   ];
   // 🔥 MASTER DROPDOWN
-  const masterItems = [
-    {
-      name: "Company Master",
-      icon: Building2,
-      permissionName: "Company Definition",
-    },
-    {
-      name: "Tax Master",
-      icon: Receipt,
-      permissionName: "Tax",
-    },
-    {
-      name: "Tax Description Master",
-      icon: Receipt,
-      permissionName: "Tax",
-    },
-    {
-      name: "Department Master",
-      icon: Boxes,
-      permissionName: "Department",
-    },
-    {
-      name: "Outlet Master",
-      icon: Store,
-      permissionName: "Outlet",
-    },
-    {
-      name: "Item Master",
-      icon: Package,
-      permissionName: "Item",
-    },
-    {
-      name: "Unit Master",
-      icon: Package,
-      permissionName: "Unit",
-    },
-    {
-      name: "Group Master",
-      icon: Package,
-      permissionName: "Group Master",
-    },
-    {
-      name: "Category Master",
-      icon: Package,
-      permissionName: "Category",
-    },
-    {
-      name: "Sub Category Master",
-      icon: Package,
-      permissionName: "Sub Category",
-    },
-    {
-      name: "Steward Master",
-      icon: UserCog,
-      permissionName: "Steward Definition",
-    },
-    {
-      name: "NC Department Master",
-      icon: ShieldCheck,
-      permissionName: "NC Department",
-    },
-    {
-      name: "Printing Master",
-      icon: Printer,
-      permissionName: "Printing Department",
-    },
-    {
-      name: "Table Master",
-      icon: LayoutGrid,
-      permissionName: "Table Definition",
-    },
-    {
-      name: "Property Master",
-      icon: Building2,
-      permissionName: "Property Master",
-    },
-    {
-      name: "Branch Master",
-      icon: Store,
-      permissionName: "Branch Master",
-    },
-    {
-      name: "User Master",
-      icon: UserCog,
-      permissionName: "User Master",
-    },
-    {
-      name: "User Rights Master",
-      icon: ShieldCheck,
-      permissionName:"User Rights Master",
-    },
-    
-  ];
+const masterItems = [
+  {
+    name: "Company Master",
+    icon: Building2,
+    permissionName: "Company Master",
+  },
+  {
+    name: "Tax Master",
+    icon: Receipt,
+    permissionName: "Tax Master",
+  },
+  {
+    name: "Tax Description Master",
+    icon: Receipt,
+    permissionName: "Tax Description Master",
+  },
+  {
+    name: "Department Master",
+    icon: Boxes,
+    permissionName: "Department Master",
+  },
+  {
+    name: "Outlet Master",
+    icon: Store,
+    permissionName: "Outlet Master",
+  },
+  {
+    name: "Item Master",
+    icon: Package,
+    permissionName: "Item Master",
+  },
+  {
+    name: "Unit Master",
+    icon: Package,
+    permissionName: "Unit Master",
+  },
+  {
+    name: "Group Master",
+    icon: Package,
+    permissionName: "Group Master",
+  },
+  {
+    name: "Category Master",
+    icon: Package,
+    permissionName: "Category Master",
+  },
+  {
+    name: "Sub Category Master",
+    icon: Package,
+    permissionName: "Sub Category Master",
+  },
+  {
+    name: "Steward Master",
+    icon: UserCog,
+    permissionName: "Steward Master",
+  },
+  {
+    name: "NC Department Master",
+    icon: ShieldCheck,
+    permissionName: "NC Department Master",
+  },
+  {
+    name: "Printing Master",
+    icon: Printer,
+    permissionName: "Printing Master",
+  },
+  {
+    name: "Table Master",
+    icon: LayoutGrid,
+    permissionName: "Table Master",
+  },
+  {
+    name: "Property Master",
+    icon: Building2,
+    permissionName: "Property Master",
+  },
+  {
+    name: "Branch Master",
+    icon: Store,
+    permissionName: "Branch Master",
+  },
+  {
+    name: "User Master",
+    icon: UserCog,
+    permissionName: "User Master",
+  },
+  {
+    name: "User Rights Master",
+    icon: ShieldCheck,
+    permissionName: "User Rights Master",
+  },
+];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [
     {
       name: "Outlet Items Details",
       icon: Package,
-      permissionName: "Outlet Items",
+      permissionName: "Outlet Items Details",
     },
   ];
 // 🔥 UTILITY DROPDOWN

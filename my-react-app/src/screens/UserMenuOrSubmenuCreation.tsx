@@ -1104,8 +1104,12 @@ export default function UserMenuOrSubmenuCreation() {
   ========================= */
 
   const handleSave = async () => {
+   if (!formData.menuName?.trim()) {
+  toast.error("Menu Name is required ❌");
+  return;
+}
     try {
-
+ 
       setLoading(true);
 
       const payload = {

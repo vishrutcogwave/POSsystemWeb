@@ -320,7 +320,7 @@ const fetchUsers = async () => {
              {users
   .filter(
     (user) =>
-      user.userName?.toLowerCase() !== "admin"
+      user.userName?.toLowerCase() !== ""
   )
   .map((user) => (
     <option
