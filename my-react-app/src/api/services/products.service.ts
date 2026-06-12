@@ -4646,3 +4646,64 @@ export const deleteSubMenuDetail = async (
     throw error;
   }
 };
+
+
+
+
+
+export interface SettlementBillModifyRequest {
+  branch: string;
+  userCode: number;
+  companyCode: number;
+  companyName: string;
+  guestCode: number;
+  guestName: string;
+  checkInNo: string;
+  remarks: string;
+  outletCode: number;
+  outletName: string;
+  roomNo: string;
+  subBillingType: string;
+  payMode: string;
+  bill: {
+    oltCode: number;
+    userCode: number;
+    billId: number;
+    billNo: number;
+    tableNo: string;
+    subTableNo: string;
+    discount: number;
+    taxAmount: number;
+    tips: number;
+    changeAmount: number;
+    grandAmount: number;
+    refNo: string;
+    cardName: string;
+    billDate: string;
+    branchCode: string;
+    paymentDetails: {
+      mode: string;
+      subMode: string;
+      amount: number;
+      remarks: string;
+    }[];
+  };
+}
+
+export const settlementBillModify = async (
+  payload: SettlementBillModifyRequest
+) => {
+  const response = await api.post(
+    "/api/POS/SettlementBillModify",
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};
+

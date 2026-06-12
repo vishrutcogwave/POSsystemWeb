@@ -112,7 +112,7 @@ export const printKOT = async (
   data: string,
   isThermal: boolean,
 ) => {
-  debugger
+   
 
   try {
     await connectPrinter();
@@ -180,7 +180,7 @@ export const printBill = async (
   billNo: any,
   companyInfo: any,
 ) => {
-  debugger
+   
   console.log("inside the print", billData, billNo, companyInfo);
 
   try {

@@ -60,7 +60,7 @@ const getISODateTime = () => {
 };
 
 const handleDayClose = async () => {
-  debugger
+   
   const shiftDate = data?.shiftDate?.split("T")[0];
   const today = new Date().toISOString().split("T")[0];
 

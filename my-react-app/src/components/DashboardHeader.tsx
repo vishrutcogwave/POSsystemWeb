@@ -688,6 +688,12 @@ const handleNavigation = (name: string) => {
   name: "Bill Cancellation",
   icon: Ban,
   permissionName: "Bill Cancellation",
+  
+},
+{
+  name: "Settlement Modification",
+  icon: Ban,
+  permissionName: "Settlement Modification",
 },
   ];
 
@@ -886,6 +892,8 @@ const utilityItems = [
     BillCancellation: "/pos/billcancellation",
     DailysaleCategorywise: "/pos/dailysalecategorywise",
     "Utility Settings": "/utility/utilitysettings",
+    "Settlement Modification":
+  "/pos/settlementmodification",
     
   };
 

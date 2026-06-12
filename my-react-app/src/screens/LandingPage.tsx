@@ -38,6 +38,7 @@ import DailysaleCategorywisereport from "./DailySalesCategoryWiseReport";
 import KotRegister from "./KotRegisterReport";
 import UtilitySettings from "./UtilitySettings";
 import UserMenuOrSubmenuCreation from "./UserMenuOrSubmenuCreation";
+import SettlementBillModify from "./SettlementBillModify";
 
 function LandingPage() {
   const location = useLocation();
@@ -157,6 +158,10 @@ function LandingPage() {
 <Route
   path="/master/stewardmaster"
   element={<StewardMaster />}
+/>
+<Route
+  path="/pos/settlementmodification"
+  element={<SettlementBillModify />}
 />
 <Route
   path="/master/ncdepartmentmaster"
