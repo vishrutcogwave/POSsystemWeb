@@ -688,9 +688,10 @@ const handleModeClick = (modeType: string) => {
             <p className="font-semibold mb-2">
               Select Payment Mode
             </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {paymentModes.map((m) => {
+<div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+  {paymentModes
+    .filter((m) => m.modeType !== "Transfer To Company")
+    .map((m) => {
                 const isSelected =
                   selectedMulti[
                     m.modeType

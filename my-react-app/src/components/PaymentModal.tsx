@@ -688,14 +688,36 @@ const handleModeClick = (modeType: string) => {
           </button>
 
           <button
-            onClick={() =>
-              onPay({
-                paymentDetails,
-                total,
-                difference,
-                payableAmount: PAYABLE_AMOUNT,
-              })
-            }
+         onClick={() => {
+
+  // ✅ COMPANY VALIDATION
+  const companyPayment =
+    paymentDetails.find((p) =>
+      p.mode
+        ?.toLowerCase()
+        .includes("company")
+    );
+
+  if (
+    companyPayment &&
+    !companyPayment.subMode
+  ) {
+
+    toast.error(
+      "Please select company"
+    );
+
+    return;
+  }
+
+  onPay({
+    paymentDetails,
+    total,
+    difference,
+    payableAmount: PAYABLE_AMOUNT,
+  });
+
+}}
             disabled={difference !== 0}
             className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
               difference === 0
