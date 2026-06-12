@@ -519,25 +519,32 @@ const handleAdd = async (
 
     console.log("ADDON RESPONSE", res);
 
-    // ✅ HAS ADDONS
-    if (
-      res?.success &&
-      res?.data &&
-      res.data.length > 0
-    ) {
-      setSelectedFood({
-        food,
-        category: selectedCategory,
-      });
+// ✅ HAS ADDONS
+if (
+  res?.success &&
+  res?.data &&
+  res.data.length > 0
+) {
 
-      setAddonItems(res.data);
+  // ✅ FIRST ADD MAIN ITEM
+  addItemToCart(
+    food,
+    selectedCategory
+  );
 
-      setSelectedAddons([]);
+  setSelectedFood({
+    food,
+    category: selectedCategory,
+  });
 
-      setOpenAddonModal(true);
+  setAddonItems(res.data);
 
-      return;
-    }
+  setSelectedAddons([]);
+
+  setOpenAddonModal(true);
+
+  return;
+}
 
     // ✅ NORMAL FOOD
     addItemToCart(food, selectedCategory);
@@ -592,11 +599,6 @@ const handleAdd = async (
 const handleAddonConfirm = () => {
   if (!selectedFood) return;
 
-  // ✅ MAIN ITEM
-  addItemToCart(
-    selectedFood.food,
-    selectedFood.category
-  );
 
   // ✅ ADDONS MERGE
   setCart((prev) => {
