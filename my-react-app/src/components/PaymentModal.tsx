@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice } from "../api/services/products.service";
+import { getCompanyList, getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice } from "../api/services/products.service";
 
 type SubMode = {
   subModeId: number;
@@ -65,7 +65,32 @@ const [devicePaymentStatus, setDevicePaymentStatus] =
 
 const paymentIntervalRef = useRef<any>(null);
 // add this inside component
+const [companies, setCompanies] = useState<any[]>([]);
+const [_companyLoading, setCompanyLoading] = useState(false);
+const loadCompanies = async () => {
+  try {
+    setCompanyLoading(true);
 
+    const branch =
+      localStorage.getItem("branch") || "";
+
+    const res =
+      await getCompanyList(branch);
+
+    setCompanies(res?.data || []);
+
+  } catch (error) {
+
+    toast.error(
+      "Failed to load companies"
+    );
+
+  } finally {
+
+    setCompanyLoading(false);
+
+  }
+};
 const startDevicePayment = async (
   amount: number
 ) => {
@@ -227,6 +252,13 @@ useEffect(() => {
   /* ---------------- SELECT MODE ---------------- */
 const handleModeClick = (modeType: string) => {
   // DEFAULT QR DEVICE FOR UPI
+  if (
+    modeType
+      ?.toLowerCase()
+      .includes("company")
+  ) {
+  loadCompanies();
+}
   if (modeType === "UPI") {
     setUpiType("device");
   }
@@ -563,7 +595,40 @@ const handleModeClick = (modeType: string) => {
     </button>
   </div>
 )}
+{p.mode?.toLowerCase().includes("company") && (
+  <div className="space-y-2">
 
+    <label className="text-sm font-medium">
+      Select Company
+    </label>
+
+    <select
+      value={p.subMode || ""}
+      onChange={(e) =>
+        updatePayment(
+          p.mode,
+          "subMode",
+          e.target.value
+        )
+      }
+      className="w-full border rounded px-3 py-2"
+    >
+      <option value="">
+        Select Company
+      </option>
+
+      {companies.map((c) => (
+        <option
+          key={c.companyCode}
+          value={c.companyCode}
+        >
+          {c.companyName}
+        </option>
+      ))}
+    </select>
+
+  </div>
+)}
             
               
                 <textarea
