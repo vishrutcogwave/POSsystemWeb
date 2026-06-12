@@ -1,7 +1,4 @@
-import  {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import Header from "../components/Header";
 
@@ -20,356 +17,225 @@ import { useAppContext } from "../context/AppContext";
 import PaymentModal from "../components/PaymentModal";
 
 export default function SettlementBillModify() {
+  const { appData } = useAppContext();
 
-  const { appData } =
-    useAppContext();
+  const [loading, setLoading] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [outlets, setOutlets] = useState<any[]>([]);
 
-  const [outlets, setOutlets] =
-    useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
 
-  const [bills, setBills] =
-    useState<any[]>([]);
+  const [selectedOutlet, setSelectedOutlet] = useState("");
 
-  const [selectedOutlet,
-    setSelectedOutlet] =
-    useState("");
+  const [selectedBill, setSelectedBill] = useState<any>(null);
 
-  const [selectedBill,
-    setSelectedBill] =
-    useState<any>(null);
-
-  const [reason, setReason] =
-    useState("");
+  const [reason, setReason] = useState("");
 
   const getToday = () => {
-    return new Date()
-      .toISOString()
-      .split("T")[0];
+    return new Date().toISOString().split("T")[0];
   };
 
-  const [fromDate,
-    setFromDate] =
-    useState(getToday());
+  const [fromDate, setFromDate] = useState(getToday());
 
-  const [toDate,
-    setToDate] =
-    useState(getToday());
+  const [toDate, setToDate] = useState(getToday());
 
-    const [openPayment, setOpenPayment] = useState(false);
+  const [openPayment, setOpenPayment] = useState(false);
 
-const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const [paymentModes, setPaymentModes] = useState<any[]>([]);
 
-const [paymentData, setPaymentData] = useState<any>(null);
+  const [paymentData, setPaymentData] = useState<any>(null);
 
-const fetchPaymentModes = async () => {
-  try {
+  const fetchPaymentModes = async () => {
+    try {
+      const branch = appData?.user?.branch_code;
 
-    const branch =
-      appData?.user?.branch_code;
+      const data = await getPaymentModeMaster(branch);
 
-    const data =
-      await getPaymentModeMaster(branch);
-
-    setPaymentModes(data || []);
-
-  } catch (err) {
-
-    toast.error(
-      "Failed to load payment modes"
-    );
-  }
-};
+      setPaymentModes(data || []);
+    } catch (err) {
+      toast.error("Failed to load payment modes");
+    }
+  };
 
   // ================= FETCH OUTLETS =================
 
-  const fetchOutlets =
-    async () => {
-      try {
+  const fetchOutlets = async () => {
+    try {
+      const res = await getOutletList(appData?.user?.branch_code);
 
-        const res =
-          await getOutletList(
-            appData?.user
-              ?.branch_code
-          );
+      if (res?.success) {
+        const outletData = res?.data || [];
 
-        if (res?.success) {
+        setOutlets(outletData);
 
-          const outletData =
-            res?.data || [];
-
-          setOutlets(outletData);
-
-          if (
-            outletData.length > 0
-          ) {
-            setSelectedOutlet(
-              outletData[0]
-                ?.oltCode?.toString()
-            );
-          }
+        if (outletData.length > 0) {
+          setSelectedOutlet(outletData[0]?.oltCode?.toString());
         }
-
-      } catch (err: any) {
-
-        toast.error(
-          err?.response?.data
-            ?.message ||
-            "Failed to load outlets"
-        );
       }
-    };
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to load outlets");
+    }
+  };
 
   // ================= FETCH BILLS =================
 
-  const fetchBills =
-    async () => {
+  const fetchBills = async () => {
+    if (!selectedOutlet) return;
 
-      if (!selectedOutlet)
-        return;
+    try {
+      setLoading(true);
 
-      try {
+      const res = await getBillDetails(
+        Number(selectedOutlet),
 
-        setLoading(true);
+        appData?.user?.branch_code,
 
-        const res =
-          await getBillDetails(
-            Number(selectedOutlet),
+        fromDate.replaceAll("-", "/"),
 
-            appData?.user
-              ?.branch_code,
+        toDate.replaceAll("-", "/"),
+      );
 
-            fromDate.replaceAll(
-              "-",
-              "/"
-            ),
-
-            toDate.replaceAll(
-              "-",
-              "/"
-            )
-          );
-
-setBills(
-  (res || []).filter(
-    (item: any) =>
-      item.ksmBillSettled === true &&
-      item.ksmBillCancled === false
-  )
-);
-
-      } catch (err: any) {
-
-        toast.error(
-          err?.response?.data
-            ?.message ||
-            "Failed to fetch bills"
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
+      setBills(
+        (res || []).filter(
+          (item: any) =>
+            item.ksmBillSettled === true && item.ksmBillCancled === false,
+        ),
+      );
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to fetch bills");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ================= MODIFY SETTLEMENT =================
 
-  const handleSettlementModify =
-    async () => {
-if (
-  !paymentData?.paymentDetails
-    ?.length
-) {
-  toast.error(
-    "Select payment mode"
-  );
+  const handleSettlementModify = async () => {
+    if (!paymentData?.paymentDetails?.length) {
+      toast.error("Select payment mode");
 
-  return;
-}
-      if (!selectedBill) {
+      return;
+    }
+    if (!selectedBill) {
+      toast.error("Select bill");
 
-        toast.error(
-          "Select bill"
-        );
+      return;
+    }
 
-        return;
-      }
+    if (!reason.trim()) {
+      toast.error("Enter remarks");
 
-      if (!reason.trim()) {
+      return;
+    }
 
-        toast.error(
-          "Enter remarks"
-        );
+    try {
+      setLoading(true);
 
-        return;
-      }
+      const payload = {
+        branch: appData?.user?.branch_code,
 
-      try {
+        userCode: appData?.user?.userCode,
 
-        setLoading(true);
+        companyCode: 0,
 
-        const payload = {
+        companyName: "",
 
-          branch:
-            appData?.user?.branch_code,
+        guestCode: 0,
 
-          userCode:
-            appData?.user?.userCode,
+        guestName: "",
 
-          companyCode: 0,
+        checkInNo: "",
 
-          companyName: "",
+        remarks: reason,
 
-          guestCode: 0,
+        outletCode: Number(selectedOutlet),
 
-          guestName: "",
+        outletName:
+          outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
+            ?.oltName || "",
 
-          checkInNo: "",
+        roomNo: "",
 
-          remarks: reason,
+        subBillingType: "",
 
-          outletCode: Number(
-            selectedOutlet
-          ),
+        payMode: "POS",
 
-          outletName:
-            outlets.find(
-              (o: any) =>
-                o.oltCode ===
-                Number(selectedOutlet)
-            )?.oltName || "",
+        bill: {
+          oltCode: Number(selectedOutlet),
 
-          roomNo: "",
+          userCode: appData?.user?.userCode,
 
-          subBillingType: "",
+          billId: selectedBill?.ksmBillNo || 0,
 
-      payMode:"POS",
+          billNo: selectedBill?.ksmBillNo,
 
-          bill: {
+          tableNo: selectedBill?.ksmTblNo || "",
 
-            oltCode: Number(
-              selectedOutlet
-            ),
+          subTableNo: selectedBill?.subTableNo || "",
 
-            userCode:
-              appData?.user?.userCode,
+          discount: selectedBill?.ksmBillDiscount || 0,
 
-            billId:
-              selectedBill?.ksmBillNo || 0,
+          taxAmount: selectedBill?.ksmBillTaxAmt || 0,
 
-            billNo:
-              selectedBill?.ksmBillNo,
+          tips: 0,
 
-            tableNo:
-              selectedBill?.ksmTblNo || "",
+          changeAmount: 0,
 
-            subTableNo:
-              selectedBill?.subTableNo || "",
+          grandAmount: selectedBill?.ksmBillAmount || 0,
 
-            discount:
-              selectedBill?.ksmBillDiscount || 0,
+          refNo: "",
 
-            taxAmount:
-              selectedBill?.ksmBillTaxAmt || 0,
+          cardName: "",
 
-            tips: 0,
+          billDate: selectedBill?.ksmBillDate,
 
-            changeAmount: 0,
+          branchCode: appData?.user?.branch_code,
 
-            grandAmount:
-              selectedBill?.ksmBillAmount || 0,
+          paymentDetails:
+            paymentData?.paymentDetails?.map((p: any) => ({
+              mode: p.mode,
+              subMode: p.subMode,
+              amount: Number(p.amount || 0),
+              remarks: reason,
+            })) || [],
+        },
+      };
 
-            refNo: "",
+      console.log("Settlement Modify Payload", payload);
 
-            cardName: "",
+      const res = await settlementBillModify(payload);
 
-            billDate:
-              selectedBill?.ksmBillDate,
+      toast.success(res?.message || "Settlement Modified Successfully");
 
-            branchCode:
-              appData?.user
-                ?.branch_code,
+      fetchBills();
 
-            paymentDetails:
-  paymentData?.paymentDetails?.map(
-    (p: any) => ({
-      mode: p.mode,
-      subMode: p.subMode,
-      amount: Number(p.amount || 0),
-      remarks: reason,
-    })
-  ) || [],
-          },
-        };
+      setSelectedBill(null);
 
-        console.log(
-          "Settlement Modify Payload",
-          payload
-        );
-
-        const res =
-          await settlementBillModify(
-            payload
-          );
-
-        toast.success(
-          res?.message ||
-          "Settlement Modified Successfully"
-        );
-
-        fetchBills();
-
-        setSelectedBill(
-          null
-        );
-
-        setReason("");
-
-      } catch (err: any) {
-
-        toast.error(
-          err?.response?.data
-            ?.message ||
-            "Failed to modify settlement"
-        );
-
-      } finally {
-
-        setLoading(false);
-      }
-    };
+      setReason("");
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to modify settlement",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ================= INITIAL =================
 
- useEffect(() => {
+  useEffect(() => {
+    fetchOutlets();
 
-  fetchOutlets();
-
-  fetchPaymentModes();
-
-}, []);
+    fetchPaymentModes();
+  }, []);
   // ================= AUTO FETCH =================
 
   useEffect(() => {
-
-    if (
-      selectedOutlet &&
-      fromDate &&
-      toDate
-    ) {
+    if (selectedOutlet && fromDate && toDate) {
       fetchBills();
     }
-
-  }, [
-    selectedOutlet,
-    fromDate,
-    toDate,
-  ]);
-  const handlePaymentSubmit =
-  async (data: any) => {
-
+  }, [selectedOutlet, fromDate, toDate]);
+  const handlePaymentSubmit = async (data: any) => {
     setPaymentData(data);
 
     setOpenPayment(false);
@@ -380,23 +246,16 @@ if (
       <Header showNeworderButton={false} />
 
       <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 bg-gray-50">
-
         {loading && <Loader />}
 
         <div className="bg-white rounded-xl shadow overflow-hidden">
-
           {/* HEADER */}
-<div className="p-5 border-b">
-
-  <h2 className="text-lg font-semibold">
-    Settlement Bill Modify
-  </h2>
-
-</div>
+          <div className="p-5 border-b">
+            <h2 className="text-lg font-semibold">Settlement Bill Modify</h2>
+          </div>
           {/* FILTERS */}
 
           <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-
             <div>
               <label className="text-xs text-gray-500 font-medium">
                 OUTLET
@@ -404,23 +263,14 @@ if (
 
               <select
                 value={selectedOutlet}
-                onChange={(e) =>
-                  setSelectedOutlet(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setSelectedOutlet(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400"
               >
-                {outlets.map(
-                  (o: any) => (
-                    <option
-                      key={o.oltCode}
-                      value={o.oltCode}
-                    >
-                      {o.oltName}
-                    </option>
-                  )
-                )}
+                {outlets.map((o: any) => (
+                  <option key={o.oltCode} value={o.oltCode}>
+                    {o.oltName}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -432,11 +282,7 @@ if (
               <input
                 type="date"
                 value={fromDate}
-                onChange={(e) =>
-                  setFromDate(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setFromDate(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -449,11 +295,7 @@ if (
               <input
                 type="date"
                 value={toDate}
-                onChange={(e) =>
-                  setToDate(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setToDate(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
@@ -462,142 +304,87 @@ if (
           {/* TABLE */}
 
           <div className="overflow-auto border-t border-b max-h-[500px]">
-
             <table className="min-w-[900px] w-full border-collapse">
-
               <thead className="sticky top-0 bg-gray-100 z-10">
-
                 <tr className="text-sm">
+                  <th className="border px-3 py-2">Select</th>
 
-                  <th className="border px-3 py-2">
-                    Select
-                  </th>
+                  <th className="border px-3 py-2">Bill No</th>
 
-                  <th className="border px-3 py-2">
-                    Bill No
-                  </th>
+                  <th className="border px-3 py-2">Table</th>
 
-                  <th className="border px-3 py-2">
-                    Table
-                  </th>
+                  <th className="border px-3 py-2">Amount</th>
 
-                  <th className="border px-3 py-2">
-                    Amount
-                  </th>
+                  <th className="border px-3 py-2">Tax</th>
 
-                  <th className="border px-3 py-2">
-                    Tax
-                  </th>
+                  <th className="border px-3 py-2">Discount</th>
 
-                  <th className="border px-3 py-2">
-                    Discount
-                  </th>
+                  <th className="border px-3 py-2">Settled</th>
 
-                  <th className="border px-3 py-2">
-                    Settled
-                  </th>
+                  <th className="border px-3 py-2">Cancelled</th>
 
-                  <th className="border px-3 py-2">
-                    Cancelled
-                  </th>
-
-                  <th className="border px-3 py-2">
-                    Bill Date
-                  </th>
-
+                  <th className="border px-3 py-2">Bill Date</th>
                 </tr>
               </thead>
 
               <tbody>
-
                 {bills.length > 0 ? (
+                  bills.map((item: any, index) => (
+                    <tr
+                      key={index}
+                      className={`hover:bg-blue-50 ${
+                        selectedBill?.kotId === item?.kotId ? "bg-blue-100" : ""
+                      }`}
+                    >
+                      <td className="border px-3 py-2 text-center">
+                        <input
+                          type="radio"
+                          checked={selectedBill?.ksmBillNo === item?.ksmBillNo}
+                          onChange={() => {
+                            setSelectedBill(item);
 
-                  bills.map(
-                    (
-                      item: any,
-                      index
-                    ) => (
+                            setOpenPayment(true);
+                          }}
+                        />
+                      </td>
 
-                      <tr
-                        key={index}
-                        className={`hover:bg-blue-50 ${
-                          selectedBill?.kotId ===
-                          item?.kotId
-                            ? "bg-blue-100"
-                            : ""
-                        }`}
-                      >
+                      <td className="border px-3 py-2">{item?.ksmBillNo}</td>
 
-                        <td className="border px-3 py-2 text-center">
-<input
-  type="radio"
-  checked={
-    selectedBill?.ksmBillNo ===
-    item?.ksmBillNo
-  }
-  onChange={() => {
+                      <td className="border px-3 py-2">{item?.ksmTblNo}</td>
 
-    setSelectedBill(item);
+                      <td className="border px-3 py-2">
+                        ₹{item?.ksmBillAmount}
+                      </td>
 
-    setOpenPayment(true);
+                      <td className="border px-3 py-2">
+                        ₹{item?.ksmBillTaxAmt}
+                      </td>
 
-  }}
-/>
-                        </td>
+                      <td className="border px-3 py-2">
+                        ₹{item?.ksmBillDiscount}
+                      </td>
 
-                        <td className="border px-3 py-2">
-                          {item?.ksmBillNo}
-                        </td>
+                      <td className="border px-3 py-2">
+                        {item?.ksmBillSettled ? "Yes" : "No"}
+                      </td>
 
-                        <td className="border px-3 py-2">
-                          {item?.ksmTblNo}
-                        </td>
+                      <td className="border px-3 py-2">
+                        {item?.ksmBillCancled ? "Yes" : "No"}
+                      </td>
 
-                        <td className="border px-3 py-2">
-                          ₹{item?.ksmBillAmount}
-                        </td>
-
-                        <td className="border px-3 py-2">
-                          ₹{item?.ksmBillTaxAmt}
-                        </td>
-
-                        <td className="border px-3 py-2">
-                          ₹{item?.ksmBillDiscount}
-                        </td>
-
-                        <td className="border px-3 py-2">
-                          {item?.ksmBillSettled
-                            ? "Yes"
-                            : "No"}
-                        </td>
-
-                        <td className="border px-3 py-2">
-                          {item?.ksmBillCancled
-                            ? "Yes"
-                            : "No"}
-                        </td>
-
-                        <td className="border px-3 py-2">
-                          {item?.ksmBillDate?.split(
-                            "T"
-                          )[0]}
-                        </td>
-
-                      </tr>
-                    )
-                  )
-
+                      <td className="border px-3 py-2">
+                        {item?.ksmBillDate?.split("T")[0]}
+                      </td>
+                    </tr>
+                  ))
                 ) : (
-
                   <tr>
-
                     <td
                       colSpan={9}
                       className="border px-3 py-5 text-center text-gray-500"
                     >
                       No Bills Found
                     </td>
-
                   </tr>
                 )}
               </tbody>
@@ -607,57 +394,43 @@ if (
           {/* REMARKS */}
 
           <div className="p-5">
-
-            <label className="text-xs text-gray-500 font-medium">
-              REMARKS
-            </label>
+            <label className="text-xs text-gray-500 font-medium">REMARKS</label>
 
             <textarea
               value={reason}
-              onChange={(e) =>
-                setReason(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="Enter remarks"
               className="mt-1 w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-red-400"
             />
 
             <div className="flex justify-end mt-4">
-
               <button
-                onClick={
-                  handleSettlementModify
-                }
+                onClick={handleSettlementModify}
                 className="px-5 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium"
               >
                 Modify Settlement
               </button>
-
             </div>
           </div>
         </div>
         <PaymentModal
-  isOpen={openPayment}
-  onClose={() => {
+          isOpen={openPayment}
+          onClose={() => {
+            setOpenPayment(false);
 
-    setOpenPayment(false);
+            setSelectedBill(null);
 
-    setSelectedBill(null);
-
-    setPaymentData(null);
-
-  }}
-  onPay={handlePaymentSubmit}
-  paymentModes={paymentModes}
-  unbillData={[
-    {
-      total:
-        selectedBill?.grandTotal || 0,
-    },
-  ]}
-/>
+            setPaymentData(null);
+          }}
+          onPay={handlePaymentSubmit}
+          paymentModes={paymentModes}
+          unbillData={[
+            {
+              total: selectedBill?.grandTotal || 0,
+            },
+          ]}
+        />
       </div>
     </>
   );
