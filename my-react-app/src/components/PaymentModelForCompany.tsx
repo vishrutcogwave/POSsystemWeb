@@ -742,37 +742,72 @@ useEffect(() => {
           </button>
 
           <button
-            onClick={() => {
-              const companyPayment = paymentDetails.find((p) =>
-                p.mode?.toLowerCase().includes("company"),
-              );
+   onClick={() => {
+  // COMPANY VALIDATION
+  const companyPayment = paymentDetails.find((p) =>
+    p.mode?.toLowerCase().includes("company"),
+  );
 
-              if (companyPayment && !companyPayment.subMode) {
-                toast.error("Please select company");
+  if (companyPayment && !companyPayment.subMode) {
+    toast.error("Please select company");
+    return;
+  }
 
-                return;
-              }
+  // CARD VALIDATION
+  const cardPayment = paymentDetails.find(
+    (p) => p.mode === "Card",
+  );
 
-              const payload = {
-                paymentDetails,
-                total,
-                difference,
-                payableAmount: finalPayable,
-                selectedCharges,
-                totalCharges,
-              };
+  if (cardPayment) {
+    if (!cardPayment.subMode) {
+      toast.error("Please select card type");
+      return;
+    }
 
-              onPay(payload);
+    if (!cardPayment.amount || cardPayment.amount <= 0) {
+      toast.error("Please enter card amount");
+      return;
+    }
+  }
 
-              // CLEAR TEMP STATE
-              setSelectedMulti({});
+  // GENERAL PAYMENT VALIDATION
+  if (paymentDetails.length === 0) {
+    toast.error("Please select payment mode");
+    return;
+  }
 
-              setPaymentDetails([]);
+  const invalidAmount = paymentDetails.some(
+    (p) => !p.amount || p.amount <= 0,
+  );
 
-              setSelectedCharges([]);
+  if (invalidAmount) {
+    toast.error("Please enter valid amount");
+    return;
+  }
 
-              setUpiType("");
-            }}
+  // BALANCE VALIDATION
+  if (difference !== 0) {
+    toast.error("Payment amount must match payable amount");
+    return;
+  }
+
+  const payload = {
+    paymentDetails,
+    total,
+    difference,
+    payableAmount: finalPayable,
+    selectedCharges,
+    totalCharges,
+  };
+
+  onPay(payload);
+
+  // CLEAR TEMP STATE
+  setSelectedMulti({});
+  setPaymentDetails([]);
+  setSelectedCharges([]);
+  setUpiType("");
+}}
             className="w-full sm:w-auto px-4 py-2 rounded text-white bg-green-600 hover:bg-green-700"
           >
             Submit
