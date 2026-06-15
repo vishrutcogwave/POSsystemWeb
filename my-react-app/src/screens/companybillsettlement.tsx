@@ -132,68 +132,275 @@ function CompanyBillSettlement() {
       fetchBills();
     }
   }, [selectedCompany]);
-  const handlePaymentSubmit = async (data: any) => {
-    if (!selectedBill && !fullSettlement) {
-      toast.error("Select bill");
+const handlePaymentSubmit = async (
+  data: any
+) => {
 
-      return;
-    }
+  // FULL SETTLEMENT
+  if (fullSettlement) {
 
-  const billPayload = {
-  btId: selectedBill?.btId,
+    try {
 
-  billNo: selectedBill?.billNo,
+      setLoading(true);
 
-  billAmount: selectedBill?.billAmt,
+      const payment =
+        data?.paymentDetails?.[0];
 
-  // USER ENTERED AMOUNT
-  amountPaid:
-    data?.total || 0,
+      const payload = {
 
-  partialpay:
-    data?.total || 0,
+        companyCode:
+          Number(selectedCompany),
 
-  individualChargesApplied:
-    data?.selectedCharges
-      ?.length > 0,
+        payingAmount:
+          data?.total || 0,
 
-  individualCharges:
-    (
-      data?.selectedCharges ||
-      []
-    ).map((c: any) => ({
+        settleDate:
+          new Date().toISOString(),
 
-      chargesType:
-        c.chargeType,
+        bankName: "",
 
-      chargesAmount:
-        c.amount,
-    })),
+        branchName: "",
 
-  paymentDetails:
-    data?.paymentDetails || [],
-};
+        chDDNo: "",
 
-    setSettlementBills((prev) => {
-      const existing = prev.findIndex((x) => x.btId === billPayload.btId);
+        userCode:
+          String(
+            appData?.user?.userCode
+          ) || "",
 
-      if (existing !== -1) {
-        const updated = [...prev];
+        paymentMode:
+          payment?.mode || "",
 
-        updated[existing] = billPayload;
+        ccno: "",
 
-        return updated;
+        refNo:
+          payment?.remarks || "",
+
+        validDate:
+          new Date().toISOString(),
+
+        branch_Code:
+          appData?.user
+            ?.branch_code || "",
+
+        isFullSettlement: true,
+
+        isChargesApplied:
+          data?.selectedCharges
+            ?.length > 0,
+
+        fullChargesDetails:
+          (
+            data?.selectedCharges ||
+            []
+          ).map((c: any) => ({
+
+            chargesType:
+              c.chargeType,
+
+            chargesAmount:
+              Number(
+                c.amount || 0
+              ),
+          })),
+
+        // ALL FETCHED BILLS
+        bills:
+          bills.map((bill: any) => {
+
+            const additionalCharges =
+              (
+                data?.selectedCharges ||
+                []
+              ).reduce(
+                (
+                  sum: number,
+                  c: any
+                ) =>
+                  sum +
+                  Number(
+                    c.amount || 0
+                  ),
+                0
+              );
+
+            // FETCH API amtPaid
+            const oldPaid =
+              Number(
+                bill.amtPaid || 0
+              );
+
+            // CURRENT PAYMENT
+            const currentPayment =
+              Number(
+                bill.billAmt || 0
+              ) - oldPaid;
+
+            return {
+
+              btId:
+                bill.btId,
+
+              billNo:
+                bill.billNo,
+
+              billAmount:
+                bill.billAmt,
+
+              // TOTAL PAYMENT
+              amountPaid:
+                currentPayment,
+
+              // PAYMENT EXCLUDING CHARGES
+              partialpay:
+                Math.max(
+                  currentPayment -
+                    additionalCharges,
+                  0
+                ),
+
+              individualChargesApplied:
+                data
+                  ?.selectedCharges
+                  ?.length > 0,
+
+              individualCharges:
+                (
+                  data?.selectedCharges ||
+                  []
+                ).map((c: any) => ({
+
+                  chargesType:
+                    c.chargeType,
+
+                  chargesAmount:
+                    Number(
+                      c.amount || 0
+                    ),
+                })),
+            };
+          }),
+      };
+
+      console.log(
+        "FULL SETTLEMENT",
+        payload
+      );
+
+      const response =
+        await saveCompanyBillSettlement(
+          payload
+        );
+
+      if (response?.success) {
+
+        toast.success(
+          response?.message ||
+            "Settlement completed"
+        );
+
+        setOpenPayment(false);
+
+        setPaymentData(null);
+
+        setSettlementBills([]);
+
+        fetchBills();
+
+      } else {
+
+        toast.error(
+          response?.message ||
+            "Settlement failed"
+        );
       }
 
-      return [...prev, billPayload];
-    });
+    } catch (error) {
 
-    setPaymentData(data);
+      console.log(error);
 
-    setOpenPayment(false);
+      toast.error(
+        "Settlement failed"
+      );
 
-    toast.success("Payment Added");
+    } finally {
+
+      setLoading(false);
+    }
+
+    return;
+  }
+
+  // NORMAL SINGLE BILL FLOW
+  const billPayload = {
+
+    btId:
+      selectedBill?.btId,
+
+    billNo:
+      selectedBill?.billNo,
+
+    billAmount:
+      selectedBill?.billAmt,
+
+    amountPaid:
+      data?.total || 0,
+
+    partialpay:
+      data?.total || 0,
+
+    individualChargesApplied:
+      data?.selectedCharges
+        ?.length > 0,
+
+    individualCharges:
+      (
+        data?.selectedCharges ||
+        []
+      ).map((c: any) => ({
+
+        chargesType:
+          c.chargeType,
+
+        chargesAmount:
+          c.amount,
+      })),
+
+    paymentDetails:
+      data?.paymentDetails || [],
   };
+
+  setSettlementBills((prev) => {
+
+    const existing =
+      prev.findIndex(
+        (x) =>
+          x.btId ===
+          billPayload.btId
+      );
+
+    if (existing !== -1) {
+
+      const updated = [...prev];
+
+      updated[existing] =
+        billPayload;
+
+      return updated;
+    }
+
+    return [
+      ...prev,
+      billPayload,
+    ];
+  });
+
+  setPaymentData(data);
+
+  setOpenPayment(false);
+
+  toast.success("Payment Added");
+};
   const handleCompanySettlement = async () => {
     if (!selectedBill && !fullSettlement) {
       toast.error("Select bill");

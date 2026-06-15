@@ -451,10 +451,12 @@ const remaining =
 
   const finalPayable = PAYABLE_AMOUNT;
 
-  const difference =
-  PAYABLE_AMOUNT -
-  total -
-  totalCharges;
+const difference =
+  fullSettlement
+    ? PAYABLE_AMOUNT - total
+    : PAYABLE_AMOUNT -
+      total -
+      totalCharges;
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
