@@ -4760,3 +4760,109 @@ export const getChargesDetails = async (
     throw error;
   }
 };
+
+
+
+export const saveCompanyBillSettlement = async (
+  payload: {
+
+    companyCode: number;
+
+    payingAmount: number;
+
+    settleDate: string;
+
+    bankName: string;
+
+    branchName: string;
+
+    chDDNo: string;
+
+    userCode: string;
+
+    paymentMode: string;
+
+    ccno: string;
+
+    refNo: string;
+
+    validDate: string;
+
+    branch_Code: string;
+
+    isFullSettlement: boolean;
+
+    isChargesApplied: boolean;
+
+    // NEW
+    fullChargesDetails: {
+      chargesType: string;
+
+      chargesAmount: number;
+    }[];
+
+    bills: {
+
+      btId: number;
+
+      billNo: number;
+
+      billAmount: number;
+
+      amountPaid: number;
+
+      partialpay: number | string;
+
+      individualChargesApplied: boolean;
+
+      // NEW ARRAY
+      individualCharges: {
+
+        chargesType: string;
+
+        chargesAmount: number;
+
+      }[];
+    }[];
+  }
+) => {
+  try {
+
+    const token =
+      localStorage.getItem(
+        "token"
+      );
+
+    const response =
+      await api.post(
+        "/api/POS/SaveCompanyBillSettlement",
+
+        payload,
+
+        {
+          headers: {
+
+            Authorization:
+              `Bearer ${token}`,
+
+            "Content-Type":
+              "application/json",
+
+            accept: "*/*",
+          },
+        }
+      );
+
+    return response.data;
+
+  } catch (error: any) {
+
+    console.error(
+      "Error saving company bill settlement:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};

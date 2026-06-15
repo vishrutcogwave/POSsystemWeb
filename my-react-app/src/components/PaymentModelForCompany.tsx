@@ -175,26 +175,7 @@ const updateChargeAmount = (
   setSelectedCharges(updatedCharges);
 
   // REMAINING AMOUNT
-  const remainingAmount =
-    PAYABLE_AMOUNT - totalCharges;
 
-  // AUTO UPDATE FIRST PAYMENT
-  setPaymentDetails((prev) => {
-
-    if (!prev.length) return prev;
-
-    const updated = [...prev];
-
-    updated[0] = {
-      ...updated[0],
-      amount:
-        remainingAmount > 0
-          ? remainingAmount
-          : 0,
-    };
-
-    return updated;
-  });
 };
 const removeCharge = (
   chargeType: string
@@ -210,35 +191,7 @@ const removeCharge = (
     updatedCharges
   );
 
-  // RECALCULATE CHARGES
-  const totalCharges =
-    updatedCharges.reduce(
-      (sum, c) =>
-        sum + Number(c.amount || 0),
-      0
-    );
 
-  // AUTO UPDATE PAYMENT
-  const remainingAmount =
-    PAYABLE_AMOUNT -
-    totalCharges;
-
-  setPaymentDetails((prev) => {
-
-    if (!prev.length) return prev;
-
-    const updated = [...prev];
-
-    updated[0] = {
-      ...updated[0],
-      amount:
-        remainingAmount > 0
-          ? remainingAmount
-          : 0,
-    };
-
-    return updated;
-  });
 };
   const startDevicePayment = async (amount: number) => {
     console.log(amount);
