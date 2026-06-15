@@ -41,6 +41,7 @@ type Props = {
   billNo?: any;
   refresh?: () => void;
 existingPaymentData?: any;
+fullSettlement:boolean
 
 };
 
@@ -53,6 +54,7 @@ const PaymentModal: React.FC<Props> = ({
   paymentModes,
   unbillData,
   existingPaymentData,
+  fullSettlement
 }) => {
   const handleClose = () => {
     setSelectedMulti({});
@@ -139,17 +141,105 @@ const PaymentModal: React.FC<Props> = ({
     ]);
   };
 
-  const updateChargeAmount = (chargeType: string, amount: number) => {
-    setSelectedCharges((prev) =>
-      prev.map((c) => (c.chargeType === chargeType ? { ...c, amount } : c)),
-    );
-  };
+const updateChargeAmount = (
+  chargeType: string,
+  amount: number
+) => {
 
-  const removeCharge = (chargeType: string) => {
-    setSelectedCharges((prev) =>
-      prev.filter((c) => c.chargeType !== chargeType),
+  // TEMP UPDATED CHARGES
+  const updatedCharges =
+    selectedCharges.map((c) =>
+      c.chargeType === chargeType
+        ? { ...c, amount }
+        : c
     );
-  };
+
+  // TOTAL CHARGES
+  const totalCharges =
+    updatedCharges.reduce(
+      (sum, c) =>
+        sum + Number(c.amount || 0),
+      0
+    );
+
+  // VALIDATION
+  if (totalCharges > PAYABLE_AMOUNT) {
+    toast.error(
+      "Additional charges cannot exceed original amount"
+    );
+
+    return;
+  }
+
+  // SAVE CHARGES
+  setSelectedCharges(updatedCharges);
+
+  // REMAINING AMOUNT
+  const remainingAmount =
+    PAYABLE_AMOUNT - totalCharges;
+
+  // AUTO UPDATE FIRST PAYMENT
+  setPaymentDetails((prev) => {
+
+    if (!prev.length) return prev;
+
+    const updated = [...prev];
+
+    updated[0] = {
+      ...updated[0],
+      amount:
+        remainingAmount > 0
+          ? remainingAmount
+          : 0,
+    };
+
+    return updated;
+  });
+};
+const removeCharge = (
+  chargeType: string
+) => {
+
+  const updatedCharges =
+    selectedCharges.filter(
+      (c) =>
+        c.chargeType !== chargeType
+    );
+
+  setSelectedCharges(
+    updatedCharges
+  );
+
+  // RECALCULATE CHARGES
+  const totalCharges =
+    updatedCharges.reduce(
+      (sum, c) =>
+        sum + Number(c.amount || 0),
+      0
+    );
+
+  // AUTO UPDATE PAYMENT
+  const remainingAmount =
+    PAYABLE_AMOUNT -
+    totalCharges;
+
+  setPaymentDetails((prev) => {
+
+    if (!prev.length) return prev;
+
+    const updated = [...prev];
+
+    updated[0] = {
+      ...updated[0],
+      amount:
+        remainingAmount > 0
+          ? remainingAmount
+          : 0,
+    };
+
+    return updated;
+  });
+};
   const startDevicePayment = async (amount: number) => {
     console.log(amount);
 
@@ -367,7 +457,17 @@ useEffect(() => {
       if (prev.some((p) => p.mode === modeType)) return prev;
 
       const currentTotal = prev.reduce((sum, p) => sum + p.amount, 0);
-      const remaining = PAYABLE_AMOUNT - currentTotal;
+   const totalCharges =
+  selectedCharges.reduce(
+    (sum, c) =>
+      sum + Number(c.amount || 0),
+    0
+  );
+
+const remaining =
+  PAYABLE_AMOUNT -
+  totalCharges -
+  currentTotal;
 
       const modeObj = paymentModes.find((m) => m.modeType === modeType);
       const firstSubMode = modeObj?.subModes?.[0]?.subModeType || "";
@@ -396,9 +496,12 @@ useEffect(() => {
     0,
   );
 
-  const finalPayable = PAYABLE_AMOUNT + totalCharges;
+  const finalPayable = PAYABLE_AMOUNT;
 
-  const difference = finalPayable - total;
+  const difference =
+  PAYABLE_AMOUNT -
+  total -
+  totalCharges;
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
       <div className="w-full max-w-lg h-full sm:h-[90vh] bg-white sm:rounded-xl shadow-xl flex flex-col overflow-hidden">
@@ -641,38 +744,58 @@ useEffect(() => {
           </div>
 
           {/* SUMMARY */}
-          <div className="bg-gray-50 p-3 rounded-lg border space-y-2">
-            <div className="flex justify-between text-sm font-semibold text-gray-600">
-              <span>Payable</span>
-              <span>₹{finalPayable}</span>
-            </div>
+{/* SUMMARY */}
+<div className="bg-gray-50 p-4 rounded-xl border space-y-3">
 
-            <div className="flex justify-between text-sm">
-              <span>Entered</span>
-              <span>₹{total}</span>
-            </div>
+  <div className="flex justify-between text-sm text-gray-600">
+    <span>Original Amount</span>
+    <span>₹{PAYABLE_AMOUNT}</span>
+  </div>
 
-            <div
-              className={`flex justify-between font-bold ${
-                difference === 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              <span>
-                {difference === 0
-                  ? "Balanced"
-                  : difference > 0
-                    ? "Remaining"
-                    : "Excess"}
-              </span>
-              <span>₹{Math.abs(difference)}</span>
-            </div>
+  {totalCharges > 0 && (
+    <div className="flex justify-between text-sm text-orange-600">
+      <span>Additional Charges</span>
+      <span>₹{totalCharges}</span>
+    </div>
+  )}
 
-            {difference !== 0 && (
-              <div className="text-xs text-red-500 text-right">
-                ⚠ Amount must match ₹{PAYABLE_AMOUNT}
-              </div>
-            )}
-          </div>
+  {/* FINAL PAYABLE HIGHLIGHT */}
+  <div className="bg-green-100 border border-green-300 rounded-lg px-4 py-3">
+    <div className="flex justify-between items-center">
+      <span className="text-base font-bold text-green-800">
+        Final Payable
+      </span>
+
+      <span className="text-2xl font-extrabold text-green-700">
+        ₹{finalPayable}
+      </span>
+    </div>
+  </div>
+
+ 
+
+  {/* ONLY SHOW REMAINING / EXCESS */}
+  {difference !== 0 && (
+    <div
+      className={`flex justify-between font-bold text-sm ${
+        difference > 0
+          ? "text-red-600"
+          : "text-orange-600"
+      }`}
+    >
+    
+
+    </div>
+  )}
+
+  {fullSettlement &&
+    paymentDetails.length > 0 &&
+    difference !== 0 && (
+      <div className="text-xs text-red-500 text-right font-medium">
+        ⚠ Payment amount must match ₹{PAYABLE_AMOUNT}
+      </div>
+  )}
+</div>
           <div className="border rounded-lg p-3 space-y-3">
             <h3 className="font-semibold">Additional Charges</h3>
 
@@ -784,12 +907,16 @@ useEffect(() => {
     toast.error("Please enter valid amount");
     return;
   }
-
-  // BALANCE VALIDATION
-  if (difference !== 0) {
-    toast.error("Payment amount must match payable amount");
-    return;
-  }
+if (
+  fullSettlement &&
+  paymentDetails.length > 0 &&
+  difference !== 0
+) {
+  toast.error(
+    "Payment amount must match payable amount"
+  );
+  return;
+}
 
   const payload = {
     paymentDetails,

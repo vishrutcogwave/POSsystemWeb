@@ -469,6 +469,7 @@ onClick={() => {
     <input
       type="radio"
     name={`selectedBill-${item.btId}`}
+    disabled={fullSettlement}
   checked={false}
       onChange={() => {
         setSelectedBill(item);
@@ -628,6 +629,7 @@ onClick={() => {
                     selectedBill?.btId ===
                     item.btId
                   }
+                  disabled={fullSettlement}
                   onChange={() => {
                     setSelectedBill(item);
 
@@ -760,6 +762,7 @@ onClick={() => {
         </div>
       </div>
 <PaymentModal
+fullSettlement={fullSettlement}
   existingPaymentData={
     paymentData
   }
