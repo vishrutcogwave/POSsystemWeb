@@ -532,103 +532,197 @@ onClick={() => {
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden space-y-4">
-            {bills.length > 0 ? (
-              bills.map((item: any) => {
+     {/* Mobile Cards */}
+<div className="lg:hidden space-y-4">
+  {bills.length > 0 ? (
+    bills.map((item: any) => {
+      const balance =
+        item.billAmt - item.amtPaid;
 
-                return (
-<div className="flex flex-col items-end gap-1">
-  {settlementBills.some(
-    (x) => x.btId === item.btId
-  ) ? (
-    <>
-      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
-        Payment Added
-      </span>
+      return (
+        <div
+          key={item.btId}
+          className="border rounded-xl p-4 bg-white shadow-sm space-y-3"
+        >
+          {/* TOP */}
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs text-gray-500">
+                Bill No
+              </p>
 
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => {
-            const existingPayment =
-              settlementBills.find(
+              <p className="font-semibold">
+                {item.billNo}
+              </p>
+            </div>
+
+            <div>
+              {settlementBills.some(
                 (x) =>
                   x.btId === item.btId
-              );
+              ) ? (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                    Payment Added
+                  </span>
 
-            setSelectedBill(item);
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const existingPayment =
+                          settlementBills.find(
+                            (x) =>
+                              x.btId ===
+                              item.btId
+                          );
 
-            setPaymentData(
-              existingPayment
-            );
+                        setSelectedBill(item);
 
-            setOpenPayment(true);
-          }}
-          className="text-blue-600 text-xs underline"
-        >
-          Edit
-        </button>
+                        setPaymentData(
+                          existingPayment
+                        );
 
-        <button
-onClick={() => {
+                        setOpenPayment(true);
+                      }}
+                      className="text-blue-600 text-xs underline"
+                    >
+                      Edit
+                    </button>
 
-  // CLOSE MODAL
-  setOpenPayment(false);
+                    <button
+                      onClick={() => {
+                        setOpenPayment(false);
 
-  // REMOVE PAYMENT
-  setSettlementBills((prev) =>
-    prev.filter(
-      (x) =>
-        x.btId !== item.btId
-    )
-  );
+                        setSettlementBills(
+                          (prev) =>
+                            prev.filter(
+                              (x) =>
+                                x.btId !==
+                                item.btId
+                            )
+                        );
 
-  // CLEAR CURRENT DATA
-  setSelectedBill(null);
+                        setSelectedBill(null);
 
-  setPaymentData(null);
+                        setPaymentData(null);
 
-  // SMALL DELAY FOR RE-OPEN
-  setTimeout(() => {
+                        setTimeout(() => {
+                          setSelectedBill(item);
+                        }, 100);
 
-    setSelectedBill(item);
+                        toast.success(
+                          "Payment Removed"
+                        );
+                      }}
+                      className="text-red-600 text-xs underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <input
+                  type="radio"
+                  name="selectedBill"
+                  checked={
+                    selectedBill?.btId ===
+                    item.btId
+                  }
+                  onChange={() => {
+                    setSelectedBill(item);
 
-  }, 100);
+                    setPaymentData(null);
 
-  toast.success(
-    "Payment Removed"
-  );
-}}
+                    setOpenPayment(true);
+                  }}
+                />
+              )}
+            </div>
+          </div>
 
-          className="text-red-600 text-xs underline"
-        >
-          Remove
-        </button>
-      </div>
-    </>
+          {/* DETAILS */}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-500">
+                Bill Amount
+              </p>
+
+              <p className="font-semibold">
+                ₹{item.billAmt}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-500">
+                Paid Amount
+              </p>
+
+              <p className="font-semibold text-green-600">
+                ₹{item.amtPaid}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-500">
+                Balance
+              </p>
+
+              <p className="font-semibold text-red-600">
+                ₹{balance}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-500">
+                Pay Mode
+              </p>
+
+              <p className="font-semibold">
+                {item.pMode || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-500">
+                Date
+              </p>
+
+              <p className="font-semibold">
+                {new Date(
+                  item.btDate
+                ).toLocaleDateString(
+                  "en-GB"
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-500">
+                Settled
+              </p>
+
+              <span
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  item.btcSettled
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                {item.btcSettled
+                  ? "YES"
+                  : "NO"}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    })
   ) : (
-    <input
-      type="radio"
-  name={`selectedBill-${item.btId}`}
-    checked={false} 
-      onChange={() => {
-        setSelectedBill(item);
-
-        setPaymentData(null);
-
-        setOpenPayment(true);
-      }}
-    />
+    <div className="border rounded-xl p-5 text-center">
+      No Bills Found
+    </div>
   )}
 </div>
-
-                );
-              })
-            ) : (
-              <div className="border rounded-xl p-5 text-center">
-                No Bills Found
-              </div>
-            )}
-          </div>
         </div>
 
         {/* ================= REMARKS ================= */}
@@ -647,16 +741,18 @@ onClick={() => {
           <div className="flex justify-end mt-5">
             <button
               onClick={handleCompanySettlement}
-           disabled={
+ disabled={
+  fullSettlement ||
   !selectedBill ||
   !paymentData?.paymentDetails?.length
 }
-          className={`px-5 py-2 rounded-lg text-white ${
+        className={`px-5 py-2 rounded-lg text-white ${
+  !fullSettlement &&
   selectedBill &&
   paymentData?.paymentDetails?.length
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "bg-gray-400 cursor-not-allowed"
-              }`}
+    ? "bg-blue-500 hover:bg-blue-600"
+    : "bg-gray-400 cursor-not-allowed"
+}`}
             >
               Settle Company Bill
             </button>
