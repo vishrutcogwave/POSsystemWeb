@@ -4726,3 +4726,37 @@ export const getCompanyTransferBills = async (
 
   return response.data;
 };
+
+
+export const getChargesDetails = async (
+  branchCode: string
+) => {
+  try {
+    const token =
+      localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POS/GetChargesDetails",
+      {
+        params: {
+          branchCode,
+        },
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching charges details:",
+      error.response?.data ||
+        error.message
+    );
+
+    throw error;
+  }
+};

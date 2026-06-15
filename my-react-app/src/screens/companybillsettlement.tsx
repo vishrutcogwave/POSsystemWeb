@@ -8,7 +8,7 @@ import {
 import { useAppContext } from "../context/AppContext";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
-import PaymentModal from "../components/PaymentModal";
+import PaymentModal from "../components/PaymentModelForCompany";
 
 function CompanyBillSettlement() {
   const { appData } = useAppContext();
@@ -25,6 +25,8 @@ function CompanyBillSettlement() {
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
 
   const [paymentData, setPaymentData] = useState<any>(null);
+  const [settlementBills, setSettlementBills] =
+  useState<any[]>([]);
   const [summary, setSummary] = useState({
     totalAmount: 0,
     paidAmount: 0,
@@ -142,12 +144,77 @@ const fetchPaymentModes = async () => {
       fetchBills();
     }
   }, [selectedCompany]);
-  const handlePaymentSubmit = async (data: any) => {
-    setPaymentData(data);
+const handlePaymentSubmit = async (
+  data: any
+) => {
 
-    setOpenPayment(false);
+  if (!selectedBill && !fullSettlement) {
+    toast.error("Select bill");
+
+    return;
+  }
+
+  const billPayload = {
+    btId: selectedBill?.btId,
+    billNo: selectedBill?.billNo,
+    billAmount:
+      selectedBill?.billAmt,
+    amountPaid:
+      selectedBill?.amtPaid,
+
+    partialpay:
+      data?.total || 0,
+
+    individualChargesApplied:
+      data?.selectedCharges
+        ?.length > 0,
+
+    individualCharges:
+      (
+        data?.selectedCharges ||
+        []
+      ).map((c: any) => ({
+        chargesType:
+          c.chargeType,
+
+        chargesAmount:
+          c.amount,
+      })),
+
+    paymentDetails:
+      data?.paymentDetails ||
+      [],
   };
 
+  setSettlementBills((prev) => {
+
+    const existing =
+      prev.findIndex(
+        (x) =>
+          x.btId ===
+          billPayload.btId
+      );
+
+    if (existing !== -1) {
+      const updated = [...prev];
+
+      updated[existing] =
+        billPayload;
+
+      return updated;
+    }
+
+    return [...prev, billPayload];
+  });
+
+  setPaymentData(data);
+
+  setOpenPayment(false);
+
+  toast.success(
+    "Payment Added"
+  );
+};
   const handleCompanySettlement = async () => {
     if (!selectedBill) {
       toast.error("Select bill");
@@ -166,10 +233,21 @@ const fetchPaymentModes = async () => {
 
       return;
     }
+const payload = {
+  companyCode:
+    selectedCompany,
 
-    console.log("PAYMENT DATA", paymentData);
+  remarks,
 
-    console.log("SELECTED BILL", selectedBill);
+  fullSettlement,
+
+  bills: settlementBills,
+};
+
+console.log(
+  "FINAL PAYLOAD",
+  payload
+);
 
     toast.success("Payment Ready ✅");
 
@@ -319,18 +397,90 @@ const fetchPaymentModes = async () => {
 
                     return (
                       <tr key={item.btId} className="hover:bg-gray-50">
-                        <td className="border px-3 py-2 text-center">
-                          <input
-                            type="radio"
-                            name="selectedBill"
-                            checked={selectedBill?.btId === item.btId}
-                            onChange={() => {
-                              setSelectedBill(item);
+<td className="border px-3 py-2 text-center">
+  {settlementBills.some(
+    (x) => x.btId === item.btId
+  ) ? (
+    <div className="flex flex-col items-center gap-1">
+      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+        Payment Added
+      </span>
 
-                              setOpenPayment(true);
-                            }}
-                          />
-                        </td>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            const existingPayment =
+              settlementBills.find(
+                (x) =>
+                  x.btId === item.btId
+              );
+
+            setSelectedBill(item);
+
+            setPaymentData(
+              existingPayment
+            );
+
+            setOpenPayment(true);
+          }}
+          className="text-blue-600 text-xs underline"
+        >
+          Edit
+        </button>
+
+        <button
+onClick={() => {
+
+  // CLOSE MODAL
+  setOpenPayment(false);
+
+  // REMOVE PAYMENT
+  setSettlementBills((prev) =>
+    prev.filter(
+      (x) =>
+        x.btId !== item.btId
+    )
+  );
+
+  // CLEAR CURRENT DATA
+  setSelectedBill(null);
+
+  setPaymentData(null);
+
+  // SMALL DELAY FOR RE-OPEN
+  setTimeout(() => {
+
+    setSelectedBill(item);
+
+  }, 100);
+
+  toast.success(
+    "Payment Removed"
+  );
+}}
+
+          className="text-red-600 text-xs underline"
+        >
+          Remove
+        </button>
+      </div>
+    </div>
+  ) : (
+    <input
+      type="radio"
+    name={`selectedBill-${item.btId}`}
+  checked={false}
+      onChange={() => {
+        setSelectedBill(item);
+
+        setPaymentData(null);
+
+        setOpenPayment(true);
+      }}
+    />
+  )}
+</td>
+
 
                         <td className="border px-3 py-2 text-center">
                           {item.billNo}
@@ -385,62 +535,92 @@ const fetchPaymentModes = async () => {
           <div className="lg:hidden space-y-4">
             {bills.length > 0 ? (
               bills.map((item: any) => {
-                const balance = item.billAmt - item.amtPaid;
 
                 return (
-                  <div
-                    key={item.btId}
-                    className={`border rounded-xl p-4 ${
-                      selectedBill?.btId === item.btId
-                        ? "border-blue-500 bg-blue-50"
-                        : "bg-white"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-gray-500">Bill No</p>
+<div className="flex flex-col items-end gap-1">
+  {settlementBills.some(
+    (x) => x.btId === item.btId
+  ) ? (
+    <>
+      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+        Payment Added
+      </span>
 
-                        <p className="font-bold text-lg">{item.billNo}</p>
-                      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            const existingPayment =
+              settlementBills.find(
+                (x) =>
+                  x.btId === item.btId
+              );
 
-                      <input
-                        type="radio"
-                        name="selectedBill"
-                        checked={selectedBill?.btId === item.btId}
-                        onChange={() => {
-                          setSelectedBill(item);
+            setSelectedBill(item);
 
-                          setOpenPayment(true);
-                        }}
-                      />
-                    </div>
+            setPaymentData(
+              existingPayment
+            );
 
-                    <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                      <div>
-                        <p className="text-gray-500">Bill Amount</p>
+            setOpenPayment(true);
+          }}
+          className="text-blue-600 text-xs underline"
+        >
+          Edit
+        </button>
 
-                        <p className="font-semibold">₹{item.billAmt}</p>
-                      </div>
+        <button
+onClick={() => {
 
-                      <div>
-                        <p className="text-gray-500">Paid Amount</p>
+  // CLOSE MODAL
+  setOpenPayment(false);
 
-                        <p className="font-semibold">₹{item.amtPaid}</p>
-                      </div>
+  // REMOVE PAYMENT
+  setSettlementBills((prev) =>
+    prev.filter(
+      (x) =>
+        x.btId !== item.btId
+    )
+  );
 
-                      <div>
-                        <p className="text-gray-500">Balance</p>
+  // CLEAR CURRENT DATA
+  setSelectedBill(null);
 
-                        <p className="font-semibold text-red-600">₹{balance}</p>
-                      </div>
+  setPaymentData(null);
 
-                      <div>
-                        <p className="text-gray-500">Pay Mode</p>
+  // SMALL DELAY FOR RE-OPEN
+  setTimeout(() => {
 
-                        <p className="font-semibold">{item.pMode || "-"}</p>
-                      </div>
-                    </div>
-                  </div>
+    setSelectedBill(item);
+
+  }, 100);
+
+  toast.success(
+    "Payment Removed"
+  );
+}}
+
+          className="text-red-600 text-xs underline"
+        >
+          Remove
+        </button>
+      </div>
+    </>
+  ) : (
+    <input
+      type="radio"
+  name={`selectedBill-${item.btId}`}
+    checked={false} 
+      onChange={() => {
+        setSelectedBill(item);
+
+        setPaymentData(null);
+
+        setOpenPayment(true);
+      }}
+    />
+  )}
+</div>
+
                 );
               })
             ) : (
@@ -484,14 +664,20 @@ const fetchPaymentModes = async () => {
         </div>
       </div>
 <PaymentModal
+  existingPaymentData={
+    paymentData
+  }
+
   isOpen={openPayment}
-  onClose={() => {
-    setOpenPayment(false);
+  billNo={
+    fullSettlement
+      ? "FULL_SETTLEMENT"
+      : selectedBill?.billNo
+  }
+onClose={() => {
+  setOpenPayment(false);
+}}
 
-    setSelectedBill(null);
-
-    setPaymentData(null);
-  }}
   onPay={handlePaymentSubmit}
   paymentModes={paymentModes}
   unbillData={[
