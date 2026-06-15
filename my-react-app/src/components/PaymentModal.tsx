@@ -354,121 +354,98 @@ const handleModeClick = (modeType: string) => {
 
             {paymentDetails.map((p) => (
               <div key={p.mode} className="border p-3 rounded space-y-2">
-               {p.mode === "Card" ? (
-  <>
-    {paymentModes
-      .find((m) => m.modeType === "Card")
-      ?.subModes?.map((sub) => (
-        <div
-          key={sub.subModeId}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded p-2"
-        >
-          <span className="font-medium">
+{p.mode === "Card" ? (
+  <div className="space-y-3">
+
+    {/* CARD SUBMODE DROPDOWN */}
+    <select
+      value={p.subMode || ""}
+      onChange={(e) =>
+        updatePayment(
+          p.mode,
+          "subMode",
+          e.target.value
+        )
+      }
+      className="w-full border rounded px-3 py-2"
+    >
+      <option value="">
+        Select Card Type
+      </option>
+
+      {paymentModes
+        .find((m) => m.modeType === "Card")
+        ?.subModes?.map((sub) => (
+          <option
+            key={sub.subModeId}
+            value={sub.subModeType}
+          >
             {sub.subModeType}
-          </span>
+          </option>
+        ))}
+    </select>
 
-          <input
-            type="text"
-            inputMode="numeric"
-            value={
-              paymentDetails.find(
-                (x) =>
-                  x.mode === "Card" &&
-                  x.subMode ===
-                    sub.subModeType
-              )?.amount || ""
+    {/* SHOW TEXTBOX ONLY AFTER SELECT */}
+    {p.subMode && (
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded p-2">
+
+        <span className="font-medium">
+          {p.subMode}
+        </span>
+
+        <input
+          type="text"
+          inputMode="numeric"
+          value={p.amount || ""}
+          onChange={(e) => {
+            const value =
+              e.target.value;
+
+            if (
+              !/^\d*$/.test(value)
+            )
+              return;
+
+            const numValue =
+              Number(value || 0);
+
+            const otherTotal =
+              paymentDetails
+                .filter(
+                  (x) =>
+                    x.mode !==
+                    p.mode
+                )
+                .reduce(
+                  (sum, x) =>
+                    sum +
+                    x.amount,
+                  0
+                );
+
+            if (
+              numValue +
+                otherTotal >
+              PAYABLE_AMOUNT
+            ) {
+              toast.error(
+                "Total exceeds payable"
+              );
+
+              return;
             }
-            onChange={(e) => {
-              const value =
-                e.target.value;
 
-              if (!/^\d*$/.test(value))
-                return;
-
-              const numValue = Number(
-                value || 0
-              );
-
-              setPaymentDetails(
-                (prev) => {
-                  const others =
-                    prev.filter(
-                      (x) =>
-                        !(
-                          x.mode ===
-                            "Card" &&
-                          x.subMode ===
-                            sub.subModeType
-                        )
-                    );
-
-                  const otherTotal =
-                    others.reduce(
-                      (sum, x) =>
-                        sum + x.amount,
-                      0
-                    );
-
-                  if (
-                    numValue +
-                      otherTotal >
-                    PAYABLE_AMOUNT
-                  ) {
-                    toast.error(
-                      "Total exceeds payable"
-                    );
-
-                    return prev;
-                  }
-
-                  const existing =
-                    prev.findIndex(
-                      (x) =>
-                        x.mode ===
-                          "Card" &&
-                        x.subMode ===
-                          sub.subModeType
-                    );
-
-                  if (
-                    existing !== -1
-                  ) {
-                    const updated = [
-                      ...prev,
-                    ];
-
-                    updated[
-                      existing
-                    ] = {
-                      ...updated[
-                        existing
-                      ],
-                      amount:
-                        numValue,
-                    };
-
-                    return updated;
-                  }
-
-                  return [
-                    ...prev,
-                    {
-                      mode: "Card",
-                      subMode:
-                        sub.subModeType,
-                      amount:
-                        numValue,
-                      remarks: "",
-                    },
-                  ];
-                }
-              );
-            }}
-            className="w-full sm:w-24 border rounded px-2 py-1 text-right"
-          />
-        </div>
-      ))}
-  </>
+            updatePayment(
+              p.mode,
+              "amount",
+              numValue
+            );
+          }}
+          className="w-full sm:w-24 border rounded px-2 py-1 text-right"
+        />
+      </div>
+    )}
+  </div>
 ) : (
   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
     <span className="font-medium">
