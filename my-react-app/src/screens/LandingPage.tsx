@@ -39,6 +39,7 @@ import KotRegister from "./KotRegisterReport";
 import UtilitySettings from "./UtilitySettings";
 import UserMenuOrSubmenuCreation from "./UserMenuOrSubmenuCreation";
 import SettlementBillModify from "./SettlementBillModify";
+import CompanyBillSettlement from "./companybillsettlement";
 
 function LandingPage() {
   const location = useLocation();
@@ -190,6 +191,10 @@ function LandingPage() {
 <Route
   path="/master/userrightsmaster"
   element={<UserRightsMaster />}
+/>
+<Route
+  path="/pos/companybillsettlement"
+  element={<CompanyBillSettlement />}
 />
       </Routes>
     </>

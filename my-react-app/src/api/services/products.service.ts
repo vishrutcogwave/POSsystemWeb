@@ -4707,3 +4707,22 @@ export const settlementBillModify = async (
   return response.data;
 };
 
+export const getCompanyTransferBills = async (
+  companyCode: number,
+  branchCode: string
+) => {
+  const response = await api.get(
+    "/api/POS/GetcompanyTransferbills",
+    {
+      params: {
+        companyCode,
+        branchCode,
+      },
+      headers: {
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};

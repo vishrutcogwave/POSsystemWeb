@@ -614,6 +614,7 @@ import {
   ShieldCheck,
   Printer,
   Wrench,
+  CreditCard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -695,6 +696,11 @@ const handleNavigation = (name: string) => {
   icon: Ban,
   permissionName: "Settlement Modification",
 },
+  {
+    name: "Company Bill Settlement",
+    icon: CreditCard,
+    permissionName: "Company Bill Settlement",
+  },
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
@@ -894,6 +900,8 @@ const utilityItems = [
     "Utility Settings": "/utility/utilitysettings",
     "Settlement Modification":
   "/pos/settlementmodification",
+    "Company Bill Settlement":
+    "/pos/companybillsettlement",
     
   };
 
