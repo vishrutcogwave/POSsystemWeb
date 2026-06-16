@@ -1800,6 +1800,7 @@ if (
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+             isFastfood={tableData.fastFood}
           showPast={showPast}
           setShowPast={setShowPast}
           openNcModal={openNcModal}
@@ -1839,6 +1840,7 @@ if (
 
       {/* MOBILE CART */}
       <MobileCartButton
+      isFastfood={tableData.fastFood}
         showPast={showPast}
           setShowPast={setShowPast}
           openNcModal={openNcModal}

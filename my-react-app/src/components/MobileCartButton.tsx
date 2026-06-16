@@ -12,7 +12,7 @@ type MobileCartProps = {
   increaseQty: (id: number) => void;
   decreaseQty: (id: number) => void;
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
-
+isFastfood:any
   onUpdateNote: (id: number) => void;
   onKOT: () => void;
   kotLoading: boolean;
@@ -36,6 +36,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   openNcModal,
   setOpenNcModal,
   setShowPast,
+  isFastfood,
   showPast,
   handleGetBill,
   selectedVoidItems,
@@ -88,6 +89,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              isFastfood={isFastfood}
                 showPast={showPast}
                 setShowPast={setShowPast}
                 openNcModal={openNcModal}

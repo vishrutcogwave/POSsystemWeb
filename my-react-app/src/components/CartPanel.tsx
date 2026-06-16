@@ -7,7 +7,7 @@ type CartPanelProps = {
   items: CartItem[];
   pastItems: CartItem[];
   ncReasons: any[];
-
+  isFastfood: any;
   status?: string;
   kotStatus?: string;
   selectedNcCode: number | null;
@@ -59,8 +59,9 @@ export default function CartPanel({
   status,
   setNcRemarks,
   instructions,
+  isFastfood,
 }: CartPanelProps) {
-  console.log("status", status);
+  console.log("isFastfood", isFastfood);
   const { userRights } = useAppContext();
   console.log("userRightslllllllllllll", userRights);
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function CartPanel({
         menu.menuName === "KOT" &&
         menu.subMenus?.some((sub: any) => sub.subMenuName === "BILL"),
     );
-      const hasVoidPermission =
+  const hasVoidPermission =
     hasSubMenuAccess("KOT VOID") &&
     userRights?.some(
       (menu: any) =>
@@ -126,15 +127,15 @@ export default function CartPanel({
         menu.subMenus?.some((sub: any) => sub.subMenuName === "KOT VOID"),
     );
 
-        const hasNtKPermission =
- hasSubMenuAccess("NC -> KOT || KOT - >NC") &&
+  const hasNtKPermission =
+    hasSubMenuAccess("NC -> KOT || KOT - >NC") &&
     userRights?.some(
       (menu: any) =>
         menu.menuName === "KOT" &&
-        menu.subMenus?.some((sub: any) => sub.subMenuName === "NC -> KOT || KOT - >NC"),
+        menu.subMenus?.some(
+          (sub: any) => sub.subMenuName === "NC -> KOT || KOT - >NC",
+        ),
     );
-       
-
 
   return (
     <>
@@ -310,7 +311,7 @@ export default function CartPanel({
         <div className="border-t p-4 bg-white">
           <div className="border-t p-4 bg-white space-y-3">
             {/* NC TOGGLE BUTTON */}
-            {hasNcKotPermission && (
+            {hasNcKotPermission && isFastfood === undefined && (
               <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
                 {/* LEFT SIDE */}
                 <div className="flex flex-col">
@@ -348,7 +349,7 @@ export default function CartPanel({
             )}
             {/* OTHER BUTTONS */}
             <div className="grid grid-cols-2 gap-3">
-              {hasKotPermission && (
+              {hasKotPermission &&  isFastfood === undefined &&(
                 <button
                   disabled={kotLoading}
                   onClick={onKOT}
@@ -357,29 +358,31 @@ export default function CartPanel({
                   {kotLoading ? "Creating..." : "KOT"}
                 </button>
               )}
-{hasVoidPermission&&(
-              <button
-                disabled={selectedVoidItems.length < 0}
-                onClick={onVoid}
-                className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
-              >
-                Void
-              </button>)}
-{hasBillPermission&&(
-              <button
-                onClick={handleGetBill}
-                className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"
-              >
-                Bill
-              </button>)}
-            {hasNtKPermission && status === "Occupied" && (
-  <button
-    onClick={onConvertion}
-    className="bg-orange-600 hover:bg-orange-700 text-white py-2 rounded text-sm"
-  >
-    {kotStatus === "NCKOT" ? "NC → KOT" : "KOT → NC"}
-  </button>
-)}
+              {hasVoidPermission && isFastfood === undefined && (
+                <button
+                  disabled={selectedVoidItems.length < 0}
+                  onClick={onVoid}
+                  className="bg-red-500 hover:bg-red-600 text-white py-2 rounded text-sm"
+                >
+                  Void
+                </button>
+              )}
+              {hasBillPermission &&  (
+                <button
+                  onClick={isFastfood ===undefined ?handleGetBill:onKOT}
+                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"
+                >
+                  Bill
+                </button>
+              )}
+              {hasNtKPermission && status === "Occupied" && (
+                <button
+                  onClick={onConvertion}
+                  className="bg-orange-600 hover:bg-orange-700 text-white py-2 rounded text-sm"
+                >
+                  {kotStatus === "NCKOT" ? "NC → KOT" : "KOT → NC"}
+                </button>
+              )}
             </div>
           </div>
         </div>
