@@ -80,6 +80,8 @@ const [_companyLoading, setCompanyLoading] = useState(false);
 const startOwnDevicePayment = async (
   amount: number
 ) => {
+  console.log(amount);
+  
   try {
     setOwnPaymentLoading(true);
 
@@ -87,7 +89,7 @@ const startOwnDevicePayment = async (
 
     const sendRes =
       await sendPaymentRequestOwnDevice(
-        amount,
+        100,
         transNo
       );
 
@@ -399,9 +401,9 @@ const handleModeClick = (modeType: string) => {
   ) {
   loadCompanies();
 }
-  if (modeType === "UPI") {
-    setUpiType("device");
-  }
+if (modeType === "UPI" && !upiType) {
+  setUpiType("device");
+}
 
   const isSelected =
     selectedMulti[modeType] !==
@@ -640,26 +642,17 @@ const handleModeClick = (modeType: string) => {
   </div>
 )}
 
-               {p.mode === "UPI" &&
+{p.mode === "UPI" &&
   upiType === "own" && (
     <div className="border p-3 rounded text-center space-y-3">
+      {ownPaymentLoading &&
+        !ownQrString && (
+          <p>
+            Generating QR...
+          </p>
+        )}
 
-      {!ownQrString ? (
-        <button
-          type="button"
-          onClick={() =>
-            startOwnDevicePayment(
-              PAYABLE_AMOUNT
-            )
-          }
-          disabled={
-            ownPaymentLoading
-          }
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Generate QR
-        </button>
-      ) : (
+      {ownQrString && (
         <>
           <p className="font-medium">
             Scan QR to Pay
@@ -668,7 +661,7 @@ const handleModeClick = (modeType: string) => {
           <div className="flex justify-center">
             <QRCode
               value={ownQrString}
-              size={180}
+              size={220}
             />
           </div>
 
@@ -682,16 +675,41 @@ const handleModeClick = (modeType: string) => {
       )}
     </div>
 )}
-                {p.mode === "UPI" && upiType === "own" && (
-                  <div className="border p-3 rounded text-center">
-                    <p className="text-sm mb-2">Scan QR to Pay</p>
+ {p.mode === "UPI" && (
+  <div className="flex gap-2 mb-3">
+    <button
+      type="button"
+    onClick={() => {
+  setUpiType("own");
 
-                    {/* Dummy QR */}
-                    <div className="w-32 h-32 mx-auto bg-gray-200 flex items-center justify-center">
-                      QR CODE
-                    </div>
-                  </div>
-                )}
+  if (!ownQrString) {
+    startOwnDevicePayment(
+      PAYABLE_AMOUNT
+    );
+  }
+}}
+      className={`flex-1 border rounded py-2 ${
+        upiType === "own"
+          ? "bg-blue-500 text-white"
+          : ""
+      }`}
+    >
+      Own Device
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setUpiType("device")}
+      className={`flex-1 border rounded py-2 ${
+        upiType === "device"
+          ? "bg-blue-500 text-white"
+          : ""
+      }`}
+    >
+      QR Device
+    </button>
+  </div>
+)}
 
               {p.mode === "UPI" && upiType === "device" && (
   <div className="border p-3 rounded text-center space-y-3">
