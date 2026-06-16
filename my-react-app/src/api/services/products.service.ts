@@ -4866,3 +4866,69 @@ export const saveCompanyBillSettlement = async (
     throw error;
   }
 };
+
+
+
+
+
+export const sendPaymentRequestOwnDevice = async (
+  amount: number,
+  transno: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/PhonePeDQRDevice/SendPaymentRequestOwnDevice",
+      null,
+      {
+        params: {
+          Amount: amount,
+          Transno: transno,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`, // remove if API doesn't require auth
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error sending payment request:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const checkOwnDevicePaymentStatus = async (
+  transno: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/PhonePeDQRDevice/CheckOwnDevicePaymentStatus",
+      {
+        params: {
+          transno,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`, // remove if not required
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error checking payment status:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
