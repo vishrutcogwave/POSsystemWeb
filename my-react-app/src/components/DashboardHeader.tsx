@@ -615,6 +615,7 @@ import {
   Printer,
   Wrench,
   CreditCard,
+  FilePen,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -693,7 +694,7 @@ const handleNavigation = (name: string) => {
 },
 {
   name: "Settlement Modification",
-  icon: Ban,
+  icon: FilePen,
   permissionName: "Settlement Modification",
 },
   {
