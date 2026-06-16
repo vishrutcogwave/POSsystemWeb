@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
+  checkOwnDevicePaymentStatus,
   getChargesDetails,
   getCompanyList,
   getPaymentStatusRequestDQRDevice,
   sendPaymentRequestDQRDevice,
+  sendPaymentRequestOwnDevice,
 } from "../api/services/products.service";
+import QRCode from "react-qr-code";
 
 type SubMode = {
   subModeId: number;
@@ -69,6 +72,17 @@ const PaymentModal: React.FC<Props> = ({
   };
   console.log("billNo", billNo);
   const [upiType, setUpiType] = useState<"own" | "device" | "">("");
+  const [ownQrString, setOwnQrString] =
+  useState("");
+
+const [ownPaymentLoading, setOwnPaymentLoading] =
+  useState(false);
+
+const [ownPaymentStatus, setOwnPaymentStatus] =
+  useState("");
+
+const ownPaymentIntervalRef =
+  useRef<any>(null);
 
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
     {},
@@ -177,6 +191,104 @@ const updateChargeAmount = (
   // REMAINING AMOUNT
 
 };
+const startOwnDevicePayment =
+  async (amount: number) => {
+    try {
+      setOwnPaymentLoading(true);
+
+      const transNo =
+        `TXN${Date.now()}`;
+
+      const sendRes =
+        await sendPaymentRequestOwnDevice(
+          amount,
+          transNo
+        );
+
+      if (!sendRes?.success) {
+        toast.error(
+          sendRes?.message ||
+            "Failed to create QR"
+        );
+
+        setOwnPaymentLoading(false);
+
+        return;
+      }
+
+      const qrString =
+        sendRes?.data?.qrString;
+
+      setOwnQrString(qrString);
+
+      setOwnPaymentStatus(
+        "PENDING"
+      );
+
+      ownPaymentIntervalRef.current =
+        setInterval(async () => {
+          try {
+            const statusRes =
+              await checkOwnDevicePaymentStatus(
+                transNo
+              );
+
+            if (
+              statusRes?.code ===
+              "PAYMENT_SUCCESS"
+            ) {
+              clearInterval(
+                ownPaymentIntervalRef.current
+              );
+
+              setOwnPaymentStatus(
+                "SUCCESS"
+              );
+
+              setOwnPaymentLoading(
+                false
+              );
+
+              toast.success(
+                "Payment Successful"
+              );
+
+              const payload = {
+                paymentDetails,
+                total:
+                  paymentDetails.reduce(
+                    (sum, p) =>
+                      sum +
+                      Number(
+                        p.amount || 0
+                      ),
+                    0
+                  ),
+                difference: 0,
+                payableAmount:
+                  finalPayable,
+                selectedCharges,
+                totalCharges,
+              };
+
+              onPay(payload);
+
+              handleClose();
+            }
+          } catch (err) {
+            console.log(err);
+          }
+        }, 2000);
+    } catch (error: any) {
+      setOwnPaymentLoading(false);
+
+      toast.error(
+        error?.response?.data
+          ?.message ||
+          "Payment failed"
+      );
+    }
+  };
 const removeCharge = (
   chargeType: string
 ) => {
@@ -598,7 +710,15 @@ const difference =
                 {p.mode === "UPI" && (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setUpiType("own")}
+                   onClick={() => {
+  setUpiType("own");
+
+  if (!ownQrString) {
+    startOwnDevicePayment(
+      finalPayable
+    );
+  }
+}}
                       className={`flex-1 border rounded py-1 ${
                         upiType === "own" ? "bg-blue-500 text-white" : ""
                       }`}
@@ -616,17 +736,40 @@ const difference =
                     </button>
                   </div>
                 )}
+{p.mode === "UPI" &&
+  upiType === "own" && (
+    <div className="border p-3 rounded text-center space-y-3">
 
-                {p.mode === "UPI" && upiType === "own" && (
-                  <div className="border p-3 rounded text-center">
-                    <p className="text-sm mb-2">Scan QR to Pay</p>
+      {ownPaymentLoading &&
+        !ownQrString && (
+          <p>
+            Generating QR...
+          </p>
+        )}
 
-                    {/* Dummy QR */}
-                    <div className="w-32 h-32 mx-auto bg-gray-200 flex items-center justify-center">
-                      QR CODE
-                    </div>
-                  </div>
-                )}
+      {ownQrString && (
+        <>
+          <p className="font-medium">
+            Scan QR to Pay
+          </p>
+
+          <div className="flex justify-center">
+            <QRCode
+              value={ownQrString}
+              size={220}
+            />
+          </div>
+
+          <div className="text-sm">
+            Status :
+            <span className="font-semibold ml-2">
+              {ownPaymentStatus}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+)}
 
                 {p.mode === "UPI" && upiType === "device" && (
                   <div className="border p-3 rounded text-center space-y-3">
