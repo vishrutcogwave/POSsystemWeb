@@ -12,6 +12,7 @@ import { useAppContext } from "../context/AppContext";
 type Branch = {
   branch_code: string;
   branch_name: string;
+  company_code:number
 };
 export default function AuthPage() {
   const [branch, setBranch] = useState<Branch | null>(null);
@@ -77,6 +78,7 @@ export default function AuthPage() {
         username: username,
         password: password,
         branch_code: branch?.branch_code || "",
+        company_code:branches?.[0].company_code || 0
       };
       const data = await login(payload);
       console.log("logingdtatails", data);
