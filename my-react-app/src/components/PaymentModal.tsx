@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { getCompanyList, getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice } from "../api/services/products.service";
-
+import { checkOwnDevicePaymentStatus, getCompanyList, getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice, sendPaymentRequestOwnDevice } from "../api/services/products.service";
+import QRCode from "react-qr-code";
 type SubMode = {
   subModeId: number;
   subModeType: string;
@@ -47,6 +47,13 @@ const PaymentModal: React.FC<Props> = ({
     setUpiType("");
   };
   console.log("billNo", billNo);
+
+
+const [ownQrString, setOwnQrString] = useState("");
+const [ownPaymentLoading, setOwnPaymentLoading] = useState(false);
+const [ownPaymentStatus, setOwnPaymentStatus] = useState("");
+
+const ownPaymentIntervalRef = useRef<any>(null);
   const [upiType, setUpiType] = useState<"own" | "device" | "">("");
 
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
@@ -67,6 +74,139 @@ const paymentIntervalRef = useRef<any>(null);
 // add this inside component
 const [companies, setCompanies] = useState<any[]>([]);
 const [_companyLoading, setCompanyLoading] = useState(false);
+
+
+
+const startOwnDevicePayment = async (
+  amount: number
+) => {
+  try {
+    setOwnPaymentLoading(true);
+
+    const transNo = `TXN${Date.now()}`;
+
+    const sendRes =
+      await sendPaymentRequestOwnDevice(
+        amount,
+        transNo
+      );
+
+    console.log("OWN SEND", sendRes);
+
+    if (!sendRes?.success) {
+      toast.error(
+        sendRes?.message ||
+          "Failed to create QR"
+      );
+
+      setOwnPaymentLoading(false);
+
+      return;
+    }
+
+    const qrString =
+      sendRes?.data?.qrString;
+
+    setOwnQrString(qrString);
+
+    setOwnPaymentStatus("PENDING");
+
+    ownPaymentIntervalRef.current =
+      setInterval(async () => {
+        try {
+          const statusRes =
+            await checkOwnDevicePaymentStatus(
+              transNo
+            );
+
+          console.log(
+            "OWN STATUS",
+            statusRes
+          );
+
+          const code =
+            statusRes?.code;
+
+          // SUCCESS
+          if (
+            code ===
+            "PAYMENT_SUCCESS"
+          ) {
+            clearInterval(
+              ownPaymentIntervalRef.current
+            );
+
+            setOwnPaymentStatus(
+              "SUCCESS"
+            );
+
+            setOwnPaymentLoading(
+              false
+            );
+
+            toast.success(
+              "Payment Successful"
+            );
+
+            onPay({
+              paymentDetails,
+              total:
+                paymentDetails.reduce(
+                  (sum, p) =>
+                    sum +
+                    Number(
+                      p.amount || 0
+                    ),
+                  0
+                ),
+              difference: 0,
+              payableAmount:
+                PAYABLE_AMOUNT,
+            });
+
+            handleClose();
+          }
+        } catch (err) {
+          console.log(err);
+        }
+      }, 2000);
+  } catch (error: any) {
+    console.log(error);
+
+    setOwnPaymentLoading(false);
+
+    toast.error(
+      error?.response?.data
+        ?.message ||
+        "Payment failed"
+    );
+  }
+};
+
+
+
+useEffect(() => {
+  return () => {
+    if (paymentIntervalRef.current) {
+      clearInterval(
+        paymentIntervalRef.current
+      );
+    }
+
+    if (
+      ownPaymentIntervalRef.current
+    ) {
+      clearInterval(
+        ownPaymentIntervalRef.current
+      );
+    }
+  };
+}, []);
+
+
+
+
+
 const loadCompanies = async () => {
   try {
     setCompanyLoading(true);
@@ -500,28 +640,48 @@ const handleModeClick = (modeType: string) => {
   </div>
 )}
 
-                {p.mode === "UPI" && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setUpiType("own")}
-                      className={`flex-1 border rounded py-1 ${
-                        upiType === "own" ? "bg-blue-500 text-white" : ""
-                      }`}
-                    >
-                      Own Device
-                    </button>
+               {p.mode === "UPI" &&
+  upiType === "own" && (
+    <div className="border p-3 rounded text-center space-y-3">
 
-                    <button
-                      onClick={() => setUpiType("device")}
-                      className={`flex-1 border rounded py-1 ${
-                        upiType === "device" ? "bg-blue-500 text-white" : ""
-                      }`}
-                    >
-                      QR Device
-                    </button>
-                  </div>
-                )}
+      {!ownQrString ? (
+        <button
+          type="button"
+          onClick={() =>
+            startOwnDevicePayment(
+              PAYABLE_AMOUNT
+            )
+          }
+          disabled={
+            ownPaymentLoading
+          }
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Generate QR
+        </button>
+      ) : (
+        <>
+          <p className="font-medium">
+            Scan QR to Pay
+          </p>
 
+          <div className="flex justify-center">
+            <QRCode
+              value={ownQrString}
+              size={180}
+            />
+          </div>
+
+          <div className="text-sm">
+            Status :
+            <span className="font-semibold ml-2">
+              {ownPaymentStatus}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+)}
                 {p.mode === "UPI" && upiType === "own" && (
                   <div className="border p-3 rounded text-center">
                     <p className="text-sm mb-2">Scan QR to Pay</p>

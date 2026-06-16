@@ -71,6 +71,9 @@ export default function AuthPage() {
       toast.error("Please enter username and password");
       return;
     }
+    if (branches?.[0]?.company_code) {
+  localStorage.setItem("company_code", String(branches[0].company_code));
+}
 
     try {
       setLoading(true);

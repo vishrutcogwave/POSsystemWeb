@@ -197,11 +197,13 @@
 
   export const getCompanyInfo = async (branchcode: string) => {
     const token = localStorage.getItem("token");
+const companyCode = Number(localStorage.getItem("company_code") ?? 0);
 
+console.log(companyCode);
     const response = await api.get(
       "/api/POS/GetCompanyInfo",
       {
-        params: { branchcode },
+        params: { branchcode,companyCode},
         headers: {
           Authorization: `Bearer ${token}`,
         },
