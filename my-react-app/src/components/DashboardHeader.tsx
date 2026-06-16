@@ -702,6 +702,11 @@ const handleNavigation = (name: string) => {
     icon: CreditCard,
     permissionName: "Company Bill Settlement",
   },
+  {
+  name: "Bill Modification",
+  icon: FilePen,
+  permissionName: "Bill Modification",
+},
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
@@ -868,6 +873,7 @@ const utilityItems = [
 ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
+    "Bill Modification": "/pos/BillModification",
     KotRegister: "/pos/kotregister",
     "Touch Screen": "/NewOrder",
     DailySales: "/pos/dailysales",

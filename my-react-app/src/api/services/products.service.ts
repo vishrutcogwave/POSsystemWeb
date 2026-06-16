@@ -4934,3 +4934,35 @@ export const checkOwnDevicePaymentStatus = async (
     throw error;
   }
 };
+
+
+export const getModifyBillData = async (
+  KOTId: number | string,
+  oltcode: number | string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POS/GetModifyBillData",
+      {
+        params: {
+          KOTId,
+          oltcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching modify bill data:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

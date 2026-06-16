@@ -40,6 +40,7 @@ import UtilitySettings from "./UtilitySettings";
 import UserMenuOrSubmenuCreation from "./UserMenuOrSubmenuCreation";
 import SettlementBillModify from "./SettlementBillModify";
 import CompanyBillSettlement from "./companybillsettlement";
+import BillModify from "./BillModification";
 
 function LandingPage() {
   const location = useLocation();
@@ -109,6 +110,10 @@ function LandingPage() {
 <Route
   path="/pos/billcancellation"
   element={<BillCancellationReport />}
+/>
+<Route
+  path="/pos/BillModification"
+  element={<BillModify />}
 />
 
         <Route path="/master/company" element={<CompanyCreation />} />
