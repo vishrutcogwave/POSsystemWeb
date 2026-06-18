@@ -115,7 +115,7 @@ export default function BillModify() {
     if (!bill) return;
 
     const kotIdsString = bill.kotIds.join(",");
-    const branchcode = localStorage.getItem("branchCode");
+   const branchCode =appData?.user?.branch_code;
 
     try {
       setLoading(true);
@@ -125,7 +125,7 @@ export default function BillModify() {
           kotIdsString,
           bill.oltCode,
           bill?.ksmBillNo,
-          branchcode,
+          branchCode,
         ),
         getItemGroupList(appData?.user?.branch_code),
       ]);
