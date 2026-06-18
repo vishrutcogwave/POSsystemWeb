@@ -4377,3 +4377,25 @@ export const modifyBillCalculation = async (payload: any) => {
 
   return response.data;
 };
+
+
+
+export const modifyBillCreateUpdate = async (
+  payload: any
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post(
+    "/api/POS/ModifyBillCreateUpdate",
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};

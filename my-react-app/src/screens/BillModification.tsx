@@ -13,6 +13,7 @@ import {
   getDiscountModeMaster,
   modifyBillCalculation,
   getTaxModeSettings,
+  modifyBillCreateUpdate,
 } from "../api/services/products.service";
 
 import { useAppContext } from "../context/AppContext";
@@ -45,7 +46,6 @@ export default function BillModify() {
   const getToday = () => {
     return new Date().toISOString().split("T")[0];
   };
-
   const [fromDate, setFromDate] = useState(getToday());
   const [toDate, setToDate] = useState(getToday());
 
@@ -349,14 +349,86 @@ export default function BillModify() {
 
       console.log("ModifyBillCalculation Payload", payload);
 
-      const response = await modifyBillCalculation(payload);
+    const calculationResponse = await modifyBillCalculation(payload);
 
-      console.log("ModifyBillCalculation Response", response);
+const calc = calculationResponse?.data || {};
 
-      toast.success("Bill modified successfully");
+console.log("Calculation Response", calc);
+
+const modifyUpdatePayload = {
+  ksmId: selectedBillData?.ksmId || 0,
+
+  kotId: billItems?.[0]?.kotId || 0,
+
+  kotTblNo:
+    modifyData?.[0]?.kotTblNo ||
+    selectedBillData?.ksmTblNo ||
+    "",
+
+  oltCode: selectedBillData?.oltCode || 0,
+
+  branch_Code: appData?.user?.branch_code || "",
+
+  userCode: appData?.user?.userCode || 0,
+
+  previousBillAmount:
+    selectedBillData?.ksmBillAmount || 0,
+
+  previousBillTaxAmt:
+    selectedBillData?.ksmTaxAmount || 0,
+
+  previousBillDiscount:
+    selectedBillData?.ksmDiscount || 0,
+
+  currentBillAmount:
+    calc.totalAmount ||
+    calc.total ||
+    0,
+
+ currentBillTaxAmt:
+  Number(calc?.cgstAmt || 0) +
+  Number(calc?.sgstAmt || 0),
+
+  currentBillDiscount:
+    Number(discountValue || 0),
+
+  grandTotal:
+    calc.grandTotal ||
+    calc.netAmount ||
+    0,
+
+  roundOff:
+    calc.roundOff ||
+    0,
+
+  foods: billItems.map((item: any) => ({
+    kotId: item.kotId,
+    itemCode: item.id,
+    food: item.food,
+    price: item.price,
+    qty: item.qty,
+  })),
+};
+
+console.log(
+  "ModifyBillCreateUpdate Payload",
+  modifyUpdatePayload
+);
+
+const saveResponse = await modifyBillCreateUpdate(
+  modifyUpdatePayload
+);
+
+console.log(
+  "ModifyBillCreateUpdate Response",
+  saveResponse
+);
+
+toast.success("Bill modified successfully");
+
+await handleBillSelect(selectedBill);
 
       // reload bill details
-      await handleBillSelect(selectedBill);
     } catch (err: any) {
       console.error(err);
 
