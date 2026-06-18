@@ -279,7 +279,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
-      const data = await getOldCart(table, outlet, sub);
+      const data = await getOldCart(table, outlet, sub,appData?.user?.branch_code);
       console.log("oldcart", data);
 
       setOldCartData(data);

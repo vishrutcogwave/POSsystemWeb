@@ -1,7 +1,5 @@
-import { useAppContext } from "../../context/AppContext";
 import api from "../axios";
 const token = localStorage.getItem("token");
-const {appData}=useAppContext()
 export const getBranchesByUser = async (username: string) => {
   const response = await api.get("/api/POS/GetBranchesByUser", {
     params: { username },
@@ -95,8 +93,8 @@ export const getOldCart = async (
   tableno: string | null,
   outlet: string,
   subtable: string,
+  branchCode:any
 ) => {
- const branchCode =appData?.user?.branch_code;
   const response = await api.get("/api/POS/GetOldCart", {
     params: {
       tableno,
