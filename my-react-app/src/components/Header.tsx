@@ -36,7 +36,7 @@ const handleNewOrder = () => {
 
           {/* Subtitle (hide on very small screens if needed) */}
           <p className="hidden sm:block text-sm text-white/80">
-            POS powered by Cogwave
+            POS powered by Cogwave (Test)
           </p>
 
           {/* New Order */}
