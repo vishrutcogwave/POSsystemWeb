@@ -99,11 +99,13 @@
     outlet: string,
     subtable: string
   ) => {
+    const branchcode=localStorage.getItem("branchCode")
     const response = await api.get("/api/POS/GetOldCart", {
       params: {
         tableno,
         outlet,
         subtable,
+        branchcode
       },
       headers: {
         Authorization: `Bearer ${token}`,
@@ -4938,17 +4940,52 @@ export const checkOwnDevicePaymentStatus = async (
 
 export const getModifyBillData = async (
   KOTId: number | string,
-  oltcode: number | string
+  oltcode: number | string,
+  billno: number | string,
+  branchcode: string | null
 ) => {
   try {
-    const token = localStorage.getItem("token");
-
     const response = await api.get(
       "/api/POS/GetModifyBillData",
       {
         params: {
           KOTId,
           oltcode,
+          billno,
+          branchcode,
+        },
+        headers: {
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching modify bill data:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const deleteModifyBillItem = async (
+  KOTId: number,
+  itemcode: number,
+  Branch: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/POS/ModifyUnsettledKotBillDelete",
+      {
+        params: {
+          KOTId,
+          itemcode,
+          Branch,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -4960,7 +4997,7 @@ export const getModifyBillData = async (
     return response.data;
   } catch (error: any) {
     console.error(
-      "Error fetching modify bill data:",
+      "Error deleting bill item:",
       error.response?.data || error.message
     );
     throw error;

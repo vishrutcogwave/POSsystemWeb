@@ -10,25 +10,37 @@ import {
   getModifyBillData,
   getCombinedOltItemList,
   getItemGroupList,
+  getDiscountModeMaster,
+  deleteModifyBillItem,
 } from "../api/services/products.service";
 
 import { useAppContext } from "../context/AppContext";
+import { Trash2 } from "lucide-react";
 
 export default function BillModify() {
   const { appData } = useAppContext();
 
   const [loading, setLoading] = useState(false);
-
+  const [discountModes, setDiscountModes] = useState<any[]>([]);
   const [outlets, setOutlets] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
 
   const [selectedOutlet, setSelectedOutlet] = useState("");
   const [selectedBill, setSelectedBill] = useState("");
-const [modifyData, setModifyData] = useState<any[]>([]);
-const [groups, setGroups] = useState<any[]>([]);
-const [items, setItems] = useState<any[]>([]);
-const [selectedGroup, setSelectedGroup] = useState("");
-const [selectedItem, setSelectedItem] = useState("");
+  const [modifyData, setModifyData] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedItem, setSelectedItem] = useState("");
+  const [discountType, setDiscountType] = useState("");
+  const [discountValue, setDiscountValue] = useState("");
+  const [discountMode, setDiscountMode] = useState<"amt" | "per">("amt");
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [deleteItemData, setDeleteItemData] = useState<{
+    kotId: number;
+    itemId: number;
+    itemName: string;
+  } | null>(null);
   const getToday = () => {
     return new Date().toISOString().split("T")[0];
   };
@@ -37,7 +49,17 @@ const [selectedItem, setSelectedItem] = useState("");
   const [toDate, setToDate] = useState(getToday());
 
   // ================= FETCH OUTLETS =================
+  const fetchDiscountTypes = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
 
+      const data = await getDiscountModeMaster(branch);
+
+      setDiscountModes(data || []);
+    } catch (err) {
+      console.error("Discount fetch failed", err);
+    }
+  };
   const fetchOutlets = async () => {
     try {
       const res = await getOutletList(appData?.user?.branch_code);
@@ -68,13 +90,11 @@ const [selectedItem, setSelectedItem] = useState("");
         Number(selectedOutlet),
         appData?.user?.branch_code,
         fromDate.replaceAll("-", "/"),
-        toDate.replaceAll("-", "/")
+        toDate.replaceAll("-", "/"),
       );
 
       const filteredBills = (res || []).filter(
-        (item: any) =>
-    
-          item.ksmBillCancled === false
+        (item: any) => item.ksmBillCancled === false,
       );
 
       setBills(filteredBills);
@@ -88,153 +108,293 @@ const [selectedItem, setSelectedItem] = useState("");
 
   // ================= BILL SELECT =================
 
-const handleBillSelect = async (billId: string) => {
-  setSelectedBill(billId);
+  const handleBillSelect = async (billId: string) => {
+    setSelectedBill(billId);
 
-  const bill = bills.find(
-    (x: any) => x.ksmId === Number(billId)
-  );
+    const bill = bills.find((x: any) => x.ksmId === Number(billId));
 
-  if (!bill) return;
+    if (!bill) return;
 
-  const kotIdsString = bill.kotIds.join(",");
+    const kotIdsString = bill.kotIds.join(",");
+    const branchcode = localStorage.getItem("branchCode");
 
-  try {
+    try {
+      setLoading(true);
+
+      const [modifyRes, groupRes] = await Promise.all([
+        getModifyBillData(
+          kotIdsString,
+          bill.oltCode,
+          bill?.ksmBillNo,
+          branchcode,
+        ),
+        getItemGroupList(appData?.user?.branch_code),
+      ]);
+
+      console.log("Modify Response", modifyRes);
+
+      // KOT DATA
+      setModifyData(modifyRes?.kotDetails ? [modifyRes.kotDetails] : []);
+
+      // DISCOUNT DATA
+      const discount = modifyRes?.discountDetails;
+
+      if (discount) {
+        setDiscountType(discount.discountType || "");
+
+        setDiscountMode(discount.discountIn === "per" ? "per" : "amt");
+
+        setDiscountValue(
+          String(
+            discount.discountIn === "per"
+              ? discount.amountperc || 0
+              : discount.discamount || 0,
+          ),
+        );
+
+        setSelectedGroups(
+          discount.grpcode
+            ? discount.grpcode.split(",").map((x: string) => x.trim())
+            : [],
+        );
+      } else {
+        setDiscountType("");
+        setDiscountMode("amt");
+        setDiscountValue("");
+        setSelectedGroups([]);
+      }
+
+      setGroups(groupRes || []);
+    } catch (err: any) {
+      toast.error(
+        err?.response?.data?.message || "Failed to load bill details",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  // const handleBillSelect = async (billId: string) => {
+  //   setSelectedBill(billId);
+
+  //   const bill = bills.find((x: any) => x.ksmId === Number(billId));
+
+  //   if (!bill) return;
+
+  //   try {
+  //     setLoading(true);
+
+  //     const groupRes = await getItemGroupList(appData?.user?.branch_code);
+
+  //     // use existing bill data directly
+  //     setModifyData([
+  //       {
+  //         kotTblNo: "1",
+  //         oltCode: 1,
+  //         branchcode: "DEROY",
+  //         kotSeatsServed: 2,
+  //         food: [
+  //           {
+  //             kotId: 1,
+  //             id: 3,
+  //             food: "POORI BHAJI",
+  //             code: "1",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 1,
+  //             id: 4,
+  //             food: "IDLY VADA",
+  //             code: "1",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 2,
+  //             id: 4,
+  //             food: "IDLY VADA",
+  //             code: "2",
+  //             price: 200,
+  //             qty: 8,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 2,
+  //             id: 360,
+  //             food: "POHA",
+  //             code: "2",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //         ],
+  //       },
+  //     ]);
+
+  //     setGroups(groupRes || []);
+
+  //     console.log("Modify Response", [
+  //       {
+  //         kotTblNo: "1",
+  //         oltCode: 1,
+  //         branchcode: "DEROY",
+  //         kotSeatsServed: 2,
+  //         food: [
+  //           {
+  //             kotId: 1,
+  //             id: 3,
+  //             food: "POORI BHAJI",
+  //             code: "1",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 1,
+  //             id: 4,
+  //             food: "IDLY VADA",
+  //             code: "1",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 2,
+  //             id: 4,
+  //             food: "IDLY VADA",
+  //             code: "2",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //           {
+  //             kotId: 2,
+  //             id: 360,
+  //             food: "POHA",
+  //             code: "2",
+  //             price: 200,
+  //             qty: 1,
+  //             comment: "",
+  //             category: 1,
+  //             grpCode: 1,
+  //             origQty: 1,
+  //             itemDiscountAllowed: true,
+  //           },
+  //         ],
+  //       },
+  //     ]);
+  //   } catch (err: any) {
+  //     toast.error(
+  //       err?.response?.data?.message || "Failed to load bill details",
+  //     );
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  const loadItems = async (grpCode: number) => {
     setLoading(true);
+    try {
+      const res = await getCombinedOltItemList(
+        selectedOutlet,
+        appData?.user?.branch_code,
+        grpCode,
+      );
 
-    const [modifyRes, groupRes] = await Promise.all([
-      getModifyBillData(
-        kotIdsString,
-        bill.oltCode
-      ),
-      getItemGroupList(
-        appData?.user?.branch_code
-      ),
-    ]);
+      const flatItems = (res || []).flatMap((cat: any) => cat.items || []);
 
-    setModifyData(modifyRes || []);
-    setGroups(groupRes || []);
+      setItems(flatItems);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    console.log("Modify Response", modifyRes);
-  } catch (err: any) {
-    toast.error(
-      err?.response?.data?.message ||
-        "Failed to load bill details"
+  const updateQty = (kotId: number, itemId: number, qty: number) => {
+    if (qty < 1) return;
+
+    setModifyData((prev) =>
+      prev.map((bill) => ({
+        ...bill,
+        food: bill.food.map((food: any) =>
+          food.kotId === kotId && food.id === itemId ? { ...food, qty } : food,
+        ),
+      })),
     );
-  } finally {
-    setLoading(false);
-  }
-};
-const loadItems = async (grpCode: number) => {
-  try {
-    const res = await getCombinedOltItemList(
-      selectedOutlet,
-      appData?.user?.branch_code,
-      grpCode
+  };
+
+  const addItem = () => {
+    const item = items.find((x: any) => x.itemCode === Number(selectedItem));
+
+    if (!item || modifyData.length === 0) return;
+
+    setModifyData((prev) =>
+      prev.map((bill) => ({
+        ...bill,
+        food: [
+          ...bill.food,
+          {
+            kotId: billItems[0]?.kotId || 0,
+            id: item.itemCode,
+            food: item.itemName,
+            code: String(billItems[0]?.kotId || 0),
+            price: item.oidRate,
+            qty: 1,
+            origQty: 1,
+            comment: "",
+            category: 0,
+            grpCode: Number(selectedGroup),
+            itemDiscountAllowed: item.itemDiscountAllowed,
+          },
+        ],
+      })),
     );
 
-    const flatItems = (res || []).flatMap(
-      (cat: any) => cat.items || []
-    );
+    setSelectedItem("");
+  };
 
-    setItems(flatItems);
-  } catch (err) {
-    console.error(err);
-  }
-};
+  const handleSave = () => {
+    console.log("Modified Payload", modifyData);
 
-const updateQty = (
-  kotId: number,
-  itemIndex: number,
-  qty: number
-) => {
-  if (qty < 1) return;
-
-  setModifyData((prev) =>
-    prev.map((kot) =>
-      kot.kotId === kotId
-        ? {
-            ...kot,
-            food: kot.food.map(
-              (item: any, idx: number) =>
-                idx === itemIndex
-                  ? { ...item, qty }
-                  : item
-            ),
-          }
-        : kot
-    )
-  );
-};
-
-const deleteItem = (
-  kotId: number,
-  itemIndex: number
-) => {
-  setModifyData((prev) =>
-    prev.map((kot) =>
-      kot.kotId === kotId
-        ? {
-            ...kot,
-            food: kot.food.filter(
-              (_: any, idx: number) =>
-                idx !== itemIndex
-            ),
-          }
-        : kot
-    )
-  );
-};
-const addItem = () => {
-  const item = items.find(
-    (x: any) =>
-      x.itemCode === Number(selectedItem)
-  );
-
-  if (!item || modifyData.length === 0)
-    return;
-
-  setModifyData((prev) => {
-    const copy = [...prev];
-
-    // add to first KOT
-    copy[0].food.push({
-      id: item.itemCode,
-      food: item.itemName,
-      code: String(copy[0].kotId),
-      price: item.oidRate,
-      qty: 1,
-      origQty: 1,
-      comment: "",
-      category: 0,
-      grpCode: Number(selectedGroup),
-      itemDiscountAllowed:
-        item.itemDiscountAllowed,
-    });
-
-    return [...copy];
-  });
-
-  setSelectedItem("");
-};
-
-const handleSave = () => {
-  console.log(
-    "Modified Payload",
-    modifyData
-  );
-
-  toast.success(
-    "Check console for payload"
-  );
-};
+    toast.success("Check console for payload");
+  };
 
   // ================= INITIAL =================
 
   useEffect(() => {
     fetchOutlets();
+    fetchDiscountTypes();
   }, []);
-
   // ================= AUTO FETCH =================
 
   useEffect(() => {
@@ -243,21 +403,25 @@ const handleSave = () => {
     }
   }, [selectedOutlet, fromDate, toDate]);
 
-
-
-  const billItems = modifyData.flatMap(
-  (kot: any) =>
-    kot.food.map((item: any) => ({
+  const billItems = modifyData.flatMap((bill: any) =>
+    bill.food.map((item: any) => ({
       ...item,
-      kotId: kot.kotId,
-    }))
-);
+      kotId: item.kotId,
+    })),
+  );
 
-const grandTotal = billItems.reduce(
-  (sum: number, item: any) =>
-    sum + item.price * item.qty,
-  0
-);
+  const deleteItem = (kotId: number, itemId: number, itemName: string) => {
+    setModifyData((prev) =>
+      prev.map((bill) => ({
+        ...bill,
+        food: bill.food.filter(
+          (food: any) => !(food.kotId === kotId && food.id === itemId),
+        ),
+      })),
+    );
+
+    toast.success(`${itemName} deleted`);
+  };
   return (
     <>
       <Header showNeworderButton={false} />
@@ -268,9 +432,7 @@ const grandTotal = billItems.reduce(
         <div className="bg-white rounded-xl shadow overflow-hidden">
           {/* HEADER */}
           <div className="p-5 border-b">
-            <h2 className="text-lg font-semibold">
-              Bill Modify
-            </h2>
+            <h2 className="text-lg font-semibold">Bill Modify</h2>
           </div>
 
           {/* FILTERS */}
@@ -285,16 +447,11 @@ const grandTotal = billItems.reduce(
 
               <select
                 value={selectedOutlet}
-                onChange={(e) =>
-                  setSelectedOutlet(e.target.value)
-                }
+                onChange={(e) => setSelectedOutlet(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2"
               >
                 {outlets.map((o: any) => (
-                  <option
-                    key={o.oltCode}
-                    value={o.oltCode}
-                  >
+                  <option key={o.oltCode} value={o.oltCode}>
                     {o.oltName}
                   </option>
                 ))}
@@ -311,9 +468,7 @@ const grandTotal = billItems.reduce(
               <input
                 type="date"
                 value={fromDate}
-                onChange={(e) =>
-                  setFromDate(e.target.value)
-                }
+                onChange={(e) => setFromDate(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2"
               />
             </div>
@@ -328,277 +483,273 @@ const grandTotal = billItems.reduce(
               <input
                 type="date"
                 value={toDate}
-                onChange={(e) =>
-                  setToDate(e.target.value)
-                }
+                onChange={(e) => setToDate(e.target.value)}
                 className="mt-1 w-full border rounded-lg px-3 py-2"
               />
             </div>
 
             {/* BILL NO */}
 
-          <div className="relative z-50">
-  <label className="text-xs text-gray-500 font-medium">
-    BILL NO
-  </label>
+            <div className="relative z-50">
+              <label className="text-xs text-gray-500 font-medium">
+                BILL NO
+              </label>
 
-  <select
-    value={selectedBill}
-    onChange={(e) => handleBillSelect(e.target.value)}
-    className="mt-1 w-full border rounded-lg px-3 py-2"
-  >
-    <option value="">Select Bill</option>
+              <select
+                value={selectedBill}
+                onChange={(e) => handleBillSelect(e.target.value)}
+                className="mt-1 w-full border rounded-lg px-3 py-2"
+              >
+                <option value="">Select Bill</option>
 
-    {bills.map((bill: any) => (
-      <option key={bill.ksmId} value={bill.ksmId}>
-        {bill.ksmBillNo}
-      </option>
-    ))}
-  </select>
-</div>
+                {bills.map((bill: any) => (
+                  <option key={bill.ksmId} value={bill.ksmId}>
+                    {bill.ksmBillNo}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-        {modifyData.length > 0 && (
-  <div className="p-5">
- 
+          {modifyData.length > 0 && (
+            <div className="p-5">
+              <div className="max-w-md mx-auto bg-white border shadow-sm rounded-lg overflow-hidden">
+                <div className="text-center p-4 border-b">
+                  <h2 className="font-bold text-xl">BILL MODIFY</h2>
 
+                  <div className="mt-3 text-left">
+                    <div>
+                      Bill No :
+                      {
+                        bills.find((x: any) => x.ksmId === Number(selectedBill))
+                          ?.ksmBillNo
+                      }
+                    </div>
 
-<div className="max-w-md mx-auto bg-white border shadow-sm rounded-lg overflow-hidden">
+                    <div>
+                      Table :
+                      {
+                        bills.find((x: any) => x.ksmId === Number(selectedBill))
+                          ?.ksmTblNo
+                      }
+                    </div>
+                  </div>
+                </div>
 
-  <div className="text-center p-4 border-b">
-    <h2 className="font-bold text-xl">
-      BILL MODIFY
-    </h2>
+                {billItems.map((item: any, idx: number) => (
+                  <div key={idx} className="border-b p-4">
+                    <div className="font-medium">{item.food} </div>
 
-    <div className="mt-3 text-left">
-      <div>
-        Bill No :
-        {
-          bills.find(
-            (x: any) =>
-              x.ksmId ===
-              Number(selectedBill)
-          )?.ksmBillNo
-        }
-      </div>
+                    <div className="flex justify-between mt-2">
+                      <div>₹ {item.price}</div>
 
-      <div>
-        Table :
-        {
-          bills.find(
-            (x: any) =>
-              x.ksmId ===
-              Number(selectedBill)
-          )?.ksmTblNo
-        }
-      </div>
-    </div>
-  </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() =>
+                            updateQty(item.kotId, item.id, item.qty - 1)
+                          }
+                          className="border px-2 rounded"
+                        >
+                          -
+                        </button>
 
-  {billItems.map(
-    (item: any, idx: number) => (
-      <div
-        key={idx}
-        className="border-b p-4"
-      >
-        <div className="font-medium">
-          {item.food}
+                        <span>{item.qty}</span>
+
+                        <button
+                          onClick={() =>
+                            updateQty(item.kotId, item.id, item.qty + 1)
+                          }
+                          className="border px-2 rounded"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() =>
+                            setDeleteItemData({
+                              kotId: item.kotId,
+
+                              itemId: item.id,
+
+                              itemName: item.food,
+                            })
+                          }
+                          className="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100"
+                          title="Delete Item"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="p-4 border-t bg-gray-50">
+                  <div className="font-semibold mb-3">Discount</div>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {/* Discount Type */}
+                    <select
+                      value={discountType}
+                      onChange={(e) => setDiscountType(e.target.value)}
+                      className="border rounded p-2"
+                    >
+                      <option value="">Select Type</option>
+
+                      {discountModes.map((item: any) => (
+                        <option key={item.discId} value={item.discountType}>
+                          {item.discountType}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Amount / Percentage */}
+                    <select
+                      value={discountMode}
+                      onChange={(e) =>
+                        setDiscountMode(e.target.value as "amt" | "per")
+                      }
+                      className="border rounded p-2"
+                    >
+                      <option value="amt">₹ Amount</option>
+
+                      <option value="per">Percentage %</option>
+                    </select>
+                  </div>
+
+                  {discountType === "Groupwise" && (
+                    <div className="mb-3 max-h-32 overflow-y-auto border rounded p-2">
+                      {groups.map((grp: any) => (
+                        <label
+                          key={grp.grpCode}
+                          className="flex items-center gap-2 text-sm mb-1"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedGroups.includes(
+                              String(grp.grpCode),
+                            )}
+                            onChange={() => {
+                              const code = String(grp.grpCode);
+
+                              setSelectedGroups(
+                                selectedGroups.includes(code)
+                                  ? selectedGroups.filter((x) => x !== code)
+                                  : [...selectedGroups, code],
+                              );
+                            }}
+                          />
+
+                          {grp.grpName}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  <input
+                    type="number"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    placeholder={
+                      discountMode === "per" ? "Enter %" : "Enter Amount"
+                    }
+                    className="w-full border rounded p-2"
+                  />
+
+                  <div className="mt-2 text-xs text-gray-500">
+                    Type: {discountType || "-"} | Mode: {discountMode} | Value:{" "}
+                    {discountValue || 0}
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="font-semibold mb-3">ADD ITEM</div>
+
+                  <select
+                    value={selectedGroup}
+                    onChange={(e) => {
+                      setSelectedGroup(e.target.value);
+                      loadItems(Number(e.target.value));
+                    }}
+                    className="w-full border rounded p-2 mb-2"
+                  >
+                    <option value="">Select Group</option>
+
+                    {groups.map((grp: any) => (
+                      <option key={grp.grpCode} value={grp.grpCode}>
+                        {grp.grpName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedItem}
+                    onChange={(e) => setSelectedItem(e.target.value)}
+                    className="w-full border rounded p-2 mb-3"
+                  >
+                    <option value="">Select Item</option>
+
+                    {items.map((item: any) => (
+                      <option key={item.itemCode} value={item.itemCode}>
+                        {item.itemName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={addItem}
+                    className="w-full bg-blue-600 text-white py-2 rounded"
+                  >
+                    ADD ITEM
+                  </button>
+                </div>
+
+                <div className="p-4 border-t">
+                  <button
+                    onClick={handleSave}
+                    className="w-full bg-green-600 text-white py-3 rounded font-medium"
+                  >
+                    SAVE MODIFICATION
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+        {deleteItemData && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999]">
+            <div className="bg-white rounded-xl p-5 w-[90%] max-w-sm shadow-xl">
+              <h3 className="text-lg font-semibold mb-2">Delete Item</h3>
 
-        <div className="flex justify-between mt-2">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold">{deleteItemData.itemName}</span>
+                ?
+              </p>
 
-          <div>
-            ₹ {item.price}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteItemData(null)}
+                  className="flex-1 border rounded-lg py-2"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    deleteItem(
+                      deleteItemData.kotId,
+                      deleteItemData.itemId,
+                      deleteItemData.itemName,
+                    );
+
+                    setDeleteItemData(null);
+                  }}
+                  className="flex-1 bg-red-600 text-white rounded-lg py-2"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-
-            <button
-            onClick={() => {
-  const kot = modifyData.find(
-    (k) => k.kotId === item.kotId
-  );
-
-  const itemIndex = kot?.food.findIndex(
-    (f: any) =>
-      f.food === item.food &&
-      f.code === item.code
-  );
-
-  if (itemIndex >= 0) {
-    updateQty(
-      item.kotId,
-      itemIndex,
-      item.qty - 1
-    );
-  }
-}}
-              className="border px-2 rounded"
-            >
-              -
-            </button>
-
-            <span>
-              {item.qty}
-            </span>
-
-          <button
-  onClick={() => {
-    const kot = modifyData.find(
-      (k) => k.kotId === item.kotId
-    );
-
-    const itemIndex = kot?.food.findIndex(
-      (f: any) =>
-        f.food === item.food &&
-        f.code === item.code
-    );
-
-    if (itemIndex >= 0) {
-      updateQty(
-        item.kotId,
-        itemIndex,
-        item.qty + 1
-      );
-    }
-  }}
-  className="border px-2 rounded"
->
-  +
-</button>
-
-            <button
-              onClick={() => {
-  const kot = modifyData.find(
-    (k) => k.kotId === item.kotId
-  );
-
-  const itemIndex = kot?.food.findIndex(
-    (f: any) =>
-      f.food === item.food &&
-      f.code === item.code
-  );
-
-  if (itemIndex >= 0) {
-    deleteItem(
-      item.kotId,
-      itemIndex
-    );
-  }
-}}          
-              className="text-red-600 ml-2"
-            >
-              Delete
-            </button>
-
-          </div>
-
-        </div>
-
-        <div className="text-right text-sm mt-2">
-          ₹ {item.price * item.qty}
-        </div>
-      </div>
-    )
-  )}
-
-  <div className="p-4 border-b bg-gray-50">
-
-    <div className="flex justify-between font-bold text-lg">
-
-      <span>Total</span>
-
-      <span>
-        ₹ {grandTotal}
-      </span>
-
-    </div>
-
-  </div>
-
-  <div className="p-4">
-
-    <div className="font-semibold mb-3">
-      ADD ITEM
-    </div>
-
-    <select
-      value={selectedGroup}
-      onChange={(e) => {
-        setSelectedGroup(
-          e.target.value
-        );
-        loadItems(
-          Number(e.target.value)
-        );
-      }}
-      className="w-full border rounded p-2 mb-2"
-    >
-      <option value="">
-        Select Group
-      </option>
-
-      {groups.map((grp: any) => (
-        <option
-          key={grp.grpCode}
-          value={grp.grpCode}
-        >
-          {grp.grpName}
-        </option>
-      ))}
-    </select>
-
-    <select
-      value={selectedItem}
-      onChange={(e) =>
-        setSelectedItem(
-          e.target.value
-        )
-      }
-      className="w-full border rounded p-2 mb-3"
-    >
-      <option value="">
-        Select Item
-      </option>
-
-      {items.map((item: any) => (
-        <option
-          key={item.itemCode}
-          value={item.itemCode}
-        >
-          {item.itemName}
-        </option>
-      ))}
-    </select>
-
-    <button
-      onClick={addItem}
-      className="w-full bg-blue-600 text-white py-2 rounded"
-    >
-      ADD ITEM
-    </button>
-
-  </div>
-
-  <div className="p-4 border-t">
-
-    <button
-      onClick={handleSave}
-      className="w-full bg-green-600 text-white py-3 rounded font-medium"
-    >
-      SAVE MODIFICATION
-    </button>
-
-  </div>
-
-</div>
-
- 
-
- 
-  </div>
-)}
-        </div>
+        )}
       </div>
     </>
   );
