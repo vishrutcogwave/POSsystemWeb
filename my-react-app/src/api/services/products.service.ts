@@ -5003,3 +5003,62 @@ export const deleteModifyBillItem = async (
     throw error;
   }
 };
+
+
+
+
+export const getPrinterSettings = async (
+  branchcode: string,
+  OltCode: number | string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/UtilitySetting/GetPrinterSettings",
+    {
+      params: {
+        branchcode,
+        OltCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};
+
+
+export const saveOrUpdateCatGroupSettings = async (payload: {
+  rno: number;
+  catGrp: string;
+  grp: number;
+  branch_code: string;
+  oltCode: number;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/SaveOrUpdateCatGroupSettings",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving category group settings:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
