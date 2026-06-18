@@ -11,6 +11,8 @@ import {
   getCombinedOltItemList,
   getItemGroupList,
   getDiscountModeMaster,
+  modifyBillCalculation,
+  getTaxModeSettings,
 } from "../api/services/products.service";
 
 import { useAppContext } from "../context/AppContext";
@@ -18,7 +20,7 @@ import { Trash2 } from "lucide-react";
 
 export default function BillModify() {
   const { appData } = useAppContext();
-
+  const [taxType, setTaxType] = useState("");
   const [loading, setLoading] = useState(false);
   const [discountModes, setDiscountModes] = useState<any[]>([]);
   const [outlets, setOutlets] = useState<any[]>([]);
@@ -48,6 +50,23 @@ export default function BillModify() {
   const [toDate, setToDate] = useState(getToday());
 
   // ================= FETCH OUTLETS =================
+  const fetchTaxSettings = async () => {
+    try {
+      const branchCode = appData?.user?.branch_code;
+
+      const res = await getTaxModeSettings(branchCode);
+
+      const activeTax = res?.data?.find(
+        (item: any) => item.taxRequired === true,
+      );
+
+      if (activeTax) {
+        setTaxType(activeTax.taxType);
+      }
+    } catch (err) {
+      console.error("Tax settings fetch failed", err);
+    }
+  };
   const fetchDiscountTypes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -115,7 +134,7 @@ export default function BillModify() {
     if (!bill) return;
 
     const kotIdsString = bill.kotIds.join(",");
-   const branchCode =appData?.user?.branch_code;
+    const branchCode = appData?.user?.branch_code;
 
     try {
       setLoading(true);
@@ -172,154 +191,7 @@ export default function BillModify() {
       setLoading(false);
     }
   };
-  // const handleBillSelect = async (billId: string) => {
-  //   setSelectedBill(billId);
 
-  //   const bill = bills.find((x: any) => x.ksmId === Number(billId));
-
-  //   if (!bill) return;
-
-  //   try {
-  //     setLoading(true);
-
-  //     const groupRes = await getItemGroupList(appData?.user?.branch_code);
-
-  //     // use existing bill data directly
-  //     setModifyData([
-  //       {
-  //         kotTblNo: "1",
-  //         oltCode: 1,
-  //         branchcode: "DEROY",
-  //         kotSeatsServed: 2,
-  //         food: [
-  //           {
-  //             kotId: 1,
-  //             id: 3,
-  //             food: "POORI BHAJI",
-  //             code: "1",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 1,
-  //             id: 4,
-  //             food: "IDLY VADA",
-  //             code: "1",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 2,
-  //             id: 4,
-  //             food: "IDLY VADA",
-  //             code: "2",
-  //             price: 200,
-  //             qty: 8,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 2,
-  //             id: 360,
-  //             food: "POHA",
-  //             code: "2",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //         ],
-  //       },
-  //     ]);
-
-  //     setGroups(groupRes || []);
-
-  //     console.log("Modify Response", [
-  //       {
-  //         kotTblNo: "1",
-  //         oltCode: 1,
-  //         branchcode: "DEROY",
-  //         kotSeatsServed: 2,
-  //         food: [
-  //           {
-  //             kotId: 1,
-  //             id: 3,
-  //             food: "POORI BHAJI",
-  //             code: "1",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 1,
-  //             id: 4,
-  //             food: "IDLY VADA",
-  //             code: "1",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 2,
-  //             id: 4,
-  //             food: "IDLY VADA",
-  //             code: "2",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //           {
-  //             kotId: 2,
-  //             id: 360,
-  //             food: "POHA",
-  //             code: "2",
-  //             price: 200,
-  //             qty: 1,
-  //             comment: "",
-  //             category: 1,
-  //             grpCode: 1,
-  //             origQty: 1,
-  //             itemDiscountAllowed: true,
-  //           },
-  //         ],
-  //       },
-  //     ]);
-  //   } catch (err: any) {
-  //     toast.error(
-  //       err?.response?.data?.message || "Failed to load bill details",
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
   const loadItems = async (grpCode: number) => {
     setLoading(true);
     try {
@@ -381,18 +253,122 @@ export default function BillModify() {
 
     setSelectedItem("");
   };
+  const handleSave = async () => {
+    try {
+      const selectedBillData = bills.find(
+        (x: any) => x.ksmId === Number(selectedBill),
+      );
 
-  const handleSave = () => {
-    console.log("Modified Payload", modifyData);
+      if (!selectedBillData) {
+        toast.error("Please select a bill");
+        return;
+      }
 
-    toast.success("Check console for payload");
+      setLoading(true);
+
+      const total = billItems.reduce(
+        (sum: number, item: any) => sum + item.price * item.qty,
+        0,
+      );
+
+      const payload = {
+        userCode: appData?.user?.userCode || 0,
+
+        table: selectedBillData?.ksmTblNo || "",
+        subTable: "",
+        outlet: selectedBillData?.oltCode || 0,
+        outletName:
+          outlets.find((o: any) => o.oltCode === selectedBillData?.oltCode)
+            ?.oltName || "",
+
+        waiter: selectedBillData?.waiterCode || 0,
+        waiterName: selectedBillData?.waiterName || "",
+        pax: selectedBillData?.pax || 0,
+
+        food: billItems.map((item: any) => ({
+          kotId: item.kotId,
+          id: item.id,
+          food: item.food,
+          code: item.code,
+          price: item.price,
+          qty: item.qty,
+          comment: item.comment || "",
+          category: item.category || 0,
+          grpCode: item.grpCode || 0,
+          origQty: item.origQty || item.qty,
+          itemDiscountAllowed: item.itemDiscountAllowed ?? true,
+        })),
+
+        total,
+        totQty: billItems.reduce((sum: number, item: any) => sum + item.qty, 0),
+
+        branch: appData?.user?.branch_code || "",
+        type: selectedBillData?.billType || "DINEIN",
+
+        ncCode: 0,
+        ncRemarks: "",
+
+        discount: discountMode === "amt" ? Number(discountValue || 0) : 0,
+
+        discountIn: discountMode === "per" ? "per" : "amt",
+
+        discountType,
+        discountRemarks: "",
+        discountGroups: selectedGroups,
+
+        vRemarks: "",
+        mode: "MODIFY",
+
+        subBillType: "",
+        plan: "",
+        guestName: "",
+        guestCode: "",
+        checkInNo: "",
+
+        kotMobileNo: "",
+        kotMinTimer: 0,
+
+        taxType: taxType || "",
+
+        homeDelivary: {
+          guestCode: 0,
+          titleGn1: 0,
+          guestName: "",
+          dob: new Date().toISOString(),
+          address: "",
+          city: "",
+          phone: "",
+          email: "",
+          remarks: "",
+          lastModify: new Date().toISOString(),
+          discount: 0,
+          branch_code: appData?.user?.branch_code || "",
+          isUpdate: 0,
+        },
+      };
+
+      console.log("ModifyBillCalculation Payload", payload);
+
+      const response = await modifyBillCalculation(payload);
+
+      console.log("ModifyBillCalculation Response", response);
+
+      toast.success("Bill modified successfully");
+
+      // reload bill details
+      await handleBillSelect(selectedBill);
+    } catch (err: any) {
+      console.error(err);
+
+      toast.error(err?.response?.data?.message || "Failed to modify bill");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  // ================= INITIAL =================
-
   useEffect(() => {
     fetchOutlets();
     fetchDiscountTypes();
+    fetchTaxSettings();
   }, []);
   // ================= AUTO FETCH =================
 
@@ -421,6 +397,9 @@ export default function BillModify() {
 
     toast.success(`${itemName} deleted`);
   };
+
+  const maxDiscountPercent = Number(appData?.user?.disPercent || 0);
+  const maxDiscountAmount = Number(appData?.user?.disAmount || 0);
   return (
     <>
       <Header showNeworderButton={false} />
@@ -645,12 +624,38 @@ export default function BillModify() {
                   <input
                     type="number"
                     value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+
+                      if (discountMode === "per") {
+                        if (value > maxDiscountPercent) {
+                          toast.error(
+                            `Maximum allowed discount percentage is ${maxDiscountPercent}%`,
+                          );
+                          return;
+                        }
+                      } else {
+                        if (value > maxDiscountAmount) {
+                          toast.error(
+                            `Maximum allowed discount amount is ₹${maxDiscountAmount}`,
+                          );
+                          return;
+                        }
+                      }
+
+                      setDiscountValue(e.target.value);
+                    }}
                     placeholder={
                       discountMode === "per" ? "Enter %" : "Enter Amount"
                     }
                     className="w-full border rounded p-2"
                   />
+                  <div className="mt-2 text-xs text-blue-600">
+                    Allowed:
+                    {discountMode === "per"
+                      ? `${maxDiscountPercent}%`
+                      : `₹${maxDiscountAmount}`}
+                  </div>
 
                   <div className="mt-2 text-xs text-gray-500">
                     Type: {discountType || "-"} | Mode: {discountMode} | Value:{" "}

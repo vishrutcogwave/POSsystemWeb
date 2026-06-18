@@ -4357,3 +4357,23 @@ export const saveOrUpdateCatGroupSettings = async (payload: {
     throw error;
   }
 };
+
+
+
+export const modifyBillCalculation = async (payload: any) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post(
+    "/api/POS/ModifyBillCalculation",
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};
