@@ -88,6 +88,7 @@ const NewOrder: React.FC = () => {
         selectedTable?.tableNumber || null,
         outletCode,
         selectedSubTableTable || "",
+        appData?.user?.branch_code
       );
       console.log(res, "oldcartdetils");
       setOldcartData(res);
