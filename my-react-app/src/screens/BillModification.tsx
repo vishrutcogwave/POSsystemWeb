@@ -79,6 +79,8 @@ export default function BillModify() {
     }
   };
   const fetchOutlets = async () => {
+    setLoading(true);
+
     try {
       const res = await getOutletList(appData?.user?.branch_code);
 
@@ -93,6 +95,8 @@ export default function BillModify() {
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to load outlets");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -349,84 +353,60 @@ export default function BillModify() {
 
       console.log("ModifyBillCalculation Payload", payload);
 
-    const calculationResponse = await modifyBillCalculation(payload);
+      const calculationResponse = await modifyBillCalculation(payload);
 
-const calc = calculationResponse?.data || {};
+      const calc = calculationResponse?.data || {};
 
-console.log("Calculation Response", calc);
+      console.log("Calculation Response", calc);
 
-const modifyUpdatePayload = {
-  ksmId: selectedBillData?.ksmId || 0,
+      const modifyUpdatePayload = {
+        ksmId: selectedBillData?.ksmId || 0,
 
-  kotId: billItems?.[0]?.kotId || 0,
+        kotId: billItems?.[0]?.kotId || 0,
 
-  kotTblNo:
-    modifyData?.[0]?.kotTblNo ||
-    selectedBillData?.ksmTblNo ||
-    "",
+        kotTblNo: modifyData?.[0]?.kotTblNo || selectedBillData?.ksmTblNo || "",
 
-  oltCode: selectedBillData?.oltCode || 0,
+        oltCode: selectedBillData?.oltCode || 0,
 
-  branch_Code: appData?.user?.branch_code || "",
+        branch_Code: appData?.user?.branch_code || "",
 
-  userCode: appData?.user?.userCode || 0,
+        userCode: appData?.user?.userCode || 0,
 
-  previousBillAmount:
-    selectedBillData?.ksmBillAmount || 0,
+        previousBillAmount: selectedBillData?.ksmBillAmount || 0,
 
-  previousBillTaxAmt:
-    selectedBillData?.ksmTaxAmount || 0,
+        previousBillTaxAmt: selectedBillData?.ksmTaxAmount || 0,
 
-  previousBillDiscount:
-    selectedBillData?.ksmDiscount || 0,
+        previousBillDiscount: selectedBillData?.ksmDiscount || 0,
 
-  currentBillAmount:
-    calc.totalAmount ||
-    calc.total ||
-    0,
+        currentBillAmount: calc.totalAmount || calc.total || 0,
 
- currentBillTaxAmt:
-  Number(calc?.cgstAmt || 0) +
-  Number(calc?.sgstAmt || 0),
+        currentBillTaxAmt:
+          Number(calc?.cgstAmt || 0) + Number(calc?.sgstAmt || 0),
 
-  currentBillDiscount:
-    Number(discountValue || 0),
+        currentBillDiscount: Number(discountValue || 0),
 
-  grandTotal:
-    calc.grandTotal ||
-    calc.netAmount ||
-    0,
+        grandTotal: calc.grandTotal || calc.netAmount || 0,
 
-  roundOff:
-    calc.roundOff ||
-    0,
+        roundOff: calc.roundOff || 0,
 
-  foods: billItems.map((item: any) => ({
-    kotId: item.kotId,
-    itemCode: item.id,
-    food: item.food,
-    price: item.price,
-    qty: item.qty,
-  })),
-};
+        foods: billItems.map((item: any) => ({
+          kotId: item.kotId,
+          itemCode: item.id,
+          food: item.food,
+          price: item.price,
+          qty: item.qty,
+        })),
+      };
 
-console.log(
-  "ModifyBillCreateUpdate Payload",
-  modifyUpdatePayload
-);
+      console.log("ModifyBillCreateUpdate Payload", modifyUpdatePayload);
 
-const saveResponse = await modifyBillCreateUpdate(
-  modifyUpdatePayload
-);
+      const saveResponse = await modifyBillCreateUpdate(modifyUpdatePayload);
 
-console.log(
-  "ModifyBillCreateUpdate Response",
-  saveResponse
-);
+      console.log("ModifyBillCreateUpdate Response", saveResponse);
 
-toast.success("Bill modified successfully");
+      toast.success("Bill modified successfully");
 
-await handleBillSelect(selectedBill);
+      await handleBillSelect(selectedBill);
 
       // reload bill details
     } catch (err: any) {
