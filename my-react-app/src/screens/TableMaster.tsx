@@ -16,8 +16,8 @@ import {
   createItemMasterWithImage,
   createTableMaster,
   deleteTableMaster,
-  getCombinedOutletAndTableMasterList,
   getNextIdCode,
+  getOutletList,
   getTableMasterList,
   updateTableMaster,
 } from "../api/services/products.service";
@@ -89,22 +89,25 @@ const [form, setForm] =
 const fetchOutlets = async () => {
   try {
     const branch =
-      localStorage.getItem("branch") || "";
+      appData?.user?.branch_code ||
+      localStorage.getItem("branch") ||
+      "";
 
-    const res =
-      await getCombinedOutletAndTableMasterList(
-        branch
-      );
+    const res = await getOutletList(branch);
 
-    if (res) {
-      const formatted =
-        res.map((item: any) => ({
-          oltCode: item.oltCode,
-          oltName: item.oltName,
-        }));
+    const outletData =
+      res?.data ||
+      res ||
+      [];
 
-      setOutlets(formatted);
-    }
+    const formatted = outletData.map(
+      (item: any) => ({
+        oltCode: item.oltCode,
+        oltName: item.oltName,
+      })
+    );
+
+    setOutlets(formatted);
   } catch (err) {
     console.error(err);
 

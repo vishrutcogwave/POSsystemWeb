@@ -41,6 +41,7 @@ import UserMenuOrSubmenuCreation from "./UserMenuOrSubmenuCreation";
 import SettlementBillModify from "./SettlementBillModify";
 import CompanyBillSettlement from "./companybillsettlement";
 import BillModify from "./BillModification";
+import PrinterSettings from "./PrinterSettings";
 
 function LandingPage() {
   const location = useLocation();
@@ -115,7 +116,10 @@ function LandingPage() {
   path="/pos/BillModification"
   element={<BillModify />}
 />
-
+<Route
+  path="/utility/printersettings"
+  element={<PrinterSettings />}
+/>
         <Route path="/master/company" element={<CompanyCreation />} />
         <Route path="/master/tax" element={<TaxMaster />} />
         <Route path="/master/taxdescrip" element={<TaxDescriptionMaster />} />

@@ -4399,3 +4399,37 @@ export const modifyBillCreateUpdate = async (
 
   return response.data;
 };
+
+
+export const saveOrUpdatePrinterSettings = async (payload: {
+  printerName: string;
+  billType: string;
+  branch_Code: string;
+  oltCode: string;
+  printType: string;
+  grpCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/SaveOrUpdatePrinterSettings",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving printer settings:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

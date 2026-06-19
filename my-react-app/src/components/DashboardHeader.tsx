@@ -870,6 +870,11 @@ const utilityItems = [
     icon: Wrench,
     permissionName: "Utility Settings",
   },
+    {
+    name: "Printer Settings",
+    icon: Printer,
+    permissionName: "Printer Settings",
+  },
 ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -909,6 +914,7 @@ const utilityItems = [
   "/pos/settlementmodification",
     "Company Bill Settlement":
     "/pos/companybillsettlement",
+      "Printer Settings": "/utility/printersettings",
     
   };
 
