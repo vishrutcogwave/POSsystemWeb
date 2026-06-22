@@ -555,12 +555,18 @@ export default function BillModify() {
 
         previousBillDiscount: selectedBillData?.ksmDiscount || 0,
 
-        isDiscountAdded: calc.discount > 0,
+         isDiscountAdded: Number(discountValue) > 0,
+
 
         discountType: discountType || "",
 
-        grpCode: selectedGroups.join(","),
-
+        grpCode: [
+  ...new Set(
+    billItems
+      .map((item: any) => item.grpCode)
+      .filter((code: any) => code != null && code !== 0)
+  ),
+].join(","),
         foods: billItems.map((item: any) => ({
           kotId: item.kotId,
           itemCode: item.id,
@@ -610,17 +616,14 @@ if (saveResponse?.success) {
     title: "Bill Modified Successfully",
     html: `
       <div style="font-size:16px;">
-        <p style="margin-bottom:10px;">
-          ${result.message}
-        </p>
-        <div style="
+       <div style="
           background:#fff3cd;
           color:#856404;
           padding:12px;
           border-radius:8px;
           font-weight:bold;
         ">
-          Refund Amount: ₹${result.differenceAmount.toFixed(2)}
+          ${result.message}
         </div>
       </div>
     `,
