@@ -239,7 +239,7 @@ const handleUpdate = async () => {
       setLoading(true);
 
      
-    const res = await deleteTaxDescription(Number(deleteRow.taxCode)); // ✅ FIXED
+    const res = await deleteTaxDescription(Number(deleteRow.taxCode),appData?.user?.branch_code); // ✅ FIXED
 
 
       if (res?.success) {

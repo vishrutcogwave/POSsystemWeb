@@ -189,7 +189,7 @@ const confirmDelete = async () => {
   try {
     setLoading(true);
 
-    const res = await deleteDepartment(Number(deleteRow.code));
+    const res = await deleteDepartment(Number(deleteRow.code),appData?.user?.branch_code);
 
     if (res?.success) {
       toast.success("Deleted successfully ✅");

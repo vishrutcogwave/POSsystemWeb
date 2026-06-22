@@ -348,7 +348,8 @@ const handleEdit = (
 
         const res =
           await deleteSubCategoryMaster(
-            deleteRow.subCatCode
+            deleteRow.subCatCode,
+            appData?.user?.branch_code
           );
 
         if (res?.success) {

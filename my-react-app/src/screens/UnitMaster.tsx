@@ -249,7 +249,8 @@ export default function UnitMaster() {
       setLoading(true);
 
       const res = await deleteUnitMaster(
-        deleteRow.unitCode
+        deleteRow.unitCode,
+        appData?.user?.branch_code
       );
 
       if (res?.success) {

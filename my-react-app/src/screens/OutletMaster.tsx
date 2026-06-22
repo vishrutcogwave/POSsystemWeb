@@ -290,7 +290,7 @@ export default function OutletMaster() {
 
     try {
       setLoading(true);
-      const res = await deleteOutlet(deleteRow.oltCode);
+      const res = await deleteOutlet(deleteRow.oltCode,appData?.user?.branch_code);
 
       if (res?.success) {
         toast.success("Deleted ✅");

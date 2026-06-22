@@ -283,7 +283,8 @@ setForm({
 
       const res =
         await deleteCategoryMaster(
-          deleteRow.catCode
+          deleteRow.catCode,
+          appData?.user?.branch_code
         );
 
       if (res?.success) {

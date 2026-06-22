@@ -492,7 +492,8 @@ useEffect(() => {
 
       const res =
         await deleteTableMaster(
-          deleteRow.tblCode
+          deleteRow.tblCode,
+          appData?.user?.branch_code
         );
 
       if (res?.success) {

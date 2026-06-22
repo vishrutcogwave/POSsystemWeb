@@ -268,7 +268,8 @@ export default function GroupMaster() {
       setLoading(true);
 
       const res = await deleteGroupMaster(
-        deleteRow.grpCode
+        deleteRow.grpCode,
+        appData?.user?.branch_code
       );
 
       if (res?.success) {

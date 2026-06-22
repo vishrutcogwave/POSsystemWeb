@@ -713,12 +713,12 @@ export const updateCompany = async (payload: {
   }
 };
 
-export const deleteCompany = async (id: number) => {
+export const deleteCompany = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteCompany", {
-      params: { id }, // ✅ query param
+      params: { id,branchcode }, // ✅ query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -805,12 +805,12 @@ export const updateTaxMaster = async (payload: {
   }
 };
 
-export const deleteTaxMaster = async (id: number) => {
+export const deleteTaxMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTaxMaster", {
-      params: { id }, // 🔥 query param
+      params: { id ,branchcode}, // 🔥 query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -908,12 +908,12 @@ export const updateTaxDescription = async (payload: {
   }
 };
 
-export const deleteTaxDescription = async (id: number) => {
+export const deleteTaxDescription = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTaxDescription", {
-      params: { id }, // ✅ query param
+      params: { id,branchcode }, // ✅ query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1007,12 +1007,12 @@ export const updateDepartment = async (payload: {
   }
 };
 
-export const deleteDepartment = async (id: number) => {
+export const deleteDepartment = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteDepartment", {
-      params: { id }, // 👈 ?id=6
+      params: { id ,branchcode}, // 👈 ?id=6
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1094,12 +1094,12 @@ export const updateOutlet = async (payload: any) => {
   }
 };
 
-export const deleteOutlet = async (id: number) => {
+export const deleteOutlet = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteOutlet", {
-      params: { id }, // 👉 this creates ?id=89
+      params: { id,branchcode }, // 👉 this creates ?id=89
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1779,12 +1779,12 @@ export const updateUnitMaster = async (payload: {
   }
 };
 
-export const deleteUnitMaster = async (id: number) => {
+export const deleteUnitMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteUnitMaster", {
-      params: { id },
+      params: { id,branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1887,12 +1887,12 @@ export const updateGroupMaster = async (payload: {
   }
 };
 
-export const deleteGroupMaster = async (id: number) => {
+export const deleteGroupMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteGroupMaster", {
-      params: { id },
+      params: { id,branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2003,12 +2003,12 @@ export const updateCategoryMaster = async (payload: {
   }
 };
 
-export const deleteCategoryMaster = async (id: number) => {
+export const deleteCategoryMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteCategoryMaster", {
-      params: { id },
+      params: { id ,branchcode},
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2121,12 +2121,12 @@ export const updateSubCategoryMaster = async (payload: {
   }
 };
 
-export const deleteSubCategoryMaster = async (id: number) => {
+export const deleteSubCategoryMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteSubCategoryMaster", {
-      params: { id },
+      params: { id,branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2590,12 +2590,12 @@ export const updateTableMaster = async (payload: {
   }
 };
 
-export const deleteTableMaster = async (id: number) => {
+export const deleteTableMaster = async (id: number,branchcode:string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTableMaster", {
-      params: { id },
+      params: { id ,branchcode},
 
       headers: {
         Authorization: `Bearer ${token}`,
@@ -4455,3 +4455,35 @@ export const saveOrUpdatePrinterSettings = async (payload: {
 
 
 
+export const deleteCatGroupSettings = async (
+  grpCode: number,
+  oltCode: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/UtilitySetting/DeleteCatGroupSettings",
+      {
+        params: {
+          GrpCode: grpCode,
+          OltCode: oltCode,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting cart group:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

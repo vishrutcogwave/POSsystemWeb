@@ -61,7 +61,7 @@ const confirmDelete = async () => {
   try {
     setLoading(true);
 
-    const res = await deleteTaxMaster(Number(deleteRow.taxCode));
+    const res = await deleteTaxMaster(Number(deleteRow.taxCode),appData?.user?.branch_code);
 
     if (res?.success) {
       toast.success("Deleted successfully ✅");

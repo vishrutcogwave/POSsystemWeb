@@ -64,7 +64,7 @@ export default function CompanyCreation() {
     if (!deleteRow) return;
 
     try {
-      const res = await deleteCompany(Number(deleteRow.code));
+      const res = await deleteCompany(Number(deleteRow.code),appData?.user?.branch_code);
 
       if (res?.success) {
         toast.success("Deleted successfully ✅");
