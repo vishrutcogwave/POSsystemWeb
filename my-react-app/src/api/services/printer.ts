@@ -755,6 +755,32 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
 
   d += headerBlock;
 
+  if (c.taxType?.toLowerCase() === "onbilltax") {
+  const mergedItems = mergeItems(c.items);
+
+  mergedItems.forEach((i: any) => {
+    d +=
+      formatRow(
+        i.food,
+        i.qty,
+        i.price,
+        i.price * i.qty
+      ) + "\n";
+  });
+
+  d += line + "\n";
+
+  c.taxes.forEach((t: any) => {
+    d += line2Col(
+      t.taxName,
+      Number(t.taxAmount || 0).toFixed(2)
+    ) + "\n";
+  });
+
+  d += line + "\n";
+}
+
+
   /* ===== GROUPED ITEMS (UNCHANGED LOGIC) ===== */
   if (c.taxType?.toLowerCase() === "groupedtax") {
     const groupMap: Record<number, any[]> = {};
@@ -862,3 +888,10 @@ d += totalBlock;
     };
   }
 };
+
+
+
+
+
+
+

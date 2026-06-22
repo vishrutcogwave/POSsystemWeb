@@ -4447,3 +4447,11 @@ export const saveOrUpdatePrinterSettings = async (payload: {
     throw error;
   }
 };
+
+
+
+
+
+
+
+

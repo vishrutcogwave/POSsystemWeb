@@ -139,7 +139,7 @@ export default function BillModify() {
 
     const kotIdsString = bill.kotIds.join(",");
     const branchCode = appData?.user?.branch_code;
-  const settledDate = bill.ksmBillDate?.split("T")[0];
+    const settledDate = bill.ksmBillDate?.split("T")[0];
     try {
       setLoading(true);
 
@@ -149,7 +149,7 @@ export default function BillModify() {
           bill.oltCode,
           bill?.ksmBillNo,
           branchCode,
-          settledDate
+          settledDate,
         ),
         getItemGroupList(appData?.user?.branch_code),
       ]);
@@ -258,11 +258,174 @@ export default function BillModify() {
 
     setSelectedItem("");
   };
+  // const handleSave = async () => {
+  //   try {
+  //     const selectedBillData = bills.find(
+  //       (x: any) => x.ksmId === Number(selectedBill),
+  //     );
+
+  //     if (!selectedBillData) {
+  //       toast.error("Please select a bill");
+  //       return;
+  //     }
+
+  //     setLoading(true);
+
+  //     const total = billItems.reduce(
+  //       (sum: number, item: any) => sum + item.price * item.qty,
+  //       0,
+  //     );
+
+  //     const payload = {
+  //       userCode: appData?.user?.userCode || 0,
+
+  //       table: selectedBillData?.ksmTblNo || "",
+  //       subTable: "",
+  //       outlet: selectedBillData?.oltCode || 0,
+  //       outletName:
+  //         outlets.find((o: any) => o.oltCode === selectedBillData?.oltCode)
+  //           ?.oltName || "",
+
+  //       waiter: selectedBillData?.waiterCode || 0,
+  //       waiterName: selectedBillData?.waiterName || "",
+  //       pax: selectedBillData?.pax || 0,
+
+  //       food: billItems.map((item: any) => ({
+  //         kotId: item.kotId,
+  //         id: item.id,
+  //         food: item.food,
+  //         code: item.code,
+  //         price: item.price,
+  //         qty: item.qty,
+  //         comment: item.comment || "",
+  //         category: item.category || 0,
+  //         grpCode: item.grpCode || 0,
+  //         origQty: item.origQty || item.qty,
+  //         itemDiscountAllowed: item.itemDiscountAllowed ?? true,
+  //       })),
+
+  //       total,
+  //       totQty: billItems.reduce((sum: number, item: any) => sum + item.qty, 0),
+
+  //       branch: appData?.user?.branch_code || "",
+  //       type: selectedBillData?.billType || "DINEIN",
+
+  //       ncCode: 0,
+  //       ncRemarks: "",
+
+  //       discount: discountMode === "amt" ? Number(discountValue || 0) : 0,
+
+  //       discountIn: discountMode === "per" ? "per" : "amt",
+
+  //       discountType,
+  //       discountRemarks: "",
+  //       discountGroups: selectedGroups,
+
+  //       vRemarks: "",
+  //       mode: "MODIFY",
+
+  //       subBillType: "",
+  //       plan: "",
+  //       guestName: "",
+  //       guestCode: "",
+  //       checkInNo: "",
+
+  //       kotMobileNo: "",
+  //       kotMinTimer: 0,
+
+  //       taxType: taxType || "",
+
+  //       homeDelivary: {
+  //         guestCode: 0,
+  //         titleGn1: 0,
+  //         guestName: "",
+  //         dob: new Date().toISOString(),
+  //         address: "",
+  //         city: "",
+  //         phone: "",
+  //         email: "",
+  //         remarks: "",
+  //         lastModify: new Date().toISOString(),
+  //         discount: 0,
+  //         branch_code: appData?.user?.branch_code || "",
+  //         isUpdate: 0,
+  //       },
+  //     };
+
+  //     console.log("ModifyBillCalculation Payload", payload);
+
+  //     const calculationResponse = await modifyBillCalculation(payload);
+
+  //     const calc = calculationResponse?.data || {};
+
+  //     console.log("Calculation Response", calc);
+
+  //     const modifyUpdatePayload = {
+  //       ksmId: selectedBillData?.ksmId || 0,
+
+  //       kotId: billItems?.[0]?.kotId || 0,
+
+  //       kotTblNo: modifyData?.[0]?.kotTblNo || selectedBillData?.ksmTblNo || "",
+
+  //       oltCode: selectedBillData?.oltCode || 0,
+
+  //       branch_Code: appData?.user?.branch_code || "",
+
+  //       userCode: appData?.user?.userCode || 0,
+
+  //       previousBillAmount: selectedBillData?.ksmBillAmount || 0,
+
+  //       previousBillTaxAmt: selectedBillData?.ksmTaxAmount || 0,
+
+  //       previousBillDiscount: selectedBillData?.ksmDiscount || 0,
+
+  //       currentBillAmount: calc.totalAmount || calc.total || 0,
+
+  //       currentBillTaxAmt:
+  //         Number(calc?.cgstAmt || 0) + Number(calc?.sgstAmt || 0),
+
+  //       currentBillDiscount: Number(discountValue || 0),
+
+  //       grandTotal: calc.grandTotal || calc.netAmount || 0,
+
+  //       roundOff: calc.roundOff || 0,
+
+  //       foods: billItems.map((item: any) => ({
+  //         kotId: item.kotId,
+  //         itemCode: item.id,
+  //         food: item.food,
+  //         price: item.price,
+  //         qty: item.qty,
+  //       })),
+  //     };
+
+  //     console.log("ModifyBillCreateUpdate Payload", modifyUpdatePayload);
+
+  //     const saveResponse = await modifyBillCreateUpdate(modifyUpdatePayload);
+
+  //     console.log("ModifyBillCreateUpdate Response", saveResponse);
+
+  //     toast.success("Bill modified successfully");
+
+  //     await handleBillSelect(selectedBill);
+
+  //     // reload bill details
+  //   } catch (err: any) {
+  //     console.error(err);
+
+  //     toast.error(err?.response?.data?.message || "Failed to modify bill");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleSave = async () => {
     try {
       const selectedBillData = bills.find(
         (x: any) => x.ksmId === Number(selectedBill),
       );
+      console.log("selectedBillData",selectedBillData);
+      
 
       if (!selectedBillData) {
         toast.error("Please select a bill");
@@ -276,12 +439,15 @@ export default function BillModify() {
         0,
       );
 
+      // ================= CALCULATION PAYLOAD =================
+
       const payload = {
         userCode: appData?.user?.userCode || 0,
 
         table: selectedBillData?.ksmTblNo || "",
         subTable: "",
         outlet: selectedBillData?.oltCode || 0,
+
         outletName:
           outlets.find((o: any) => o.oltCode === selectedBillData?.oltCode)
             ?.oltName || "",
@@ -305,15 +471,17 @@ export default function BillModify() {
         })),
 
         total,
+
         totQty: billItems.reduce((sum: number, item: any) => sum + item.qty, 0),
 
         branch: appData?.user?.branch_code || "",
+
         type: selectedBillData?.billType || "DINEIN",
 
         ncCode: 0,
         ncRemarks: "",
 
-        discount: discountMode === "amt" ? Number(discountValue || 0) : 0,
+        discount: Number(discountValue) || 0,
 
         discountIn: discountMode === "per" ? "per" : "amt",
 
@@ -354,16 +522,23 @@ export default function BillModify() {
 
       console.log("ModifyBillCalculation Payload", payload);
 
+      // ================= CALCULATE =================
+
       const calculationResponse = await modifyBillCalculation(payload);
 
       const calc = calculationResponse?.data || {};
 
       console.log("Calculation Response", calc);
 
-      const modifyUpdatePayload = {
+        const bill = bills.find((x: any) => x.ksmId === Number(selectedBill));
+         const settledDate = bill.ksmBillDate?.split("T")[0];
+      // ================= SAVE PAYLOAD =================
+      const modifyPayload = {
         ksmId: selectedBillData?.ksmId || 0,
 
         kotId: billItems?.[0]?.kotId || 0,
+
+        settledDate: settledDate,
 
         kotTblNo: modifyData?.[0]?.kotTblNo || selectedBillData?.ksmTblNo || "",
 
@@ -375,20 +550,15 @@ export default function BillModify() {
 
         previousBillAmount: selectedBillData?.ksmBillAmount || 0,
 
-        previousBillTaxAmt: selectedBillData?.ksmTaxAmount || 0,
+        previousBillTaxAmt: selectedBillData?.ksmBillTaxAmt || 0,
 
         previousBillDiscount: selectedBillData?.ksmDiscount || 0,
 
-        currentBillAmount: calc.totalAmount || calc.total || 0,
+        isDiscountAdded: calc.discount > 0,
 
-        currentBillTaxAmt:
-          Number(calc?.cgstAmt || 0) + Number(calc?.sgstAmt || 0),
+        discountType: discountType || "",
 
-        currentBillDiscount: Number(discountValue || 0),
-
-        grandTotal: calc.grandTotal || calc.netAmount || 0,
-
-        roundOff: calc.roundOff || 0,
+        grpCode: selectedGroups.join(","),
 
         foods: billItems.map((item: any) => ({
           kotId: item.kotId,
@@ -397,19 +567,46 @@ export default function BillModify() {
           price: item.price,
           qty: item.qty,
         })),
+
+        taxdetails: {
+          totalAmount: calc.totalAmount || 0,
+          totalQty: calc.totalQty || 0,
+
+          cgstPer: calc.cgstPer || 0,
+          cgstAmt: calc.cgstAmt || 0,
+
+          sgstPer: calc.sgstPer || 0,
+          sgstAmt: calc.sgstAmt || 0,
+
+          serviceChargePer: calc.serviceChargePer || 0,
+          serviceCharge: calc.serviceCharge || 0,
+
+          grandTotal: calc.grandTotal || 0,
+
+          discountPer: calc.discountPer || 0,
+
+          discount: calc.discount || 0,
+
+          discountIn: calc.discountIn || "",
+
+          discountRemarks: calc.discountRemarks || "",
+
+          roundOff: calc.roundOff || 0,
+
+          taxList: calc.taxList || [],
+        },
       };
 
-      console.log("ModifyBillCreateUpdate Payload", modifyUpdatePayload);
+      console.log("ModifyBillCreateUpdate Payload", modifyPayload);
 
-      const saveResponse = await modifyBillCreateUpdate(modifyUpdatePayload);
+      const saveResponse = await modifyBillCreateUpdate(modifyPayload);
 
-      console.log("ModifyBillCreateUpdate Response", saveResponse);
+      console.log("ModifyBillCreateUpdate Payload", modifyPayload);
+      console.log(saveResponse, "saveResponse");
 
       toast.success("Bill modified successfully");
 
       await handleBillSelect(selectedBill);
-
-      // reload bill details
     } catch (err: any) {
       console.error(err);
 
@@ -418,6 +615,7 @@ export default function BillModify() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchOutlets();
     fetchDiscountTypes();
