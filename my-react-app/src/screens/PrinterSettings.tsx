@@ -160,7 +160,7 @@ export default function PrinterSettings() {
     try {
       const selectedNames = categories
         .filter((c) => selectedCategories.includes(c.catCode))
-        .map((c) => c.catName)
+        .map((c) => c.catCode)
         .join(",");
 
       if (!selectedNames) {

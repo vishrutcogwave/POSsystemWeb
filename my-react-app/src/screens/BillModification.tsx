@@ -612,11 +612,11 @@ export default function BillModify() {
 if (saveResponse?.success) {
   const result = saveResponse.data;
 
-  Swal.fire({
+  await Swal.fire({
     title: "Bill Modified Successfully",
     html: `
       <div style="font-size:16px;">
-       <div style="
+        <div style="
           background:#fff3cd;
           color:#856404;
           padding:12px;
@@ -630,13 +630,13 @@ if (saveResponse?.success) {
     icon: "warning",
     confirmButtonText: "OK",
     confirmButtonColor: "#3085d6",
-    showClass: {
-      popup: "animate__animated animate__zoomIn",
-    },
-    hideClass: {
-      popup: "animate__animated animate__zoomOut",
-    },
   });
+
+  // Refresh bill list
+  await fetchBills();
+
+  // Reload selected bill details
+  await handleBillSelect(selectedBill);
 }
 
       console.log("ModifyBillCreateUpdate Payload", modifyPayload);
