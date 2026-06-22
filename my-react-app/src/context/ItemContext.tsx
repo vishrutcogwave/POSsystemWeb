@@ -144,6 +144,8 @@ useEffect(() => {
 
     try {
       const groups = await getItemGroupList(branch);
+      console.log("getItemGroupList",groups);
+      
 
       const results = await Promise.all(
         groups.map((g: any) =>

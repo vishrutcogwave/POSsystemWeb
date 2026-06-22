@@ -139,7 +139,7 @@ export default function BillModify() {
 
     const kotIdsString = bill.kotIds.join(",");
     const branchCode = appData?.user?.branch_code;
-
+  const settledDate = bill.ksmBillDate?.split("T")[0];
     try {
       setLoading(true);
 
@@ -149,6 +149,7 @@ export default function BillModify() {
           bill.oltCode,
           bill?.ksmBillNo,
           branchCode,
+          settledDate
         ),
         getItemGroupList(appData?.user?.branch_code),
       ]);

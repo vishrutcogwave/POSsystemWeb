@@ -30,7 +30,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("success");
 
   const fetchData = async () => {
     try {
-      const data = await getOpenDayDetails(appData?.user?.userCode);
+      const data = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
       setData(data);
     } catch (err) {
       console.error(err);
@@ -41,7 +41,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("success");
     setTime(getCurrentTime());
 
     try {
-      const res = await getOpenDayDetails(appData?.user?.userCode);
+      const res = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
       setData(res);
     } catch (err) {
       console.error(err);

@@ -164,7 +164,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
   
     const fetchdayDeatilsData = async () => {
       try {
-        const data = await getOpenDayDetails(appData?.user?.userCode);
+        const data = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
         setdayDetails(data);
       } catch (err) {
         console.error(err);
@@ -238,7 +238,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
   };
   const fetchNcReasons = async () => {
     try {
-      const data = await getNCKOT();
+      const data = await getNCKOT(appData?.user?.branch_code);
       setNcReasons(data || []);
     } catch (err) {
       console.error("Failed to fetch NC reasons", err);
@@ -261,7 +261,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
-      const data = await getSubTables(outlet, table);
+      const data = await getSubTables(outlet, table,appData?.user?.branch_code);
 
       if (!data || data.length === 0) {
         setSubTables(data);
@@ -926,6 +926,10 @@ d += "\x1B\x61\x00";
     };
 
     try {
+       console.log(
+  "PAYLOAD FOOD",
+  JSON.stringify(payload.food, null, 2)
+);
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
 
@@ -1304,6 +1308,7 @@ const generateContent = (items: any[]) => ({
     };
 
     try {
+     
       const res = await createOrder(payload);
 
       /* ---------------- PRINT SAME AS KOT ---------------- */
@@ -1506,6 +1511,7 @@ const generateContent = (items: any[]) => ({
     };
   };
   const handlePrintBill = async (billData: any) => {
+    debugger
         setKotLoading(true);
     try {
       if (!billData) {

@@ -75,11 +75,12 @@ export const createOrder = async (orderData: any) => {
   }
 };
 
-export const getSubTables = async (outlet: string, tableno: string) => {
+export const getSubTables = async (outlet: string, tableno: string,branchcode:string) => {
   const response = await api.get("/api/POS/getsubtables", {
     params: {
       outlet,
       tableno,
+      branchcode
     },
     headers: {
       Authorization: `Bearer ${token}`,
@@ -110,15 +111,26 @@ export const getOldCart = async (
   return response.data;
 };
 
-export const getNCKOT = async () => {
-  const response = await api.get("/api/POS/getnckot", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getNCKOT = async (
+  branchcode: string
+) => {
+  const token =
+    localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/POS/getnckot",
+    {
+      params: {
+        branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   return response.data;
-};
+};;
 
 export const getSpecialInfo = async () => {
   const response = await api.get("/api/POS/GetSpecialInfo", {
@@ -541,9 +553,9 @@ export const getReprintBill = async (payload: {
   return response.data;
 };
 
-export const getOpenDayDetails = async (userid: number | string) => {
+export const getOpenDayDetails = async (userid: number | string,branchCode:string) => {
   const response = await api.post("/api/KOT/GetOpenDayDetais", null, {
-    params: { userid }, // ✅ IMPORTANT FIX
+    params: { userid,branchCode }, // ✅ IMPORTANT FIX
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
@@ -4252,6 +4264,7 @@ export const getModifyBillData = async (
   oltcode: number | string,
   billno: number | string,
   branchcode: string | null,
+  settledDate:string
 ) => {
   try {
     const response = await api.get("/api/POS/GetModifyBillData", {
@@ -4260,6 +4273,7 @@ export const getModifyBillData = async (
         oltcode,
         billno,
         branchcode,
+        settledDate
       },
       headers: {
         accept: "*/*",
