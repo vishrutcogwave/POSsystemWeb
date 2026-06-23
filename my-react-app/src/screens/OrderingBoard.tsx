@@ -1790,14 +1790,19 @@ if (
         <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-3 pb-20">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {foods.map((item) => (
-              <FoodCard
-                key={`${item.itemCode}-${item.itemName}`}
-                id={item.itemCode}
-                name={item.itemName.trim()}
-                price={item.oidRate}
-                image={item.thumb || ""}
-                onAdd={handleAdd}
-              />
+            <FoodCard
+  key={`${item.itemCode}-${item.itemName}`}
+  id={item.itemCode}
+  name={item.itemName.trim()}
+  price={item.oidRate}
+  image={item.thumb || ""}
+  qty={
+    cart.find((c) => c.id === item.itemCode && !c.isAddon)?.qty || 0
+  }
+  onAdd={handleAdd}
+  onIncrease={increaseQty}
+  onDecrease={decreaseQty}
+/>
             ))}
           </div>
         </main>

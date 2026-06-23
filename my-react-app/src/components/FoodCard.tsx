@@ -5,15 +5,26 @@ type FoodCardProps = {
   name: string;
   price: number;
   image?: string | null;
+  qty?: number;
   onAdd: (id: number) => void;
+  onIncrease?: (id: number) => void;
+  onDecrease?: (id: number) => void;
 };
 
-export default function FoodCard({ id, name, price, image, onAdd }: FoodCardProps) {
+export default function FoodCard({
+  id,
+  name,
+  price,
+  image,
+  qty = 0,
+  onAdd,
+  onIncrease,
+  onDecrease,
+}: FoodCardProps) {
   return (
     <div
-      onClick={() => onAdd(id)}
       title={name}
-      className="bg-white rounded-xl shadow-sm border cursor-pointer flex flex-col"
+      className="bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden"
     >
       <img
         src={image || FALLBACK_IMAGE}
@@ -30,14 +41,48 @@ export default function FoodCard({ id, name, price, image, onAdd }: FoodCardProp
           {name}
         </h3>
 
-        <div className="flex justify-between items-center mt-auto">
-          <span className="text-green-700 font-bold text-sm">
-            ₹ {price.toFixed(2)}
-          </span>
+     <div className="flex items-center justify-between mt-auto pt-2 gap-2">
+         <span
+  className="
+    text-green-700
+    font-semibold
+    text-xs
+    sm:text-sm
+    whitespace-nowrap
+    flex-shrink-0
+  "
+>
+  ₹{price}
+</span>
 
-          <button className="bg-[#026388] text-white px-3 py-1 text-xs rounded-lg">
-            Add
-          </button>
+          {qty === 0 ? (
+            <button
+              onClick={() => onAdd(id)}
+              className="bg-[#026388] text-white px-3 py-1 text-xs rounded-lg"
+            >
+              Add
+            </button>
+          ) : (
+            <div className="flex items-center gap-3 bg-[#026388] text-white rounded-lg px-2 py-1">
+              <button
+                onClick={() => onDecrease?.(id)}
+                className="font-bold text-lg leading-none"
+              >
+                -
+              </button>
+
+              <span className="min-w-[20px] text-center text-sm font-semibold">
+                {qty}
+              </span>
+
+              <button
+                onClick={() => onIncrease?.(id)}
+                className="font-bold text-lg leading-none"
+              >
+                +
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
