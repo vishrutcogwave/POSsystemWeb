@@ -57,7 +57,7 @@ const handleNewOrder = () => {
           <LogOut size={18} />
           
           {/* Hide text on mobile */}
-          <span className="hidden sm:inline text-sm">
+          <span className="text-sm">
             Dashboard
           </span>
         </button>
