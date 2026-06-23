@@ -101,6 +101,7 @@ const handleDayOpen = async () => {
       userId: appData?.user?.userCode,
       systemTime: getISODateTime(),
       systemDate: getISODateTime(),
+      branchCode:appData?.user?.branch_code,
     };
 
     console.log("DayOpen Payload:", payload);

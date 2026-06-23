@@ -481,6 +481,29 @@ export const printBill = async (
 
   d += "-".repeat(width) + "\n";
 
+
+  /* -------- ON BILL TAX -------- */
+if (c.taxType?.toLowerCase() === "onbilltax") {
+  const mergedItems = mergeItems(c.items);
+
+  mergedItems.forEach((i: any) => {
+    d += formatRow(
+      i.food,
+      i.qty,
+      i.price,
+      i.price * i.qty
+    );
+  });
+
+  d += "-".repeat(width) + "\n";
+
+  c.taxes.forEach((t: any) => {
+    d += line2Col(
+      t.taxName,
+      (t.taxAmount || 0).toFixed(2)
+    );
+  });
+}
   /* -------- GROUPED TAX -------- */
   if (c.taxType?.toLowerCase() === "groupedtax") {
     const groupMap: Record<number, any[]> = {};

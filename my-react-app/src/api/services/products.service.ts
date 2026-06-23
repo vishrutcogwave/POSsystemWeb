@@ -588,6 +588,7 @@ export const dayOpen = async (payload: {
   userId: number;
   systemTime: string;
   systemDate: string;
+  branchCode:string
 }) => {
   try {
     const response = await api.post("/api/KOT/Dayopen", payload, {

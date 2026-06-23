@@ -527,10 +527,6 @@ if (
 ) {
 
   // ✅ FIRST ADD MAIN ITEM
-  addItemToCart(
-    food,
-    selectedCategory
-  );
 
   setSelectedFood({
     food,
