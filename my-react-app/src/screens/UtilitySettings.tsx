@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useAppContext } from "../context/AppContext";
 
 import {
+  getBillConfiguration,
   getBillGenerationSettings,
   getDiscountModeSettings,
   getFinancialSettings,
@@ -17,6 +18,7 @@ import {
   getOutletList,
   getSMSSenderSettings,
   getTaxModeSettings,
+  saveBillConfiguration,
   saveBillGenerationSettings,
   saveKotConfiguration,
   saveOrUpdateFinancialSettings,
@@ -37,13 +39,28 @@ const [outlets, setOutlets] = useState<any[]>([]);
 const [selectedOutlet, setSelectedOutlet] = useState<number>(0);
 const [kotType, setKotType] = useState("KOT");
 const [kotConfigs, setKotConfigs] = useState<any[]>([]);
-
+const [reqBill, setReqBill] = useState<number>(1);
+const [billConfigLoading, setBillConfigLoading] = useState(false);
 const fetchOutlets = async () => {
   try {
     const res = await getOutletList(appData?.user?.branch_code);
 
     if (res?.success) {
       setOutlets(res.data || []);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const fetchBillConfiguration = async () => {
+  try {
+    const res = await getBillConfiguration(
+      appData?.user?.branch_code
+    );
+
+    if (res?.success && res?.data?.length > 0) {
+      setReqBill(res.data[0].reqBill);
     }
   } catch (err) {
     console.error(err);
@@ -121,6 +138,29 @@ const [dayWiseType, setDayWiseType] = useState("Continuous");
     isDescriptionShow: false,
     dayCloseGraceHour: 0,
   });
+  const handleBillConfigurationSave = async () => {
+  try {
+    setBillConfigLoading(true);
+
+    const res = await saveBillConfiguration({
+      reqBill,
+      branchCode: appData?.user?.branch_code,
+    });
+
+    if (res?.success) {
+      toast.success("Bill Configuration Saved ✅");
+      fetchBillConfiguration();
+    }
+  } catch (err: any) {
+    toast.error(
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to save Bill Configuration"
+    );
+  } finally {
+    setBillConfigLoading(false);
+  }
+};
 
 const fetchBillGenerationSettings = async () => {
   try {
@@ -446,6 +486,7 @@ const fetchBillGenerationSettings = async () => {
     fetchBillGenerationSettings();
      fetchOutlets();
   fetchKotConfiguration();
+  fetchBillConfiguration();
   }, []);
 
   /* =========================
@@ -712,7 +753,8 @@ const handleKotConfigurationSave = async () => {
   taxLoading ||
   discountLoading ||
   smsLoading ||
-  billLoading
+  billLoading||
+  billConfigLoading
 ) && <Loader />}
         {/* PAGE TITLE */}
 
@@ -861,7 +903,46 @@ const handleKotConfigurationSave = async () => {
     </button>
   </div>
 </div>
+<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+    <h2 className="font-semibold text-gray-800 text-base">
+      Bill Configuration
+    </h2>
+  </div>
 
+  <div className="p-4">
+    <p className="text-orange-600 font-medium text-sm mb-4">
+      Current Setting is {reqBill} Bill At a Time
+    </p>
+
+    <div className="flex items-end gap-3">
+      <div className="flex-1">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Req. Bills
+        </label>
+
+        <select
+          value={reqBill}
+          onChange={(e) => setReqBill(Number(e.target.value))}
+          className="w-full border border-gray-300 rounded px-2 py-1"
+        >
+          {Array.from({ length: 10 }, (_, i) => i + 1).map((num) => (
+            <option key={num} value={num}>
+              {num}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        onClick={handleBillConfigurationSave}
+        className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-2 rounded"
+      >
+        Save
+      </button>
+    </div>
+  </div>
+</div>
           {/* ================= KOT TIMER SETTINGS ================= */}
 
           <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">

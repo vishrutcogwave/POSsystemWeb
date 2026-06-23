@@ -1208,9 +1208,11 @@ const generateContent = (items: any[]) => ({
           companyInfo,
         );
 
-        if (!printRes.success) {
-          throw new Error(printRes.message);
-        }
+     if (!printRes?.success) {
+  throw new Error(
+    printRes?.message || "Print failed"
+  );
+}
       }
 
       setCart([]);
@@ -1521,9 +1523,11 @@ const generateContent = (items: any[]) => ({
       // ✅ 2. PRINT BILL
       const printRes = await printBill(billData, res, companyInfo);
 
-      if (!printRes.success) {
-        throw new Error(printRes.message);
-      }
+  if (!printRes?.success) {
+  throw new Error(
+    printRes?.message || "Print failed"
+  );
+}
 
       toast.success("Bill Printed Successfully ✅");
       if (tableData.fastFood === undefined) {

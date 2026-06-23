@@ -4624,3 +4624,25 @@ export const getKotConfiguration = async (branchCode: string) => {
     throw error;
   }
 };
+
+export const getBillConfiguration = async (branchCode: string) => {
+  const response = await api.get(
+    "/api/UtilitySetting/GetBillConfiguration",
+    {
+      params: { Branch_Code: branchCode },
+    }
+  );
+
+  return response.data;
+};
+export const saveBillConfiguration = async (payload: {
+  reqBill: number;
+  branchCode: string;
+}) => {
+  const response = await api.post(
+    "/api/UtilitySetting/BillConfiguration",
+    payload
+  );
+
+  return response.data;
+};

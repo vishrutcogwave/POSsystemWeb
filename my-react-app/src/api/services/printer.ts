@@ -1,5 +1,6 @@
 import qz from "qz-tray";
 import { KJUR } from "jsrsasign";
+import { getBillConfiguration } from "./products.service";
 qz.api.setPromiseType((resolver: any) => new Promise(resolver));
 let privateKey: string | null = null;
 
@@ -603,10 +604,39 @@ d += boldOff;
     const finalData = isThermal
       ? formatThermal(content)
       : "<div>HTML PRINT</div>";
+let printCount = 1;
 
-    const result = await printKOT(printerName, finalData, isThermal);
+try {
+  const branchCode =
+    billData?.cart?.branchCode ||
+    localStorage.getItem("branch") ||
+    "DEROY";
 
-    return result;
+  const billConfig = await getBillConfiguration(branchCode);
+
+  if (
+    billConfig?.success &&
+    billConfig?.data?.length > 0
+  ) {
+    printCount = Number(
+      billConfig.data[0].reqBill || 1
+    );
+  }
+} catch (err) {
+  console.error("Bill Configuration Error", err);
+}
+
+let result;
+
+for (let i = 0; i < printCount; i++) {
+  result = await printKOT(
+    printerName,
+    finalData,
+    isThermal
+  );
+}
+
+return result;
   } catch (err: any) {
     return {
       success: false,
