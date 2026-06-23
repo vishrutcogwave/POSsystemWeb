@@ -4556,3 +4556,71 @@ export const getBillGenerationSettings = async (
     throw error;
   }
 };
+
+
+
+export const saveKotConfiguration = async (payload: {
+  oltCode: number;
+  branchCode: string;
+  kotType: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/KotConfiguration",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving KOT Configuration:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+export const getKotConfiguration = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetKotConfiguration",
+      {
+        params: {
+          Branch_Code: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching KOT Configuration:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

@@ -12,10 +12,13 @@ import {
   getDiscountModeSettings,
   getFinancialSettings,
   getHappyHoursSettings,
+  getKotConfiguration,
   getKOTTimerSettings,
+  getOutletList,
   getSMSSenderSettings,
   getTaxModeSettings,
   saveBillGenerationSettings,
+  saveKotConfiguration,
   saveOrUpdateFinancialSettings,
   saveOrUpdateHappyHoursSettings,
   saveOrUpdateKOTTimerSettings,
@@ -30,7 +33,33 @@ export default function UtilitySettings() {
 const [happyHoursLoading, setHappyHoursLoading] = useState(false);
 const [billLoading, setBillLoading] = useState(false);
 const [kotLoading, setKotLoading] = useState(false);
+const [outlets, setOutlets] = useState<any[]>([]);
+const [selectedOutlet, setSelectedOutlet] = useState<number>(0);
+const [kotType, setKotType] = useState("KOT");
+const [kotConfigs, setKotConfigs] = useState<any[]>([]);
 
+const fetchOutlets = async () => {
+  try {
+    const res = await getOutletList(appData?.user?.branch_code);
+
+    if (res?.success) {
+      setOutlets(res.data || []);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+const fetchKotConfiguration = async () => {
+  try {
+    const res = await getKotConfiguration(appData?.user?.branch_code);
+
+    if (res?.success) {
+      setKotConfigs(res.data || []);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 const [financialLoading, setFinancialLoading] = useState(false);
 
 const [taxLoading, setTaxLoading] = useState(false);
@@ -415,6 +444,8 @@ const fetchBillGenerationSettings = async () => {
     fetchDiscountModeSettings();
     fetchSMSSenderSettings();
     fetchBillGenerationSettings();
+     fetchOutlets();
+  fetchKotConfiguration();
   }, []);
 
   /* =========================
@@ -649,6 +680,26 @@ const handleBillGenerationSave = async () => {
     setBillLoading(false);
   }
 };
+const handleKotConfigurationSave = async () => {
+  try {
+    const res = await saveKotConfiguration({
+      oltCode: selectedOutlet,
+      branchCode: appData?.user?.branch_code,
+      kotType,
+    });
+
+    if (res?.success) {
+      toast.success("KOT Configuration Saved ✅");
+      fetchKotConfiguration();
+    }
+  } catch (err: any) {
+    toast.error(
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to save KOT Configuration"
+    );
+  }
+};
   return (
     <>
       <Header showNeworderButton={false} />
@@ -738,6 +789,76 @@ const handleBillGenerationSave = async () => {
 >
   Save
 </button>
+  </div>
+</div>
+<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+    <h2 className="font-semibold text-gray-800 text-base">
+      KOT Configuration
+    </h2>
+  </div>
+
+  <div className="p-4 space-y-4 min-h-[220px]">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Outlet
+      </label>
+
+   <select
+  value={selectedOutlet}
+  onChange={(e) => {
+    const oltCode = Number(e.target.value);
+
+    setSelectedOutlet(oltCode);
+
+    const config = kotConfigs.find(
+      (x) => x.oltCode === oltCode
+    );
+
+   if (config) {
+  setKotType(config.kotType);
+} else {
+  setKotType("KOT");
+}
+  }}
+  className="w-full border border-gray-300 rounded px-2 py-1"
+>
+  <option value={0}>Select Outlet</option>
+
+  {outlets.map((outlet) => (
+    <option key={outlet.oltCode} value={outlet.oltCode}>
+      {outlet.oltName}
+    </option>
+  ))}
+</select>
+    </div>
+<div className="flex gap-4">
+  <label className="flex items-center gap-2">
+    <input
+      type="radio"
+      name="kotType"
+      checked={kotType === "KOT"}
+      onChange={() => setKotType("KOT")}
+    />
+    KOT
+  </label>
+
+  <label className="flex items-center gap-2">
+    <input
+      type="radio"
+      name="kotType"
+      checked={kotType === "BILL"}
+      onChange={() => setKotType("BILL")}
+    />
+    BILL
+  </label>
+</div>
+    <button
+      onClick={handleKotConfigurationSave}
+      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+    >
+      Save
+    </button>
   </div>
 </div>
 
