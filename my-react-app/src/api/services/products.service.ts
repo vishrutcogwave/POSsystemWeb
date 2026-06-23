@@ -4488,3 +4488,71 @@ export const deleteCatGroupSettings = async (
     throw error;
   }
 };
+
+
+
+export const saveBillGenerationSettings = async (payload: {
+  branchCode: string;
+  billingType: string;
+  subBillingType: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/UtilitySetting/BillGeneration",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving Bill Generation Settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+
+
+export const getBillGenerationSettings = async (
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UtilitySetting/GetBillGenerationData",
+      {
+        params: {
+          Branch_Code: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Bill Generation Settings:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

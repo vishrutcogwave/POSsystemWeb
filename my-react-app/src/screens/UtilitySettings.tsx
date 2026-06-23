@@ -8,12 +8,14 @@ import toast from "react-hot-toast";
 import { useAppContext } from "../context/AppContext";
 
 import {
+  getBillGenerationSettings,
   getDiscountModeSettings,
   getFinancialSettings,
   getHappyHoursSettings,
   getKOTTimerSettings,
   getSMSSenderSettings,
   getTaxModeSettings,
+  saveBillGenerationSettings,
   saveOrUpdateFinancialSettings,
   saveOrUpdateHappyHoursSettings,
   saveOrUpdateKOTTimerSettings,
@@ -26,7 +28,7 @@ export default function UtilitySettings() {
   const { appData } = useAppContext();
 
 const [happyHoursLoading, setHappyHoursLoading] = useState(false);
-
+const [billLoading, setBillLoading] = useState(false);
 const [kotLoading, setKotLoading] = useState(false);
 
 const [financialLoading, setFinancialLoading] = useState(false);
@@ -44,6 +46,10 @@ const [smsLoading, setSmsLoading] = useState(false);
     hhTo: "",
   });
 
+const [billMode, setBillMode] = useState<
+  "Continuous" | "OutletWise" | "DayWise" | ""
+>("");
+const [dayWiseType, setDayWiseType] = useState("Continuous");
   const [kotForm, setKotForm] = useState({
     timerRequired: false,
     timerMinute: 0,
@@ -87,6 +93,58 @@ const [smsLoading, setSmsLoading] = useState(false);
     dayCloseGraceHour: 0,
   });
 
+const fetchBillGenerationSettings = async () => {
+  try {
+    setBillLoading(true);
+
+    const res = await getBillGenerationSettings(
+      appData?.user?.branch_code
+    );
+
+    if (res?.success && res?.data?.length > 0) {
+      const data = res.data[0];
+
+      switch (data.billingType) {
+        case "C":
+          setBillMode("Continuous");
+          break;
+
+        case "O":
+          setBillMode("OutletWise");
+          break;
+
+        case "D":
+          setBillMode("DayWise");
+
+          switch (data.subBillingType) {
+            case "C":
+              setDayWiseType("Continuous");
+              break;
+
+            case "O":
+              setDayWiseType("OutletWise");
+              break;
+
+            case "S":
+              setDayWiseType("Start Daily");
+              break;
+
+            default:
+              setDayWiseType("Continuous");
+          }
+
+          break;
+
+        default:
+          setBillMode("");
+      }
+    }
+  } catch (err: any) {
+    console.error(err);
+  } finally {
+    setBillLoading(false);
+  }
+};
   const fetchSMSSenderSettings = async () => {
     try {
     setSmsLoading(true)
@@ -356,6 +414,7 @@ const [smsLoading, setSmsLoading] = useState(false);
     fetchTaxModeSettings();
     fetchDiscountModeSettings();
     fetchSMSSenderSettings();
+    fetchBillGenerationSettings();
   }, []);
 
   /* =========================
@@ -545,20 +604,65 @@ const [smsLoading, setSmsLoading] = useState(false);
       setKotLoading(false);
     }
   };
+
+
+
+const handleBillGenerationSave = async () => {
+  try {
+    setBillLoading(true);
+
+    const payload = {
+      branchCode: appData?.user?.branch_code,
+
+      billingType:
+        billMode === "Continuous"
+          ? "C"
+          : billMode === "OutletWise"
+          ? "O"
+          : "D",
+
+      subBillingType:
+        billMode === "DayWise"
+          ? dayWiseType === "Continuous"
+            ? "C"
+            : dayWiseType === "OutletWise"
+            ? "O"
+            : "S"
+          : "",
+    };
+
+    const res = await saveBillGenerationSettings(payload);
+
+    if (res?.success) {
+      toast.success("Bill Generation Settings Saved ✅");
+      fetchBillGenerationSettings();
+    } else {
+      toast.error(res?.message || "Failed to save ❌");
+    }
+  } catch (err: any) {
+    toast.error(
+      err?.response?.data?.message ||
+        err?.message ||
+        "Error saving Bill Generation Settings ❌"
+    );
+  } finally {
+    setBillLoading(false);
+  }
+};
   return (
     <>
       <Header showNeworderButton={false} />
 
       <div className="h-[calc(100vh-100px)] overflow-y-auto bg-gray-100 p-3 sm:p-4 md:p-6">
-      {(
+{(
   happyHoursLoading ||
   kotLoading ||
   financialLoading ||
   taxLoading ||
   discountLoading ||
-  smsLoading
+  smsLoading ||
+  billLoading
 ) && <Loader />}
-
         {/* PAGE TITLE */}
 
         <div className="mb-5">
@@ -571,6 +675,71 @@ const [smsLoading, setSmsLoading] = useState(false);
           {/* ================= HAPPY HOURS ================= */}
 
           {/* EMPTY DIV 2 */}
+
+<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+    <h2 className="font-semibold text-gray-800 text-base">
+      Bill Generation Settings
+    </h2>
+  </div>
+
+  <div className="p-4 space-y-4 min-h-[220px]">
+    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+      <input
+        type="checkbox"
+        checked={billMode === "Continuous"}
+        onChange={() => setBillMode("Continuous")}
+        className="w-4 h-4"
+      />
+      Continuous
+    </label>
+
+    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+      <input
+        type="checkbox"
+        checked={billMode === "OutletWise"}
+        onChange={() => setBillMode("OutletWise")}
+        className="w-4 h-4"
+      />
+      OutletWise
+    </label>
+
+    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+      <input
+        type="checkbox"
+        checked={billMode === "DayWise"}
+        onChange={() => setBillMode("DayWise")}
+        className="w-4 h-4"
+      />
+      Day Wise
+    </label>
+
+    {billMode === "DayWise" && (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Day Wise Type
+        </label>
+
+        <select
+          value={dayWiseType}
+          onChange={(e) => setDayWiseType(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+        >
+          <option value="Continuous">Continuous</option>
+          <option value="OutletWise">OutletWise</option>
+          <option value="Start Daily">Start Daily</option>
+        </select>
+      </div>
+    )}
+
+<button
+  onClick={handleBillGenerationSave}
+  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition"
+>
+  Save
+</button>
+  </div>
+</div>
 
           {/* ================= KOT TIMER SETTINGS ================= */}
 
