@@ -2299,18 +2299,47 @@ if (
             Cancel
           </button>
 
-          <button
-            onClick={handleAddonConfirm}
-            className="
-              rounded-xl
-              bg-[#0576B2]
-              px-5 py-2
-              text-sm sm:text-base
-              font-semibold text-white
-            "
-          >
-            Add To Cart
-          </button>
+        <div className="flex gap-3">
+
+  {selectedAddons.length === 0 ? (
+    <button
+      onClick={() => {
+        if (selectedFood) {
+          addItemToCart(
+            selectedFood.food,
+            selectedFood.category
+          );
+        }
+
+        setOpenAddonModal(false);
+        setSelectedAddons([]);
+      }}
+      className="
+        rounded-xl
+        bg-gray-500
+        px-5 py-2
+        text-white
+        font-semibold
+      "
+    >
+      Skip
+    </button>
+  ) : (
+    <button
+      onClick={handleAddonConfirm}
+      className="
+        rounded-xl
+        bg-[#0576B2]
+        px-5 py-2
+        text-white
+        font-semibold
+      "
+    >
+      Add To Cart
+    </button>
+  )}
+
+</div>
         </div>
       </div>
     </div>
