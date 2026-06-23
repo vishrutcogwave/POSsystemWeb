@@ -337,19 +337,61 @@ export default function ReportTable<T extends Record<string, any>>({
                     ))}
                 </tr>
               </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr key={i} className="border-t hover:bg-gray-50">
-                    {columns
-                      .filter((c) => c.key !== outletKey)
-                      .map((col) => (
-                        <td key={String(col.key)} className="px-4 py-2">
-                          {formatValue(row[col.key], String(col.key))}
-                        </td>
-                      ))}
-                  </tr>
-                ))}
-              </tbody>
+            <tbody>
+  {rows.map((row, i) => (
+    <tr key={i} className="border-t hover:bg-gray-50">
+      {columns
+        .filter((c) => c.key !== outletKey)
+        .map((col) => (
+          <td key={String(col.key)} className="px-4 py-2">
+            {formatValue(row[col.key], String(col.key))}
+          </td>
+        ))}
+    </tr>
+  ))}
+
+  {/* Total Row */}
+<tr className="border-t-2 bg-green-600 text-white font-bold">
+    {columns
+      .filter((c) => c.key !== outletKey)
+      .map((col, index) => {
+        const key = String(col.key).toLowerCase();
+
+        const totalColumns = [
+          "billamount",
+          "discount",
+          "tax",
+          "roundoff",
+          "cgst",
+          "sgst",
+          "total",
+        ];
+
+        if (index === 0) {
+          return (
+            <td key={String(col.key)} className="px-4 py-2">
+              Total
+            </td>
+          );
+        }
+
+        if (totalColumns.includes(key)) {
+          const total = rows.reduce(
+            (sum, row) => sum + (parseFloat(row[col.key]) || 0),
+            0
+          );
+
+          return (
+            <td key={String(col.key)} className="px-4 py-2">
+              {total.toFixed(2)}
+            </td>
+          );
+        }
+
+        return <td key={String(col.key)} className="px-4 py-2">-</td>;
+      })}
+  </tr>
+</tbody>
             </table>
           </div>
         </div>

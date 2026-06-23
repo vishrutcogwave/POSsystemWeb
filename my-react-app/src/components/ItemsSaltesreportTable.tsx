@@ -362,7 +362,7 @@ Object.entries(groupedData).forEach(([outletName, groups], sectionIndex) => {
     ))}
   </tr>
 </thead>
-          <tbody>
+<tbody>
   {(rows as T[]).map((row: T, i: number) => (
     <tr key={i} className="border-t hover:bg-gray-50">
       {columns.map((col) => (
@@ -375,6 +375,55 @@ Object.entries(groupedData).forEach(([outletName, groups], sectionIndex) => {
       ))}
     </tr>
   ))}
+
+  {/* Total Row */}
+  <tr className="border-t-2 bg-green-600 text-white font-bold">
+    {columns.map((col, index) => {
+      const key = String(col.key).toLowerCase();
+
+      if (index === 0) {
+        return (
+          <td key={String(col.key)} className="px-4 py-3">
+            TOTAL
+          </td>
+        );
+      }
+
+      if (key === "quantity") {
+        const qtyTotal = (rows as T[]).reduce(
+          (sum: number, row: any) =>
+            sum + (parseFloat(row[col.key]) || 0),
+          0
+        );
+
+        return (
+          <td key={String(col.key)} className="px-4 py-3">
+            {qtyTotal}
+          </td>
+        );
+      }
+
+      if (key === "total") {
+        const amountTotal = (rows as T[]).reduce(
+          (sum: number, row: any) =>
+            sum + (parseFloat(row[col.key]) || 0),
+          0
+        );
+
+        return (
+          <td key={String(col.key)} className="px-4 py-3">
+            {amountTotal.toFixed(2)}
+          </td>
+        );
+      }
+
+      return (
+        <td key={String(col.key)} className="px-4 py-3">
+          -
+        </td>
+      );
+    })}
+  </tr>
 </tbody>
           </table>
         </div>

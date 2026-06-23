@@ -376,7 +376,7 @@ const handlePrint = () => {
       ))}
 
       {/* SUMMARY */}
-      <div className="mt-6 border rounded p-4 bg-gray-50">
+     <div className="mt-6 border rounded p-4 bg-green-600 text-white">
         <h3 className="font-semibold mb-3">Summary</h3>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
