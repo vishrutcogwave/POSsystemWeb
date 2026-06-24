@@ -110,25 +110,23 @@ useEffect(() => {
     if (!activeOltCode) return;
 
     try {
-      setLoading(true);
-
       const data = await getCombinedOltItemList(
         activeOltCode,
         branch,
         activeGroup
       );
 
-      // ✅ only available items
       const filteredData = data.map((category: CategoryItem) => ({
         ...category,
         items: category.items.filter((item) => item.oidAvailable),
       }));
 
-      console.log("new items", filteredData);
-
       setItems(filteredData);
     } catch (err) {
       console.error("Error fetching items:", err);
+
+      // ✅ Send empty items on error
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -144,19 +142,19 @@ useEffect(() => {
 
     try {
       const groups = await getItemGroupList(branch);
-      console.log("getItemGroupList",groups);
-      
 
       const results = await Promise.all(
         groups.map((g: any) =>
-          getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
+          getCombinedOltItemList(
+            activeOltCode,
+            branch,
+            Number(g.grpCode)
+          )
         )
       );
 
-      // ✅ FLATTEN FIRST (correct structure)
       const flatCategories = results.flat();
 
-      // ✅ THEN filter items
       const filtered = flatCategories.map((cat: CategoryItem) => ({
         ...cat,
         items: cat.items.filter((item) => item.oidAvailable),
@@ -165,6 +163,9 @@ useEffect(() => {
       setMasterItems(filtered);
     } catch (err) {
       console.error("Error fetching master items:", err);
+
+      // ✅ Send empty master items on error
+      setMasterItems([]);
     }
   };
 

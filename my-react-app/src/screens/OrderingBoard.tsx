@@ -378,23 +378,21 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
 
     return ALPHABETS[index + 1];
   };
-  useEffect(() => {
-    if (!items.length) return;
+useEffect(() => {
+  const mapped: Category[] = items.map((cat: any) => ({
+    id: cat.catCode,
+    name: cat.catName.trim(),
+    image: cat.catthumb || "",
+  }));
 
-    const mapped: Category[] = items.map((cat: any) => ({
-      id: cat.catCode,
-      name: cat.catName.trim(),
-      image: cat.catthumb || "",
-    }));
+  setCategories(mapped);
 
-    setCategories(mapped);
+  if (mapped.length > 0) {
+    setActiveCategory(mapped[0].id);
+  }
 
-    if (mapped.length > 0) {
-      setActiveCategory(mapped[0].id);
-    }
-
-    setCategoryLoading(false);
-  }, [items]);
+  setCategoryLoading(false);
+}, [items]);
 
   /* ---------------- BILL STATES ---------------- */
 
