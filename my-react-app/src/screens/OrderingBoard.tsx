@@ -296,7 +296,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       });
 
       // ✅ combine all food items from all KOTs
-      if (!items.length) return;
+      // if (!items.length) return;
 
       const allFoods = data.flatMap((order: any) => order.food);
 
