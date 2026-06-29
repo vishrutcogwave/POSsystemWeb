@@ -80,7 +80,7 @@ const [_companyLoading, setCompanyLoading] = useState(false);
 const startOwnDevicePayment = async (
   amount: number
 ) => {
-  console.log(amount);
+  const amountInPaise = Math.round(amount * 100);
   
   try {
     setOwnPaymentLoading(true);
@@ -89,7 +89,7 @@ const startOwnDevicePayment = async (
 
     const sendRes =
       await sendPaymentRequestOwnDevice(
-        100,
+        amountInPaise,
         transNo
       );
 
@@ -242,11 +242,11 @@ const startDevicePayment = async (
     setDevicePaymentLoading(true);
 
     const transNo = `TXN${Date.now()}`;
-
+const amountInPaise = Math.round(amount * 100);
     // SEND PAYMENT
     const sendRes =
       await sendPaymentRequestDQRDevice(
-        100,
+        amountInPaise,
         transNo
       );
 

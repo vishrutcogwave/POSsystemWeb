@@ -312,9 +312,10 @@ const removeCharge = (
       setDevicePaymentLoading(true);
 
       const transNo = `TXN${Date.now()}`;
+const amountInPaise = Math.round(amount * 100);
 
       // SEND PAYMENT
-      const sendRes = await sendPaymentRequestDQRDevice(100, transNo);
+      const sendRes = await sendPaymentRequestDQRDevice(amountInPaise, transNo);
 
       console.log("SEND RES", sendRes);
 

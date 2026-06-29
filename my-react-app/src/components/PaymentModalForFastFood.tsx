@@ -70,10 +70,10 @@ const ownPaymentIntervalRef =
       setOwnPaymentLoading(true);
 
       const transNo = `TXN${Date.now()}`;
-
+const amountInPaise = Math.round(amount * 100);
       const sendRes =
         await sendPaymentRequestOwnDevice(
-          100,
+          amountInPaise,
           transNo
         );
 
@@ -233,10 +233,12 @@ const ownPaymentIntervalRef =
 
       const transNo = `TXN${Date.now()}`;
 console.log(amount);
+const amountInPaise = Math.round(amount * 100);
+
 
       const sendRes =
         await sendPaymentRequestDQRDevice(
-          100,
+          amountInPaise,
           transNo
         );
 
