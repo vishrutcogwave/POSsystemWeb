@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import qz from "qz-tray";
 import CategorySidebar from "../components/CategorySidebar";
 import FoodCard from "../components/FoodCard";
 import CartPanel from "../components/CartPanel";
@@ -1345,9 +1344,9 @@ const generateContent = (items: any[]) => ({
 
         let printerName = rawPrinterName;
 
-        if (!printerName || printerName.trim() === "") {
-          printerName = await qz.printers.getDefault();
-        }
+    if (!printerName || printerName.trim() === "") {
+  printerName = "";
+}
 
         const isThermal =
           printerName.toLowerCase().includes("pos") ||
