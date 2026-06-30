@@ -10,6 +10,10 @@ import CursorEffect from "./components/CursorEffect";
 
 export default function App() {
 useEffect(() => {
+  // License endpoint
+  JSPM.JSPrintManager.license_url =
+    "https://possystemwebapi.cogvwave.in/jspm";
+
   JSPM.JSPrintManager.auto_reconnect = true;
 
   JSPM.JSPrintManager.start();

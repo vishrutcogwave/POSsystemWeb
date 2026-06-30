@@ -90,8 +90,12 @@ export default function ChangeSheetDataTable({
         .toLowerCase()
         .includes(search.toLowerCase());
 
-      const outletMatch =
-        selectedOutlet === "All" || row.oltName === selectedOutlet;
+   const selectedOutletName =
+  outlets.find((o) => o.id === selectedOutlet)?.label;
+
+const outletMatch =
+  selectedOutlet === "All" ||
+  row.oltName === selectedOutletName;
 
       return textMatch && outletMatch;
     });
@@ -260,11 +264,11 @@ const handlePrint = () => {
             className="border rounded px-3 py-2 text-sm"
           >
             <option value="All">All</option>
-            {outlets.map((o) => (
-              <option key={o.id} value={o.label}>
-                {o.label}
-              </option>
-            ))}
+         {outlets.map((o) => (
+  <option key={o.id} value={o.id}>
+    {o.label}
+  </option>
+))}
           </select>
         </div>
 
@@ -345,51 +349,154 @@ const handlePrint = () => {
                 </tr>
               </thead>
 
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={`border-t ${
-                      i % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100`}
-                  >
-                    <td className="px-4 py-2">{row.billNo}</td>
-                    <td className="px-4 py-2">{formatDate(row.billDate)}</td>
-                    <td className="px-4 py-2">{row.billTime}</td>
-                    <td className="px-4 py-2 text-right">{row.itemSale}</td>
-                    <td className="px-4 py-2 text-right">{row.tax}</td>
-                    <td className="px-4 py-2 text-right">{row.cgst}</td>
-                    <td className="px-4 py-2 text-right">{row.sgst}</td>
-                    <td className="px-4 py-2 text-right">{row.total}</td>
-                    <td className="px-4 py-2 text-right">{row.roundOff}</td>
-                    <td className="px-4 py-2 text-right font-medium">{row.grand}</td>
-                    <td className="px-4 py-2 text-right">{row.cash}</td>
-                       <td className="px-4 py-2 text-right">{row.card}</td>
-                    <td className="px-4 py-2 text-right">{row.online}</td>
-                    <td className="px-4 py-2">{row.kbsRefName===""?"-":row.kbsRefName}</td>
-                  </tr>
-                ))}
-              </tbody>
+          <tbody>
+  {rows.map((row, i) => (
+    <tr
+      key={i}
+      className={`border-t ${
+        i % 2 === 0 ? "bg-white" : "bg-gray-50"
+      } hover:bg-gray-100`}
+    >
+      <td className="px-4 py-2">{row.billNo}</td>
+      <td className="px-4 py-2">{formatDate(row.billDate)}</td>
+      <td className="px-4 py-2">{row.billTime}</td>
+      <td className="px-4 py-2 text-right">{row.itemSale}</td>
+      <td className="px-4 py-2 text-right">{row.tax}</td>
+      <td className="px-4 py-2 text-right">{row.cgst}</td>
+      <td className="px-4 py-2 text-right">{row.sgst}</td>
+      <td className="px-4 py-2 text-right">{row.total}</td>
+      <td className="px-4 py-2 text-right">{row.roundOff}</td>
+      <td className="px-4 py-2 text-right">{row.grand}</td>
+      <td className="px-4 py-2 text-right">{row.cash}</td>
+      <td className="px-4 py-2 text-right">{row.card}</td>
+      <td className="px-4 py-2 text-right">{row.online}</td>
+      <td className="px-4 py-2">
+        {row.kbsRefName || "-"}
+      </td>
+    </tr>
+  ))}
+
+  {/* Total Row */}
+  <tr className="bg-green-600 text-white font-bold border-t-2">
+    <td colSpan={3} className="px-4 py-2">
+      Total
+    </td>
+
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2)}
+    </td>
+    <td className="text-right px-4 py-2">
+      {rows.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2)}
+    </td>
+
+    <td>-</td>
+  </tr>
+</tbody>
             </table>
           </div>
         </div>
       ))}
 
-      {/* SUMMARY */}
-     <div className="mt-6 border rounded p-4 bg-green-600 text-white">
-        <h3 className="font-semibold mb-3">Summary</h3>
+     {/* Overall Summary */}
+<div className="mt-6 border rounded p-4 bg-green-600 text-white">
+  <h3 className="font-semibold mb-3">Overall Total</h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <div>Total: {summary.total}</div>
-          <div>Grand: {summary.grand}</div>
-          <div>CGST: {summary.cgst}</div>
-          <div>SGST: {summary.sgst}</div>
-          <div>RoundOff: {summary.roundOff}</div>
-          <div>Cash: {summary.cash}</div>
-          <div>Online: {summary.online}</div>
-          <div>Card: {summary.card}</div>
-        </div>
-      </div>
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+    <div>
+      Sale:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.itemSale || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Tax:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.tax || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      CGST:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.cgst || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      SGST:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.sgst || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Total:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.total || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Round:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.roundOff || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Grand:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.grand || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Cash:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.cash || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Card:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.card || 0), 0)
+        .toFixed(2)}
+    </div>
+
+    <div>
+      Online:{" "}
+      {filteredData
+        .reduce((s, r) => s + Number(r.online || 0), 0)
+        .toFixed(2)}
+    </div>
+  </div>
+</div>
     </div>
   );
 }

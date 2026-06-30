@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ReportTable from "../components/ReportDataTable";
-import { getCombinedOutletAndTableMasterList, getVoidKOTReport } from "../api/services/products.service";
+import { getOutletList, getVoidKOTReport } from "../api/services/products.service";
 
 type Row = Record<string, any>; // Generic row type
 
@@ -9,7 +9,6 @@ export default function Voidkot() {
   const [data, setData] = useState<Row[]>([]);
   const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
-
   const today = new Date();
   const formattedToday = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
 
@@ -18,22 +17,23 @@ export default function Voidkot() {
   const [selectedOutlet, setSelectedOutlet] = useState("All");
 
   // Fetch outlets
-  const fetchOutletData = async () => {
-    try {
-      const data: any[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || ""
-      );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formattedTabs = data.map((outlet) => ({
-        id: outlet.oltCode.toString(),
-        label: outlet.oltName.trim(),
-      }));
-      setOutlets(formattedTabs);
-    } catch (error) {
-      console.error("Error fetching outlets:", error);
-    }
-  };
+    const response = await getOutletList(branchcode);
 
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
   // Fetch Void KOT data
   const fetchData = async () => {
     try {

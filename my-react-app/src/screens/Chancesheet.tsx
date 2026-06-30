@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import ChangeSheetDataTable from "../components/ChangeSheetDataTable";
 import {
-  getCombinedOutletAndTableMasterList,
   getChanceSheetReport,
+  getOutletList,
 } from "../api/services/products.service";
+import { useAppContext } from "../context/AppContext";
 
 type Bill = {
   billNo: string;
@@ -47,7 +48,7 @@ export default function Chancesheet() {
   const [summary, setSummary] = useState<Summary>({} as Summary);
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
-
+const {appData}=useAppContext()
   const today = new Date();
   const formattedToday = today.toISOString().split("T")[0];
 
@@ -58,22 +59,24 @@ export default function Chancesheet() {
   const [selectedOutlet, setSelectedOutlet] = useState<string>("All");
 
   // ---------------- FETCH OUTLETS ----------------
-  const fetchOutletData = async () => {
-    try {
-      const res: any[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || ""
-      );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formatted = res.map((o) => ({
-        id: o.oltCode.toString(),
-        label: o.oltName.trim(),
-      }));
+    const response = await getOutletList(branchcode);
 
-      setOutlets(formatted);
-    } catch (error) {
-      console.error("Outlet error:", error);
-    }
-  };
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+console.log("formattedOutlets",formattedOutlets);
+
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
 
   // ---------------- FETCH DATA ----------------
   const fetchData = async () => {
@@ -81,9 +84,9 @@ export default function Chancesheet() {
       setLoading(true);
 
       const outletId =
-        selectedOutlet === "All" ? "All" : Number(selectedOutlet);
+        selectedOutlet === "All" ? "All" : selectedOutlet;
 
-      const res = await getChanceSheetReport(fromDate, toDate, outletId);
+      const res = await getChanceSheetReport(fromDate, toDate, outletId,appData?.user?.branch_code,);
 
       setData((res?.data || []) as Bill[]);
       setSummary((res?.summary || {}) as Summary);

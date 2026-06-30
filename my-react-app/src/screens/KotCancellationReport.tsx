@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 
 import {
-  getCombinedOutletAndTableMasterList,
   getKotCancellationReport,
+  getOutletList,
 } from "../api/services/products.service";
 
 import { jsPDF } from "jspdf";
@@ -26,7 +26,6 @@ export default function KotCancellationReport() {
   const [outlets, setOutlets] = useState<
     { id: string; label: string }[]
   >([]);
-
   const today = new Date();
 
   const formattedToday =
@@ -45,29 +44,23 @@ export default function KotCancellationReport() {
     useState(true);
 
   // FETCH OUTLETS
-  const fetchOutletData = async () => {
-    try {
-      const res: any[] =
-        await getCombinedOutletAndTableMasterList(
-          localStorage.getItem("branch") || ""
-        );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formattedOutlets = res.map(
-        (outlet) => ({
-          id: outlet.oltCode.toString(),
-          label: outlet.oltName.trim(),
-        })
-      );
+    const response = await getOutletList(branchcode);
 
-      setOutlets(formattedOutlets);
-    } catch (error) {
-      console.error(
-        "Error fetching outlets:",
-        error
-      );
-    }
-  };
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
 
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
   // FETCH REPORT
   const fetchData = async () => {
     try {

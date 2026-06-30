@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 
 import {
-  getCombinedOutletAndTableMasterList,
   getDailySaleCategoryWiseReport,
   getCategoryMasterList,
   getSubCategoryMasterList,
+  getOutletList,
 } from "../api/services/products.service";
 
 import { jsPDF } from "jspdf";
@@ -20,7 +20,6 @@ type Row = Record<string, any> & {
 
 export default function DailysaleCategorywisereport() {
 const [data, setData] = useState<Row[]>([]);
-
 const [summary, setSummary] = useState({
   totalQuantity: 0,
   totalTax: 0,
@@ -77,26 +76,23 @@ const [
     useState(true);
 
   // FETCH OUTLETS
-  const fetchOutletData = async () => {
-    try {
-      const res: any[] =
-        await getCombinedOutletAndTableMasterList(
-          localStorage.getItem("branch") ||
-            ""
-        );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formattedOutlets = res.map(
-        (outlet) => ({
-          id: outlet.oltCode.toString(),
-          label: outlet.oltName.trim(),
-        })
-      );
+    const response = await getOutletList(branchcode);
 
-      setOutlets(formattedOutlets);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
 
   // FETCH CATEGORY
   const fetchCategoryData = async () => {

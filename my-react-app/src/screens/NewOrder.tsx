@@ -116,6 +116,7 @@ const NewOrder: React.FC = () => {
     try {
       const data: Outlet[] = await getCombinedOutletAndTableMasterList(
         localStorage.getItem("branch") || "",
+             appData?.user?.userCode,
       );
 
       const formattedTabs = data.map((outlet) => ({

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 
 import {
-  getCombinedOutletAndTableMasterList,
   getBillCancellationReport,
+  getOutletList,
 } from "../api/services/products.service";
 
 import { jsPDF } from "jspdf";
@@ -11,55 +11,48 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { DataTable } from "../components/DataTableForMasters";
 
-type Row = { id: number; ksmBillNo: string; ksmBillDate: string; totalAmount: number; reason: string; };
+type Row = {
+  id: number;
+  ksmBillNo: string;
+  ksmBillDate: string;
+  totalAmount: number;
+  reason: string;
+};
 
 export default function BillCancellationReport() {
   const [data, setData] = useState<Row[]>([]);
-
-  const [outlets, setOutlets] = useState<
-    { id: string; label: string }[]
-  >([]);
+  const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
 
   const today = new Date();
 
-  const formattedToday =
-    today.toISOString().split("T")[0];
+  const formattedToday = today.toISOString().split("T")[0];
 
-  const [fromDate, setFromDate] =
-    useState(formattedToday);
+  const [fromDate, setFromDate] = useState(formattedToday);
 
-  const [toDate, setToDate] =
-    useState(formattedToday);
+  const [toDate, setToDate] = useState(formattedToday);
 
-  const [selectedOutlet, setSelectedOutlet] =
-    useState("All");
+  const [selectedOutlet, setSelectedOutlet] = useState("All");
 
-  const [isBetweenDates, setIsBetweenDates] =
-    useState(true);
+  const [isBetweenDates, setIsBetweenDates] = useState(true);
 
   // FETCH OUTLETS
-  const fetchOutletData = async () => {
-    try {
-      const res: any[] =
-        await getCombinedOutletAndTableMasterList(
-          localStorage.getItem("branch") || ""
-        );
+ const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formattedOutlets = res.map(
-        (outlet) => ({
-          id: outlet.oltCode.toString(),
-          label: outlet.oltName.trim(),
-        })
-      );
+    const response = await getOutletList(branchcode);
 
-      setOutlets(formattedOutlets);
-    } catch (error) {
-      console.error(
-        "Error fetching outlets:",
-        error
-      );
-    }
-  };
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
 
   // FETCH REPORT
   const fetchData = async () => {
@@ -67,69 +60,43 @@ export default function BillCancellationReport() {
       const outletId: string | number =
         selectedOutlet === "All"
           ? "All"
-          : Number(
-              outlets.find(
-                (o) =>
-                  o.label === selectedOutlet
-              )?.id
-            );
+          : Number(outlets.find((o) => o.label === selectedOutlet)?.id);
 
-      if (
-        !outletId &&
-        selectedOutlet !== "All"
-      )
-        return;
+      if (!outletId && selectedOutlet !== "All") return;
 
-      const response =
-        await getBillCancellationReport({
-          BranchCode:
-            localStorage.getItem("branch") ||
-            "",
+      const response = await getBillCancellationReport({
+        BranchCode: localStorage.getItem("branch") || "",
 
-          IsAsOnDate: !isBetweenDates,
+        IsAsOnDate: !isBetweenDates,
 
-          IsBetweenDates: isBetweenDates,
+        IsBetweenDates: isBetweenDates,
 
-          Date: null,
+        Date: null,
 
-          FromDate: fromDate,
+        FromDate: fromDate,
 
-          ToDate: toDate,
+        ToDate: toDate,
 
-          BillingType: "C",
+        BillingType: "C",
 
-          OutletCode: outletId,
-        });
+        OutletCode: outletId,
+      });
 
-setData(
-  (response || []).map(
-    (
-      item: any,
-      index: number
-    ) => ({
-      id: index + 1,
+      setData(
+        (response || []).map((item: any, index: number) => ({
+          id: index + 1,
 
-      ksmBillNo:
-        item?.ksmBillNo || "",
+          ksmBillNo: item?.ksmBillNo || "",
 
-      ksmBillDate:
-        item?.ksmBillDate
-          ?.split("T")[0] || "",
+          ksmBillDate: item?.ksmBillDate?.split("T")[0] || "",
 
-      totalAmount:
-        item?.totalAmount || 0,
+          totalAmount: item?.totalAmount || 0,
 
-      reason:
-        item?.reason || "",
-    })
-  )
-);
-
-    } catch (error) {
-      console.error(
-        "Error fetching Bill cancellation report:",
-        error
+          reason: item?.reason || "",
+        })),
       );
+    } catch (error) {
+      console.error("Error fetching Bill cancellation report:", error);
     }
   };
 
@@ -141,36 +108,26 @@ setData(
     if (outlets.length > 0) {
       fetchData();
     }
-  }, [
-    fromDate,
-    toDate,
-    selectedOutlet,
-    isBetweenDates,
-    outlets,
-  ]);
+  }, [fromDate, toDate, selectedOutlet, isBetweenDates, outlets]);
 
   // PRINT
   const handlePrint = () => {
-    const printWindow = window.open(
-      "",
-      "_blank"
-    );
+    const printWindow = window.open("", "_blank");
 
     if (!printWindow) return;
 
-const rows = data
-  .map(
-    (row) => `
+    const rows = data
+      .map(
+        (row) => `
     <tr>
       <td>${row.ksmBillNo}</td>
       <td>${row.ksmBillDate}</td>
       <td>${row.totalAmount}</td>
       <td>${row.reason}</td>
     </tr>
-  `
-  )
-  .join("");
-
+  `,
+      )
+      .join("");
 
     printWindow.document.write(`
       <html>
@@ -228,56 +185,34 @@ const rows = data
 
   // DOWNLOAD EXCEL
   const downloadExcel = () => {
-    const worksheet =
-      XLSX.utils.json_to_sheet(data);
+    const worksheet = XLSX.utils.json_to_sheet(data);
 
-    const workbook =
-      XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "Bill Cancellation"
-    );
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bill Cancellation");
 
-    XLSX.writeFile(
-      workbook,
-      "BillCancellationReport.xlsx"
-    );
+    XLSX.writeFile(workbook, "BillCancellationReport.xlsx");
   };
 
   // DOWNLOAD PDF
   const downloadPDF = () => {
     const doc = new jsPDF();
 
-    doc.text(
-      "Bill Cancellation Report",
-      14,
-      15
-    );
+    doc.text("Bill Cancellation Report", 14, 15);
 
     autoTable(doc, {
-    head: [
-  [
-    "Bill No",
-    "Bill Date",
-    "Total Amount",
-    "Reason",
-  ],
-],
-body: data.map((row) => [
-  row.ksmBillNo,
-  row.ksmBillDate,
-  row.totalAmount,
-  row.reason,
-]),
+      head: [["Bill No", "Bill Date", "Total Amount", "Reason"]],
+      body: data.map((row) => [
+        row.ksmBillNo,
+        row.ksmBillDate,
+        row.totalAmount,
+        row.reason,
+      ]),
 
       startY: 25,
     });
 
-    doc.save(
-      "BillCancellationReport.pdf"
-    );
+    doc.save("BillCancellationReport.pdf");
   };
 
   return (
@@ -289,64 +224,41 @@ body: data.map((row) => [
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-wrap gap-4 items-center">
           {/* FROM DATE */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              From Date
-            </label>
+            <label className="text-sm font-medium mb-1">From Date</label>
 
             <input
               type="date"
               value={fromDate}
-              onChange={(e) =>
-                setFromDate(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setFromDate(e.target.value)}
               className="border rounded px-3 py-2"
             />
           </div>
 
           {/* TO DATE */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              To Date
-            </label>
+            <label className="text-sm font-medium mb-1">To Date</label>
 
             <input
               type="date"
               value={toDate}
-              onChange={(e) =>
-                setToDate(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setToDate(e.target.value)}
               className="border rounded px-3 py-2"
             />
           </div>
 
           {/* OUTLET */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              Outlet
-            </label>
+            <label className="text-sm font-medium mb-1">Outlet</label>
 
             <select
               value={selectedOutlet}
-              onChange={(e) =>
-                setSelectedOutlet(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setSelectedOutlet(e.target.value)}
               className="border rounded px-3 py-2 min-w-[220px]"
             >
-              <option value="All">
-                All
-              </option>
+              <option value="All">All</option>
 
               {outlets.map((outlet) => (
-                <option
-                  key={outlet.id}
-                  value={outlet.label}
-                >
+                <option key={outlet.id} value={outlet.label}>
                   {outlet.label}
                 </option>
               ))}
@@ -358,16 +270,10 @@ body: data.map((row) => [
             <input
               type="checkbox"
               checked={isBetweenDates}
-              onChange={(e) =>
-                setIsBetweenDates(
-                  e.target.checked
-                )
-              }
+              onChange={(e) => setIsBetweenDates(e.target.checked)}
             />
 
-            <label className="text-sm font-medium">
-              Is Between Dates
-            </label>
+            <label className="text-sm font-medium">Is Between Dates</label>
           </div>
         </div>
 
@@ -375,9 +281,7 @@ body: data.map((row) => [
         <div className="bg-white rounded-lg shadow-md p-4">
           {/* HEADER */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-semibold">
-              Bill Cancellation Report
-            </h2>
+            <h2 className="text-lg font-semibold">Bill Cancellation Report</h2>
 
             {/* BUTTONS */}
             <div className="flex gap-2">
@@ -405,31 +309,30 @@ body: data.map((row) => [
           </div>
 
           {/* DATATABLE */}
-<DataTable
-  columns={[
-    {
-      header: "Bill No",
-      accessor: "ksmBillNo",
-    },
+          <DataTable
+            columns={[
+              {
+                header: "Bill No",
+                accessor: "ksmBillNo",
+              },
 
-    {
-      header: "Bill Date",
-      accessor: "ksmBillDate",
-    },
+              {
+                header: "Bill Date",
+                accessor: "ksmBillDate",
+              },
 
-    {
-      header: "Total Amount",
-      accessor: "totalAmount",
-    },
+              {
+                header: "Total Amount",
+                accessor: "totalAmount",
+              },
 
-    {
-      header: "Reason",
-      accessor: "reason",
-    },
-  ]}
-  data={data}
-/>
-
+              {
+                header: "Reason",
+                accessor: "reason",
+              },
+            ]}
+            data={data}
+          />
         </div>
       </div>
     </div>

@@ -3,9 +3,9 @@ import Header from "../components/Header";
 import BillReprint from "../components/BillReprint";
 import {
   getFilteredBillDetails,
-  getCombinedOutletAndTableMasterList,
   getReprintBill,
   getCompanyInfo,
+  getOutletList,
 } from "../api/services/products.service";
 import BillReprintAdvancedTable from "../components/BillReprintTable";
 import { reprintBill } from "../api/services/printer";
@@ -20,7 +20,6 @@ export default function BillReprintReport() {
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
 
   const today = new Date().toISOString().split("T")[0];
-
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [outlet, setOutlet] = useState("");
@@ -49,27 +48,23 @@ const [formData, setFormData] = useState({
     }
   };
 
-  const fetchOutletData = async () => {
-    try {
-      const res: any[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || "",
-      );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formatted = res.map((o) => ({
-        id: o.oltCode.toString(),
-        label: o.oltName.trim(),
-      }));
+    const response = await getOutletList(branchcode);
 
-      setOutlets(formatted);
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
 
-      // ✅ AUTO SELECT FIRST OUTLET
-      if (formatted.length > 0) {
-        setOutlet(formatted[0].id);
-      }
-    } catch (err) {
-      console.error("Outlet fetch error:", err);
-    }
-  };
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
 
   // ✅ FETCH BILLS
   const fetchBills = async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
-import { getCombinedOutletAndTableMasterList, getItemSalesReport } from "../api/services/products.service";
+import { getItemSalesReport, getOutletList } from "../api/services/products.service";
 import ReportTable from "../components/ItemsSaltesreportTable";
 
 type Row = Record<string, any>; // Generic row type
@@ -16,24 +16,24 @@ export default function ItemSales() {
   const [fromDate, setFromDate] = useState(formattedToday);
   const [toDate, setToDate] = useState(formattedToday);
   const [selectedOutlet, setSelectedOutlet] = useState("All");
-
   // Fetch outlets from API
-  const fetchOutletData = async () => {
-    try {
-      const data: any[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || ""
-      );
+const fetchOutletData = async () => {
+  try {
+    const branchcode = localStorage.getItem("branch") || "";
 
-      const formattedOutlets = data.map((outlet) => ({
-        id: outlet.oltCode.toString(),
-        label: outlet.oltName.trim(),
-      }));
-      setOutlets(formattedOutlets);
-    } catch (error) {
-      console.error("Error fetching outlets:", error);
-    }
-  };
+    const response = await getOutletList(branchcode);
 
+    const formattedOutlets = (response.data || []).map((outlet: any) => ({
+      id: outlet.oltCode.toString(),
+      label: outlet.oltName.trim(),
+    }));
+
+    setOutlets(formattedOutlets);
+  } catch (error) {
+    console.error("Error fetching outlets:", error);
+    setOutlets([]);
+  }
+};
   // Fetch item sales report data based on selected outlet and dates
   const fetchData = async () => {
     try {

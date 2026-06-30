@@ -321,6 +321,7 @@ const handleApplyTax = async () => {
     try {
       const res = await getCombinedOutletAndTableMasterList(
         appData?.user?.branch_code,
+             appData?.user?.userCode,
       );
 
       if (Array.isArray(res)) {

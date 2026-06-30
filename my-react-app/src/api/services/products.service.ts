@@ -9,11 +9,12 @@ export const getBranchesByUser = async (username: string) => {
 };
 export const getCombinedOutletAndTableMasterList = async (
   branchcode: string,
+  usercode:number
 ) => {
   const response = await api.get(
     "/api/POS/GetCombinedOutletandtablemasterList",
     {
-      params: { branchcode },
+      params: { usercode,branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -260,7 +261,8 @@ export const getDailySalesReport = async (
 export const getChanceSheetReport = async (
   fromdate: string,
   todate: string,
-  outlet: number | string,
+  outlet:  string,
+  branchcode:string
 ) => {
   const token = localStorage.getItem("token");
 
@@ -269,6 +271,7 @@ export const getChanceSheetReport = async (
       fromdate,
       todate,
       outlet,
+      branchcode
     },
     headers: {
       Authorization: `Bearer ${token}`,
