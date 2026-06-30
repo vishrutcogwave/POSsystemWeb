@@ -858,7 +858,7 @@ d += "\x1B\x61\x00";
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
     const payload = {
-      userCode: 3,
+      userCode: appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1057,7 +1057,7 @@ d += "\x1B\x61\x00";
     const outlet = localStorage.getItem("activeOltCode") || "";
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
     const payload = {
-      userCode: 3,
+      userCode:  appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1123,7 +1123,7 @@ d += "\x1B\x61\x00";
 
       const payload2 = {
         oltCode: Number(localStorage.getItem("activeOltCode") || 0),
-        userCode: 3,
+        userCode:  appData?.user?.userCode || 0,
 
         billId: res?.fnBillResponse?.billNo || 0,
         billNo: res?.fnBillResponse?.billNo || 0,
@@ -1233,7 +1233,7 @@ const generateContent = (items: any[]) => ({
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
     const payload = {
-      userCode: 3,
+      userCode:  appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1452,7 +1452,7 @@ const generateContent = (items: any[]) => ({
     const food = [...oldFoods, ...newFoods];
 
     return {
-      userCode: 3,
+      userCode:  appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
