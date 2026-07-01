@@ -13,7 +13,7 @@ import BillReprintAdvancedTable from "../components/BillReprintTable";
 export default function BillReprintReport() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [_companyInfo, setCompanyInfo] = useState<any>(null);
   const [data, setData] = useState<any[]>([]);
 
   // ✅ OUTLETS STATE (same as ItemSales)
