@@ -143,7 +143,7 @@ const handleApplyTax = async () => {
 
   // ✅ wait state update
   setTimeout(async () => {
-    await handleSave();
+    await handleSave(taxData);
   }, 0);
 };
   type TaxItem = {

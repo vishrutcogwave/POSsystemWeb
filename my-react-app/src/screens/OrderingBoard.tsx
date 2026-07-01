@@ -32,7 +32,7 @@ import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
 import { useActiveOLT } from "../context/ActiveOLTContext";
 import toast from "react-hot-toast";
-import { printBill, printKOT } from "../api/services/printer";
+// import { printBill, printKOT } from "../api/services/printer";
 import InvoicePopup from "../components/InvoicePopup";
 import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 import PaymentModal from "../components/PaymentModal";
@@ -146,7 +146,7 @@ const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
   const [billData, setBillData] = useState<any>(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const { activeOltName } = useActiveOLT(); // ✅ use context
-  const [companyInfo, setCompanyInfo] = useState<any>(null);
+  const [_companyInfo, setCompanyInfo] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountType, setDiscountType] = useState("");
@@ -652,192 +652,192 @@ const handleAddonConfirm = () => {
 
   setSelectedAddons([]);
 };
-  const getInstructionLines = (codes?: string) => {
-    if (!codes) return [];
+//   const getInstructionLines = (codes?: string) => {
+//     if (!codes) return [];
 
-    const ids = codes.split(",");
+//     const ids = codes.split(",");
 
-    return ids
-      .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
-      .filter(Boolean);
-  };
-const formatThermal = (c: any) => {
-  const width = 42;
+//     return ids
+//       .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
+//       .filter(Boolean);
+//   };
+// const formatThermal = (c: any) => {
+//   const width = 42;
 
 
 
-  const line = "-".repeat(width);
+//   const line = "-".repeat(width);
 
-  // LEFT SAFE MARGIN
-  const pad = (text: string) => {
-    return "  " + text + "\n";
-  };
+//   // LEFT SAFE MARGIN
+//   const pad = (text: string) => {
+//     return "  " + text + "\n";
+//   };
 
-  let d = "";
+//   let d = "";
 
-  // RESET
-  d += "\x1B\x40";
-// CENTER ALIGN
-d += "\x1B\x61\x01";
+//   // RESET
+//   d += "\x1B\x40";
+// // CENTER ALIGN
+// d += "\x1B\x61\x01";
 
-// TITLE FIRST
-d += "\x1B\x45\x01";
-d += (c.title || "") + "\n";
-d += "\x1B\x45\x00";
+// // TITLE FIRST
+// d += "\x1B\x45\x01";
+// d += (c.title || "") + "\n";
+// d += "\x1B\x45\x00";
 
-// OUTLET NAME BELOW
-d += "\x1B\x45\x01";
-d +=
-  (localStorage.getItem("activeOltName") ||
-    "BAR & RESTAURANT") + "\n";
-d += "\x1B\x45\x00";
+// // OUTLET NAME BELOW
+// d += "\x1B\x45\x01";
+// d +=
+//   (localStorage.getItem("activeOltName") ||
+//     "BAR & RESTAURANT") + "\n";
+// d += "\x1B\x45\x00";
 
-d += line + "\n";
+// d += line + "\n";
 
-// LEFT ALIGN
-d += "\x1B\x61\x00";
+// // LEFT ALIGN
+// d += "\x1B\x61\x00";
 
-  // DETAILS
-  d += pad(`KOT : ${c.kotId || ""}`);
-  d += pad(`TBL : ${c.table}-${c.subTable}`);
-  d += pad(`WTR : ${c.waiter}`);
-  d += pad(`PAX : ${c.pax}`);
-  d += pad(
-    `TIME: ${new Date().toLocaleTimeString()}`
-  );
+//   // DETAILS
+//   d += pad(`KOT : ${c.kotId || ""}`);
+//   d += pad(`TBL : ${c.table}-${c.subTable}`);
+//   d += pad(`WTR : ${c.waiter}`);
+//   d += pad(`PAX : ${c.pax}`);
+//   d += pad(
+//     `TIME: ${new Date().toLocaleTimeString()}`
+//   );
 
-  d += line + "\n";
+//   d += line + "\n";
 
-  // HEADER
-  d += "\x1B\x45\x01";
-  d += pad("QTY   ITEM");
-  d += "\x1B\x45\x00";
+//   // HEADER
+//   d += "\x1B\x45\x01";
+//   d += pad("QTY   ITEM");
+//   d += "\x1B\x45\x00";
 
-  d += line + "\n";
+//   d += line + "\n";
 
-  // ITEMS
-  c.items.forEach((item: any) => {
-    const qty = String(item.qty).padEnd(5);
+//   // ITEMS
+//   c.items.forEach((item: any) => {
+//     const qty = String(item.qty).padEnd(5);
 
-    d += pad(`${qty}${item.name}`);
+//     d += pad(`${qty}${item.name}`);
 
-    // INSTRUCTIONS
-    item.instructions?.forEach((i: string) => {
-      d += pad(`* ${i}`);
-    });
-  });
+//     // INSTRUCTIONS
+//     item.instructions?.forEach((i: string) => {
+//       d += pad(`* ${i}`);
+//     });
+//   });
 
-  d += line + "\n";
+//   d += line + "\n";
 
-  // TOTAL
-  const total = c.items.reduce(
-    (s: number, i: any) => s + i.qty,
-    0
-  );
+//   // TOTAL
+//   const total = c.items.reduce(
+//     (s: number, i: any) => s + i.qty,
+//     0
+//   );
 
-  d += "\x1B\x45\x01";
-  d += pad(`ITEMS : ${total}`);
-  d += "\x1B\x45\x00";
+//   d += "\x1B\x45\x01";
+//   d += pad(`ITEMS : ${total}`);
+//   d += "\x1B\x45\x00";
 
-  d += line + "\n";
+//   d += line + "\n";
 
-  // FEED
-  d += "\n\n\n";
+//   // FEED
+//   d += "\n\n\n";
 
-  // CUT
-  d += "\x1D\x56\x41\x10";
+//   // CUT
+//   d += "\x1D\x56\x41\x10";
 
-  return d;
-};
+//   return d;
+// };
 
-  /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
-  const formatHTML = (c: any) => `
-<html>
-<head>
-  <style>
-    @page {
-      size: A4;
-      margin: 0;
-    }
+//   /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
+//   const formatHTML = (c: any) => `
+// <html>
+// <head>
+//   <style>
+//     @page {
+//       size: A4;
+//       margin: 0;
+//     }
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-    }
+//     html, body {
+//       margin: 0;
+//       padding: 0;
+//       width: 100%;
+//     }
 
-    @media print {
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-      }
-    }
+//     @media print {
+//       body {
+//         display: flex;
+//         justify-content: center;
+//         align-items: flex-start;
+//       }
+//     }
 
-    .bill {
-      font-family: monospace;
-      font-size: 12px;
-      width: 240px; /* 🔥 reduced from 260 */
-      padding: 0 12px; /* 🔥 SAFE AREA both sides */
-      box-sizing: border-box;
-    }
+//     .bill {
+//       font-family: monospace;
+//       font-size: 12px;
+//       width: 240px; /* 🔥 reduced from 260 */
+//       padding: 0 12px; /* 🔥 SAFE AREA both sides */
+//       box-sizing: border-box;
+//     }
 
-    .center {
-      text-align: center;
-      font-weight: bold;
-    }
+//     .center {
+//       text-align: center;
+//       font-weight: bold;
+//     }
 
-    .row {
-      display: flex;
-      justify-content: space-between;
-    }
+//     .row {
+//       display: flex;
+//       justify-content: space-between;
+//     }
 
-    .indent {
-      margin-left: 10px;
-    }
-  </style>
-</head>
+//     .indent {
+//       margin-left: 10px;
+//     }
+//   </style>
+// </head>
 
-<body>
-  <div class="bill">
+// <body>
+//   <div class="bill">
 
-    <div class="center">${c.title}</div>
+//     <div class="center">${c.title}</div>
 
-    <hr/>
+//     <hr/>
 
-    <div>Table : ${c.table}</div>
-    <div>SubTbl: ${c.subTable}</div>
-    <div>Waiter: ${c.waiter}</div>
-    <div>Pax   : ${c.pax}</div>
+//     <div>Table : ${c.table}</div>
+//     <div>SubTbl: ${c.subTable}</div>
+//     <div>Waiter: ${c.waiter}</div>
+//     <div>Pax   : ${c.pax}</div>
 
-    <hr/>
+//     <hr/>
 
-    ${c.items
-      .map(
-        (item: any) => `
-      <div class="row">
-        <span>${item.qty}</span>
-        <span>${item.name}</span>
-      </div>
+//     ${c.items
+//       .map(
+//         (item: any) => `
+//       <div class="row">
+//         <span>${item.qty}</span>
+//         <span>${item.name}</span>
+//       </div>
 
-      ${item.instructions
-        .map((i: string) => `<div class="indent">* ${i}</div>`)
-        .join("")}
-    `,
-      )
-      .join("")}
+//       ${item.instructions
+//         .map((i: string) => `<div class="indent">* ${i}</div>`)
+//         .join("")}
+//     `,
+//       )
+//       .join("")}
 
-    <hr/>
+//     <hr/>
 
-    <div>Total Items : ${c.items.reduce(
-      (s: number, i: any) => s + i.qty,
-      0,
-    )}</div>
+//     <div>Total Items : ${c.items.reduce(
+//       (s: number, i: any) => s + i.qty,
+//       0,
+//     )}</div>
 
-  </div>
-</body>
-</html>
-`;
+//   </div>
+// </body>
+// </html>
+// `;
   const handleKOT = async () => {
      if (dayDetails?.openDayResponse?.success === false) {
     setAlertMsg(
@@ -944,32 +944,32 @@ d += "\x1B\x61\x00";
         }
       });
       /* -------- COMMON CONTENT -------- */
-     const generateContent = (items: any[]) => ({
-  title: isNC ? "NC KOT" : "KOT",
+//      const generateContent = (items: any[]) => ({
+//   title: isNC ? "NC KOT" : "KOT",
 
-  kotId:
-    res.kotId ||
-    res.kotID ||
-    res.kotNo ||
-    "",
+//   kotId:
+//     res.kotId ||
+//     res.kotID ||
+//     res.kotNo ||
+//     "",
 
-  table: tableData?.tableNumber,
+//   table: tableData?.tableNumber,
 
-  subTable: selectedSubTable || "A",
+//   subTable: selectedSubTable || "A",
 
-  waiter: session.waiterName,
+//   waiter: session.waiterName,
 
-  pax: session.pax,
+//   pax: session.pax,
 
-  items: items.map((item) => ({
-    qty: item.origQty,
+//   items: items.map((item) => ({
+//     qty: item.origQty,
 
-    name: item.food,
+//     name: item.food,
 
-    instructions: getInstructionLines(item.comment),
+//     instructions: getInstructionLines(item.comment),
 
-  })),
-});
+//   })),
+// });
 
       /* -------- THERMAL FORMAT -------- */
 
@@ -980,7 +980,7 @@ d += "\x1B\x61\x00";
         const items = printerItemMap[rawPrinterName];
         console.log("items", items);
 
-        const content = generateContent(items);
+        // const content = generateContent(items);
 
         // ✅ STEP 1: resolve default printer if empty
         let printerName = rawPrinterName;
@@ -989,32 +989,32 @@ d += "\x1B\x61\x00";
         console.log("Using Printer:", printerName);
 
         // ✅ STEP 2: detect type using REAL printer name
-        const isThermal =
-          printerName.toLowerCase().includes("pos") ||
-          printerName.toLowerCase().includes("thermal");
+        // const isThermal =
+        //   printerName.toLowerCase().includes("pos") ||
+        //   printerName.toLowerCase().includes("thermal");
 
         // ✅ STEP 3: generate correct format
-        const finalData = isThermal
-          ? formatThermal(content)
-          : formatHTML(content);
+        // const finalData = isThermal
+        //   ? formatThermal(content)
+        //   : formatHTML(content);
 
         // ✅ STEP 4: print
-        const result = await printKOT(printerName, finalData, isThermal);
-        if (tableData.fastFood === true) {
-          const printRes = await printBill(
-            billData,
-            res.fnBillResponse,
-            companyInfo,
-          );
-          console.log("printRes", printRes);
-        }
+        // const result = await printKOT(printerName, finalData, isThermal);
+        // if (tableData.fastFood === true) {
+        //   const printRes = await printBill(
+        //     billData,
+        //     res.fnBillResponse,
+        //     companyInfo,
+        //   );
+        //   console.log("printRes", printRes);
+        // }
 
-        if (!result.success) {
-          hasError = true;
+        // if (!result.success) {
+        //   hasError = true;
 
-          const msg = `❌ ${printerName}: ${result.message}`;
-          toast.error(msg);
-        }
+        //   const msg = `❌ ${printerName}: ${result.message}`;
+        //   toast.error(msg);
+        // }
       }
       setCart([]);
       setSession(null);
@@ -1167,50 +1167,50 @@ d += "\x1B\x61\x00";
         }
       });
 
-const generateContent = (items: any[]) => ({
-  title: isNC ? "NC KOT" : "KOT",
-  kotId: res.kotId || "",
-  table: tableData?.tableNumber,
-  subTable: selectedSubTable || "A",
-  waiter: session.waiterName,
-  pax: session.pax,
+// const generateContent = (items: any[]) => ({
+//   title: isNC ? "NC KOT" : "KOT",
+//   kotId: res.kotId || "",
+//   table: tableData?.tableNumber,
+//   subTable: selectedSubTable || "A",
+//   waiter: session.waiterName,
+//   pax: session.pax,
 
-  items: items.map((item) => ({
-    qty: item.origQty,
-    name: item.food,
-    instructions: getInstructionLines(item.comment),
-  })),
-});
+//   items: items.map((item) => ({
+//     qty: item.origQty,
+//     name: item.food,
+//     instructions: getInstructionLines(item.comment),
+//   })),
+// });
 
-      for (const printerName in printerItemMap) {
-        const content = generateContent(printerItemMap[printerName]);
+      // for (const printerName in printerItemMap) {
+      //   // const content = generateContent(printerItemMap[printerName]);
 
-        const isThermal =
-          printerName.toLowerCase().includes("pos") ||
-          printerName.toLowerCase().includes("thermal");
-        console.log("isThermal", isThermal);
+      //   const isThermal =
+      //     printerName.toLowerCase().includes("pos") ||
+      //     printerName.toLowerCase().includes("thermal");
+      //   console.log("isThermal", isThermal);
 
-        const finalData = isThermal
-          ? formatThermal(content)
-          : formatHTML(content);
+      //   // const finalData = isThermal
+      //   //   ? formatThermal(content)
+      //   //   : formatHTML(content);
 
-        await printKOT(printerName, finalData, isThermal);
-      }
+      //   // await printKOT(printerName, finalData, isThermal);
+      // }
 
       /* 🔥 PRINT BILL */
-      if (billData) {
-        const printRes = await printBill(
-          billData,
-          res.fnBillResponse,
-          companyInfo,
-        );
+//       if (billData) {
+//         // const printRes = await printBill(
+//         //   billData,
+//         //   res.fnBillResponse,
+//         //   companyInfo,
+//         // );
 
-     if (!printRes?.success) {
-  throw new Error(
-    printRes?.message || "Print failed"
-  );
-}
-      }
+// //      if (!printRes?.success) {
+// //   throw new Error(
+// //     printRes?.message || "Print failed"
+// //   );
+// // }
+//       }
 
       setCart([]);
       setOpenPayment(false);
@@ -1323,57 +1323,57 @@ const generateContent = (items: any[]) => ({
         }
       });
 
-      const generateContent = (items: any[]) => ({
-        title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
-        table: tableData?.tableNumber,
-        subTable: selectedSubTable || "A",
-        waiter: session.waiterName,
-        pax: session.pax,
-        items: items.map((item) => ({
-          qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
-          name: item.food,
-          instructions: [],
-        })),
-      });
-      let hasError = false;
+      // const generateContent = (items: any[]) => ({
+      //   title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
+      //   table: tableData?.tableNumber,
+      //   subTable: selectedSubTable || "A",
+      //   waiter: session.waiterName,
+      //   pax: session.pax,
+      //   items: items.map((item) => ({
+      //     qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
+      //     name: item.food,
+      //     instructions: [],
+      //   })),
+      // });
+      // let hasError = false;
 
-      for (const rawPrinterName in printerItemMap) {
-        const items = printerItemMap[rawPrinterName];
+//       for (const rawPrinterName in printerItemMap) {
+//         const items = printerItemMap[rawPrinterName];
 
-        const content = generateContent(items);
+//         // const content = generateContent(items);
 
-        let printerName = rawPrinterName;
+//         // let printerName = rawPrinterName;
 
-    if (!printerName || printerName.trim() === "") {
-  printerName = "";
-}
+// //     if (!printerName || printerName.trim() === "") {
+// //   printerName = "";
+// // }
 
-        const isThermal =
-          printerName.toLowerCase().includes("pos") ||
-          printerName.toLowerCase().includes("thermal");
+//         // const isThermal =
+//         //   printerName.toLowerCase().includes("pos") ||
+//         //   printerName.toLowerCase().includes("thermal");
 
-        const finalData = isThermal
-          ? formatThermal(content)
-          : formatHTML(content);
+//         // const finalData = isThermal
+//         //   ? formatThermal(content)
+//         //   : formatHTML(content);
 
-        const result = await printKOT(printerName, finalData, isThermal);
+//         // const result = await printKOT(printerName, finalData, isThermal);
 
-        if (!result.success) {
-          hasError = true;
-          toast.error(`❌ ${printerName}: ${result.message}`);
-        }
-      }
+//         // if (!result.success) {
+//         //   hasError = true;
+//         //   toast.error(`❌ ${printerName}: ${result.message}`);
+//         // }
+//       }
 
       setSelectedVoidItems([]);
       if (tableData.fastFood === undefined) {
         navigate("/NewOrder");
       }
 
-      if (hasError) {
-        toast.error("Some printers failed ❌");
-      } else {
-        toast.success("Items voided & printed successfully ✅");
-      }
+      // if (hasError) {
+      //   toast.error("Some printers failed ❌");
+      // } else {
+      //   toast.success("Items voided & printed successfully ✅");
+      // }
     } catch (err) {
       console.error("Void failed:", err);
       toast.error("Void failed ❌");
@@ -1506,7 +1506,6 @@ const generateContent = (items: any[]) => ({
     };
   };
   const handlePrintBill = async (billData: any) => {
-    debugger
         setKotLoading(true);
     try {
       if (!billData) {
@@ -1518,13 +1517,13 @@ const generateContent = (items: any[]) => ({
       console.log("Bill Posted:", res);
 
       // ✅ 2. PRINT BILL
-      const printRes = await printBill(billData, res, companyInfo);
+      // const printRes = await printBill(billData, res, companyInfo);
 
-  if (!printRes?.success) {
-  throw new Error(
-    printRes?.message || "Print failed"
-  );
-}
+//   if (!printRes?.success) {
+//   throw new Error(
+//     printRes?.message || "Print failed"
+//   );
+// }
 
       toast.success("Bill Printed Successfully ✅");
       if (tableData.fastFood === undefined) {
@@ -1535,6 +1534,9 @@ const generateContent = (items: any[]) => ({
       console.error("Print Bill Error:", err);
       toast.error(err.message || "Print failed ❌");
       return false;
+    }finally{
+        setKotLoading(false);
+
     }
   };
   const handleGetBill = async () => {

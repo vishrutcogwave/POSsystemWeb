@@ -1,6 +1,6 @@
-import { useEffect } from "react";
-import * as JSPM from "jsprintmanager";
-import toast, { Toaster } from "react-hot-toast";
+// import { useEffect } from "react";
+// import * as JSPM from "jsprintmanager";
+import  { Toaster } from "react-hot-toast";
 
 import LandingPage from "./screens/LandingPage";
 import { ItemProvider } from "./context/ItemContext";
@@ -9,25 +9,25 @@ import { AppProvider } from "./context/AppContext";
 import CursorEffect from "./components/CursorEffect";
 
 export default function App() {
-useEffect(() => {
-  // License endpoint
-  JSPM.JSPrintManager.license_url =
-    "https://possystemwebapi.cogvwave.in/jspm";
+// useEffect(() => {
+//   // License endpoint
+//   JSPM.JSPrintManager.license_url =
+//     "https://possystemwebapi.cogvwave.in/jspm";
 
-  JSPM.JSPrintManager.auto_reconnect = true;
+//   JSPM.JSPrintManager.auto_reconnect = true;
 
-  JSPM.JSPrintManager.start();
+//   JSPM.JSPrintManager.start();
 
-  setTimeout(() => {
-    if (JSPM.JSPrintManager.websocket_status === JSPM.WSStatus.Open) {
-      toast.success("🖨️ JSPrintManager Connected");
-    } else {
-      toast.error(
-        "❌ JSPrintManager is not running. Please start the JSPrintManager desktop application."
-      );
-    }
-  }, 1500);
-}, []);
+//   setTimeout(() => {
+//     if (JSPM.JSPrintManager.websocket_status === JSPM.WSStatus.Open) {
+//       toast.success("🖨️ JSPrintManager Connected");
+//     } else {
+//       toast.error(
+//         "❌ JSPrintManager is not running. Please start the JSPrintManager desktop application."
+//       );
+//     }
+//   }, 1500);
+// }, []);
 
   return (
     <>
