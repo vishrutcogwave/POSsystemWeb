@@ -95,7 +95,7 @@ const InvoicePopup: React.FC<Props> = ({
   setDiscountMode,
 }) => {
   const { appData } = useAppContext();
-  const userRights = appData?.userRights?.[0];
+  const userRights = appData?.user;
 
   const maxAmount = Number(userRights?.disAmount || 0);
   const maxPercent = Number(userRights?.disPercent || 0);
