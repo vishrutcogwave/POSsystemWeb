@@ -163,6 +163,10 @@ const handleSettingsAccess = () => {
               <User size={18} className="text-gray-400" />
               <input
                 type="text"
+                  autoComplete="off"
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck={false}
                 placeholder="Username / ID"
                 className="bg-transparent outline-none ml-3 w-full text-sm"
                 value={username}
@@ -189,6 +193,7 @@ const handleSettingsAccess = () => {
 
     <input
       type={showPassword ? "text" : "password"}
+        autoComplete="new-password"
       placeholder="Enter your password"
       className="bg-transparent outline-none ml-3 w-full text-sm"
       value={password}
