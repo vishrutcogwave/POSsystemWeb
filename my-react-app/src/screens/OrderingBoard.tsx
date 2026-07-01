@@ -925,7 +925,7 @@ const handleAddonConfirm = () => {
       vRemarks: "1",
 
       mode: "ADD",
-      subBillType: "S",
+      subBillType: billGenerationSettings.subBillingType,
       plan: "",
       guestName: "adc",
       guestCode: "234",
@@ -1124,7 +1124,7 @@ const handleAddonConfirm = () => {
       vRemarks: "1",
       discountGroups: [""],
       mode: "ADD",
-      subBillType: "S",
+       subBillType: billGenerationSettings.subBillingType,
       plan: "",
       guestName: "adc",
       guestCode: "234",
@@ -1308,8 +1308,7 @@ const handleAddonConfirm = () => {
       vRemarks: "1",
       discountGroups: [""],
       mode: "VOID",
-
-      subBillType: "S",
+   subBillType: billGenerationSettings.subBillingType,
       plan: "",
       guestName: "adc",
       guestCode: "234",
@@ -1510,7 +1509,7 @@ const handleAddonConfirm = () => {
       vRemarks: "1",
 
       mode: "ADD",
-      subBillType: "S",
+       subBillType: billGenerationSettings.subBillingType,
       discountGroups: selectedGroups,
       plan: "",
       guestName: "",
