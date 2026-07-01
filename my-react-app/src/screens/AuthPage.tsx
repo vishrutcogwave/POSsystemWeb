@@ -1,4 +1,4 @@
-import { User, Lock, ChevronDown, Shield } from "lucide-react";
+import { User, Lock, ChevronDown, Shield, EyeOff, Eye } from "lucide-react";
 import bgimg from "../assets/authBG.png";
 import { Settings, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -22,6 +22,10 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSettingsAuthOpen, setIsSettingsAuthOpen] = useState(false);
+const [settingsPassword, setSettingsPassword] = useState("");
+const [showSettingsPassword, setShowSettingsPassword] = useState(false);
   const { setAppData } = useAppContext();
   const navigate = useNavigate();
 
@@ -31,7 +35,16 @@ export default function AuthPage() {
       setBaseUrl(savedUrl);
     }
   }, []);
-
+const handleSettingsAccess = () => {
+  if (settingsPassword === "Cogwave@123") {
+    setIsSettingsAuthOpen(false);
+    setIsOpen(true);
+    setSettingsPassword("");
+    toast.success("Access Granted");
+  } else {
+    toast.error("Incorrect Password");
+  }
+};
   const handleSave = () => {
     localStorage.setItem("baseUrl", baseUrl);
     setIsOpen(false);
@@ -166,21 +179,35 @@ export default function AuthPage() {
           </div>
 
           {/* Password */}
-          <div className="mb-6">
-            <label className="text-xs text-gray-400 tracking-wider">
-              SECURE PASSWORD
-            </label>
-            <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700">
-              <Lock size={18} className="text-gray-400" />
-              <input
-                type="text"
-                placeholder="••••••••"
-                className="bg-transparent outline-none ml-3 w-full text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
+        <div className="mb-6">
+  <label className="text-xs text-gray-400 tracking-wider">
+    SECURE PASSWORD
+  </label>
+
+  <div className="mt-2 flex items-center bg-[#1F2937] rounded-xl px-4 py-3 border border-gray-700 focus-within:border-[#0576B2] transition-colors">
+    <Lock size={18} className="text-gray-400" />
+
+    <input
+      type={showPassword ? "text" : "password"}
+      placeholder="Enter your password"
+      className="bg-transparent outline-none ml-3 w-full text-sm"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+    />
+
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="text-gray-400 hover:text-white transition-colors"
+    >
+      {showPassword ? (
+        <EyeOff size={18} />
+      ) : (
+        <Eye size={18} />
+      )}
+    </button>
+  </div>
+</div>
 
           {/* Branch */}
           <div className="mb-8">
@@ -224,17 +251,85 @@ export default function AuthPage() {
             >
               AUTHORIZE & SIGN IN
             </button>
-
-            <button
-              onClick={() => setIsOpen(true)}
-              className="w-14 h-14 flex items-center justify-center rounded-xl bg-[#1F2937] border border-gray-700"
-            >
-              <Settings size={20} className="text-gray-400" />
-            </button>
+<button
+  onClick={() => {
+    setSettingsPassword("");
+    setIsSettingsAuthOpen(true);
+  }}
+  className="w-14 h-14 flex items-center justify-center rounded-xl bg-[#1F2937] border border-gray-700 hover:border-[#0576B2] transition-all"
+>
+  <Settings size={20} className="text-gray-400" />
+</button>
           </div>
         </div>
       </div>
+{isSettingsAuthOpen && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+    <div className="w-full max-w-sm bg-[#111827] border border-gray-700 rounded-2xl p-6 shadow-2xl">
 
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-white">
+          Settings Access
+        </h2>
+
+        <button onClick={() => setIsSettingsAuthOpen(false)}>
+          <X className="text-gray-400 hover:text-white" />
+        </button>
+      </div>
+
+      <p className="text-sm text-gray-400 mb-4">
+        Enter the administrator password.
+      </p>
+
+      <div className="flex items-center bg-[#1F2937] border border-gray-700 rounded-xl px-4 py-3">
+        <Lock size={18} className="text-gray-400" />
+
+        <input
+          type={showSettingsPassword ? "text" : "password"}
+          value={settingsPassword}
+          onChange={(e) => setSettingsPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleSettingsAccess();
+            }
+          }}
+          placeholder="Administrator Password"
+          className="bg-transparent outline-none ml-3 flex-1 text-sm"
+        />
+
+        <button
+          type="button"
+          onClick={() =>
+            setShowSettingsPassword(!showSettingsPassword)
+          }
+          className="text-gray-400 hover:text-white"
+        >
+          {showSettingsPassword ? (
+            <EyeOff size={18} />
+          ) : (
+            <Eye size={18} />
+          )}
+        </button>
+      </div>
+
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={() => setIsSettingsAuthOpen(false)}
+          className="flex-1 py-3 rounded-xl border border-gray-600 hover:bg-gray-800 transition-all"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleSettingsAccess}
+          className="flex-1 py-3 rounded-xl bg-[#0576B2] hover:bg-[#04679c] transition-all"
+        >
+          Unlock
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       {/* Settings Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
