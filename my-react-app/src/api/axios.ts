@@ -44,7 +44,7 @@ Request Payload:
 ${config?.data || "N/A"}
       `;
 
-      // alert(message);
+      alert(message);
 
       console.error("401 Error Details:", {
         method: config?.method,
