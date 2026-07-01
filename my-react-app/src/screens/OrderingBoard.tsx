@@ -12,6 +12,7 @@ import { type Category, type CartItem } from "../utils";
 import {
   createOrder,
   getBill,
+  getBillGenerationSettings,
   getCompanyInfo,
   getDiscountModeMaster,
   getItemGroupList,
@@ -67,6 +68,35 @@ const [addonItems, setAddonItems] = useState<any[]>([]);
 const [selectedFood, setSelectedFood] = useState<any>(null);
 
 const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+
+const [billGenerationSettings, setBillGenerationSettings] = useState({
+  billingType: "C",
+  subBillingType: "",
+});
+
+
+
+const fetchBillGenerationSettings = async () => {
+  try {
+    const branch = localStorage.getItem("branch") || "";
+
+    const res = await getBillGenerationSettings(branch);
+
+    console.log("Bill Generation Settings:", res);
+
+    if (res?.success && res?.data?.length > 0) {
+      setBillGenerationSettings({
+        billingType: res.data[0].billingType,
+        subBillingType: res.data[0].subBillingType,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to fetch Bill Generation Settings", err);
+  }
+};
+
+
+
   const handleUnsettledSubTable = async (item: any) => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -253,6 +283,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     void fetchPaymentModes();
     void fetchDiscountTypes();
     void fetchdayDeatilsData();
+    void fetchBillGenerationSettings()
   }, []);
 
   const fetchSubTables = async () => {
@@ -1556,8 +1587,8 @@ const handleAddonConfirm = () => {
           taxList: res.taxList || [], // ensure taxList is included
           taxType: taxSettings?.taxType, // ✅ ADD THIS
         },
-        billingType: "C",
-        subBillingType: "C",
+       billingType: billGenerationSettings.billingType,
+  subBillingType: billGenerationSettings.subBillingType,
       };
 
       console.log("finalResponse", finalResponse);
@@ -1613,7 +1644,7 @@ if (
       oltCode: Number(bill?.oltCode || 0),
       userCode: Number(bill?.userCode || 0),
 
-      billId: Number(bill?.ksmBillNo || 0),
+      billId: Number(bill?.ksmId || 0),
       billNo: Number(bill?.ksmBillNo || 0),
 
       tableNo: bill?.ksmTblNo || "",
