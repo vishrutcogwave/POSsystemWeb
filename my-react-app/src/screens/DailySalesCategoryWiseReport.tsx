@@ -6,6 +6,7 @@ import {
   getCategoryMasterList,
   getSubCategoryMasterList,
   getOutletList,
+  getBillGenerationSettings,
 } from "../api/services/products.service";
 
 import { jsPDF } from "jspdf";
@@ -177,7 +178,9 @@ const fetchSubCategoryData =
         .map((s) => s.id)
         .join(",");
 
-        
+          const branch = localStorage.getItem("branch") || "";
+
+      const res = await getBillGenerationSettings(branch);
     const response =
       await getDailySaleCategoryWiseReport(
         {
@@ -198,7 +201,7 @@ const fetchSubCategoryData =
 
           ToDate: toDate,
 
-          BillingType: "C",
+          BillingType: res.data[0].billingType || "",
 
           OutletCode: outletId,
 

@@ -3,6 +3,7 @@ import Header from "../components/Header";
 
 import {
   getBillCancellationReport,
+  getBillGenerationSettings,
   getOutletList,
 } from "../api/services/products.service";
 
@@ -64,6 +65,10 @@ export default function BillCancellationReport() {
 
       if (!outletId && selectedOutlet !== "All") return;
 
+        const branch = localStorage.getItem("branch") || "";
+
+      const res = await getBillGenerationSettings(branch);
+
       const response = await getBillCancellationReport({
         BranchCode: localStorage.getItem("branch") || "",
 
@@ -77,7 +82,7 @@ export default function BillCancellationReport() {
 
         ToDate: toDate,
 
-        BillingType: "C",
+        BillingType: res.data[0].billingType || "",
 
         OutletCode: outletId,
       });

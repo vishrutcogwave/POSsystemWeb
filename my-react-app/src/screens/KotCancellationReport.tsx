@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 
 import {
+  getBillGenerationSettings,
   getKotCancellationReport,
   getOutletList,
 } from "../api/services/products.service";
@@ -23,90 +24,68 @@ type Row = {
 export default function KotCancellationReport() {
   const [data, setData] = useState<Row[]>([]);
 
-  const [outlets, setOutlets] = useState<
-    { id: string; label: string }[]
-  >([]);
+  const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
   const today = new Date();
 
-  const formattedToday =
-    today.toISOString().split("T")[0];
+  const formattedToday = today.toISOString().split("T")[0];
 
-  const [fromDate, setFromDate] =
-    useState(formattedToday);
+  const [fromDate, setFromDate] = useState(formattedToday);
 
-  const [toDate, setToDate] =
-    useState(formattedToday);
+  const [toDate, setToDate] = useState(formattedToday);
 
-  const [selectedOutlet, setSelectedOutlet] =
-    useState("All");
+  const [selectedOutlet, setSelectedOutlet] = useState("All");
 
-  const [isBetweenDates, setIsBetweenDates] =
-    useState(true);
+  const [isBetweenDates, setIsBetweenDates] = useState(true);
 
   // FETCH OUTLETS
-const fetchOutletData = async () => {
-  try {
-    const branchcode = localStorage.getItem("branch") || "";
+  const fetchOutletData = async () => {
+    try {
+      const branchcode = localStorage.getItem("branch") || "";
 
-    const response = await getOutletList(branchcode);
+      const response = await getOutletList(branchcode);
 
-    const formattedOutlets = (response.data || []).map((outlet: any) => ({
-      id: outlet.oltCode.toString(),
-      label: outlet.oltName.trim(),
-    }));
+      const formattedOutlets = (response.data || []).map((outlet: any) => ({
+        id: outlet.oltCode.toString(),
+        label: outlet.oltName.trim(),
+      }));
 
-    setOutlets(formattedOutlets);
-  } catch (error) {
-    console.error("Error fetching outlets:", error);
-    setOutlets([]);
-  }
-};
+      setOutlets(formattedOutlets);
+    } catch (error) {
+      console.error("Error fetching outlets:", error);
+      setOutlets([]);
+    }
+  };
   // FETCH REPORT
   const fetchData = async () => {
     try {
       const outletId: string | number =
         selectedOutlet === "All"
           ? "All"
-          : Number(
-              outlets.find(
-                (o) =>
-                  o.label === selectedOutlet
-              )?.id
-            );
+          : Number(outlets.find((o) => o.label === selectedOutlet)?.id);
 
-      if (
-        !outletId &&
-        selectedOutlet !== "All"
-      )
-        return;
+      if (!outletId && selectedOutlet !== "All") return;
+      const branch = localStorage.getItem("branch") || "";
 
-      const response =
-        await getKotCancellationReport({
-          BranchCode:
-            localStorage.getItem("branch") ||
-            "",
-          IsAsOnDate: !isBetweenDates,
-          IsBetweenDates: isBetweenDates,
-          Date: null,
-          FromDate: fromDate,
-          ToDate: toDate,
-          BillingType: "C",
-          OutletCode: outletId,
-        });
+      const res = await getBillGenerationSettings(branch);
+      const response = await getKotCancellationReport({
+        BranchCode: localStorage.getItem("branch") || "",
+        IsAsOnDate: !isBetweenDates,
+        IsBetweenDates: isBetweenDates,
+        Date: null,
+        FromDate: fromDate,
+        ToDate: toDate,
+        BillingType: res.data[0].billingType || "",
+        OutletCode: outletId,
+      });
 
       setData(
-        (response || []).map(
-          (item: any, index: number) => ({
-            id: index + 1,
-            ...item,
-          })
-        )
+        (response || []).map((item: any, index: number) => ({
+          id: index + 1,
+          ...item,
+        })),
       );
     } catch (error) {
-      console.error(
-        "Error fetching KOT cancellation report:",
-        error
-      );
+      console.error("Error fetching KOT cancellation report:", error);
     }
   };
 
@@ -118,20 +97,11 @@ const fetchOutletData = async () => {
     if (outlets.length > 0) {
       fetchData();
     }
-  }, [
-    fromDate,
-    toDate,
-    selectedOutlet,
-    isBetweenDates,
-    outlets,
-  ]);
+  }, [fromDate, toDate, selectedOutlet, isBetweenDates, outlets]);
 
   // PRINT
   const handlePrint = () => {
-    const printWindow = window.open(
-      "",
-      "_blank"
-    );
+    const printWindow = window.open("", "_blank");
 
     if (!printWindow) return;
 
@@ -145,7 +115,7 @@ const fetchOutletData = async () => {
         <td>${row.totalAmount}</td>
         <td>${row.outlet}</td>
       </tr>
-    `
+    `,
       )
       .join("");
 
@@ -206,44 +176,23 @@ const fetchOutletData = async () => {
 
   // DOWNLOAD EXCEL
   const downloadExcel = () => {
-    const worksheet =
-      XLSX.utils.json_to_sheet(data);
+    const worksheet = XLSX.utils.json_to_sheet(data);
 
-    const workbook =
-      XLSX.utils.book_new();
+    const workbook = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      "KOT Cancellation"
-    );
+    XLSX.utils.book_append_sheet(workbook, worksheet, "KOT Cancellation");
 
-    XLSX.writeFile(
-      workbook,
-      "KotCancellationReport.xlsx"
-    );
+    XLSX.writeFile(workbook, "KotCancellationReport.xlsx");
   };
 
   // DOWNLOAD PDF
   const downloadPDF = () => {
     const doc = new jsPDF();
 
-    doc.text(
-      "KOT Cancellation Report",
-      14,
-      15
-    );
+    doc.text("KOT Cancellation Report", 14, 15);
 
     autoTable(doc, {
-      head: [
-        [
-          "KOT No",
-          "KOT Date",
-          "KOT Time",
-          "Total Amount",
-          "Outlet",
-        ],
-      ],
+      head: [["KOT No", "KOT Date", "KOT Time", "Total Amount", "Outlet"]],
 
       body: data.map((row) => [
         row.kotNo,
@@ -256,9 +205,7 @@ const fetchOutletData = async () => {
       startY: 25,
     });
 
-    doc.save(
-      "KotCancellationReport.pdf"
-    );
+    doc.save("KotCancellationReport.pdf");
   };
 
   return (
@@ -270,64 +217,41 @@ const fetchOutletData = async () => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 flex flex-wrap gap-4 items-center">
           {/* FROM DATE */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              From Date
-            </label>
+            <label className="text-sm font-medium mb-1">From Date</label>
 
             <input
               type="date"
               value={fromDate}
-              onChange={(e) =>
-                setFromDate(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setFromDate(e.target.value)}
               className="border rounded px-3 py-2"
             />
           </div>
 
           {/* TO DATE */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              To Date
-            </label>
+            <label className="text-sm font-medium mb-1">To Date</label>
 
             <input
               type="date"
               value={toDate}
-              onChange={(e) =>
-                setToDate(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setToDate(e.target.value)}
               className="border rounded px-3 py-2"
             />
           </div>
 
           {/* OUTLET */}
           <div className="flex flex-col">
-            <label className="text-sm font-medium mb-1">
-              Outlet
-            </label>
+            <label className="text-sm font-medium mb-1">Outlet</label>
 
             <select
               value={selectedOutlet}
-              onChange={(e) =>
-                setSelectedOutlet(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setSelectedOutlet(e.target.value)}
               className="border rounded px-3 py-2 min-w-[220px]"
             >
-              <option value="All">
-                All
-              </option>
+              <option value="All">All</option>
 
               {outlets.map((outlet) => (
-                <option
-                  key={outlet.id}
-                  value={outlet.label}
-                >
+                <option key={outlet.id} value={outlet.label}>
                   {outlet.label}
                 </option>
               ))}
@@ -339,16 +263,10 @@ const fetchOutletData = async () => {
             <input
               type="checkbox"
               checked={isBetweenDates}
-              onChange={(e) =>
-                setIsBetweenDates(
-                  e.target.checked
-                )
-              }
+              onChange={(e) => setIsBetweenDates(e.target.checked)}
             />
 
-            <label className="text-sm font-medium">
-              Is Between Dates
-            </label>
+            <label className="text-sm font-medium">Is Between Dates</label>
           </div>
         </div>
 
@@ -356,9 +274,7 @@ const fetchOutletData = async () => {
         <div className="bg-white rounded-lg shadow-md p-4">
           {/* HEADER */}
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="text-lg font-semibold">
-              KOT Cancellation Report
-            </h2>
+            <h2 className="text-lg font-semibold">KOT Cancellation Report</h2>
 
             {/* BUTTONS */}
             <div className="flex gap-2">

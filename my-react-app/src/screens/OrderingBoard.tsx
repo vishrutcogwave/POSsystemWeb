@@ -70,7 +70,7 @@ const [selectedFood, setSelectedFood] = useState<any>(null);
 const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
 const [billGenerationSettings, setBillGenerationSettings] = useState({
-  billingType: "C",
+  billingType: "",
   subBillingType: "",
 });
 

@@ -9,7 +9,7 @@ import { useAppContext } from "../context/AppContext";
 
 type Bill = {
   billNo: string;
-  billDate: string;
+  date: string;
   billTime: string;
   itemSale: number;
   tax: number;

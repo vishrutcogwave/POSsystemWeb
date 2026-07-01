@@ -6,7 +6,7 @@ import { Menu, Transition } from "@headlessui/react";
 
 type Bill = {
   billNo: string;
-  billDate: string;
+  date: string;
   billTime: string;
   itemSale: number;
   tax: number;
@@ -136,7 +136,7 @@ const outletMatch =
         ]],
         body: rows.map((r) => [
           r.billNo,
-          formatDate(r.billDate),
+          formatDate(r.date),
           r.billTime,
           r.itemSale,
           r.tax,
@@ -189,7 +189,7 @@ const handlePrint = () => {
               (r) => `
             <tr>
               <td>${r.billNo}</td>
-              <td>${formatDate(r.billDate)}</td>
+              <td>${formatDate(r.date)}</td>
               <td>${r.billTime}</td>
               <td>${r.grand}</td>
             </tr>`
@@ -358,7 +358,7 @@ const handlePrint = () => {
       } hover:bg-gray-100`}
     >
       <td className="px-4 py-2">{row.billNo}</td>
-      <td className="px-4 py-2">{formatDate(row.billDate)}</td>
+      <td className="px-4 py-2">{formatDate(row.date)}</td>
       <td className="px-4 py-2">{row.billTime}</td>
       <td className="px-4 py-2 text-right">{row.itemSale}</td>
       <td className="px-4 py-2 text-right">{row.tax}</td>

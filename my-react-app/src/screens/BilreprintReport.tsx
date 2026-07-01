@@ -24,17 +24,17 @@ export default function BillReprintReport() {
   const [toDate, setToDate] = useState(today);
   const [outlet, setOutlet] = useState("");
 
-const [formData, setFormData] = useState({
-  outlet: "",
-  billDate: "",
-  billNo: "",
-  discount: 0,
-  guestName: "",
-  address: "",
-  gstNo: "",
-  stateCode: "",
-  guestGST: false,
-});
+  const [formData, setFormData] = useState({
+    outlet: "",
+    billDate: "",
+    billNo: "",
+    discount: 0,
+    guestName: "",
+    address: "",
+    gstNo: "",
+    stateCode: "",
+    guestGST: false,
+  });
 
   const fetchCompany = async () => {
     try {
@@ -48,23 +48,23 @@ const [formData, setFormData] = useState({
     }
   };
 
-const fetchOutletData = async () => {
-  try {
-    const branchcode = localStorage.getItem("branch") || "";
+  const fetchOutletData = async () => {
+    try {
+      const branchcode = localStorage.getItem("branch") || "";
 
-    const response = await getOutletList(branchcode);
+      const response = await getOutletList(branchcode);
 
-    const formattedOutlets = (response.data || []).map((outlet: any) => ({
-      id: outlet.oltCode.toString(),
-      label: outlet.oltName.trim(),
-    }));
+      const formattedOutlets = (response.data || []).map((outlet: any) => ({
+        id: outlet.oltCode.toString(),
+        label: outlet.oltName.trim(),
+      }));
 
-    setOutlets(formattedOutlets);
-  } catch (error) {
-    console.error("Error fetching outlets:", error);
-    setOutlets([]);
-  }
-};
+      setOutlets(formattedOutlets);
+    } catch (error) {
+      console.error("Error fetching outlets:", error);
+      setOutlets([]);
+    }
+  };
 
   // ✅ FETCH BILLS
   const fetchBills = async () => {
@@ -74,11 +74,11 @@ const fetchOutletData = async () => {
       const outletId = outlet;
 
       if (!outletId) return;
-
+      const branchCode = localStorage.getItem("branch") || "";
       const res = await getFilteredBillDetails({
         fromDate,
         toDate,
-        branchCode: "DEROY",
+        branchCode,
         outlet: outletId,
       });
 
@@ -95,7 +95,7 @@ const fetchOutletData = async () => {
   // ✅ LOAD OUTLETS FIRST
   useEffect(() => {
     fetchOutletData();
-    fetchCompany()
+    fetchCompany();
   }, []);
 
   // ✅ LOAD DATA AFTER OUTLETS + FILTERS
@@ -106,52 +106,52 @@ const fetchOutletData = async () => {
   }, [fromDate, toDate, outlet, outlets]);
 
   // ✅ REPRINT CLICK
- const handleReprintClick = (row: any) => {
-  setFormData((prev) => ({
-    ...prev,
-    billNo: row.ksmBillNo,
-    billDate: row.kbsValidDate?.split("T")[0],
-    discount: row.kbsDiscount || 0,
-    outlet: row.oltCode?.toString(), // ✅ FIXED (important)
-  }));
+  const handleReprintClick = (row: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      billNo: row.ksmBillNo,
+      billDate: row.kbsValidDate?.split("T")[0],
+      discount: row.kbsDiscount || 0,
+      outlet: row.oltCode?.toString(), // ✅ FIXED (important)
+    }));
 
-  setIsOpen(true);
-};
+    setIsOpen(true);
+  };
 
-const handlePrint = async () => {
-  try {
-    const payload: any = {
-      billno: Number(formData.billNo),
-      oltcode: formData.outlet,
-      branchcode: localStorage.getItem("branch"),
-    };
+  const handlePrint = async () => {
+    try {
+      const payload: any = {
+        billno: Number(formData.billNo),
+        oltcode: formData.outlet,
+        branchcode: localStorage.getItem("branch"),
+      };
 
-    // ✅ GST fields only if checkbox checked
-    if (formData.guestGST) {
-      payload.guestName = formData.guestName;
-      payload.address = formData.address;
-      payload.gstNo = formData.gstNo;
-      payload.stateCode = Number(formData.stateCode);
+      // ✅ GST fields only if checkbox checked
+      if (formData.guestGST) {
+        payload.guestName = formData.guestName;
+        payload.address = formData.address;
+        payload.gstNo = formData.gstNo;
+        payload.stateCode = Number(formData.stateCode);
+      }
+
+      console.log("FINAL PAYLOAD:", payload);
+
+      // ✅ FIXED CALL
+      const res = await getReprintBill(payload);
+      console.log(res);
+
+      // const printRes = await reprintBill(
+      //         res,
+      //         formData,
+      //         companyInfo,
+      //       );
+      // console.log("printRes", printRes);
+
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Print Error:", error);
     }
-
-    console.log("FINAL PAYLOAD:", payload);
-
-    // ✅ FIXED CALL
-    const res = await getReprintBill(payload);
-console.log(res);
-
-        // const printRes = await reprintBill(
-        //         res,
-        //         formData,
-        //         companyInfo,
-        //       );
-    // console.log("printRes", printRes);
-
-    setIsOpen(false);
-  } catch (error) {
-    console.error("Print Error:", error);
-  }
-};
+  };
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Header showNeworderButton={false} />
@@ -180,7 +180,9 @@ console.log(res);
         onClose={() => setIsOpen(false)}
         formData={formData}
         setFormData={setFormData}
-        onPrint={handlePrint} outlets={outlets}      />
+        onPrint={handlePrint}
+        outlets={outlets}
+      />
     </div>
   );
 }

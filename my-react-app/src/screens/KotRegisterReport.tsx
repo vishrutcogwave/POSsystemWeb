@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 
 import {
+  getBillGenerationSettings,
   getKotRegisterReport,
   getOutletList,
   getTableMasterList,
@@ -102,7 +103,9 @@ const fetchTableData = async () => {
                   selectedOutlet
               )?.id
             );
+  const branch = localStorage.getItem("branch") || "";
 
+      const res = await getBillGenerationSettings(branch);
       const response =
         await getKotRegisterReport({
           BranchCode:
@@ -122,7 +125,7 @@ const fetchTableData = async () => {
 
           ToDate: toDate,
 
-          BillingType: "C",
+          BillingType: res.data[0].billingType || "",
 
           OutletCode: outletId,
 
