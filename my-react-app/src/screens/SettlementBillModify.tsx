@@ -165,7 +165,7 @@ export default function SettlementBillModify() {
 
           userCode: appData?.user?.userCode,
 
-          billId: selectedBill?.ksmBillNo || 0,
+          billId: selectedBill?.ksmId || 0,
 
           billNo: selectedBill?.ksmBillNo,
 

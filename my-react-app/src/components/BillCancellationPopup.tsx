@@ -972,10 +972,11 @@ return (
 
                       <input
                         type="radio"
-                        checked={
-                          selectedBill?.kotId ===
-                          item?.kotId
-                        }
+                      checked={
+  selectedBill?.ksmBillNo === item?.ksmBillNo
+}
+
+
                         onChange={() =>
                           setSelectedBill(
                             item
