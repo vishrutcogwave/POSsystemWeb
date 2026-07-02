@@ -140,7 +140,7 @@ function CompanyBillSettlement() {
 const handlePaymentSubmit = async (
   data: any
 ) => {
-  debugger
+  
 
   // FULL SETTLEMENT
   if (fullSettlement) {
