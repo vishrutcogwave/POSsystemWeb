@@ -28,10 +28,9 @@ export default function BillModify() {
   const [outlets, setOutlets] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
 
-  useEffect(()=>{
-console.log("billsbillsbillsbills",bills);
-
-  },[bills])
+  useEffect(() => {
+    console.log("billsbillsbillsbills", bills);
+  }, [bills]);
   const [selectedOutlet, setSelectedOutlet] = useState("");
   const [selectedBill, setSelectedBill] = useState("");
   const [modifyData, setModifyData] = useState<any[]>([]);
@@ -123,7 +122,7 @@ console.log("billsbillsbillsbills",bills);
       const filteredBills = (res || []).filter(
         (item: any) => item.ksmBillCancled === false,
       );
-console.log("filteredBills",filteredBills);
+      console.log("filteredBills", filteredBills);
 
       setBills(filteredBills);
       setSelectedBill("");
@@ -137,8 +136,8 @@ console.log("filteredBills",filteredBills);
   // ================= BILL SELECT =================
 
   const handleBillSelect = async (billId: string) => {
-    console.log("billIdbillIdbillId",billId);
-    
+    console.log("billIdbillIdbillId", billId);
+
     setSelectedBill(billId);
 
     const bill = bills.find((x: any) => x.ksmBillNo === Number(billId));
@@ -428,17 +427,14 @@ console.log("filteredBills",filteredBills);
   // };
 
   const handleSave = async () => {
-    
-      console.log("billsssss",bills);
-console.log("selectedBill",selectedBill);
+    console.log("billsssss", bills);
+    console.log("selectedBill", selectedBill);
 
     try {
-      
       const selectedBillData = bills.find(
         (x: any) => x.ksmBillNo === Number(selectedBill),
       );
-      console.log("selectedBillData",selectedBillData);
-      
+      console.log("selectedBillData", selectedBillData);
 
       if (!selectedBillData) {
         toast.error("Please select a bill");
@@ -543,12 +539,12 @@ console.log("selectedBill",selectedBill);
 
       console.log("Calculation Response", calc);
 
-        const bill = bills.find((x: any) => x.ksmBillNo === Number(selectedBill));
-         const settledDate = bill.ksmBillDate?.split("T")[0];
+      const bill = bills.find((x: any) => x.ksmBillNo === Number(selectedBill));
+      const settledDate = bill.ksmBillDate?.split("T")[0];
       // ================= SAVE PAYLOAD =================
       const modifyPayload = {
         ksmId: selectedBillData?.ksmId || 0,
-ksmBillNo:selectedBillData?.ksmBillNo||0,
+        ksmBillNo: selectedBillData?.ksmBillNo || 0,
         kotId: billItems?.[0]?.kotId || 0,
 
         settledDate: settledDate,
@@ -567,18 +563,20 @@ ksmBillNo:selectedBillData?.ksmBillNo||0,
 
         previousBillDiscount: selectedBillData?.ksmBillDiscount || 0,
 
-         isDiscountAdded: Number(discountValue) > 0,
-
+        isDiscountAdded: Number(discountValue) > 0,
 
         discountType: discountType || "",
 
         grpCode: [
-  ...new Set(
-    billItems
-      .map((item: any) => item.grpCode)
-      .filter((code: any) => code != null && code !== 0)
-  ),
-].join(","),
+          ...new Set(
+            billItems
+              .map((item: any) => item.grpCode)
+              .filter((code: any) => code != null && code !== 0),
+          ),
+        ].join(","),
+
+        paymentStatus:selectedBillData?.paymentStatus ||"" ,
+  companyCode:selectedBillData?.companyCode || 0 ,
         foods: billItems.map((item: any) => ({
           kotId: item.kotId,
           itemCode: item.id,
@@ -616,15 +614,15 @@ ksmBillNo:selectedBillData?.ksmBillNo||0,
         },
       };
       console.log("ModifyBillCreateUpdate Payload", modifyPayload);
+      debugger;
       const saveResponse = await modifyBillCreateUpdate(modifyPayload);
- 
 
-if (saveResponse?.success) {
-  const result = saveResponse.data;
+      if (saveResponse?.success) {
+        const result = saveResponse.data;
 
-  await Swal.fire({
-    title: "Bill Modified Successfully",
-    html: `
+        await Swal.fire({
+          title: "Bill Modified Successfully",
+          html: `
       <div style="font-size:16px;">
         <div style="
           background:#fff3cd;
@@ -637,17 +635,17 @@ if (saveResponse?.success) {
         </div>
       </div>
     `,
-    icon: "warning",
-    confirmButtonText: "OK",
-    confirmButtonColor: "#3085d6",
-  });
+          icon: "warning",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#3085d6",
+        });
 
-  // Refresh bill list
-  await fetchBills();
+        // Refresh bill list
+        await fetchBills();
 
-  // Reload selected bill details
-  await handleBillSelect(selectedBill);
-}
+        // Reload selected bill details
+        await handleBillSelect(selectedBill);
+      }
 
       console.log("ModifyBillCreateUpdate Payload", modifyPayload);
       console.log(saveResponse, "saveResponse");
