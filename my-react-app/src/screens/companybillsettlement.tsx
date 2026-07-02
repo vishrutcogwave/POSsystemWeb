@@ -33,6 +33,11 @@ function CompanyBillSettlement() {
     balanceAmount: 0,
   });
 
+  useEffect(()=>{
+    console.log("selectedBillselectedBill",selectedBill);
+    
+
+  },[selectedBill])
   const [fullSettlement, setFullSettlement] = useState(false);
 
   const fetchPaymentModes = async () => {
@@ -135,6 +140,7 @@ function CompanyBillSettlement() {
 const handlePaymentSubmit = async (
   data: any
 ) => {
+  debugger
 
   // FULL SETTLEMENT
   if (fullSettlement) {
@@ -249,7 +255,7 @@ const handlePaymentSubmit = async (
 
               // TOTAL PAYMENT
               amountPaid:
-                currentPayment,
+                    selectedBill.amtPaid,
 
               // PAYMENT EXCLUDING CHARGES
               partialpay:
@@ -344,7 +350,7 @@ const handlePaymentSubmit = async (
       selectedBill?.billAmt,
 
     amountPaid:
-      data?.total || 0,
+          selectedBill.amtPaid || 0,
 
     partialpay:
       data?.total || 0,
@@ -503,56 +509,32 @@ fullChargesDetails:
     ) || 0;
 
 const enteredAmount =
-  Number(
-    bill.amountPaid || 0
-  );
+  Number(bill.partialpay || 0); // amount entered in Payment Modal
 
 const actualPaid =
   Math.max(
-    enteredAmount -
-      additionalCharges,
+    enteredAmount - additionalCharges,
     0
   );
 
 return {
+  btId: bill.btId,
+  billNo: bill.billNo,
+  billAmount: bill.billAmount,
 
-  btId:
-    bill.btId,
+  // Already paid amount from selected bill
+  amountPaid: selectedBill?.amtPaid || 0,
 
-  billNo:
-    bill.billNo,
-
-  billAmount:
-    bill.billAmount,
-
-  amountPaid:
-    enteredAmount,
-
-  partialpay:
-    actualPaid,
+  // Newly entered payment amount
+  partialpay: actualPaid,
 
   individualChargesApplied:
-    bill
-      ?.individualChargesApplied ||
+    bill.individualChargesApplied || false,
 
-    false,
-
-  individualCharges:
-    (
-      bill
-        ?.individualCharges ||
-      []
-    ).map((c: any) => ({
-
-      chargesType:
-        c.chargesType,
-
-      chargesAmount:
-        Number(
-          c.chargesAmount ||
-            0
-        ),
-    })),
+  individualCharges: (bill.individualCharges || []).map((c: any) => ({
+    chargesType: c.chargesType,
+    chargesAmount: Number(c.chargesAmount || 0),
+  })),
 };
     }
   ),

@@ -422,6 +422,7 @@ export default function BillModify() {
 
   const handleSave = async () => {
     try {
+      debugger
       const selectedBillData = bills.find(
         (x: any) => x.ksmId === Number(selectedBill),
       );
@@ -536,7 +537,7 @@ export default function BillModify() {
       // ================= SAVE PAYLOAD =================
       const modifyPayload = {
         ksmId: selectedBillData?.ksmId || 0,
-
+ksmBillNo:selectedBillData?.ksmBillNo||0,
         kotId: billItems?.[0]?.kotId || 0,
 
         settledDate: settledDate,
