@@ -233,7 +233,7 @@ const handlePaymentSubmit = async (
             // FETCH API amtPaid
             const oldPaid =
               Number(
-                bill.amtPaid || 0
+                bill?.amtPaid || 0
               );
 
             // CURRENT PAYMENT
@@ -255,7 +255,7 @@ const handlePaymentSubmit = async (
 
               // TOTAL PAYMENT
               amountPaid:
-                    selectedBill.amtPaid,
+                    bill?.amtPaid || 0 ,
 
               // PAYMENT EXCLUDING CHARGES
               partialpay:
@@ -350,7 +350,7 @@ const handlePaymentSubmit = async (
       selectedBill?.billAmt,
 
     amountPaid:
-          selectedBill.amtPaid || 0,
+          selectedBill?.amtPaid || 0,
 
     partialpay:
       data?.total || 0,
@@ -700,7 +700,7 @@ return {
               <tbody>
                 {bills.length > 0 ? (
                   bills.map((item: any) => {
-                    const balance = item.billAmt - item.amtPaid;
+                    const balance = item.billAmt - item?.amtPaid;
 
                     return (
                       <tr key={item.btId} className="hover:bg-gray-50">
@@ -784,7 +784,7 @@ return {
                         </td>
 
                         <td className="border px-3 py-2 text-right">
-                          ₹{item.amtPaid}
+                          ₹{item?.amtPaid}
                         </td>
 
                         <td className="border px-3 py-2 text-right text-red-600 font-semibold">
@@ -829,7 +829,7 @@ return {
           <div className="lg:hidden space-y-4">
             {bills.length > 0 ? (
               bills.map((item: any) => {
-                const balance = item.billAmt - item.amtPaid;
+                const balance = item.billAmt - item?.amtPaid;
 
                 return (
                   <div
@@ -923,7 +923,7 @@ return {
                         <p className="text-gray-500">Paid Amount</p>
 
                         <p className="font-semibold text-green-600">
-                          ₹{item.amtPaid}
+                          ₹{item?.amtPaid}
                         </p>
                       </div>
 
