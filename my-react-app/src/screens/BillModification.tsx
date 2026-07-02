@@ -28,6 +28,10 @@ export default function BillModify() {
   const [outlets, setOutlets] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
 
+  useEffect(()=>{
+console.log("billsbillsbillsbills",bills);
+
+  },[bills])
   const [selectedOutlet, setSelectedOutlet] = useState("");
   const [selectedBill, setSelectedBill] = useState("");
   const [modifyData, setModifyData] = useState<any[]>([]);
@@ -119,6 +123,7 @@ export default function BillModify() {
       const filteredBills = (res || []).filter(
         (item: any) => item.ksmBillCancled === false,
       );
+console.log("filteredBills",filteredBills);
 
       setBills(filteredBills);
       setSelectedBill("");
@@ -132,9 +137,11 @@ export default function BillModify() {
   // ================= BILL SELECT =================
 
   const handleBillSelect = async (billId: string) => {
+    console.log("billIdbillIdbillId",billId);
+    
     setSelectedBill(billId);
 
-    const bill = bills.find((x: any) => x.ksmId === Number(billId));
+    const bill = bills.find((x: any) => x.ksmBillNo === Number(billId));
 
     if (!bill) return;
 
@@ -421,10 +428,14 @@ export default function BillModify() {
   // };
 
   const handleSave = async () => {
+    debugger
+      console.log("billsssss",bills);
+console.log("selectedBill",selectedBill);
+
     try {
-      debugger
+      
       const selectedBillData = bills.find(
-        (x: any) => x.ksmId === Number(selectedBill),
+        (x: any) => x.ksmBillNo === Number(selectedBill),
       );
       console.log("selectedBillData",selectedBillData);
       
@@ -532,7 +543,7 @@ export default function BillModify() {
 
       console.log("Calculation Response", calc);
 
-        const bill = bills.find((x: any) => x.ksmId === Number(selectedBill));
+        const bill = bills.find((x: any) => x.ksmBillNo === Number(selectedBill));
          const settledDate = bill.ksmBillDate?.split("T")[0];
       // ================= SAVE PAYLOAD =================
       const modifyPayload = {
@@ -554,7 +565,7 @@ ksmBillNo:selectedBillData?.ksmBillNo||0,
 
         previousBillTaxAmt: selectedBillData?.ksmBillTaxAmt || 0,
 
-        previousBillDiscount: selectedBillData?.ksmDiscount || 0,
+        previousBillDiscount: selectedBillData?.ksmBillDiscount || 0,
 
          isDiscountAdded: Number(discountValue) > 0,
 
@@ -604,9 +615,7 @@ ksmBillNo:selectedBillData?.ksmBillNo||0,
           taxList: calc.taxList || [],
         },
       };
-
       console.log("ModifyBillCreateUpdate Payload", modifyPayload);
-
       const saveResponse = await modifyBillCreateUpdate(modifyPayload);
  
 
@@ -771,7 +780,7 @@ if (saveResponse?.success) {
                 <option value="">Select Bill</option>
 
                 {bills.map((bill: any) => (
-                  <option key={bill.ksmId} value={bill.ksmId}>
+                  <option key={bill.ksmBillNo} value={bill.ksmBillNo}>
                     {bill.ksmBillNo}
                   </option>
                 ))}
