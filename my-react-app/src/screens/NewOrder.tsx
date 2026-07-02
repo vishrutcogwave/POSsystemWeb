@@ -71,6 +71,7 @@ const NewOrder: React.FC = () => {
   const handleOpenTableTransfer = async (table: Table) => {
     setSelectedTable(table);
     try {
+      
       const outlet = localStorage.getItem("activeOltCode") || "";
 
       const data = await getSubTables(outlet, table.tableNumber,appData?.user?.branch_code);

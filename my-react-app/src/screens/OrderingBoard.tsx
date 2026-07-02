@@ -288,6 +288,7 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
 
   const fetchSubTables = async () => {
     try {
+      setKotLoading(true)
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
@@ -300,6 +301,8 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       }
     } catch (err) {
       console.error("Failed to load subtables", err);
+    }finally{
+      setKotLoading(false)
     }
   };
   const fetchOldCart = async (sub: string) => {
