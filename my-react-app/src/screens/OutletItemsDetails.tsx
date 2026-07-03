@@ -4,9 +4,9 @@ import { DataTable, type Column } from "../components/DataTableForMasters";
 import {
   bulkIncrementItems,
   createOltItemMaster,
-  getCombinedOutletAndTableMasterList,
   getItemGroupList,
   getOutletItemList,
+  getOutletList,
   getTaxMasterList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
@@ -317,31 +317,30 @@ const handleApplyTax = async () => {
       setLoading(false);
     }
   };
-  const fetchOutlets = async () => {
-    try {
-      const res = await getCombinedOutletAndTableMasterList(
-        appData?.user?.branch_code,
-             appData?.user?.userCode,
-      );
+const fetchOutlets = async () => {
+  try {
+    const res = await getOutletList(appData?.user?.branch_code || "");
 
-      if (Array.isArray(res)) {
-        const formatted = res.map((item: any) => ({
-          oltCode: item.oltCode,
-          oltName: item.oltName,
-        }));
+    if (res?.success && Array.isArray(res.data)) {
+      const formatted = res.data.map((item: any) => ({
+        oltCode: item.oltCode,
+        oltName: item.oltName,
+      }));
 
-        setOutlets(formatted);
+      setOutlets(formatted);
 
-        if (formatted.length > 0) {
-          setSelectedOutlet(formatted[0].oltCode);
-        }
+      if (formatted.length > 0) {
+        setSelectedOutlet(formatted[0].oltCode);
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error fetching outlets ❌");
+    } else {
+      setOutlets([]);
+      toast.error("No outlets found");
     }
-  };
-
+  } catch (err) {
+    console.error("Error fetching outlets:", err);
+    toast.error("Error fetching outlets ❌");
+  }
+};
   const fetchGroups = async () => {
     try {
       const res = await getItemGroupList(appData?.user?.branch_code);
