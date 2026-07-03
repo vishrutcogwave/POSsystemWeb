@@ -626,54 +626,61 @@ if (
 const handleAddonConfirm = () => {
   if (!selectedFood) return;
 
-
-  // ✅ ADDONS MERGE
   setCart((prev) => {
     let updatedCart = [...prev];
 
+    // ✅ Add the main item first
+    const existingMain = updatedCart.find(
+      (i) => i.id === selectedFood.food.itemCode && !i.isAddon
+    );
+
+    if (existingMain) {
+      updatedCart = updatedCart.map((i) =>
+        i.id === selectedFood.food.itemCode && !i.isAddon
+          ? { ...i, qty: i.qty + 1 }
+          : i
+      );
+    } else {
+      updatedCart.push({
+        id: selectedFood.food.itemCode,
+        name: selectedFood.food.itemName.trim(),
+        price: selectedFood.food.oidRate,
+        qty: 1,
+        category: selectedFood.category.catCode,
+        grpCode: Number(selectedFood.category.grpCode),
+        spcodes: "",
+        note: "",
+        itemDiscountAllowed:
+          selectedFood.food.itemDiscountAllowed,
+      });
+    }
+
+    // ✅ Add selected add-ons
     selectedAddons.forEach((addon) => {
+      const existingAddon = updatedCart.findIndex(
+        (i) =>
+          i.id === addon.addOnItemCode &&
+          i.isAddon
+      );
 
-      const existingIndex =
-        updatedCart.findIndex(
-          (i) =>
-            i.id === addon.addOnItemCode &&
-            i.isAddon
-        );
-
-      // ✅ ALREADY EXISTS
-      if (existingIndex !== -1) {
-
-        updatedCart[existingIndex] = {
-          ...updatedCart[existingIndex],
-
+      if (existingAddon !== -1) {
+        updatedCart[existingAddon] = {
+          ...updatedCart[existingAddon],
           qty:
-            updatedCart[existingIndex].qty +
+            updatedCart[existingAddon].qty +
             addon.qty,
         };
-
       } else {
-
-        // ✅ NEW ADDON
         updatedCart.push({
           id: addon.addOnItemCode,
-
           name: addon.addOnName,
-
           price: addon.itemRate,
-
           qty: addon.qty,
-
-          category:
-            selectedFood.category.catCode,
-
-          grpCode:
-            selectedFood.category.grpCode,
-
+          category: selectedFood.category.catCode,
+          grpCode: Number(selectedFood.category.grpCode),
           spcodes: "",
           note: "",
-
           isAddon: true,
-
           itemDiscountAllowed: true,
         });
       }
@@ -683,8 +690,8 @@ const handleAddonConfirm = () => {
   });
 
   setOpenAddonModal(false);
-
   setSelectedAddons([]);
+  setSelectedFood(null);
 };
 //   const getInstructionLines = (codes?: string) => {
 //     if (!codes) return [];

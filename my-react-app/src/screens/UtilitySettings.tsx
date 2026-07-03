@@ -1032,21 +1032,15 @@ const handleKotConfigurationSave = async () => {
                 <input
                   type="checkbox"
                   checked={taxModeForm.groupedTax}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
+                onChange={(e) => {
+      const checked = e.target.checked;
 
-                    // prevent both false
-                    if (!checked && !taxModeForm.onbillTax) {
-                      toast.error("At least one Tax Mode must be enabled");
-
-                      return;
-                    }
-
-                    setTaxModeForm({
-                      ...taxModeForm,
-                      groupedTax: checked,
-                    });
-                  }}
+      setTaxModeForm({
+        ...taxModeForm,
+        groupedTax: checked,
+        onbillTax: checked ? false : taxModeForm.onbillTax,
+      });
+    }}
                   className="w-4 h-4"
                 />
                 Grouped Tax
@@ -1058,21 +1052,15 @@ const handleKotConfigurationSave = async () => {
                 <input
                   type="checkbox"
                   checked={taxModeForm.onbillTax}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
+                onChange={(e) => {
+      const checked = e.target.checked;
 
-                    // prevent both false
-                    if (!checked && !taxModeForm.groupedTax) {
-                      toast.error("At least one Tax Mode must be enabled");
-
-                      return;
-                    }
-
-                    setTaxModeForm({
-                      ...taxModeForm,
-                      onbillTax: checked,
-                    });
-                  }}
+      setTaxModeForm({
+        ...taxModeForm,
+        onbillTax: checked,
+        groupedTax: checked ? false : taxModeForm.groupedTax,
+      });
+    }}
                   className="w-4 h-4"
                 />
                 On Bill Tax
@@ -1111,20 +1099,15 @@ const handleKotConfigurationSave = async () => {
                 <input
                   type="checkbox"
                   checked={discountModeForm.onbill}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
+                onChange={(e) => {
+      const checked = e.target.checked;
 
-                    if (!checked && !discountModeForm.groupwise) {
-                      toast.error("At least one Discount Mode must be enabled");
-
-                      return;
-                    }
-
-                    setDiscountModeForm({
-                      ...discountModeForm,
-                      onbill: checked,
-                    });
-                  }}
+      setDiscountModeForm({
+        ...discountModeForm,
+        onbill: checked,
+        groupwise: checked ? false : discountModeForm.groupwise,
+      });
+    }}
                   className="w-4 h-4"
                 />
                 On Bill Discount
@@ -1136,20 +1119,15 @@ const handleKotConfigurationSave = async () => {
                 <input
                   type="checkbox"
                   checked={discountModeForm.groupwise}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
+                   onChange={(e) => {
+      const checked = e.target.checked;
 
-                    if (!checked && !discountModeForm.onbill) {
-                      toast.error("At least one Discount Mode must be enabled");
-
-                      return;
-                    }
-
-                    setDiscountModeForm({
-                      ...discountModeForm,
-                      groupwise: checked,
-                    });
-                  }}
+      setDiscountModeForm({
+        ...discountModeForm,
+        groupwise: checked,
+        onbill: checked ? false : discountModeForm.onbill,
+      });
+    }}
                   className="w-4 h-4"
                 />
                 Groupwise Discount
