@@ -5,6 +5,7 @@ import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 import {
   deleteCatGroupSettings,
+  deleteprintGroupSettings,
   GetCategoryMasterList,
   getOutletList,
   getPrinterSettings,
@@ -32,7 +33,29 @@ export default function PrinterSettings() {
     printType: "KOT",
     grpCode: "",
   });
+const handleDeleteConfiguration = async (grpCode: number) => {
+  try {
+    setLoading(true);
 
+    const res = await deleteprintGroupSettings(
+      grpCode,
+      Number(selectedOutlet),
+      appData?.user?.branch_code
+    );
+
+    if (res?.success) {
+      toast.success(res.message || "Deleted successfully");
+      fetchPrinterSettings(selectedOutlet);
+    } else {
+      toast.error(res.message || "Delete failed");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Error deleting configuration");
+  } finally {
+    setLoading(false);
+  }
+};
   const fetchCategories = async () => {
     try {
       const res = await GetCategoryMasterList(appData?.user?.branch_code);
@@ -419,32 +442,44 @@ export default function PrinterSettings() {
 
           <div className="overflow-x-auto">
             <table className="w-full border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-2">Printer Name</th>
-                  <th className="border p-2">Print Type</th>
-                  <th className="border p-2">Bill Type</th>
-                  <th className="border p-2">Group Code</th>
-                </tr>
-              </thead>
+             <thead>
+  <tr className="bg-gray-100">
+    <th className="border p-2">Printer Name</th>
+    <th className="border p-2">Print Type</th>
+    <th className="border p-2">Bill Type</th>
+    <th className="border p-2">Group Code</th>
+    <th className="border p-2">Action</th>
+  </tr>
+</thead>
 
-              <tbody>
-                {configurations.map((config, index) => (
-                  <tr key={index}>
-                    <td className="border p-2">{config.printerName}</td>
+           <tbody>
+  {configurations.map((config, index) => (
+    <tr key={index}>
+      <td className="border p-2">{config.printerName}</td>
 
-                    <td className="border p-2 text-center">
-                      {config.printType}
-                    </td>
+      <td className="border p-2 text-center">
+        {config.printType}
+      </td>
 
-                    <td className="border p-2 text-center">
-                      {config.billType}
-                    </td>
+      <td className="border p-2 text-center">
+        {config.billType}
+      </td>
 
-                    <td className="border p-2 text-center">{config.grpCode}</td>
-                  </tr>
-                ))}
-              </tbody>
+      <td className="border p-2 text-center">
+        {config.grpCode}
+      </td>
+
+      <td className="border p-2 text-center">
+        <button
+          onClick={() => handleDeleteConfiguration(config.grpCode)}
+          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
             </table>
           </div>
         </div>

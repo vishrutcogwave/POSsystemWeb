@@ -4492,6 +4492,38 @@ export const deleteCatGroupSettings = async (
   }
 };
 
+export const deleteprintGroupSettings = async (
+  grpCode: number,
+  oltCode: number,
+  branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/UtilitySetting/DeletePrinterSettings",
+      {
+        params: {
+          GrpCode: grpCode,
+          OltCode: oltCode,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting cart group:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 
 
 export const saveBillGenerationSettings = async (payload: {
