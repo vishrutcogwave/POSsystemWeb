@@ -614,12 +614,11 @@ export default function BillModify() {
         },
       };
       console.log("ModifyBillCreateUpdate Payload", modifyPayload);
-      debugger;
       const saveResponse = await modifyBillCreateUpdate(modifyPayload);
 
       if (saveResponse?.success) {
         const result = saveResponse.data;
-
+     setLoading(false)
         await Swal.fire({
           title: "Bill Modified Successfully",
           html: `

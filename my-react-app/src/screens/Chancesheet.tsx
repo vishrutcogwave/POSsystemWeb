@@ -42,12 +42,18 @@ type Summary = {
   cheque: number;
   credit: number;
 };
+type RemarksSummary = {
+  particulars: string;
+
+  amount: number;
+};
 
 export default function Chancesheet() {
   const [data, setData] = useState<Bill[]>([]);
   const [summary, setSummary] = useState<Summary>({} as Summary);
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [remarksSummary, setRemarksSummary] = useState<RemarksSummary[]>([]);
 const {appData}=useAppContext()
   const today = new Date();
   const formattedToday = today.toISOString().split("T")[0];
@@ -88,8 +94,9 @@ console.log("formattedOutlets",formattedOutlets);
 
       const res = await getChanceSheetReport(fromDate, toDate, outletId,appData?.user?.branch_code,);
 
-      setData((res?.data || []) as Bill[]);
-      setSummary((res?.summary || {}) as Summary);
+     setData((res?.data || []) as Bill[]);
+setSummary((res?.summary || {}) as Summary);
+setRemarksSummary(res?.remarksSummary || [])
     } catch (error) {
       console.error("API Error:", error);
     } finally {
@@ -116,18 +123,19 @@ console.log("formattedOutlets",formattedOutlets);
       )}
 
       <div className="flex-1 overflow-auto">
-        <ChangeSheetDataTable
-              title="Chance Sheet"
-          data={data}
-          summary={summary}
-          selectedOutlet={selectedOutlet}
-          outlets={outlets}
-          setOutlet={setSelectedOutlet}
-          fromDate={fromDate}
-          toDate={toDate}
-          setFromDate={setFromDate}
-          setToDate={setToDate}
-        />
+     <ChangeSheetDataTable
+  title="Chance Sheet"
+  data={data}
+  summary={summary}
+  remarksSummary={remarksSummary}
+  selectedOutlet={selectedOutlet}
+  outlets={outlets}
+  setOutlet={setSelectedOutlet}
+  fromDate={fromDate}
+  toDate={toDate}
+  setFromDate={setFromDate}
+  setToDate={setToDate}
+/>
       </div>
     </div>
   );

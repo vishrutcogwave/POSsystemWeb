@@ -40,12 +40,19 @@ type Summary = {
   credit: number;
 };
 
+type RemarksSummary = {
+  particulars: string;
+
+  amount: number;
+};
+
 type Props = {
-    title:string 
+  title: string;
   data: Bill[];
   summary: Summary;
-  selectedOutlet: string;
+  remarksSummary: RemarksSummary[];
 
+  selectedOutlet: string;
   outlets: { id: string; label: string }[];
   setOutlet: (val: string) => void;
 
@@ -56,9 +63,10 @@ type Props = {
 };
 
 export default function ChangeSheetDataTable({
-    title,
+  title,
   data,
   summary,
+  remarksSummary,
   selectedOutlet,
   outlets,
   setOutlet,
@@ -497,6 +505,20 @@ const handlePrint = () => {
     </div>
   </div>
 </div>
+{/* Remarks Summary */}
+{remarksSummary.length > 0 && (
+  <div className="mt-6 border rounded p-4 bg-green-600 text-white">
+    <h3 className="font-semibold mb-3">Remarks Summary</h3>
+
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+      {remarksSummary.map((item, index) => (
+        <div key={index}>
+          {item.particulars}: {Number(item.amount || 0).toFixed(2)}
+        </div>
+      ))}
+    </div>
+  </div>
+)}
     </div>
   );
 }
