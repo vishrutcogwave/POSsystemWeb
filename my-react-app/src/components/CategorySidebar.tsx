@@ -32,13 +32,13 @@ export default function CategorySidebar({
             <button
               key={cat.id}
               onClick={() => onSelect(cat.id)}
-              className={`
-                flex flex-col md:flex-row items-center gap-1 md:gap-3
-                p-2 md:p-3
-                min-w-[90px] lg:w-full
-                rounded-xl transition
-                ${isActive ? "bg-[#0576B2] text-white" : "bg-white/5 hover:bg-white/10"}
-              `}
+             className={`
+  flex flex-col md:flex-row items-center gap-2
+  p-2 md:p-3
+  min-w-[130px] md:min-w-[180px] lg:w-full
+  rounded-xl transition
+  ${isActive ? "bg-[#0576B2] text-white" : "bg-white/5 hover:bg-white/10"}
+`}
               title={cat.name} // ← Tooltip with full name
             >
               <img
@@ -51,14 +51,18 @@ export default function CategorySidebar({
                 alt={cat.name}
               />
 
-              <span
-                className="
-                  text-xs md:text-sm font-semibold text-center md:text-left
-                  truncate max-w-[60px] md:max-w-[120px] lg:max-w-full
-                "
-              >
-                {cat.name}
-              </span>
+            <span
+  className="
+    text-xs md:text-sm font-semibold
+    text-center md:text-left
+    whitespace-normal
+    break-words
+    leading-tight
+    w-full
+  "
+>
+  {cat.name}
+</span>
             </button>
           );
         })}

@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto; /* Enable vertical scrolling */
+}
 
-html, body, #root {
-  height: 100%;
-  overflow: hidden;
+body {
+  margin: 0;
 }
 body {
   cursor: default;
