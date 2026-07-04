@@ -55,56 +55,6 @@ export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { activeOltCode } = useActiveOLT();
   const branch = localStorage.getItem("branch") || "";
 
-//   /* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
-//   useEffect(() => {
-//     const fetchItems = async () => {
-//       if (!activeOltCode) return;
-
-//       try {
-//         setLoading(true);
-
-//         const data = await getCombinedOltItemList(
-//           activeOltCode,
-//           branch,
-//           activeGroup
-//         );
-// console.log("new items",data);
-
-//         setItems(data);
-//       } catch (err) {
-//         console.error("Error fetching items:", err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchItems();
-//   }, [activeOltCode, branch, activeGroup]);
-
-//   /* ---------------- FETCH MASTER ITEMS (NEW 🔥) ---------------- */
-//   useEffect(() => {
-//     const fetchAllItems = async () => {
-//       if (!activeOltCode) return;
-
-//       try {
-//         const groups = await getItemGroupList(branch);
-
-//         const results = await Promise.all(
-//           groups.map((g: any) =>
-//             getCombinedOltItemList(activeOltCode, branch, Number(g.grpCode))
-//           )
-//         );
-
-//         setMasterItems(results.flat());
-//       } catch (err) {
-//         console.error("Error fetching master items:", err);
-//       }
-//     };
-
-//     fetchAllItems();
-//   }, [activeOltCode, branch]);
-
-/* ---------------- FETCH UI ITEMS (UNCHANGED) ---------------- */
 useEffect(() => {
   const fetchItems = async () => {
     if (!activeOltCode) return;

@@ -412,17 +412,39 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     return ALPHABETS[index + 1];
   };
 useEffect(() => {
+  if (!items.length) {
+    setCategories([]);
+    return;
+  }
+
+  // Existing categories
   const mapped: Category[] = items.map((cat: any) => ({
     id: cat.catCode,
     name: cat.catName.trim(),
     image: cat.catthumb || "",
   }));
 
-  setCategories(mapped);
+  // Create "All" category
+  const allItems = items.flatMap((cat: any) =>
+    cat.items.map((item: any) => ({
+      ...item,
+      catCode: cat.catCode,
+      grpCode: cat.grpCode,
+    }))
+  );
 
-  if (mapped.length > 0) {
-    setActiveCategory(mapped[0].id);
-  }
+  // Insert All at first
+  setCategories([
+    {
+      id: 0,
+      name: "All",
+      image: "",
+    },
+    ...mapped,
+  ]);
+
+  // Save active category
+  setActiveCategory(0);
 
   setCategoryLoading(false);
 }, [items]);
@@ -459,22 +481,49 @@ useEffect(() => {
   }, [kot]);
 
   /* ---------------- FILTER ITEMS ---------------- */
-  const foods = useMemo(() => {
-    const category = items.find((cat: any) => cat.catCode === activeCategory);
-    if (!category) return [];
+const foods = useMemo(() => {
+  // ALL CATEGORY
+  if (activeCategory === 0) {
+    const allItems = items.flatMap((cat: any) =>
+      cat.items.map((item: any) => ({
+        ...item,
+        catCode: cat.catCode,
+        grpCode: cat.grpCode,
+      }))
+    );
 
     const unique = new Map();
 
-    category.items.forEach((item: any) => {
+    allItems.forEach((item: any) => {
       if (!unique.has(item.itemCode)) {
         unique.set(item.itemCode, item);
       }
     });
 
     return Array.from(unique.values()).filter((item: any) =>
-      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [items, activeCategory, searchTerm]);
+  }
+
+  // NORMAL CATEGORY
+  const category = items.find(
+    (cat: any) => cat.catCode === activeCategory
+  );
+
+  if (!category) return [];
+
+  const unique = new Map();
+
+  category.items.forEach((item: any) => {
+    if (!unique.has(item.itemCode)) {
+      unique.set(item.itemCode, item);
+    }
+  });
+
+  return Array.from(unique.values()).filter((item: any) =>
+    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
   const addItemToCart = (
   food: any,
@@ -523,17 +572,17 @@ const handleAdd = async (
   let selectedCategory: any = null;
   let food: any = null;
 
-  for (const cat of items) {
-    const found = cat.items.find(
-      (i: any) => i.itemCode === itemCode
-    );
+for (const cat of items) {
+  const found = cat.items.find(
+    (i: any) => i.itemCode === itemCode
+  );
 
-    if (found) {
-      selectedCategory = cat;
-      food = found;
-      break;
-    }
+  if (found) {
+    selectedCategory = cat;
+    food = found;
+    break;
   }
+}
 
   if (!food || !selectedCategory) return;
 
