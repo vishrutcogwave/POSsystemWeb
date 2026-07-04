@@ -425,13 +425,6 @@ useEffect(() => {
   }));
 
   // Create "All" category
-  const allItems = items.flatMap((cat: any) =>
-    cat.items.map((item: any) => ({
-      ...item,
-      catCode: cat.catCode,
-      grpCode: cat.grpCode,
-    }))
-  );
 
   // Insert All at first
   setCategories([
