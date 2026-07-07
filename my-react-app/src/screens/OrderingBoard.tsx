@@ -73,8 +73,7 @@ const [billGenerationSettings, setBillGenerationSettings] = useState({
   billingType: "",
   subBillingType: "",
 });
-const directbill = true
-const dontopenkotmodel =true
+
 
 
 const fetchBillGenerationSettings = async () => {
@@ -116,17 +115,24 @@ const fetchBillGenerationSettings = async () => {
     }
   };
 
-  const tableData =
-    (location.state as {
-      tableNumber?: string;
-      status?: "Available" | "Occupied" | "Unsettled";
-      kotStatus: string;
-      fastFood?: boolean;
-      waiter?: string;
-      waiterName?: string; // ✅ ADD THIS
-      pax?: number;
-    }) || {};
-  console.log(tableData, "tableData");
+const tableData =
+  (location.state as {
+    tableNumber?: string;
+    status?: "Available" | "Occupied" | "Unsettled";
+    kotStatus: string;
+    fastFood?: boolean;
+    waiter?: string;
+    waiterName?: string;
+    pax?: number;
+
+    isDirectKOTandBill?: boolean;
+    isDirectPaxandStw?: boolean;
+  }) || {};
+  
+
+const directbill = tableData.isDirectKOTandBill ?? false
+const dontopenkotmodel = tableData.isDirectPaxandStw ??false
+  console.log(directbill,dontopenkotmodel, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
       const newSession = {

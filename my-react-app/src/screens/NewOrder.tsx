@@ -32,6 +32,8 @@ export type Table = {
 type Outlet = {
   oltCode: number;
   oltName: string;
+    isDirectKOTandBill: boolean;
+  isDirectPaxandStw: boolean;
   tables: {
     tblNo: string;
     tableStatus: string;
@@ -60,7 +62,7 @@ const NewOrder: React.FC = () => {
   const [transferTypes, setTransferTypes] = useState<any[]>([]);
   const [oldCartData, setOldcartData] = useState<any[]>([]);
   const { appData } = useAppContext();
-
+const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [selectedSubTableTable, setselectedSubTableTable] = useState<
     string | null
   >(null); // sub table
@@ -115,11 +117,13 @@ const NewOrder: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-        localStorage.getItem("branch") || "",
-             appData?.user?.userCode,
-      );
+  const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+  localStorage.getItem("branch") || "",
+  appData?.user?.userCode,
+);
 
+// ✅ Store the outlet data
+setOutlets(data);
       const formattedTabs = data.map((outlet) => ({
         id: outlet.oltCode.toString(),
         label: outlet.oltName.trim(),
@@ -254,18 +258,24 @@ const NewOrder: React.FC = () => {
   };
 
   /* ---------------- TABLE CLICK ---------------- */
-  const handleTableClick = async (table: Table) => {
-    setSelectedTable(table);
+const handleTableClick = async (table: Table) => {
+  setSelectedTable(table);
 
-    navigate("/OrderingBoard", {
-      state: {
-        tableNumber: table.tableNumber,
-        status: table.status,
-        kotStatus: table.kotStatus,
-      },
-    });
-  };
+  const selectedOutlet = outlets.find(
+    (o) => o.oltCode.toString() === activeTab
+  );
+console.log("table",selectedOutlet);
 
+  navigate("/OrderingBoard", {
+    state: {
+      tableNumber: table.tableNumber,
+      status: table.status,
+      kotStatus: table.kotStatus,
+      isDirectKOTandBill: selectedOutlet?.isDirectKOTandBill ?? false,
+      isDirectPaxandStw: selectedOutlet?.isDirectPaxandStw ?? false,
+    },
+  });
+};
   /* ---------------- SPLIT FASTFOOD ---------------- */
   const fastFoodTab = tabs.find((t) => t.label.toUpperCase().includes("FAST"));
 
