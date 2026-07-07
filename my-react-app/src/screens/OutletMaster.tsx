@@ -30,6 +30,8 @@ type Outlet = {
   oltIsFastFood: boolean;
   oltServiceTaxRequired: boolean;
   inExTax: boolean;
+    isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
 };
 
 export default function OutletMaster() {
@@ -70,6 +72,9 @@ export default function OutletMaster() {
     oltIsFastFood: false,
     oltServiceTaxRequired: false,
     inExTax: false,
+      isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
+    
   });
 
   /* ================= FETCH ================= */
@@ -161,6 +166,9 @@ export default function OutletMaster() {
         kkCess: Number(form.kkCess || 0),
         inExTax: form.inExTax,
         oltIsFastFood: form.oltIsFastFood,
+          isDirectKOTandBill: form.isDirectKOTandBill,
+  isDirectPaxandStw: form.isDirectPaxandStw,
+
       };
 
       const res = await createOutlet(payload);
@@ -183,6 +191,8 @@ export default function OutletMaster() {
         oltIsFastFood: false,
         oltServiceTaxRequired: false,
         inExTax: false,
+          isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
       });
 
         fetchOutlets();
@@ -223,6 +233,9 @@ export default function OutletMaster() {
         kkCess: Number(form.kkCess || 0),
         inExTax: form.inExTax,
         oltIsFastFood: form.oltIsFastFood,
+          isDirectKOTandBill: form.isDirectKOTandBill,
+  isDirectPaxandStw: form.isDirectPaxandStw,
+
       };
 
       const res = await updateOutlet(payload);
@@ -245,6 +258,8 @@ export default function OutletMaster() {
         oltIsFastFood: false,
         oltServiceTaxRequired: false,
         inExTax: false,
+          isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
       });
 
         setIsEdit(false);
@@ -279,6 +294,8 @@ export default function OutletMaster() {
       oltIsFastFood: row.oltIsFastFood,
       oltServiceTaxRequired: row.oltServiceTaxRequired,
       inExTax: row.inExTax,
+        isDirectKOTandBill: row.isDirectKOTandBill,
+  isDirectPaxandStw: row.isDirectPaxandStw,
     });
   };
 
@@ -369,24 +386,26 @@ export default function OutletMaster() {
             </select>
           </div>
 
-          {/* CHECKBOXES */}
-          {[
-            ["oltIsRoomService", "Room Service"],
-            ["oltIsParcelService", "Parcel Service"],
-            ["oltIsFastFood", "Fast Food"],
-            ["oltServiceTaxRequired", "Service Tax"],
-            ["inExTax", "In/Ex Tax"],
-          ].map(([key, label]) => (
-            <div key={key} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                name={key}
-                checked={(form as any)[key]}
-                onChange={handleChange}
-              />
-              <label className="text-sm">{label}</label>
-            </div>
-          ))}
+      {[
+  ["oltIsRoomService", "Room Service"],
+  ["oltIsParcelService", "Parcel Service"],
+  ["oltIsFastFood", "Fast Food"],
+  ["oltServiceTaxRequired", "Service Tax"],
+  ["inExTax", "In/Ex Tax"],
+
+  ["isDirectKOTandBill", "Direct KOT & Bill"],
+  ["isDirectPaxandStw", "Direct Pax & Steward"],
+].map(([key, label]) => (
+  <div key={key} className="flex items-center gap-2">
+    <input
+      type="checkbox"
+      name={key}
+      checked={(form as any)[key]}
+      onChange={handleChange}
+    />
+    <label className="text-sm">{label}</label>
+  </div>
+))}
         </div>
 
         {/* BUTTONS */}
@@ -430,6 +449,8 @@ export default function OutletMaster() {
             oltIsFastFood: false,
             oltServiceTaxRequired: false,
             inExTax: false,
+              isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
           });
 
           await fetchNextCode();
