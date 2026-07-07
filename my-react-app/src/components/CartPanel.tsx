@@ -31,12 +31,14 @@ type CartPanelProps = {
   setShowPast: React.Dispatch<React.SetStateAction<boolean>>;
   openNcModal: boolean;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
+     directbill:boolean
 };
 
 export default function CartPanel({
   openNcModal,
   setOpenNcModal,
   setShowPast,
+  directbill,
   showPast,
   onConvertion,
   selectedVoidItems,
@@ -355,10 +357,10 @@ export default function CartPanel({
                   onClick={onKOT}
                   className="bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm"
                 >
-                  {kotLoading ? "Creating..." : "KOT"}
+                  {directbill ? "BILL" : "KOT"}
                 </button>
               )}
-              {hasVoidPermission && isFastfood === undefined && (
+              {hasVoidPermission &&!directbill && isFastfood === undefined && (
                 <button
                   disabled={selectedVoidItems.length < 0}
                   onClick={onVoid}
@@ -367,7 +369,7 @@ export default function CartPanel({
                   Void
                 </button>
               )}
-              {hasBillPermission &&  (
+              {hasBillPermission && !directbill&& (
                 <button
                   onClick={isFastfood ===undefined ?handleGetBill:onKOT}
                   className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"

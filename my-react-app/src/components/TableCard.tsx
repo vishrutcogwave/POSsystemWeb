@@ -36,11 +36,13 @@ const TableCard: React.FC<TableCardProps> = ({
 
   return (
     <div
+    onClick={handleCardClick}
+    
       className={`relative ${statusStyles} border rounded-lg p-2 pt-7 flex flex-col items-center justify-center gap-1 sm:gap-2 transition hover:shadow-md active:scale-95 cursor-pointer`}
     >
       {/* Badge Row */}
 
-      <span onClick={handleCardClick} >
+      <span  >
       <div  className="absolute top-1 left-1 right-1 flex justify-center">
         {status === "Unsettled" && (
           <div className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md text-xs font-medium">

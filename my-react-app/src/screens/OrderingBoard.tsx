@@ -1617,6 +1617,7 @@ if (
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+        directbill={directbill}
              isFastfood={tableData.fastFood}
           showPast={showPast}
           setShowPast={setShowPast}
@@ -1663,6 +1664,7 @@ if (
 
       {/* MOBILE CART */}
       <MobileCartButton
+         directbill={directbill}
       isFastfood={tableData.fastFood}
         showPast={showPast}
           setShowPast={setShowPast}

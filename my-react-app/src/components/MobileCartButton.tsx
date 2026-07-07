@@ -31,10 +31,12 @@ isFastfood:any
   setShowPast: React.Dispatch<React.SetStateAction<boolean>>;
   openNcModal: boolean;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
+     directbill:boolean
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   openNcModal,
   setOpenNcModal,
+  directbill,
   setShowPast,
   isFastfood,
   showPast,
@@ -89,6 +91,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+                 directbill={directbill}
               isFastfood={isFastfood}
                 showPast={showPast}
                 setShowPast={setShowPast}

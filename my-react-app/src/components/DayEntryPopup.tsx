@@ -59,18 +59,41 @@ const getISODateTime = () => {
   return now.toISOString().slice(0, 19); // removes milliseconds + Z
 };
 
-const handleDayClose = async () => {
+// const handleDayClose = async () => {
    
-  const shiftDate = data?.shiftDate?.split("T")[0];
-  const today = new Date().toISOString().split("T")[0];
+//   const shiftDate = data?.shiftDate?.split("T")[0];
+//   const today = new Date().toISOString().split("T")[0];
 
-  console.log("date", shiftDate, today);
+//   console.log("date", shiftDate, today);
 
-  // ✅ block if same or past date
-  if (today <= shiftDate) {
-    return;
-  }
+//   // ✅ block if same or past date
+//   if (today <= shiftDate) {
+//     return;
+//   }
 
+//   try {
+//     const payload = {
+//       userId: appData?.user?.userCode,
+//       systemTime: getISODateTime(),
+//       posEntryDate: data?.shiftDate,
+//       branchCode: appData?.user?.branch_code,
+//     };
+
+//     const res = await dayClose(payload);
+
+//     setAlertMsg(res?.message || "Success");
+//     setAlertType("success");
+//     setAlertOpen(true);
+
+//     fetchData();
+//   } catch (err: any) {
+//     setAlertMsg(err?.response?.data?.message || "Something went wrong");
+//     setAlertType("error");
+//     setAlertOpen(true);
+//   }
+// };
+
+const handleDayClose = async () => {
   try {
     const payload = {
       userId: appData?.user?.userCode,
@@ -92,8 +115,6 @@ const handleDayClose = async () => {
     setAlertOpen(true);
   }
 };
-
-
 
 const handleDayOpen = async () => {
   try {
