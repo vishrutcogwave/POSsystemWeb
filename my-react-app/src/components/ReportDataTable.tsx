@@ -171,25 +171,75 @@ export default function ReportTable<T extends Record<string, any>>({
   // -------------------- DOWNLOAD --------------------
   const handleDownload = (type: "xlsx" | "pdf") => {
     if (type === "xlsx") {
-      const worksheetData: Record<string, any>[] = [];
+  const worksheetData: Record<string, any>[] = [];
 
-      Object.entries(groupedData).forEach(([outletName, rows]) => {
-        rows.forEach((row) => {
-          const obj: Record<string, any> = { Section: outletName };
-          columns
-            .filter((c) => c.key !== outletKey)
-            .forEach((col) => {
-              obj[col.label] = formatValue(row[col.key], String(col.key));
-            });
-          worksheetData.push(obj);
+  const totalColumns = [
+    "billamount",
+    "discount",
+    "tax",
+    "roundoff",
+    "cgst",
+    "sgst",
+    "total",
+  ];
+
+  Object.entries(groupedData).forEach(([outletName, rows]) => {
+    // Outlet Heading
+    worksheetData.push({
+      [columns[0].label]: outletName,
+    });
+
+    // Data Rows
+    rows.forEach((row) => {
+      const obj: Record<string, any> = {};
+
+      columns
+        .filter((c) => c.key !== outletKey)
+        .forEach((col) => {
+          obj[col.label] = formatValue(row[col.key], String(col.key));
         });
+
+      worksheetData.push(obj);
+    });
+
+    // Total Row
+    const totalRow: Record<string, any> = {};
+
+    columns
+      .filter((c) => c.key !== outletKey)
+      .forEach((col, index) => {
+        const key = String(col.key).toLowerCase();
+
+        if (index === 0) {
+          totalRow[col.label] = "Total";
+        } else if (totalColumns.includes(key)) {
+          totalRow[col.label] = rows
+            .reduce(
+              (sum, row) => sum + (parseFloat(row[col.key]) || 0),
+              0
+            )
+            .toFixed(2);
+        } else {
+          totalRow[col.label] = "-";
+        }
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-      XLSX.writeFile(workbook, "report.xlsx");
-    }
+    worksheetData.push(totalRow);
+
+    // Empty row between outlets
+    worksheetData.push({});
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+
+  XLSX.writeFile(
+    workbook,
+    `${title.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.xlsx`
+  );
+}
 
     if (type === "pdf") {
       const doc = new jsPDF();

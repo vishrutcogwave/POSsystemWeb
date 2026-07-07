@@ -121,12 +121,92 @@ const outletMatch =
   }, [filteredData]);
 
   // EXPORT
-  const handleExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ChangeSheet");
-    XLSX.writeFile(wb, "changesheet.xlsx");
-  };
+ const handleExcel = () => {
+  const excelData: Record<string, any>[] = [];
+
+  Object.entries(groupedData).forEach(([outletName, rows]) => {
+    // Outlet Heading
+    excelData.push({
+      BillNo: outletName,
+    });
+
+    // Data Rows
+    rows.forEach((row) => {
+      excelData.push({
+        BillNo: row.billNo,
+        Date: formatDate(row.date),
+        Time: row.billTime,
+        Sale: row.itemSale,
+        Tax: row.tax,
+        CGST: row.cgst,
+        SGST: row.sgst,
+        Total: row.total,
+        Round: row.roundOff,
+        Grand: row.grand,
+        Cash: row.cash,
+        Card: row.card,
+        Online: row.online,
+        Status: row.kbsRefName || "-",
+      });
+    });
+
+    // Outlet Total
+    excelData.push({
+      BillNo: "Total",
+      Sale: rows.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2),
+      Tax: rows.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2),
+      CGST: rows.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2),
+      SGST: rows.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2),
+      Total: rows.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2),
+      Round: rows.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2),
+      Grand: rows.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2),
+      Cash: rows.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2),
+      Card: rows.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2),
+      Online: rows.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2),
+    });
+
+    // Blank Row
+    excelData.push({});
+  });
+
+  // Overall Total
+  excelData.push({ BillNo: "Overall Total" });
+
+  excelData.push({
+    Sale: filteredData.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2),
+    Tax: filteredData.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2),
+    CGST: filteredData.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2),
+    SGST: filteredData.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2),
+    Total: filteredData.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2),
+    Round: filteredData.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2),
+    Grand: filteredData.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2),
+    Cash: filteredData.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2),
+    Card: filteredData.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2),
+    Online: filteredData.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2),
+  });
+
+  // Remarks Summary
+  if (remarksSummary.length) {
+    excelData.push({});
+    excelData.push({ BillNo: "Remarks Summary" });
+
+    remarksSummary.forEach((item) => {
+      excelData.push({
+        BillNo: item.particulars,
+        Total: Number(item.amount).toFixed(2),
+      });
+    });
+  }
+
+  const ws = XLSX.utils.json_to_sheet(excelData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Change Sheet");
+
+  XLSX.writeFile(
+    wb,
+    `${title.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.xlsx`
+  );
+};
 
   const handlePDF = () => {
     const doc = new jsPDF();
