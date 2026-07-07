@@ -8,6 +8,7 @@ onStart: (data: { pax: number; waiterCode: string; waiterName: string }) => void
   branchcode: string;
     initialPax?: number;
   initialWaiter?: string;
+  dontopenkotmodel:boolean
 };
 
 type Steward = {
@@ -27,7 +28,8 @@ const TableSessionModal: React.FC<Props> = ({
   onClose,
   onStart,
   initialPax,
-  initialWaiter
+  initialWaiter,
+  dontopenkotmodel
  
 }) => {
   console.log("initialWaiter",initialWaiter);
@@ -45,25 +47,41 @@ useEffect(() => {
   const [stewards, setStewards] = useState<Steward[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
+useEffect(() => {
+  if (!isOpen) return;
 
-    const fetchStewards = async () => {
-      try {
-        setLoading(true);
-        const data = await getStewardList(localStorage.getItem("branch")||"");
-        console.log(data,"Waiter data");
-        
-        setStewards(data);
-      } catch (error) {
-        console.error("Error fetching steward list:", error);
-      } finally {
-        setLoading(false);
+  const fetchStewards = async () => {
+    try {
+      setLoading(true);
+
+      const data = await getStewardList(
+        localStorage.getItem("branch") || ""
+      );
+
+      setStewards(data);
+
+      // ✅ Auto start only when popup is disabled
+      if (dontopenkotmodel && data.length > 0) {
+        const firstWaiter = data[0];
+
+        setPax(1);
+        setWaiter(String(firstWaiter.stwCode));
+
+        onStart({
+          pax: 1,
+          waiterCode: String(firstWaiter.stwCode),
+          waiterName: firstWaiter.stwName,
+        });
       }
-    };
+    } catch (error) {
+      console.error("Error fetching steward list:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchStewards();
-  }, [isOpen]);
+  fetchStewards();
+}, [isOpen]);
 
   if (!isOpen) return null;
 

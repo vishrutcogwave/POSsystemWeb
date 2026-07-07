@@ -73,7 +73,8 @@ const [billGenerationSettings, setBillGenerationSettings] = useState({
   billingType: "",
   subBillingType: "",
 });
-
+const directbill = true
+const dontopenkotmodel =true
 
 
 const fetchBillGenerationSettings = async () => {
@@ -735,192 +736,7 @@ const handleAddonConfirm = () => {
   setSelectedAddons([]);
   setSelectedFood(null);
 };
-//   const getInstructionLines = (codes?: string) => {
-//     if (!codes) return [];
 
-//     const ids = codes.split(",");
-
-//     return ids
-//       .map((id) => instructions.find((i) => String(i.spid) === id)?.spinfo)
-//       .filter(Boolean);
-//   };
-// const formatThermal = (c: any) => {
-//   const width = 42;
-
-
-
-//   const line = "-".repeat(width);
-
-//   // LEFT SAFE MARGIN
-//   const pad = (text: string) => {
-//     return "  " + text + "\n";
-//   };
-
-//   let d = "";
-
-//   // RESET
-//   d += "\x1B\x40";
-// // CENTER ALIGN
-// d += "\x1B\x61\x01";
-
-// // TITLE FIRST
-// d += "\x1B\x45\x01";
-// d += (c.title || "") + "\n";
-// d += "\x1B\x45\x00";
-
-// // OUTLET NAME BELOW
-// d += "\x1B\x45\x01";
-// d +=
-//   (localStorage.getItem("activeOltName") ||
-//     "BAR & RESTAURANT") + "\n";
-// d += "\x1B\x45\x00";
-
-// d += line + "\n";
-
-// // LEFT ALIGN
-// d += "\x1B\x61\x00";
-
-//   // DETAILS
-//   d += pad(`KOT : ${c.kotId || ""}`);
-//   d += pad(`TBL : ${c.table}-${c.subTable}`);
-//   d += pad(`WTR : ${c.waiter}`);
-//   d += pad(`PAX : ${c.pax}`);
-//   d += pad(
-//     `TIME: ${new Date().toLocaleTimeString()}`
-//   );
-
-//   d += line + "\n";
-
-//   // HEADER
-//   d += "\x1B\x45\x01";
-//   d += pad("QTY   ITEM");
-//   d += "\x1B\x45\x00";
-
-//   d += line + "\n";
-
-//   // ITEMS
-//   c.items.forEach((item: any) => {
-//     const qty = String(item.qty).padEnd(5);
-
-//     d += pad(`${qty}${item.name}`);
-
-//     // INSTRUCTIONS
-//     item.instructions?.forEach((i: string) => {
-//       d += pad(`* ${i}`);
-//     });
-//   });
-
-//   d += line + "\n";
-
-//   // TOTAL
-//   const total = c.items.reduce(
-//     (s: number, i: any) => s + i.qty,
-//     0
-//   );
-
-//   d += "\x1B\x45\x01";
-//   d += pad(`ITEMS : ${total}`);
-//   d += "\x1B\x45\x00";
-
-//   d += line + "\n";
-
-//   // FEED
-//   d += "\n\n\n";
-
-//   // CUT
-//   d += "\x1D\x56\x41\x10";
-
-//   return d;
-// };
-
-//   /* -------- HTML FORMAT (MATCH SAME STYLE) -------- */
-//   const formatHTML = (c: any) => `
-// <html>
-// <head>
-//   <style>
-//     @page {
-//       size: A4;
-//       margin: 0;
-//     }
-
-//     html, body {
-//       margin: 0;
-//       padding: 0;
-//       width: 100%;
-//     }
-
-//     @media print {
-//       body {
-//         display: flex;
-//         justify-content: center;
-//         align-items: flex-start;
-//       }
-//     }
-
-//     .bill {
-//       font-family: monospace;
-//       font-size: 12px;
-//       width: 240px; /* 🔥 reduced from 260 */
-//       padding: 0 12px; /* 🔥 SAFE AREA both sides */
-//       box-sizing: border-box;
-//     }
-
-//     .center {
-//       text-align: center;
-//       font-weight: bold;
-//     }
-
-//     .row {
-//       display: flex;
-//       justify-content: space-between;
-//     }
-
-//     .indent {
-//       margin-left: 10px;
-//     }
-//   </style>
-// </head>
-
-// <body>
-//   <div class="bill">
-
-//     <div class="center">${c.title}</div>
-
-//     <hr/>
-
-//     <div>Table : ${c.table}</div>
-//     <div>SubTbl: ${c.subTable}</div>
-//     <div>Waiter: ${c.waiter}</div>
-//     <div>Pax   : ${c.pax}</div>
-
-//     <hr/>
-
-//     ${c.items
-//       .map(
-//         (item: any) => `
-//       <div class="row">
-//         <span>${item.qty}</span>
-//         <span>${item.name}</span>
-//       </div>
-
-//       ${item.instructions
-//         .map((i: string) => `<div class="indent">* ${i}</div>`)
-//         .join("")}
-//     `,
-//       )
-//       .join("")}
-
-//     <hr/>
-
-//     <div>Total Items : ${c.items.reduce(
-//       (s: number, i: any) => s + i.qty,
-//       0,
-//     )}</div>
-
-//   </div>
-// </body>
-// </html>
-// `;
   const handleKOT = async () => {
      if (dayDetails?.openDayResponse?.success === false) {
     setAlertMsg(
@@ -1002,108 +818,20 @@ const handleAddonConfirm = () => {
     };
 
     try {
-       console.log(
-  "PAYLOAD FOOD",
-  JSON.stringify(payload.food, null, 2)
-);
+
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
 
-      /* ---------------- MULTI PRINTER PRINT ---------------- */
-
-      const printers = res.printers || [];
-      const foodItems = res.food || [];
-
-      /* -------- GROUP ITEMS PER PRINTER -------- */
-      const printerItemMap: Record<string, any[]> = {};
-
-      printers.forEach((printer: any) => {
-        const matchedItems = foodItems.filter((item: any) =>
-          printer.categoryIds.includes(Number(item.category)),
-        );
-
-        if (matchedItems.length > 0) {
-          printerItemMap[printer.printerName] = matchedItems;
-        }
-      });
-      /* -------- COMMON CONTENT -------- */
-//      const generateContent = (items: any[]) => ({
-//   title: isNC ? "NC KOT" : "KOT",
-
-//   kotId:
-//     res.kotId ||
-//     res.kotID ||
-//     res.kotNo ||
-//     "",
-
-//   table: tableData?.tableNumber,
-
-//   subTable: selectedSubTable || "A",
-
-//   waiter: session.waiterName,
-
-//   pax: session.pax,
-
-//   items: items.map((item) => ({
-//     qty: item.origQty,
-
-//     name: item.food,
-
-//     instructions: getInstructionLines(item.comment),
-
-//   })),
-// });
-
-      /* -------- THERMAL FORMAT -------- */
-
-      /* -------- PRINT LOOP -------- */
-      let hasError = false;
-
-      for (const rawPrinterName in printerItemMap) {
-        const items = printerItemMap[rawPrinterName];
-        console.log("items", items);
-
-        // const content = generateContent(items);
-
-        // ✅ STEP 1: resolve default printer if empty
-        let printerName = rawPrinterName;
-        console.log("printerName", printerName);
-
-        console.log("Using Printer:", printerName);
-
-        // ✅ STEP 2: detect type using REAL printer name
-        // const isThermal =
-        //   printerName.toLowerCase().includes("pos") ||
-        //   printerName.toLowerCase().includes("thermal");
-
-        // ✅ STEP 3: generate correct format
-        // const finalData = isThermal
-        //   ? formatThermal(content)
-        //   : formatHTML(content);
-
-        // ✅ STEP 4: print
-        // const result = await printKOT(printerName, finalData, isThermal);
-        // if (tableData.fastFood === true) {
-        //   const printRes = await printBill(
-        //     billData,
-        //     res.fnBillResponse,
-        //     companyInfo,
-        //   );
-        //   console.log("printRes", printRes);
-        // }
-
-        // if (!result.success) {
-        //   hasError = true;
-
-        //   const msg = `❌ ${printerName}: ${result.message}`;
-        //   toast.error(msg);
-        // }
-      }
+   
       setCart([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if (tableData.fastFood === undefined) {
+      if(directbill){
+        setKotLoading(false)
+        setOpenUnsettledPayment(true)
+      }
+      if (tableData.fastFood === undefined && !directbill) {
         navigate("/NewOrder");
       }
       if (tableData.fastFood !== undefined) {
@@ -1117,11 +845,9 @@ const handleAddonConfirm = () => {
         setSession(parsed);
         setSelectedSubTable("A");
       }
-      if (hasError) {
-        toast.error("Some printers failed ❌");
-      } else {
+     
         toast.success("KOT created & printed successfully! ✅");
-      }
+      
     } catch (err) {
       console.error("Failed to create KOT:", err);
       toast.error("Failed to create KOT ❌");
@@ -1598,14 +1324,7 @@ const handleAddonConfirm = () => {
       const res = await postBill(billData);
       console.log("Bill Posted:", res);
 
-      // ✅ 2. PRINT BILL
-      // const printRes = await printBill(billData, res, companyInfo);
-
-//   if (!printRes?.success) {
-//   throw new Error(
-//     printRes?.message || "Print failed"
-//   );
-// }
+ 
 
       toast.success("Bill Printed Successfully ✅");
       if (tableData.fastFood === undefined) {
@@ -1621,37 +1340,34 @@ const handleAddonConfirm = () => {
 
     }
   };
-  const handleGetBill = async () => {
-    const payload = buildBillPayload();
-    console.log("payload", payload);
+const handleGetBill = async (showPopup = true) => {
+  if (directbill) {
+    showPopup = false;
+  }
 
-    try {
-      const res = await getBill(payload);
-      console.log("res", res);
+  const payload = buildBillPayload();
 
-      const finalResponse = {
-        cart: {
-          ...payload, // your cart data goes here
-        },
-        tax: {
-          ...res, // full tax response
-          taxList: res.taxList || [], // ensure taxList is included
-          taxType: taxSettings?.taxType, // ✅ ADD THIS
-        },
-       billingType: billGenerationSettings.billingType,
-  subBillingType: billGenerationSettings.subBillingType,
-      };
+  const res = await getBill(payload);
 
-      console.log("finalResponse", finalResponse);
-      // ✅ set state
-      setBillData(finalResponse);
-      setShowInvoice(true);
-    } catch (err) {
-      console.error("GetBill failed", err);
-    }finally{
-          setKotLoading(false);
-    }
+  const finalResponse = {
+    cart: { ...payload },
+    tax: {
+      ...res,
+      taxList: res.taxList || [],
+      taxType: taxSettings?.taxType,
+    },
+    billingType: billGenerationSettings.billingType,
+    subBillingType: billGenerationSettings.subBillingType,
   };
+
+  setBillData(finalResponse);
+
+  if (showPopup) {
+    setShowInvoice(true);
+  }
+
+  return finalResponse;
+};
   /* ---------------- GLOBAL LOADER ---------------- */
   /* ---------------- GLOBAL LOADER ---------------- */
 if (
@@ -1918,13 +1634,19 @@ if (
             setInstructionItemId(id);
             setOpenInstructionModal(true);
           }}
-          onKOT={
-            tableData.fastFood === undefined
-              ? handleKOT
-              : () => {
-                  setOpenPayment(true);
-                }
-          }
+     onKOT={() => {
+  // If waiter/pax must be selected first
+  if (dontopenkotmodel && !session) {
+    setOpenSessionModal(true);
+    return;
+  }
+
+  if (tableData.fastFood === undefined) {
+    handleKOT();
+  } else {
+    setOpenPayment(true);
+  }
+}}
           onVoid={handleVoid}
           kotLoading={kotLoading}
         />
@@ -1955,13 +1677,19 @@ if (
           setInstructionItemId(id);
           setOpenInstructionModal(true);
         }}
-        onKOT={
-          tableData.fastFood === undefined
-            ? handleKOT
-            : () => {
-                setOpenPayment(true);
-              }
-        }
+    onKOT={() => {
+  // If waiter/pax must be selected first
+  if (dontopenkotmodel && !session) {
+    setOpenSessionModal(true);
+    return;
+  }
+
+  if (tableData.fastFood === undefined) {
+    handleKOT();
+  } else {
+    setOpenPayment(true);
+  }
+}}
         kotLoading={kotLoading}
         selectedNcCode={selectedNcCode}
         setSelectedNcCode={setSelectedNcCode}
@@ -1970,6 +1698,7 @@ if (
       />
       {/* SESSION MODAL */}
       <TableSessionModal
+      dontopenkotmodel={dontopenkotmodel}
         isOpen={openSessionModal}
         initialPax={session?.pax}
         initialWaiter={session?.waiterCode}
@@ -2064,12 +1793,13 @@ if (
         paymentModes={paymentModes}
         isOpen={openUnsettledPayment}
         unbillData={unbillData}
-        billNo={unbillData?.[0]?.billNo || 0}
+        billNo={unbillData?.[0]?.ksmBillNo || 0}
         refresh={() => navigate("/NewOrder")}
         onClose={() => {
           setOpenUnsettledPayment(false);
           setUnbillData(null);
           setOpenKOTModal(true);
+          navigate("/NewOrder")
         }}
         onPay={handleBillSettlement}
       />

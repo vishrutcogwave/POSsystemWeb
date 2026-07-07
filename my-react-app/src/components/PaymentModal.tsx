@@ -386,7 +386,10 @@ const PaymentModal: React.FC<Props> = ({
           <h2 className="font-semibold text-lg">💳 Payment</h2>
           <button onClick={handleClose}>×</button>
         </div>
-
+  
+      <h1 className="p-3 text-lg text-black">
+        Bill No: <span className="font-semibold">{billNo}</span>
+      </h1>
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
           {/* MODES */}
