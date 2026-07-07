@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { checkOwnDevicePaymentStatus, getCompanyList, getPaymentStatusRequestDQRDevice, sendPaymentRequestDQRDevice, sendPaymentRequestOwnDevice } from "../api/services/products.service";
+import {
+  checkOwnDevicePaymentStatus,
+  getCompanyList,
+  getOnlinePaymentType,
+  getPaymentStatusRequestDQRDevice,
+  sendPaymentRequestDQRDevice,
+  sendPaymentRequestOwnDevice,
+} from "../api/services/products.service";
 import QRCode from "react-qr-code";
 type SubMode = {
   subModeId: number;
@@ -40,6 +47,28 @@ const PaymentModal: React.FC<Props> = ({
   paymentModes,
   unbillData,
 }) => {
+  const [isQRActive, setIsQRActive] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadPaymentType = async () => {
+      try {
+        const res = await getOnlinePaymentType();
+        setIsQRActive(res?.isQRActive ?? false);
+      } catch (err) {
+        console.error(err);
+        setIsQRActive(false);
+      }
+    };
+
+    loadPaymentType();
+
+    if (runApi) runApi();
+  }, [isOpen]);
+
+  console.log("paymentModes", paymentModes);
+
   const handleClose = () => {
     setSelectedMulti({});
     setPaymentDetails([]);
@@ -48,12 +77,11 @@ const PaymentModal: React.FC<Props> = ({
   };
   console.log("billNo", billNo);
 
+  const [ownQrString, setOwnQrString] = useState("");
+  const [ownPaymentLoading, setOwnPaymentLoading] = useState(false);
+  const [ownPaymentStatus, setOwnPaymentStatus] = useState("");
 
-const [ownQrString, setOwnQrString] = useState("");
-const [ownPaymentLoading, setOwnPaymentLoading] = useState(false);
-const [ownPaymentStatus, setOwnPaymentStatus] = useState("");
-
-const ownPaymentIntervalRef = useRef<any>(null);
+  const ownPaymentIntervalRef = useRef<any>(null);
   const [upiType, setUpiType] = useState<"own" | "device" | "">("");
 
   const [selectedMulti, setSelectedMulti] = useState<Record<string, string>>(
@@ -64,106 +92,67 @@ const ownPaymentIntervalRef = useRef<any>(null);
   const PAYABLE_AMOUNT = Math.round(Number(unbillData?.[0]?.total || 0));
   // inside component states
 
-const [devicePaymentLoading, setDevicePaymentLoading] =
-  useState(false);
+  const [devicePaymentLoading, setDevicePaymentLoading] = useState(false);
 
-const [devicePaymentStatus, setDevicePaymentStatus] =
-  useState("");
+  const [devicePaymentStatus, setDevicePaymentStatus] = useState("");
 
-const paymentIntervalRef = useRef<any>(null);
-// add this inside component
-const [companies, setCompanies] = useState<any[]>([]);
-const [_companyLoading, setCompanyLoading] = useState(false);
+  const paymentIntervalRef = useRef<any>(null);
+  // add this inside component
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [_companyLoading, setCompanyLoading] = useState(false);
 
+  const startOwnDevicePayment = async (amount: number) => {
+    const amountInPaise = Math.round(amount * 100);
 
+    try {
+      setOwnPaymentLoading(true);
 
-const startOwnDevicePayment = async (
-  amount: number
-) => {
-  const amountInPaise = Math.round(amount * 100);
-  
-  try {
-    setOwnPaymentLoading(true);
+      const transNo = `TXN${Date.now()}`;
 
-    const transNo = `TXN${Date.now()}`;
+      const sendRes = await sendPaymentRequestOwnDevice(amountInPaise, transNo);
 
-    const sendRes =
-      await sendPaymentRequestOwnDevice(
-        amountInPaise,
-        transNo
-      );
+      console.log("OWN SEND", sendRes);
 
-    console.log("OWN SEND", sendRes);
+      if (!sendRes?.success) {
+        toast.error(sendRes?.message || "Failed to create QR");
 
-    if (!sendRes?.success) {
-      toast.error(
-        sendRes?.message ||
-          "Failed to create QR"
-      );
+        setOwnPaymentLoading(false);
 
-      setOwnPaymentLoading(false);
+        return;
+      }
 
-      return;
-    }
+      const qrString = sendRes?.data?.qrString;
 
-    const qrString =
-      sendRes?.data?.qrString;
+      setOwnQrString(qrString);
 
-    setOwnQrString(qrString);
+      setOwnPaymentStatus("PENDING");
 
-    setOwnPaymentStatus("PENDING");
-
-    ownPaymentIntervalRef.current =
-      setInterval(async () => {
+      ownPaymentIntervalRef.current = setInterval(async () => {
         try {
-          const statusRes =
-            await checkOwnDevicePaymentStatus(
-              transNo
-            );
+          const statusRes = await checkOwnDevicePaymentStatus(transNo);
 
-          console.log(
-            "OWN STATUS",
-            statusRes
-          );
+          console.log("OWN STATUS", statusRes);
 
-          const code =
-            statusRes?.code;
+          const code = statusRes?.code;
 
           // SUCCESS
-          if (
-            code ===
-            "PAYMENT_SUCCESS"
-          ) {
-            clearInterval(
-              ownPaymentIntervalRef.current
-            );
+          if (code === "PAYMENT_SUCCESS") {
+            clearInterval(ownPaymentIntervalRef.current);
 
-            setOwnPaymentStatus(
-              "SUCCESS"
-            );
+            setOwnPaymentStatus("SUCCESS");
 
-            setOwnPaymentLoading(
-              false
-            );
+            setOwnPaymentLoading(false);
 
-            toast.success(
-              "Payment Successful"
-            );
+            toast.success("Payment Successful");
 
             onPay({
               paymentDetails,
-              total:
-                paymentDetails.reduce(
-                  (sum, p) =>
-                    sum +
-                    Number(
-                      p.amount || 0
-                    ),
-                  0
-                ),
+              total: paymentDetails.reduce(
+                (sum, p) => sum + Number(p.amount || 0),
+                0,
+              ),
               difference: 0,
-              payableAmount:
-                PAYABLE_AMOUNT,
+              payableAmount: PAYABLE_AMOUNT,
             });
 
             handleClose();
@@ -172,155 +161,102 @@ const startOwnDevicePayment = async (
           console.log(err);
         }
       }, 2000);
-  } catch (error: any) {
-    console.log(error);
+    } catch (error: any) {
+      console.log(error);
 
-    setOwnPaymentLoading(false);
+      setOwnPaymentLoading(false);
 
-    toast.error(
-      error?.response?.data
-        ?.message ||
-        "Payment failed"
-    );
-  }
-};
-
-
-
-useEffect(() => {
-  return () => {
-    if (paymentIntervalRef.current) {
-      clearInterval(
-        paymentIntervalRef.current
-      );
-    }
-
-    if (
-      ownPaymentIntervalRef.current
-    ) {
-      clearInterval(
-        ownPaymentIntervalRef.current
-      );
+      toast.error(error?.response?.data?.message || "Payment failed");
     }
   };
-}, []);
 
+  useEffect(() => {
+    return () => {
+      if (paymentIntervalRef.current) {
+        clearInterval(paymentIntervalRef.current);
+      }
 
+      if (ownPaymentIntervalRef.current) {
+        clearInterval(ownPaymentIntervalRef.current);
+      }
+    };
+  }, []);
 
+  const loadCompanies = async () => {
+    try {
+      setCompanyLoading(true);
 
+      const branch = localStorage.getItem("branch") || "";
 
-const loadCompanies = async () => {
-  try {
-    setCompanyLoading(true);
+      const res = await getCompanyList(branch);
 
-    const branch =
-      localStorage.getItem("branch") || "";
-
-    const res =
-      await getCompanyList(branch);
-
-    setCompanies(res?.data || []);
-
-  } catch (error) {
-
-    toast.error(
-      "Failed to load companies"
-    );
-
-  } finally {
-
-    setCompanyLoading(false);
-
-  }
-};
-const startDevicePayment = async (
-  amount: number
-) => {
-  console.log(amount);
-  
-  try {
-    setDevicePaymentLoading(true);
-
-    const transNo = `TXN${Date.now()}`;
-const amountInPaise = Math.round(amount * 100);
-    // SEND PAYMENT
-    const sendRes =
-      await sendPaymentRequestDQRDevice(
-        amountInPaise,
-        transNo
-      );
-
-    console.log("SEND RES", sendRes);
-
-    if (!sendRes?.success) {
-      toast.error(
-        sendRes?.message ||
-          "Failed to send payment request"
-      );
-
-      setDevicePaymentLoading(false);
-
-      return;
+      setCompanies(res?.data || []);
+    } catch (error) {
+      toast.error("Failed to load companies");
+    } finally {
+      setCompanyLoading(false);
     }
+  };
+  const startDevicePayment = async (amount: number) => {
+    console.log(amount);
 
-    setDevicePaymentStatus("PENDING");
+    try {
+      setDevicePaymentLoading(true);
 
-    // CHECK STATUS EVERY 2 SEC
-    paymentIntervalRef.current = setInterval(
-      async () => {
+      const transNo = `TXN${Date.now()}`;
+      const amountInPaise = Math.round(amount * 100);
+      // SEND PAYMENT
+      const sendRes = await sendPaymentRequestDQRDevice(amountInPaise, transNo);
+
+      console.log("SEND RES", sendRes);
+
+      if (!sendRes?.success) {
+        toast.error(sendRes?.message || "Failed to send payment request");
+
+        setDevicePaymentLoading(false);
+
+        return;
+      }
+
+      setDevicePaymentStatus("PENDING");
+
+      // CHECK STATUS EVERY 2 SEC
+      paymentIntervalRef.current = setInterval(async () => {
         try {
-          const statusRes =
-            await getPaymentStatusRequestDQRDevice(
-              transNo
-            );
+          const statusRes = await getPaymentStatusRequestDQRDevice(transNo);
 
-          console.log(
-            "STATUS RES",
-            statusRes
-          );
+          console.log("STATUS RES", statusRes);
 
-          const status =
-            statusRes?.data?.status;
+          const status = statusRes?.data?.status;
 
           setDevicePaymentStatus(status);
 
           // SUCCESS
-    // SUCCESS
-if (status === "SUCCESS") {
-  clearInterval(
-    paymentIntervalRef.current
-  );
+          // SUCCESS
+          if (status === "SUCCESS") {
+            clearInterval(paymentIntervalRef.current);
 
-  setDevicePaymentLoading(false);
+            setDevicePaymentLoading(false);
 
-  toast.success(
-    "Payment Successful"
-  );
+            toast.success("Payment Successful");
 
-  // AUTO SUBMIT PAYMENT
-  onPay({
-    paymentDetails,
-    total:
-      paymentDetails.reduce(
-        (sum, p) =>
-          sum + Number(p.amount || 0),
-        0
-      ),
-    difference: 0,
-    payableAmount: PAYABLE_AMOUNT,
-  });
+            // AUTO SUBMIT PAYMENT
+            onPay({
+              paymentDetails,
+              total: paymentDetails.reduce(
+                (sum, p) => sum + Number(p.amount || 0),
+                0,
+              ),
+              difference: 0,
+              payableAmount: PAYABLE_AMOUNT,
+            });
 
-  handleClose();
-}
+            handleClose();
+          }
 
           // FAILED
-          if (
-            status === "FAILED" ||
-            status === "DECLINED"
-          ) {
-            clearInterval(
-              paymentIntervalRef.current
-            );
+          if (status === "FAILED" || status === "DECLINED") {
+            clearInterval(paymentIntervalRef.current);
 
             setDevicePaymentLoading(false);
 
@@ -329,31 +265,24 @@ if (status === "SUCCESS") {
         } catch (error) {
           console.log(error);
         }
-      },
-      2000
-    );
-  } catch (error: any) {
-    console.log(error);
+      }, 2000);
+    } catch (error: any) {
+      console.log(error);
 
-    setDevicePaymentLoading(false);
+      setDevicePaymentLoading(false);
 
-    toast.error(
-      error?.response?.data?.message ||
-        "Device payment failed"
-    );
-  }
-};
-// add cleanup useEffect
-
-useEffect(() => {
-  return () => {
-    if (paymentIntervalRef.current) {
-      clearInterval(
-        paymentIntervalRef.current
-      );
+      toast.error(error?.response?.data?.message || "Device payment failed");
     }
   };
-}, []);
+  // add cleanup useEffect
+
+  useEffect(() => {
+    return () => {
+      if (paymentIntervalRef.current) {
+        clearInterval(paymentIntervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isOpen && runApi) runApi();
@@ -392,22 +321,16 @@ useEffect(() => {
   };
 
   /* ---------------- SELECT MODE ---------------- */
-const handleModeClick = (modeType: string) => {
-  // DEFAULT QR DEVICE FOR UPI
-  if (
-    modeType
-      ?.toLowerCase()
-      .includes("company")
-  ) {
-  loadCompanies();
-}
-if (modeType === "UPI" && !upiType) {
-  setUpiType("device");
-}
+  const handleModeClick = (modeType: string) => {
+    // DEFAULT QR DEVICE FOR UPI
+    if (modeType?.toLowerCase().includes("company")) {
+      loadCompanies();
+    }
+    if (modeType === "UPI" && !upiType) {
+      setUpiType("device");
+    }
 
-  const isSelected =
-    selectedMulti[modeType] !==
-    undefined;
+    const isSelected = selectedMulti[modeType] !== undefined;
 
     if (isSelected) {
       setSelectedMulti((prev) => {
@@ -496,186 +419,117 @@ if (modeType === "UPI" && !upiType) {
 
             {paymentDetails.map((p) => (
               <div key={p.mode} className="border p-3 rounded space-y-2">
-{p.mode === "Card" ? (
-  <div className="space-y-3">
+                {p.mode === "Card" ? (
+                  <div className="space-y-3">
+                    {/* CARD SUBMODE DROPDOWN */}
+                    <select
+                      value={p.subMode || ""}
+                      onChange={(e) =>
+                        updatePayment(p.mode, "subMode", e.target.value)
+                      }
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="">Select Card Type</option>
 
-    {/* CARD SUBMODE DROPDOWN */}
-    <select
-      value={p.subMode || ""}
-      onChange={(e) =>
-        updatePayment(
-          p.mode,
-          "subMode",
-          e.target.value
-        )
-      }
-      className="w-full border rounded px-3 py-2"
-    >
-      <option value="">
-        Select Card Type
-      </option>
+                      {paymentModes
+                        .find((m) => m.modeType === "Card")
+                        ?.subModes?.map((sub) => (
+                          <option key={sub.subModeId} value={sub.subModeType}>
+                            {sub.subModeType}
+                          </option>
+                        ))}
+                    </select>
 
-      {paymentModes
-        .find((m) => m.modeType === "Card")
-        ?.subModes?.map((sub) => (
-          <option
-            key={sub.subModeId}
-            value={sub.subModeType}
-          >
-            {sub.subModeType}
-          </option>
-        ))}
-    </select>
+                    {/* SHOW TEXTBOX ONLY AFTER SELECT */}
+                    {p.subMode && (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded p-2">
+                        <span className="font-medium">{p.subMode}</span>
 
-    {/* SHOW TEXTBOX ONLY AFTER SELECT */}
-    {p.subMode && (
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border rounded p-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={p.amount || ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
 
-        <span className="font-medium">
-          {p.subMode}
-        </span>
+                            if (!/^\d*$/.test(value)) return;
 
-        <input
-          type="text"
-          inputMode="numeric"
-          value={p.amount || ""}
-          onChange={(e) => {
-            const value =
-              e.target.value;
+                            const numValue = Number(value || 0);
 
-            if (
-              !/^\d*$/.test(value)
-            )
-              return;
+                            const otherTotal = paymentDetails
+                              .filter((x) => x.mode !== p.mode)
+                              .reduce((sum, x) => sum + x.amount, 0);
 
-            const numValue =
-              Number(value || 0);
+                            if (numValue + otherTotal > PAYABLE_AMOUNT) {
+                              toast.error("Total exceeds payable");
 
-            const otherTotal =
-              paymentDetails
-                .filter(
-                  (x) =>
-                    x.mode !==
-                    p.mode
-                )
-                .reduce(
-                  (sum, x) =>
-                    sum +
-                    x.amount,
-                  0
-                );
+                              return;
+                            }
 
-            if (
-              numValue +
-                otherTotal >
-              PAYABLE_AMOUNT
-            ) {
-              toast.error(
-                "Total exceeds payable"
-              );
+                            updatePayment(p.mode, "amount", numValue);
+                          }}
+                          className="w-full sm:w-24 border rounded px-2 py-1 text-right"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="font-medium">{p.mode}</span>
 
-              return;
-            }
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={p.amount || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
 
-            updatePayment(
-              p.mode,
-              "amount",
-              numValue
-            );
-          }}
-          className="w-full sm:w-24 border rounded px-2 py-1 text-right"
-        />
-      </div>
-    )}
-  </div>
-) : (
-  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-    <span className="font-medium">
-      {p.mode}
-    </span>
+                        if (!/^\d*$/.test(value)) return;
 
-    <input
-      type="text"
-      inputMode="numeric"
-      value={p.amount || ""}
-      onChange={(e) => {
-        const value = e.target.value;
+                        const numValue = Number(value || 0);
 
-        if (!/^\d*$/.test(value))
-          return;
+                        const otherTotal = paymentDetails
+                          .filter((x) => x.mode !== p.mode)
+                          .reduce((sum, x) => sum + x.amount, 0);
 
-        const numValue = Number(
-          value || 0
-        );
+                        if (numValue + otherTotal > PAYABLE_AMOUNT) {
+                          toast.error("Total exceeds payable");
 
-        const otherTotal =
-          paymentDetails
-            .filter(
-              (x) =>
-                x.mode !== p.mode
-            )
-            .reduce(
-              (sum, x) =>
-                sum + x.amount,
-              0
-            );
+                          return;
+                        }
 
-        if (
-          numValue + otherTotal >
-          PAYABLE_AMOUNT
-        ) {
-          toast.error(
-            "Total exceeds payable"
-          );
+                        updatePayment(p.mode, "amount", numValue);
+                      }}
+                      className="w-full sm:w-24 border rounded px-2 py-1 text-right"
+                    />
+                  </div>
+                )}
 
-          return;
-        }
+                {p.mode === "UPI" && upiType === "own" && (
+                  <div className="border p-3 rounded text-center space-y-3">
+                    {ownPaymentLoading && !ownQrString && (
+                      <p>Generating QR...</p>
+                    )}
 
-        updatePayment(
-          p.mode,
-          "amount",
-          numValue
-        );
-      }}
-      className="w-full sm:w-24 border rounded px-2 py-1 text-right"
-    />
-  </div>
-)}
+                    {ownQrString && (
+                      <>
+                        <p className="font-medium">Scan QR to Pay</p>
 
-{p.mode === "UPI" &&
-  upiType === "own" && (
-    <div className="border p-3 rounded text-center space-y-3">
-      {ownPaymentLoading &&
-        !ownQrString && (
-          <p>
-            Generating QR...
-          </p>
-        )}
+                        <div className="flex justify-center">
+                          <QRCode value={ownQrString} size={220} />
+                        </div>
 
-      {ownQrString && (
-        <>
-          <p className="font-medium">
-            Scan QR to Pay
-          </p>
-
-          <div className="flex justify-center">
-            <QRCode
-              value={ownQrString}
-              size={220}
-            />
-          </div>
-
-          <div className="text-sm">
-            Status :
-            <span className="font-semibold ml-2">
-              {ownPaymentStatus}
-            </span>
-          </div>
-        </>
-      )}
-    </div>
-)}
- {p.mode === "UPI" && (
+                        <div className="text-sm">
+                          Status :
+                          <span className="font-semibold ml-2">
+                            {ownPaymentStatus}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {/* {p.mode === "UPI" && (
   <div className="flex gap-2 mb-3">
     <button
       type="button"
@@ -709,83 +563,114 @@ if (modeType === "UPI" && !upiType) {
       QR Device
     </button>
   </div>
-)}
+)} */}
+                {p.mode === "UPI" &&
+                  (isQRActive ? (
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUpiType("own");
 
-              {p.mode === "UPI" && upiType === "device" && (
-  <div className="border p-3 rounded text-center space-y-3">
-    <p className="text-orange-500 font-semibold">
-      Waiting for payment from QR device...
-    </p>
+                          if (!ownQrString) {
+                            startOwnDevicePayment(PAYABLE_AMOUNT);
+                          }
+                        }}
+                        className={`flex-1 border rounded py-2 ${
+                          upiType === "own" ? "bg-blue-500 text-white" : ""
+                        }`}
+                      >
+                        Own QR
+                      </button>
 
-    <div className="text-sm">
-      Status :{" "}
-      <span
-        className={`font-semibold ${
-          devicePaymentStatus === "SUCCESS"
-            ? "text-green-600"
-            : devicePaymentStatus ===
-                  "FAILED" ||
-                devicePaymentStatus ===
-                  "DECLINED"
-              ? "text-red-600"
-              : "text-orange-500"
-        }`}
-      >
-        {devicePaymentStatus ||
-          "NOT STARTED"}
-      </span>
-    </div>
+                      <button
+                        type="button"
+                        onClick={() => setUpiType("device")}
+                        className={`flex-1 border rounded py-2 ${
+                          upiType === "device" ? "bg-blue-500 text-white" : ""
+                        }`}
+                      >
+                        QR Device
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={p.subMode || ""}
+                      onChange={(e) =>
+                        updatePayment(p.mode, "subMode", e.target.value)
+                      }
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="">Select UPI</option>
 
-    <button
-      type="button"
-      disabled={devicePaymentLoading}
-      onClick={() =>
-        startDevicePayment(PAYABLE_AMOUNT)
-      }
-      className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
-    >
-      {devicePaymentLoading
-        ? "Waiting..."
-        : "Start Device Payment"}
-    </button>
-  </div>
-)}
-{p.mode?.toLowerCase().includes("company") && (
-  <div className="space-y-2">
+                      {paymentModes
+                        .find((m) => m.modeType === "UPI")
+                        ?.subModes.map((sub) => (
+                          <option key={sub.subModeId} value={sub.subModeType}>
+                            {sub.subModeType}
+                          </option>
+                        ))}
+                    </select>
+                  ))}
 
-    <label className="text-sm font-medium">
-      Select Company
-    </label>
+                {isQRActive && p.mode === "UPI" && upiType === "device" && (
+                  <div className="border p-3 rounded text-center space-y-3">
+                    <p className="text-orange-500 font-semibold">
+                      Waiting for payment from QR device...
+                    </p>
 
-    <select
-      value={p.subMode || ""}
-      onChange={(e) =>
-        updatePayment(
-          p.mode,
-          "subMode",
-          e.target.value
-        )
-      }
-      className="w-full border rounded px-3 py-2"
-    >
-      <option value="">
-        Select Company
-      </option>
+                    <div className="text-sm">
+                      Status :{" "}
+                      <span
+                        className={`font-semibold ${
+                          devicePaymentStatus === "SUCCESS"
+                            ? "text-green-600"
+                            : devicePaymentStatus === "FAILED" ||
+                                devicePaymentStatus === "DECLINED"
+                              ? "text-red-600"
+                              : "text-orange-500"
+                        }`}
+                      >
+                        {devicePaymentStatus || "NOT STARTED"}
+                      </span>
+                    </div>
 
-      {companies.map((c) => (
-        <option
-          key={c.companyCode}
-          value={c.companyCode}
-        >
-          {c.companyName}
-        </option>
-      ))}
-    </select>
+                    <button
+                      type="button"
+                      disabled={devicePaymentLoading}
+                      onClick={() => startDevicePayment(PAYABLE_AMOUNT)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+                    >
+                      {devicePaymentLoading
+                        ? "Waiting..."
+                        : "Start Device Payment"}
+                    </button>
+                  </div>
+                )}
+                {p.mode?.toLowerCase().includes("company") && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Select Company
+                    </label>
 
-  </div>
-)}
-            
-              
+                    <select
+                      value={p.subMode || ""}
+                      onChange={(e) =>
+                        updatePayment(p.mode, "subMode", e.target.value)
+                      }
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="">Select Company</option>
+
+                      {companies.map((c) => (
+                        <option key={c.companyCode} value={c.companyCode}>
+                          {c.companyName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <textarea
                   value={p.remarks || ""}
                   onChange={(e) =>
@@ -843,36 +728,25 @@ if (modeType === "UPI" && !upiType) {
           </button>
 
           <button
-         onClick={() => {
+            onClick={() => {
+              // ✅ COMPANY VALIDATION
+              const companyPayment = paymentDetails.find((p) =>
+                p.mode?.toLowerCase().includes("company"),
+              );
 
-  // ✅ COMPANY VALIDATION
-  const companyPayment =
-    paymentDetails.find((p) =>
-      p.mode
-        ?.toLowerCase()
-        .includes("company")
-    );
+              if (companyPayment && !companyPayment.subMode) {
+                toast.error("Please select company");
 
-  if (
-    companyPayment &&
-    !companyPayment.subMode
-  ) {
+                return;
+              }
 
-    toast.error(
-      "Please select company"
-    );
-
-    return;
-  }
-
-  onPay({
-    paymentDetails,
-    total,
-    difference,
-    payableAmount: PAYABLE_AMOUNT,
-  });
-
-}}
+              onPay({
+                paymentDetails,
+                total,
+                difference,
+                payableAmount: PAYABLE_AMOUNT,
+              });
+            }}
             disabled={difference !== 0}
             className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
               difference === 0

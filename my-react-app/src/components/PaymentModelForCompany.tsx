@@ -4,6 +4,7 @@ import {
   checkOwnDevicePaymentStatus,
   getChargesDetails,
   getCompanyList,
+  getOnlinePaymentType,
   getPaymentStatusRequestDQRDevice,
   sendPaymentRequestDQRDevice,
   sendPaymentRequestOwnDevice,
@@ -71,6 +72,8 @@ const PaymentModal: React.FC<Props> = ({
     onClose();
   };
   console.log("billNo", billNo);
+  const [isQRActive, setIsQRActive] = useState(false);
+  
   const [upiType, setUpiType] = useState<"own" | "device" | "">("");
   const [ownQrString, setOwnQrString] =
   useState("");
@@ -403,13 +406,24 @@ const amountInPaise = Math.round(amount * 100);
     };
   }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchCharges();
+useEffect(() => {
+  if (!isOpen) return;
 
-      if (runApi) runApi();
+  const loadPaymentType = async () => {
+    try {
+      const res = await getOnlinePaymentType();
+      setIsQRActive(res?.isQRActive ?? false);
+    } catch (err) {
+      console.error(err);
+      setIsQRActive(false);
     }
-  }, [isOpen]);
+  };
+
+  loadPaymentType();
+  fetchCharges();
+
+  if (runApi) runApi();
+}, [isOpen]);
 useEffect(() => {
 
   if (
@@ -707,37 +721,65 @@ const difference =
                     />
                   </div>
                 )}
-
-                {p.mode === "UPI" && (
-                  <div className="flex gap-2">
-                    <button
-                   onClick={() => {
-  setUpiType("own");
-
-  if (!ownQrString) {
-    startOwnDevicePayment(
-      finalPayable
-    );
-  }
-}}
-                      className={`flex-1 border rounded py-1 ${
-                        upiType === "own" ? "bg-blue-500 text-white" : ""
-                      }`}
-                    >
-                      Own Device
-                    </button>
-
-                    <button
-                      onClick={() => setUpiType("device")}
-                      className={`flex-1 border rounded py-1 ${
-                        upiType === "device" ? "bg-blue-500 text-white" : ""
-                      }`}
-                    >
-                      QR Device
-                    </button>
-                  </div>
-                )}
 {p.mode === "UPI" &&
+  (isQRActive ? (
+    <div className="flex gap-2">
+      <button
+        onClick={() => {
+          setUpiType("own");
+
+          if (!ownQrString) {
+            startOwnDevicePayment(finalPayable);
+          }
+        }}
+        className={`flex-1 border rounded py-1 ${
+          upiType === "own"
+            ? "bg-blue-500 text-white"
+            : ""
+        }`}
+      >
+        Own QR
+      </button>
+
+      <button
+        onClick={() => setUpiType("device")}
+        className={`flex-1 border rounded py-1 ${
+          upiType === "device"
+            ? "bg-blue-500 text-white"
+            : ""
+        }`}
+      >
+        QR Device
+      </button>
+    </div>
+  ) : (
+    <select
+      value={p.subMode || ""}
+      onChange={(e) =>
+        updatePayment(
+          p.mode,
+          "subMode",
+          e.target.value
+        )
+      }
+      className="w-full border rounded px-3 py-2"
+    >
+      <option value="">Select UPI</option>
+
+      {paymentModes
+        .find((m) => m.modeType === "UPI")
+        ?.subModes.map((sub) => (
+          <option
+            key={sub.subModeId}
+            value={sub.subModeType}
+          >
+            {sub.subModeType}
+          </option>
+        ))}
+    </select>
+  ))}
+{isQRActive &&
+  p.mode === "UPI" &&
   upiType === "own" && (
     <div className="border p-3 rounded text-center space-y-3">
 
@@ -772,7 +814,9 @@ const difference =
     </div>
 )}
 
-                {p.mode === "UPI" && upiType === "device" && (
+               {isQRActive &&
+  p.mode === "UPI" &&
+  upiType === "device" && (
                   <div className="border p-3 rounded text-center space-y-3">
                     <p className="text-orange-500 font-semibold">
                       Waiting for payment from QR device...

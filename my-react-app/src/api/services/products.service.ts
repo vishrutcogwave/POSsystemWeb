@@ -4681,3 +4681,17 @@ export const saveBillConfiguration = async (payload: {
 
   return response.data;
 };
+
+
+export const getOnlinePaymentType = async () => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/KOT/OnlinePaymentType", {
+    headers: {
+      Authorization: `Bearer ${token}`, // Remove if the API doesn't require auth
+      accept: "*/*",
+    },
+  });
+
+  return response.data;
+};

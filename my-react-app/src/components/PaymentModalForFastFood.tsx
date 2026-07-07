@@ -5,6 +5,7 @@ import QRCode from "react-qr-code";
 import toast from "react-hot-toast";
 import {
   checkOwnDevicePaymentStatus,
+  getOnlinePaymentType,
   getPaymentStatusRequestDQRDevice,
   sendPaymentRequestDQRDevice,
   sendPaymentRequestOwnDevice,
@@ -159,7 +160,26 @@ const amountInPaise = Math.round(amount * 100);
   const [upiType, setUpiType] = useState<
     "own" | "device" | ""
   >("");
+const [isQRActive, setIsQRActive] = useState(false);
+useEffect(() => {
+  if (!isOpen) return;
 
+  const loadPaymentType = async () => {
+    try {
+      const res = await getOnlinePaymentType();
+      setIsQRActive(res?.isQRActive ?? false);
+    } catch (err) {
+      console.error(err);
+      setIsQRActive(false);
+    }
+  };
+
+  loadPaymentType();
+
+  if (runApi) {
+    runApi();
+  }
+}, [isOpen]);
   const [devicePaymentLoading, setDevicePaymentLoading] =
     useState(false);
 
@@ -172,12 +192,6 @@ const amountInPaise = Math.round(amount * 100);
     Number(unbillData?.tax?.grandTotal || 0)
   );
 
-  /* API */
-  useEffect(() => {
-    if (isOpen && runApi) {
-      runApi();
-    }
-  }, [isOpen]);
 
   /* RESET */
   useEffect(() => {
@@ -687,7 +701,7 @@ const handleModeClick = (modeType: string) => {
                     </div>
 
                     {/* UPI */}
-                    {p.mode ===
+                    {/* {p.mode ===
                       "UPI" && (
                       <>
                         <div className="flex gap-2">
@@ -810,7 +824,145 @@ const handleModeClick = (modeType: string) => {
                           </div>
                         )}
                       </>
-                    )}
+                    )} */}
+                    {/* UPI */}
+{p.mode === "UPI" && (
+  <>
+    {isQRActive ? (
+      <>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setUpiType("own");
+
+              if (!ownQrString) {
+                startOwnDevicePayment(PAYABLE_AMOUNT);
+              }
+            }}
+            className={`flex-1 border rounded py-1 ${
+              upiType === "own"
+                ? "bg-blue-500 text-white"
+                : ""
+            }`}
+          >
+            Own QR
+          </button>
+
+          <button
+            onClick={() => setUpiType("device")}
+            className={`flex-1 border rounded py-1 ${
+              upiType === "device"
+                ? "bg-blue-500 text-white"
+                : ""
+            }`}
+          >
+            QR Device
+          </button>
+        </div>
+
+        {upiType === "own" && (
+          <div className="border p-3 rounded text-center space-y-3">
+            {ownPaymentLoading && !ownQrString && (
+              <p>Generating QR...</p>
+            )}
+
+            {ownQrString && (
+              <>
+                <p className="font-medium">
+                  Scan QR to Pay
+                </p>
+
+                <div className="flex justify-center">
+                  <QRCode
+                    value={ownQrString}
+                    size={220}
+                  />
+                </div>
+
+                <div className="text-sm">
+                  Status :
+                  <span className="font-semibold ml-2">
+                    {ownPaymentStatus}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {upiType === "device" && (
+          <div className="border p-3 rounded text-center space-y-3">
+            <p className="text-orange-500 font-semibold">
+              Waiting for payment from QR device...
+            </p>
+
+            <div className="text-sm">
+              Status :
+              <span
+                className={`font-semibold ${
+                  devicePaymentStatus ===
+                  "SUCCESS"
+                    ? "text-green-600"
+                    : devicePaymentStatus ===
+                          "FAILED" ||
+                        devicePaymentStatus ===
+                          "DECLINED"
+                      ? "text-red-600"
+                      : "text-orange-500"
+                }`}
+              >
+                {devicePaymentStatus ||
+                  "NOT STARTED"}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              disabled={devicePaymentLoading}
+              onClick={() =>
+                startDevicePayment(
+                  PAYABLE_AMOUNT
+                )
+              }
+              className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+            >
+              {devicePaymentLoading
+                ? "Waiting..."
+                : "Start Device Payment"}
+            </button>
+          </div>
+        )}
+      </>
+    ) : (
+      <select
+        value={p.subMode || ""}
+        onChange={(e) =>
+          updatePayment(
+            p.mode,
+            "subMode",
+            e.target.value
+          )
+        }
+        className="w-full border rounded px-3 py-2"
+      >
+        <option value="">
+          Select UPI
+        </option>
+
+        {paymentModes
+          .find((m) => m.modeType === "UPI")
+          ?.subModes.map((sub) => (
+            <option
+              key={sub.subModeId}
+              value={sub.subModeType}
+            >
+              {sub.subModeType}
+            </option>
+          ))}
+      </select>
+    )}
+  </>
+)}
 
                     <textarea
                       value={
