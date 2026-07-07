@@ -41,7 +41,8 @@ type ItemMaster = {
   unitName: string;
   dep: string;
   taxName: string;
-
+  isDirectKOTandBill: boolean;
+  isDirectPaxandStw: boolean;
   printDepartment: string;
   sacCode: string;
   barcode: string;
@@ -129,6 +130,8 @@ useEffect(() => {
     barcode: "",
 
     isVeg: true,
+     isDirectKOTandBill: false,
+  isDirectPaxandStw: false,
   });
   const [departments, setDepartments] = useState<Department[]>([]);
   const [data, setData] = useState<ItemMaster[]>([]);
@@ -534,6 +537,8 @@ const confirmDelete = async () => {
           barcode: "",
 
           isVeg: true,
+          isDirectKOTandBill:false,
+          isDirectPaxandStw:false
         });
 
         setSelectedOltCodes([]);
@@ -625,6 +630,8 @@ setSelectedOltCodes(selectedOutlets);
       thumb: row.thumb || "",
 
       isVeg: row.isVeg,
+      isDirectKOTandBill:row.isDirectKOTandBill,
+      isDirectPaxandStw:row.isDirectPaxandStw
     });
 
     // ✅ clear selected image
@@ -717,6 +724,9 @@ setSelectedOltCodes(selectedOutlets);
         barcode: form.barcode,
         isVeg: form.isVeg,
         oltCodes: selectedOltCodes,
+        isDirectKOTandBill:form.isDirectKOTandBill,
+        isDirectPaxandStw:form.isDirectPaxandStw
+
       };
 
       const res = await createItemMaster(payload);
@@ -754,6 +764,8 @@ setSelectedOltCodes(selectedOutlets);
     sacCode: "",
     barcode: "",
     isVeg: true,
+    isDirectKOTandBill:false,
+    isDirectPaxandStw:false
   });
 
   setSelectedOltCodes([]);
@@ -854,6 +866,8 @@ setSelectedOltCodes(selectedOutlets);
         barcode: form.barcode,
         isVeg: form.isVeg,
         oltCodes: selectedOltCodes,
+          isDirectKOTandBill: form.isDirectKOTandBill,
+  isDirectPaxandStw: form.isDirectPaxandStw
       };
 
       const res = await updateItemMaster(payload);
@@ -895,6 +909,8 @@ setSelectedOltCodes(selectedOutlets);
     barcode: "",
     thumb: "",
     isVeg: true,
+    isDirectKOTandBill:false,
+    isDirectPaxandStw:false,
   });
 
   setSelectedOltCodes([]);
@@ -1513,6 +1529,25 @@ setSelectedOltCodes(selectedOutlets);
 
               <label>Veg</label>
             </div>
+            <div className="flex items-center gap-2 mt-6">
+  <input
+    type="checkbox"
+    name="isDirectKOTandBill"
+    checked={form.isDirectKOTandBill}
+    onChange={handleChange}
+  />
+  <label>Direct KOT & Bill</label>
+</div>
+
+<div className="flex items-center gap-2 mt-6">
+  <input
+    type="checkbox"
+    name="isDirectPaxandStw"
+    checked={form.isDirectPaxandStw}
+    onChange={handleChange}
+  />
+  <label>Direct Pax & Steward</label>
+</div>
           </div>
 
           <div className="flex gap-3 justify-end mt-6">
@@ -1558,7 +1593,8 @@ setSelectedOltCodes(selectedOutlets);
                       printDepartment: "",
                       sacCode: "",
                       barcode: "",
-
+isDirectKOTandBill:false,
+isDirectPaxandStw:false,
                       isVeg: true,
                     });
 
