@@ -23,10 +23,12 @@ export default function FoodCard({
 }: FoodCardProps) {
   return (
     <div
+    
       title={name}
       className="bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden"
     >
       <img
+           onClick={() => onAdd(id)}
         src={image || FALLBACK_IMAGE}
         onError={(e) => {
           e.currentTarget.onerror = null;
