@@ -98,6 +98,8 @@ const fetchBillGenerationSettings = async () => {
 
 
   const handleUnsettledSubTable = async (item: any) => {
+    console.log("itemmmmmmm",item);
+    
     try {
       const branch = localStorage.getItem("branch") || "";
       const outlet = localStorage.getItem("activeOltCode") || "";
@@ -836,6 +838,7 @@ const handleAddonConfirm = () => {
       if(directbill){
         setKotLoading(false)
         setOpenUnsettledPayment(true)
+        handleUnsettledSubTable(res?.fnBillResponse)
       }
       if (tableData.fastFood === undefined && !directbill) {
         navigate("/NewOrder");
