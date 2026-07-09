@@ -8,6 +8,7 @@
     getOutletList,
   } from "../api/services/products.service";
   import BillReprintAdvancedTable from "../components/BillReprintTable";
+import { reprintBill } from "../api/services/printer";
   // import { reprintBill } from "../api/services/printer";
 
   export default function BillReprintReport() {
@@ -143,12 +144,12 @@ if (!outletId) return;
         const res = await getReprintBill(payload);
         console.log(res);
 
-        // const printRes = await reprintBill(
-        //         res,
-        //         formData,
-        //         companyInfo,
-        //       );
-        // console.log("printRes", printRes);
+        const printRes = await reprintBill(
+                res,
+                formData,
+                _companyInfo,
+              );
+        console.log("printRes", printRes);
 
         setIsOpen(false);
       } catch (error) {

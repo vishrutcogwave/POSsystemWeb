@@ -125,49 +125,69 @@ const formatHTML = (c: any) => `
 <head>
 <meta charset="UTF-8" />
 <style>
+@page{
+    size: A4;
+    margin:10mm;
+}
+
 body{
-    font-family: Arial, sans-serif;
-    margin:20px;
-    font-size:14px;
+    font-family: Consolas, monospace;
+    font-size:16px;
+    margin:0;
+    padding:0;
 }
 
 .container{
-    width:280px;
-    margin:auto;
+    width:100%;
 }
 
 .center{
     text-align:center;
     font-weight:bold;
+    font-size:22px;
+    margin-bottom:5px;
 }
 
 .line{
-    border-top:1px dashed #000;
+    border-top:2px dashed #000;
     margin:8px 0;
 }
 
-.item{
-    display:flex;
-    margin:4px 0;
+.header{
+    margin:3px 0;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    text-align:left;
+    border-bottom:1px solid #000;
+    padding:4px 0;
+}
+
+td{
+    padding:4px 0;
+    vertical-align:top;
 }
 
 .qty{
-    width:40px;
+    width:60px;
     font-weight:bold;
-}
-
-.name{
-    flex:1;
 }
 
 .note{
-    margin-left:40px;
-    font-size:12px;
+    padding-left:30px;
+    font-style:italic;
+    font-size:14px;
 }
 
 .footer{
+    margin-top:10px;
     font-weight:bold;
-    margin-top:8px;
+    font-size:18px;
 }
 </style>
 </head>
@@ -181,34 +201,47 @@ body{
 
 <div class="line"></div>
 
-<div>KOT : ${c.kotId}</div>
-<div>Table : ${c.table}-${c.subTable}</div>
-<div>Waiter : ${c.waiter}</div>
-<div>Pax : ${c.pax}</div>
-<div>Time : ${new Date().toLocaleTimeString()}</div>
+<div class="header"><b>KOT :</b> ${c.kotId}</div>
+<div class="header"><b>Table :</b> ${c.table}-${c.subTable}</div>
+<div class="header"><b>Waiter :</b> ${c.waiter}</div>
+<div class="header"><b>Pax :</b> ${c.pax}</div>
+<div class="header"><b>Time :</b> ${new Date().toLocaleTimeString()}</div>
 
 <div class="line"></div>
 
+<table>
+<tr>
+<th style="width:60px">Qty</th>
+<th>Item</th>
+</tr>
+
 ${c.items
   .map(
-    (i:any)=>`
-<div class="item">
-<div class="qty">${i.qty}</div>
-<div class="name">${i.name}</div>
-</div>
+    (i: any) => `
+<tr>
+<td class="qty">${i.qty}</td>
+<td>${i.name}</td>
+</tr>
 
-${i.instructions
-.map((x:string)=>`<div class="note">• ${x}</div>`)
-.join("")}
+${(i.instructions || [])
+  .map(
+    (x: string) => `
+<tr>
+<td></td>
+<td class="note">• ${x}</td>
+</tr>`
+  )
+  .join("")}
 `
-)
-.join("")}
+  )
+  .join("")}
+
+</table>
 
 <div class="line"></div>
 
 <div class="footer">
-Total Items :
-${c.items.reduce((s:number,i:any)=>s+i.qty,0)}
+Total Items : ${c.items.reduce((s: number, i: any) => s + i.qty, 0)}
 </div>
 
 </div>
@@ -224,7 +257,6 @@ export const printKOT = async (
 ) => {
   console.log(content);
   
-  debugger
   try {
     console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
     if (
@@ -262,14 +294,14 @@ if (isThermal) {
   // RAW ESC/POS
   cpj.printerCommands = data;
 } else {
-  cpj.files.push(
+cpj.files.push(
   new JSPM.PrintFile(
-      data,
-      JSPM.FileSourceType.Text,
-      "print.html",
-      1
-    )
-  );
+    data,
+    JSPM.FileSourceType.Text,
+    "receipt.htm",
+    1
+  )
+);
 }
 await cpj.sendToClient();
 
@@ -292,7 +324,7 @@ console.log("Data Length:", data.length);
       message: err?.message || "Printing failed",
     };
   }
-};
+};  
 
 export const printBill = async (
   billData: any,
@@ -594,7 +626,6 @@ for (let i = 0; i < printCount; i++) {
 
 return result;
 
-return result;
   } catch (err: any) {
     return {
       success: false,
@@ -602,6 +633,9 @@ return result;
     };
   }
 };
+
+
+
 export const reprintBill = async (
   apiData: any,
   formData: any,
@@ -685,15 +719,27 @@ const centerBlock = (text: string) => {
     );
   };
 
-  const mergeItems = (items: any[]) => {
-    const map = new Map();
-    items.forEach((i) => {
-      const key = `${i.id}_${i.food}`;
-      if (map.has(key)) map.get(key).qty += i.qty;
-      else map.set(key, { ...i });
-    });
-    return Array.from(map.values());
-  };
+const mergeItems = (items: any[]) => {
+  const map = new Map();
+
+  (items || []).forEach((i) => {
+    const key = `${i.id}_${i.food}`;
+
+    if (map.has(key)) {
+      const existing = map.get(key);
+
+      existing.qty += Number(i.qty || i.origQty || 0);
+    } else {
+      map.set(key, {
+        ...i,
+        qty: Number(i.qty || i.origQty || 0),
+        price: Number(i.price || 0),
+      });
+    }
+  });
+
+  return [...map.values()];
+};
 
   /* ✅ BOLD */
   const boldOn = "\x1B\x45\x01";
@@ -775,15 +821,17 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   if (c.taxType?.toLowerCase() === "onbilltax") {
   const mergedItems = mergeItems(c.items);
 
-  mergedItems.forEach((i: any) => {
-    d +=
-      formatRow(
-        i.food,
-        i.qty,
-        i.price,
-        i.price * i.qty
-      ) + "\n";
-  });
+ mergedItems.forEach((i: any) => {
+  const qty = Number(i.qty || i.origQty || 0);
+  const rate = Number(i.price || 0);
+
+  d += formatRow(
+    i.food,
+    qty,
+    rate,
+    qty * rate
+  ) + "\n";
+});
 
   d += line + "\n";
 
@@ -893,15 +941,35 @@ d += totalBlock;
 
   return d;
 };
- const finalData = isThermal
-  ? formatThermal(content)
-  : "<div>HTML PRINT</div>";
+const data = formatThermal(content);
 
-return await printKOT(
-  printerName,
-  finalData,
-  isThermal
-);
+console.log("=========== ESC/POS ===========");
+console.log(data);
+
+const cpj = new JSPM.ClientPrintJob();
+
+const isMobile =
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+if (isMobile) {
+  cpj.clientPrinter = new JSPM.NetworkPrinter(
+    9100,
+    "192.168.1.158" // your printer IP
+  );
+} else if (printerName) {
+  cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
+} else {
+  cpj.clientPrinter = new JSPM.DefaultPrinter();
+}
+
+cpj.printerCommands = data;
+
+await cpj.sendToClient();
+
+return {
+  success: true,
+  printer: printerName ?? "Default Printer",
+};
   } catch (err: any) {
     return {
       success: false,
@@ -910,6 +978,431 @@ return await printKOT(
   }
 };
 
+
+export const newprintBill = async (
+  res: any,
+  companyInfo: any,
+) => {
+  debugger
+  console.log("========== NEW PRINT BILL ==========");
+  console.log("Response:", res);
+  console.log("Company:", companyInfo);
+
+  try {
+    if (
+      JSPM.JSPrintManager.websocket_status !==
+      JSPM.WSStatus.Open
+    ) {
+      throw new Error("JSPrintManager is not running");
+    }
+
+    let printerName: string | null = null;
+
+    const tax = res.tax || {};
+
+    const content = {
+      company: companyInfo || null,
+
+      billNo: res.fnBillResponse?.billNo || "",
+
+      outlet: res.outletName,
+      table: res.kotTblNo,
+      subTable: res.subTable,
+      waiter: res.waiterName,
+      pax: res.pax,
+
+      items: (res.food || []).map((i: any) => ({
+        id: i.itemCode,
+        food: i.food,
+        qty: Number(i.origQty || 0),
+        price:   i.itemRate,
+        grpCode: i.grpCode,
+        comment: i.comment || "",
+      })),
+
+      total: tax.totalAmount || 0,
+      taxes: tax.taxList || [],
+      taxType: res.taxType,
+      grandTotal: tax.grandTotal || 0,
+      roundOff: tax.roundOff || 0,
+      discount: tax.discount || 0,
+      discountIn: tax.discountIn || "amt",
+    };
+
+    console.log("========== CONTENT ==========");
+    console.log(content);
+
+    const formatThermal = (c: any) => {
+      const width = 42;
+
+      const line2Col = (left: string, right: string) => {
+        const space = width - left.length - right.length;
+        return (
+          left +
+          " ".repeat(Math.max(1, space)) +
+          right +
+          "\n"
+        );
+      };
+
+      const formatRow = (
+        name: string,
+        qty: number,
+        rate: number,
+        amt: number,
+      ) => {
+        const nameCol = name
+          .substring(0, 22)
+          .padEnd(22);
+
+        const qtyCol = String(qty).padStart(4);
+
+        const rateCol = String(rate).padStart(7);
+
+        const amtCol = amt
+          .toFixed(2)
+          .padStart(9);
+
+        return (
+          nameCol +
+          qtyCol +
+          rateCol +
+          amtCol +
+          "\n"
+        );
+      };
+
+      const mergeItems = (items: any[]) => {
+        const map = new Map();
+
+        (items || []).forEach((item) => {
+          const key =
+            item.id + "_" + item.food;
+
+          if (map.has(key)) {
+            map.get(key).qty += item.qty;
+          } else {
+            map.set(key, {
+              ...item,
+            });
+          }
+        });
+
+        return Array.from(map.values());
+      };
+
+      const boldOn = "\x1B\x45\x01";
+      const boldOff = "\x1B\x45\x00";
+
+      let d = "";
+
+      d += "\x1B\x40";
+
+      if (c.company) {
+        d += "\x1B\x61\x01";
+
+        const printCenter = (
+          text: string,
+          bold = false,
+        ) => {
+          if (!text) return;
+
+          if (bold) d += boldOn;
+
+          let line = "";
+
+          text
+            .trim()
+            .split(" ")
+            .forEach((word: string) => {
+              if (
+                (line + word).length >
+                width
+              ) {
+                d +=
+                  line.trim() + "\n";
+                line = word + " ";
+              } else {
+                line += word + " ";
+              }
+            });
+
+          if (line)
+            d += line.trim() + "\n";
+
+          if (bold) d += boldOff;
+        };
+
+        printCenter(
+          c.company.company_Name,
+          true,
+        );
+        printCenter(c.company.address1);
+        printCenter(c.company.address2);
+
+        if (c.company.phone_number)
+          printCenter(
+            "Ph : " +
+              c.company.phone_number,
+          );
+
+        if (c.company.tin_no)
+          printCenter(
+            "GSTIN : " +
+              c.company.tin_no,
+          );
+
+        d += "\x1B\x61\x00";
+      }
+
+      d += "-".repeat(width) + "\n";
+
+      d += line2Col(
+        "Bill : " + c.billNo,
+        "Outlet : " + c.outlet,
+      );
+
+      d += line2Col(
+        "Table : " +
+          c.table +
+          "-" +
+          c.subTable,
+        "Waiter : " + c.waiter,
+      );
+
+      d +=
+        "Pax : " +
+        c.pax +
+        "\n";
+
+      d += "-".repeat(width) + "\n";
+
+      d += boldOn;
+      d +=
+        "Item Name              Qty   Rate    Amount\n";
+      d += boldOff;
+      d += "-".repeat(width) + "\n";
+
+
+
+if (c.taxType?.toLowerCase() === "onbilltax") {
+  const mergedItems = mergeItems(c.items);
+
+  mergedItems.forEach((i: any) => {
+    d += formatRow(
+      i.food,
+      i.qty,
+      i.price,
+      i.price * i.qty
+    );
+  });
+
+  d += "-".repeat(width) + "\n";
+
+  (c.taxes || []).forEach((t: any) => {
+    d += line2Col(
+      t.taxName,
+      (t.taxAmount || 0).toFixed(2)
+    );
+  });
+}
+if (c.taxType?.toLowerCase() === "groupedtax") {
+
+  const groupMap: Record<number, any[]> = {};
+
+  mergeItems(c.items).forEach((item: any) => {
+    const grp = item.grpCode || 0;
+
+    if (!groupMap[grp]) groupMap[grp] = [];
+
+    groupMap[grp].push(item);
+  });
+
+  Object.keys(groupMap).forEach((grp) => {
+
+    const grpNum = Number(grp);
+
+    const groupItems = groupMap[grpNum];
+
+    const groupTaxes =
+      (c.taxes || []).filter(
+        (t: any) => t.groupCode === grpNum
+      );
+
+    d += "\n";
+
+    d += boldOn;
+    d += `*** ${groupTaxes[0]?.groupName || "OTHERS"} ***\n`;
+    d += boldOff;
+
+    d += "-".repeat(width) + "\n";
+
+    groupItems.forEach((i: any) => {
+      d += formatRow(
+        i.food,
+        i.qty,
+        i.price,
+        i.price * i.qty
+      );
+    });
+
+    d += "-".repeat(width) + "\n";
+
+    groupTaxes.forEach((tax: any) => {
+
+      const taxParts =
+        (tax.taxName || "")
+          .split("+")
+          .map((x: string) => x.trim());
+
+      if (taxParts.length >= 2) {
+
+        d += line2Col(
+          taxParts[0],
+          (tax.cgst || 0).toFixed(2)
+        );
+
+        d += line2Col(
+          taxParts[1],
+          (tax.sgst || 0).toFixed(2)
+        );
+
+      } else {
+
+        d += line2Col(
+          "CGST",
+          (tax.cgst || 0).toFixed(2)
+        );
+
+        d += line2Col(
+          "SGST",
+          (tax.sgst || 0).toFixed(2)
+        );
+
+      }
+
+      d += "-".repeat(width) + "\n";
+
+      d += boldOn;
+      d += line2Col(
+        "Subtotal",
+        (tax.total || 0).toFixed(2)
+      );
+      d += boldOff;
+
+    });
+
+  });
+
+}
+
+d += "-".repeat(width) + "\n";
+d += "-".repeat(width) + "\n";
+
+d += boldOn;
+
+if ((c.discount || 0) > 0) {
+
+  let label = "Discount";
+
+  if (c.discountIn === "amt")
+    label += " (Rs.)";
+
+  if (c.discountIn === "per")
+    label += " (%)";
+
+  d += line2Col(
+    label,
+    `-${c.discount.toFixed(2)}`
+  );
+
+}
+
+if ((c.roundOff || 0) !== 0) {
+
+  d += line2Col(
+    "Round Off",
+    c.roundOff.toFixed(2)
+  );
+
+}
+
+d += line2Col(
+  "GRAND TOTAL",
+  c.grandTotal.toFixed(2)
+);
+
+d += boldOff;
+
+d += "\n\n\n";
+
+d += "\x1D\x56\x41\x10";
+
+return d;
+
+}; // formatThermal END
+
+const data = formatThermal(content);
+
+console.log("=========== ESC/POS ===========");
+console.log(data);
+
+const cpj = new JSPM.ClientPrintJob();
+
+const isMobile =
+  /Android|iPhone|iPad|iPod/i.test(
+    navigator.userAgent
+  );
+
+if (isMobile) {
+
+  cpj.clientPrinter =
+    new JSPM.NetworkPrinter(
+      9100,
+      "192.168.1.158"
+    );
+
+} else if (printerName) {
+
+  cpj.clientPrinter =
+    new JSPM.InstalledPrinter(
+      printerName
+    );
+
+} else {
+
+  cpj.clientPrinter =
+    new JSPM.DefaultPrinter();
+
+}
+
+cpj.printerCommands = data;
+
+console.log("Sending to printer...");
+console.log("Printer:", cpj.clientPrinter);
+
+await cpj.sendToClient();
+
+console.log("Print Success");
+
+return {
+  success: true,
+  printer: printerName ?? "Default Printer",
+};
+
+} catch (err: any) {
+
+  console.error(err);
+
+  return {
+    success: false,
+    printer: null,
+    message: err?.message || "Printing Failed",
+  };
+
+}
+
+};
 
 
 

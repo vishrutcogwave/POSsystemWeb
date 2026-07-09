@@ -1,6 +1,3 @@
-
-
-
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CategorySidebar from "../components/CategorySidebar";
@@ -42,7 +39,7 @@ import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 import PaymentModal from "../components/PaymentModal";
 import { useAppContext } from "../context/AppContext";
 import AlertPopup from "../components/AlertPopup";
-import { printBill, printKOT } from "../api/services/printer";
+import { newprintBill, printBill, printKOT } from "../api/services/printer";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -67,43 +64,39 @@ function OrderingBoard() {
 
   const [openAddonModal, setOpenAddonModal] = useState(false);
 
-const [addonItems, setAddonItems] = useState<any[]>([]);
+  const [addonItems, setAddonItems] = useState<any[]>([]);
 
-const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<any>(null);
 
-const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
+  const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 
-const [billGenerationSettings, setBillGenerationSettings] = useState({
-  billingType: "",
-  subBillingType: "",
-});
+  const [billGenerationSettings, setBillGenerationSettings] = useState({
+    billingType: "",
+    subBillingType: "",
+  });
 
+  const fetchBillGenerationSettings = async () => {
+    try {
+      const branch = localStorage.getItem("branch") || "";
 
+      const res = await getBillGenerationSettings(branch);
 
-const fetchBillGenerationSettings = async () => {
-  try {
-    const branch = localStorage.getItem("branch") || "";
+      console.log("Bill Generation Settings:", res);
 
-    const res = await getBillGenerationSettings(branch);
-
-    console.log("Bill Generation Settings:", res);
-
-    if (res?.success && res?.data?.length > 0) {
-      setBillGenerationSettings({
-        billingType: res.data[0].billingType,
-        subBillingType: res.data[0].subBillingType,
-      });
+      if (res?.success && res?.data?.length > 0) {
+        setBillGenerationSettings({
+          billingType: res.data[0].billingType,
+          subBillingType: res.data[0].subBillingType,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch Bill Generation Settings", err);
     }
-  } catch (err) {
-    console.error("Failed to fetch Bill Generation Settings", err);
-  }
-};
-
-
+  };
 
   const handleUnsettledSubTable = async (item: any) => {
-    console.log("itemmmmmmm",item);
-    
+    console.log("itemmmmmmm", item);
+
     try {
       const branch = localStorage.getItem("branch") || "";
       const outlet = localStorage.getItem("activeOltCode") || "";
@@ -121,24 +114,23 @@ const fetchBillGenerationSettings = async () => {
     }
   };
 
-const tableData =
-  (location.state as {
-    tableNumber?: string;
-    status?: "Available" | "Occupied" | "Unsettled";
-    kotStatus: string;
-    fastFood?: boolean;
-    waiter?: string;
-    waiterName?: string;
-    pax?: number;
+  const tableData =
+    (location.state as {
+      tableNumber?: string;
+      status?: "Available" | "Occupied" | "Unsettled";
+      kotStatus: string;
+      fastFood?: boolean;
+      waiter?: string;
+      waiterName?: string;
+      pax?: number;
 
-    isDirectKOTandBill?: boolean;
-    isDirectPaxandStw?: boolean;
-  }) || {};
-  
+      isDirectKOTandBill?: boolean;
+      isDirectPaxandStw?: boolean;
+    }) || {};
 
-const directbill = tableData.isDirectKOTandBill ?? false
-const dontopenkotmodel = tableData.isDirectPaxandStw ??false
-  console.log(directbill,dontopenkotmodel, "tableData");
+  const directbill = tableData.isDirectKOTandBill ?? false;
+  const dontopenkotmodel = tableData.isDirectPaxandStw ?? false;
+  console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
       const newSession = {
@@ -198,20 +190,22 @@ const dontopenkotmodel = tableData.isDirectPaxandStw ??false
   const [discountMode, setDiscountMode] = useState<"amt" | "per">("amt");
   const [dayDetails, setdayDetails] = useState<any>({});
   const [alertOpen, setAlertOpen] = useState(false);
-const [alertMsg, setAlertMsg] = useState("");
-const [alertType, setAlertType] = useState<"success" | "error">("error");
+  const [alertMsg, setAlertMsg] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("error");
+  const { appData } = useAppContext();
+  console.log("appData", appData);
 
-    const { appData } = useAppContext();
-    console.log("appData", appData);
-  
-    const fetchdayDeatilsData = async () => {
-      try {
-        const data = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
-        setdayDetails(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+  const fetchdayDeatilsData = async () => {
+    try {
+      const data = await getOpenDayDetails(
+        appData?.user?.userCode,
+        appData?.user?.branch_code,
+      );
+      setdayDetails(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const fetchPaymentModes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -296,16 +290,20 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
     void fetchPaymentModes();
     void fetchDiscountTypes();
     void fetchdayDeatilsData();
-    void fetchBillGenerationSettings()
+    void fetchBillGenerationSettings();
   }, []);
 
   const fetchSubTables = async () => {
     try {
-      setKotLoading(true)
+      setKotLoading(true);
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
-      const data = await getSubTables(outlet, table,appData?.user?.branch_code);
+      const data = await getSubTables(
+        outlet,
+        table,
+        appData?.user?.branch_code,
+      );
 
       if (!data || data.length === 0) {
         setSubTables(data);
@@ -314,18 +312,23 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       }
     } catch (err) {
       console.error("Failed to load subtables", err);
-    }finally{
-      setKotLoading(false)
+    } finally {
+      setKotLoading(false);
     }
   };
   const fetchOldCart = async (sub: string) => {
     try {
-    setKotLoading(true)
+      setKotLoading(true);
 
       const outlet = localStorage.getItem("activeOltCode") || "";
       const table = tableData.tableNumber || "";
 
-      const data = await getOldCart(table, outlet, sub,appData?.user?.branch_code);
+      const data = await getOldCart(
+        table,
+        outlet,
+        sub,
+        appData?.user?.branch_code,
+      );
       console.log("oldcart", data);
 
       setOldCartData(data);
@@ -392,9 +395,8 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
       console.log("All old items:", oldItems);
     } catch (err) {
       console.error("Failed to fetch old cart", err);
-    }finally{
-    setKotLoading(false)
-
+    } finally {
+      setKotLoading(false);
     }
   };
 
@@ -424,36 +426,36 @@ const [alertType, setAlertType] = useState<"success" | "error">("error");
 
     return ALPHABETS[index + 1];
   };
-useEffect(() => {
-  if (!items.length) {
-    setCategories([]);
-    return;
-  }
+  useEffect(() => {
+    if (!items.length) {
+      setCategories([]);
+      return;
+    }
 
-  // Existing categories
-  const mapped: Category[] = items.map((cat: any) => ({
-    id: cat.catCode,
-    name: cat.catName.trim(),
-    image: cat.catthumb || "",
-  }));
+    // Existing categories
+    const mapped: Category[] = items.map((cat: any) => ({
+      id: cat.catCode,
+      name: cat.catName.trim(),
+      image: cat.catthumb || "",
+    }));
 
-  // Create "All" category
+    // Create "All" category
 
-  // Insert All at first
-  setCategories([
-    {
-      id: 0,
-      name: "All",
-      image: "",
-    },
-    ...mapped,
-  ]);
+    // Insert All at first
+    setCategories([
+      {
+        id: 0,
+        name: "All",
+        image: "",
+      },
+      ...mapped,
+    ]);
 
-  // Save active category
-  setActiveCategory(0);
+    // Save active category
+    setActiveCategory(0);
 
-  setCategoryLoading(false);
-}, [items]);
+    setCategoryLoading(false);
+  }, [items]);
 
   /* ---------------- BILL STATES ---------------- */
 
@@ -487,158 +489,131 @@ useEffect(() => {
   }, [kot]);
 
   /* ---------------- FILTER ITEMS ---------------- */
-const foods = useMemo(() => {
-  // ALL CATEGORY
-  if (activeCategory === 0) {
-    const allItems = items.flatMap((cat: any) =>
-      cat.items.map((item: any) => ({
-        ...item,
-        catCode: cat.catCode,
-        grpCode: cat.grpCode,
-      }))
-    );
+  const foods = useMemo(() => {
+    // ALL CATEGORY
+    if (activeCategory === 0) {
+      const allItems = items.flatMap((cat: any) =>
+        cat.items.map((item: any) => ({
+          ...item,
+          catCode: cat.catCode,
+          grpCode: cat.grpCode,
+        })),
+      );
+
+      const unique = new Map();
+
+      allItems.forEach((item: any) => {
+        if (!unique.has(item.itemCode)) {
+          unique.set(item.itemCode, item);
+        }
+      });
+
+      return Array.from(unique.values()).filter((item: any) =>
+        item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
+      );
+    }
+
+    // NORMAL CATEGORY
+    const category = items.find((cat: any) => cat.catCode === activeCategory);
+
+    if (!category) return [];
 
     const unique = new Map();
 
-    allItems.forEach((item: any) => {
+    category.items.forEach((item: any) => {
       if (!unique.has(item.itemCode)) {
         unique.set(item.itemCode, item);
       }
     });
 
     return Array.from(unique.values()).filter((item: any) =>
-      item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()),
     );
-  }
-
-  // NORMAL CATEGORY
-  const category = items.find(
-    (cat: any) => cat.catCode === activeCategory
-  );
-
-  if (!category) return [];
-
-  const unique = new Map();
-
-  category.items.forEach((item: any) => {
-    if (!unique.has(item.itemCode)) {
-      unique.set(item.itemCode, item);
-    }
-  });
-
-  return Array.from(unique.values()).filter((item: any) =>
-    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-}, [items, activeCategory, searchTerm]);
+  }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-  const addItemToCart = (
-  food: any,
-  selectedCategory: any
-) => {
-  setCart((prev) => {
-    const existing = prev.find(
-      (i) =>
-        i.id === food.itemCode &&
-        !i.isAddon
-    );
+  const addItemToCart = (food: any, selectedCategory: any) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === food.itemCode && !i.isAddon);
 
-    if (existing) {
-      return prev.map((i) =>
-        i.id === food.itemCode
-          ? { ...i, qty: i.qty + 1 }
-          : i
-      );
+      if (existing) {
+        return prev.map((i) =>
+          i.id === food.itemCode ? { ...i, qty: i.qty + 1 } : i,
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          id: food.itemCode,
+          name: food.itemName.trim(),
+          price: food.oidRate,
+          qty: 1,
+          category: selectedCategory.catCode,
+          grpCode: Number(selectedCategory.grpCode),
+          spcodes: "",
+          note: "",
+          itemDiscountAllowed: food.itemDiscountAllowed,
+        },
+      ];
+    });
+  };
+  const handleAdd = async (itemCode: number) => {
+    if (!session) {
+      toast.error("Start table session first");
+      return;
     }
 
-    return [
-      ...prev,
-      {
-        id: food.itemCode,
-        name: food.itemName.trim(),
-        price: food.oidRate,
-        qty: 1,
-        category: selectedCategory.catCode,
-        grpCode: Number(selectedCategory.grpCode),
-        spcodes: "",
-        note: "",
-        itemDiscountAllowed:
-          food.itemDiscountAllowed,
-      },
-    ];
-  });
-};
-const handleAdd = async (
-  itemCode: number
-) => {
-  if (!session) {
-    toast.error("Start table session first");
-    return;
-  }
+    let selectedCategory: any = null;
+    let food: any = null;
 
-  let selectedCategory: any = null;
-  let food: any = null;
+    for (const cat of items) {
+      const found = cat.items.find((i: any) => i.itemCode === itemCode);
 
-for (const cat of items) {
-  const found = cat.items.find(
-    (i: any) => i.itemCode === itemCode
-  );
+      if (found) {
+        selectedCategory = cat;
+        food = found;
+        break;
+      }
+    }
 
-  if (found) {
-    selectedCategory = cat;
-    food = found;
-    break;
-  }
-}
+    if (!food || !selectedCategory) return;
 
-  if (!food || !selectedCategory) return;
+    try {
+      setKotLoading(true);
+      const branch = localStorage.getItem("branch") || "";
 
-  try {
-    setKotLoading(true)
-    const branch =
-      localStorage.getItem("branch") || "";
+      const res = await getItemWiseAddOnDetailsList(branch, itemCode);
 
-    const res =
-      await getItemWiseAddOnDetailsList(
-        branch,
-        itemCode
-      );
+      console.log("ADDON RESPONSE", res);
 
-    console.log("ADDON RESPONSE", res);
+      // ✅ HAS ADDONS
+      if (res?.success && res?.data && res.data.length > 0) {
+        // ✅ FIRST ADD MAIN ITEM
 
-// ✅ HAS ADDONS
-if (
-  res?.success &&
-  res?.data &&
-  res.data.length > 0
-) {
+        setSelectedFood({
+          food,
+          category: selectedCategory,
+        });
 
-  // ✅ FIRST ADD MAIN ITEM
+        setAddonItems(res.data);
 
-  setSelectedFood({
-    food,
-    category: selectedCategory,
-  });
+        setSelectedAddons([]);
 
-  setAddonItems(res.data);
+        setOpenAddonModal(true);
 
-  setSelectedAddons([]);
+        return;
+      }
 
-  setOpenAddonModal(true);
+      // ✅ NORMAL FOOD
+      addItemToCart(food, selectedCategory);
+    } catch (err) {
+      console.error(err);
 
-  return;
-}
-
-    // ✅ NORMAL FOOD
-    addItemToCart(food, selectedCategory);
-
-  } catch (err) {
-    console.error(err);
-
-    addItemToCart(food, selectedCategory);
-  }finally{
-    setKotLoading(false)
-  }
-};
+      addItemToCart(food, selectedCategory);
+    } finally {
+      setKotLoading(false);
+    }
+  };
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
@@ -677,88 +652,82 @@ if (
     });
   };
 
+  const handleAddonConfirm = () => {
+    if (!selectedFood) return;
 
-const handleAddonConfirm = () => {
-  if (!selectedFood) return;
+    setCart((prev) => {
+      let updatedCart = [...prev];
 
-  setCart((prev) => {
-    let updatedCart = [...prev];
-
-    // ✅ Add the main item first
-    const existingMain = updatedCart.find(
-      (i) => i.id === selectedFood.food.itemCode && !i.isAddon
-    );
-
-    if (existingMain) {
-      updatedCart = updatedCart.map((i) =>
-        i.id === selectedFood.food.itemCode && !i.isAddon
-          ? { ...i, qty: i.qty + 1 }
-          : i
-      );
-    } else {
-      updatedCart.push({
-        id: selectedFood.food.itemCode,
-        name: selectedFood.food.itemName.trim(),
-        price: selectedFood.food.oidRate,
-        qty: 1,
-        category: selectedFood.category.catCode,
-        grpCode: Number(selectedFood.category.grpCode),
-        spcodes: "",
-        note: "",
-        itemDiscountAllowed:
-          selectedFood.food.itemDiscountAllowed,
-      });
-    }
-
-    // ✅ Add selected add-ons
-    selectedAddons.forEach((addon) => {
-      const existingAddon = updatedCart.findIndex(
-        (i) =>
-          i.id === addon.addOnItemCode &&
-          i.isAddon
+      // ✅ Add the main item first
+      const existingMain = updatedCart.find(
+        (i) => i.id === selectedFood.food.itemCode && !i.isAddon,
       );
 
-      if (existingAddon !== -1) {
-        updatedCart[existingAddon] = {
-          ...updatedCart[existingAddon],
-          qty:
-            updatedCart[existingAddon].qty +
-            addon.qty,
-        };
+      if (existingMain) {
+        updatedCart = updatedCart.map((i) =>
+          i.id === selectedFood.food.itemCode && !i.isAddon
+            ? { ...i, qty: i.qty + 1 }
+            : i,
+        );
       } else {
         updatedCart.push({
-          id: addon.addOnItemCode,
-          name: addon.addOnName,
-          price: addon.itemRate,
-          qty: addon.qty,
+          id: selectedFood.food.itemCode,
+          name: selectedFood.food.itemName.trim(),
+          price: selectedFood.food.oidRate,
+          qty: 1,
           category: selectedFood.category.catCode,
           grpCode: Number(selectedFood.category.grpCode),
           spcodes: "",
           note: "",
-          isAddon: true,
-          itemDiscountAllowed: true,
+          itemDiscountAllowed: selectedFood.food.itemDiscountAllowed,
         });
       }
+
+      // ✅ Add selected add-ons
+      selectedAddons.forEach((addon) => {
+        const existingAddon = updatedCart.findIndex(
+          (i) => i.id === addon.addOnItemCode && i.isAddon,
+        );
+
+        if (existingAddon !== -1) {
+          updatedCart[existingAddon] = {
+            ...updatedCart[existingAddon],
+            qty: updatedCart[existingAddon].qty + addon.qty,
+          };
+        } else {
+          updatedCart.push({
+            id: addon.addOnItemCode,
+            name: addon.addOnName,
+            price: addon.itemRate,
+            qty: addon.qty,
+            category: selectedFood.category.catCode,
+            grpCode: Number(selectedFood.category.grpCode),
+            spcodes: "",
+            note: "",
+            isAddon: true,
+            itemDiscountAllowed: true,
+          });
+        }
+      });
+
+      return updatedCart;
     });
 
-    return updatedCart;
-  });
-
-  setOpenAddonModal(false);
-  setSelectedAddons([]);
-  setSelectedFood(null);
-};
+    setOpenAddonModal(false);
+    setSelectedAddons([]);
+    setSelectedFood(null);
+  };
 
   const handleKOT = async () => {
-     if (dayDetails?.openDayResponse?.success === false) {
-    setAlertMsg(
-      dayDetails?.openDayResponse?.message ||
-        "Please open the day first to continue further!"
-    );
-    setAlertType("error");
-    setAlertOpen(true);
-    return; // 🚨 STOP KOT
-  }
+    if (dayDetails?.openDayResponse?.success === false) {
+      setAlertMsg(
+        dayDetails?.openDayResponse?.message ||
+          "Please open the day first to continue further!",
+      );
+      setAlertType("error");
+      setAlertOpen(true);
+      return; // 🚨 STOP KOT
+    }
     if (!session || cart.length === 0) return;
 
     setKotLoading(true);
@@ -767,7 +736,7 @@ const handleAddonConfirm = () => {
     const outlet = localStorage.getItem("activeOltCode") || "";
 
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
-
+    const taxType = taxSettings?.taxType || "normaltax"; // ✅ IMPORTANT
     const payload = {
       userCode: appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
@@ -793,7 +762,7 @@ const handleAddonConfirm = () => {
 
       total: cart.reduce((sum, i) => sum + i.price * i.qty, 0),
       totQty: cart.reduce((sum, i) => sum + i.qty, 0),
-
+      taxType: taxType,
       branch,
       type: isNC ? "N" : "K",
       ncCode: isNC ? selectedNcCode : 0,
@@ -830,114 +799,105 @@ const handleAddonConfirm = () => {
     };
 
     try {
-
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
-/* ---------------- PRINT ---------------- */
+      /* ---------------- PRINT ---------------- */
 
-const printers = res.printers || [];
-const foodItems = res.food || [];
+      const printers = res.printers || [];
+      const foodItems = res.food || [];
 
-const printerItemMap: Record<string, any[]> = {};
+      const printerItemMap: Record<string, any[]> = {};
 
-printers.forEach((printer: any) => {
-  const matchedItems = foodItems.filter((item: any) =>
-    printer.categoryIds.includes(Number(item.category))
-  );
+      printers.forEach((printer: any) => {
+        const matchedItems = foodItems.filter((item: any) =>
+          printer.categoryIds.includes(Number(item.category)),
+        );
 
-  if (matchedItems.length > 0) {
-    printerItemMap[printer.printerName] = matchedItems;
-  }
-});
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName] = matchedItems;
+        }
+      });
 
-const generateContent = (items: any[]) => ({
-  title: isNC ? "NC KOT" : "KOT",
-  kotId: res.kotId || res.kotID || res.kotNo || "",
-  table: tableData.tableNumber,
-  subTable: selectedSubTable || "A",
-  waiter: session.waiterName,
-  pax: session.pax,
-  items: items.map((item: any) => ({
-    qty: item.origQty,
-    name: item.food,
-   instructions: item.comment
-  ? item.comment.split(",")
-  : [],
-  })),
-});
+      const generateContent = (items: any[]) => ({
+        title: isNC ? "NC KOT" : "KOT",
+        kotId: res.kotId || res.kotID || res.kotNo || "",
+        table: tableData.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item: any) => ({
+          qty: item.origQty,
+          name: item.food,
+          instructions: item.comment ? item.comment.split(",") : [],
+        })),
+      });
 
-// If no printer is configured, print everything to the default printer
-if (Object.keys(printerItemMap).length === 0) {
-  const result = await printKOT(
-    null,
-    generateContent(foodItems),
-    true
-  );
+      // If no printer is configured, print everything to the default printer
+      if (Object.keys(printerItemMap).length === 0) {
+        const result = await printKOT(null, generateContent(foodItems), true);
 
-  if (!result.success) {
-    toast.error(`❌ Default Printer: ${result.message}`);
-  }
-} else {
-  for (const rawPrinterName in printerItemMap) {
-    const printerItems = printerItemMap[rawPrinterName];
+        if (!result.success) {
+          toast.error(`❌ Default Printer: ${result.message}`);
+        }
+      } else {
+        for (const rawPrinterName in printerItemMap) {
+          const printerItems = printerItemMap[rawPrinterName];
 
-    const content = generateContent(printerItems);
+          const content = generateContent(printerItems);
 
-    const printerName = rawPrinterName?.trim() || null;
-const thermalKeywords = [
-  "pos",
-  "thermal",
-  "epson tm",
-  "tm-",
-  "xp-",
-  "tsp",
-  "58mm",
-  "80mm",
-  "receipt",
-  "usb printer",
-  "rp",
-  "gp",
-];
-    const isThermal = thermalKeywords.some(keyword =>
-      (printerName || "").toLowerCase().includes(keyword)
-    );
+          const printerName = rawPrinterName?.trim() || null;
+          const thermalKeywords = [
+            "pos",
+            "thermal",
+            "epson tm",
+            "tm-",
+            "xp-",
+            "tsp",
+            "58mm",
+            "80mm",
+            "receipt",
+            "usb printer",
+            "rp",
+            "gp",
+          ];
+          const isThermal = thermalKeywords.some((keyword) =>
+            (printerName || "").toLowerCase().includes(keyword),
+          );
 
-    const result = await printKOT(
-      printerName,
-      content,
-      isThermal
-    );
+          const result = await printKOT(printerName, content, isThermal);
 
-    if (!result.success) {
-      toast.error(
-        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
-      );
-    }
-  }
-}
+          if (!result.success) {
+            toast.error(
+              `❌ ${printerName ?? "Default Printer"}: ${result.message}`,
+            );
+          }
+        }
+      }
 
-/* ---------- FAST FOOD BILL PRINT ---------- */
+      /* ---------- FAST FOOD BILL PRINT ---------- */
 
-if (tableData.fastFood === true || directbill) {
-  const printRes = await printBill(
-    billData,
-    res.fnBillResponse,
-    _companyInfo
-  );
+      if (tableData.fastFood === true) {
+        const printRes = await printBill(
+          billData,
+          res.fnBillResponse,
+          _companyInfo,
+        );
 
-  console.log("Bill Print:", printRes);
-}
-   
+        console.log("Bill Print:", printRes);
+      }
+
       setCart([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if(directbill){
-        setKotLoading(false)
-        setOpenUnsettledPayment(true)
-        handleUnsettledSubTable(res?.fnBillResponse)
+      if (directbill) {
+        newprintBill(res, _companyInfo);
+        setKotLoading(false);
+         setOpenUnsettledPayment(true) ;
+         
+        handleUnsettledSubTable(res?.fnBillResponse);
       }
-      if (tableData.fastFood === undefined && !directbill) {
+      if (tableData.fastFood === undefined || !directbill || isNC ) {
         navigate("/NewOrder");
       }
       if (tableData.fastFood !== undefined) {
@@ -951,9 +911,8 @@ if (tableData.fastFood === true || directbill) {
         setSession(parsed);
         setSelectedSubTable("A");
       }
-     
-        toast.success("KOT created & printed successfully! ✅");
-      
+
+      toast.success("KOT created & printed successfully! ✅");
     } catch (err) {
       console.error("Failed to create KOT:", err);
       toast.error("Failed to create KOT ❌");
@@ -972,7 +931,7 @@ if (tableData.fastFood === true || directbill) {
     const outlet = localStorage.getItem("activeOltCode") || "";
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
     const payload = {
-      userCode:  appData?.user?.userCode || 0,
+      userCode: appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1008,7 +967,7 @@ if (tableData.fastFood === true || directbill) {
       vRemarks: "1",
       discountGroups: [""],
       mode: "ADD",
-       subBillType: billGenerationSettings.subBillingType,
+      subBillType: billGenerationSettings.subBillingType,
       plan: "",
       guestName: "adc",
       guestCode: "234",
@@ -1038,7 +997,7 @@ if (tableData.fastFood === true || directbill) {
 
       const payload2 = {
         oltCode: Number(localStorage.getItem("activeOltCode") || 0),
-        userCode:  appData?.user?.userCode || 0,
+        userCode: appData?.user?.userCode || 0,
 
         billId: res?.fnBillResponse?.billNo || 0,
         billNo: res?.fnBillResponse?.billNo || 0,
@@ -1081,77 +1040,69 @@ if (tableData.fastFood === true || directbill) {
           printerItemMap[printer.printerName] = matchedItems;
         }
       });
-const generateContent = (items: any[]) => ({
-  title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
-  kotId: res.kotId || res.kotID || res.kotNo || "",
-  table: tableData.tableNumber,
-  subTable: selectedSubTable || "A",
-  waiter: session.waiterName,
-  pax: session.pax,
-  items: items.map((item: any) => ({
-    qty: item.origQty || item.qty || 0,
-    name: item.food,
-    instructions: item.comment ? [item.comment] : [],
-  })),
-});
+      const generateContent = (items: any[]) => ({
+        title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
+        kotId: res.kotId || res.kotID || res.kotNo || "",
+        table: tableData.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item: any) => ({
+          qty: item.origQty || item.qty || 0,
+          name: item.food,
+          instructions: item.comment ? [item.comment] : [],
+        })),
+      });
 
-const thermalKeywords = [
-  "pos",
-  "thermal",
-  "epson tm",
-  "tm-",
-  "xp-",
-  "tsp",
-  "58mm",
-  "80mm",
-  "receipt",
-  "usb printer",
-  "rp",
-  "gp",
-];
+      const thermalKeywords = [
+        "pos",
+        "thermal",
+        "epson tm",
+        "tm-",
+        "xp-",
+        "tsp",
+        "58mm",
+        "80mm",
+        "receipt",
+        "usb printer",
+        "rp",
+        "gp",
+      ];
 
-let hasError = false;
-// If no printer is configured, print everything to the default printer
-if (Object.keys(printerItemMap).length === 0) {
-  const result = await printKOT(
-    null,
-    generateContent(foodItems),
-    true
-  );
+      let hasError = false;
+      // If no printer is configured, print everything to the default printer
+      if (Object.keys(printerItemMap).length === 0) {
+        const result = await printKOT(null, generateContent(foodItems), true);
 
-  if (!result.success) {
-    toast.error(`❌ Default Printer: ${result.message}`);
-  }
-} else {
-  for (const rawPrinterName in printerItemMap) {
-    const printerItems = printerItemMap[rawPrinterName];
+        if (!result.success) {
+          toast.error(`❌ Default Printer: ${result.message}`);
+        }
+      } else {
+        for (const rawPrinterName in printerItemMap) {
+          const printerItems = printerItemMap[rawPrinterName];
 
-    const content = generateContent(printerItems);
+          const content = generateContent(printerItems);
 
-    const printerName = rawPrinterName?.trim() || null;
+          const printerName = rawPrinterName?.trim() || null;
 
-    const isThermal = thermalKeywords.some(keyword =>
-      (printerName || "").toLowerCase().includes(keyword)
-    );
+          const isThermal = thermalKeywords.some((keyword) =>
+            (printerName || "").toLowerCase().includes(keyword),
+          );
 
-    const result = await printKOT(
-      printerName,
-      content,
-      isThermal
-    );
+          const result = await printKOT(printerName, content, isThermal);
 
-    if (!result.success) {
-      toast.error(
-        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
-      );
-    }
-  }
-}
-if (hasError) {
-  toast.error("Some printers failed ❌");
-} else {
-  toast.success("Items voided & printed successfully ✅");
-}
+          if (!result.success) {
+            toast.error(
+              `❌ ${printerName ?? "Default Printer"}: ${result.message}`,
+            );
+          }
+        }
+      }
+      if (hasError) {
+        toast.error("Some printers failed ❌");
+      } else {
+        toast.success("Items voided & printed successfully ✅");
+      }
       setCart([]);
       setOpenPayment(false);
 
@@ -1173,7 +1124,7 @@ if (hasError) {
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
 
     const payload = {
-      userCode:  appData?.user?.userCode || 0,
+      userCode: appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1217,7 +1168,7 @@ if (hasError) {
       vRemarks: "1",
       discountGroups: [""],
       mode: "VOID",
-   subBillType: billGenerationSettings.subBillingType,
+      subBillType: billGenerationSettings.subBillingType,
       plan: "",
       guestName: "adc",
       guestCode: "234",
@@ -1242,7 +1193,6 @@ if (hasError) {
     };
 
     try {
-     
       const res = await createOrder(payload);
 
       /* ---------------- PRINT SAME AS KOT ---------------- */
@@ -1276,32 +1226,32 @@ if (hasError) {
       // });
       // let hasError = false;
 
-//       for (const rawPrinterName in printerItemMap) {
-//         const items = printerItemMap[rawPrinterName];
+      //       for (const rawPrinterName in printerItemMap) {
+      //         const items = printerItemMap[rawPrinterName];
 
-//         // const content = generateContent(items);
+      //         // const content = generateContent(items);
 
-//         // let printerName = rawPrinterName;
+      //         // let printerName = rawPrinterName;
 
-// //     if (!printerName || printerName.trim() === "") {
-// //   printerName = "";
-// // }
+      // //     if (!printerName || printerName.trim() === "") {
+      // //   printerName = "";
+      // // }
 
-//         // const isThermal =
-//         //   printerName.toLowerCase().includes("pos") ||
-//         //   printerName.toLowerCase().includes("thermal");
+      //         // const isThermal =
+      //         //   printerName.toLowerCase().includes("pos") ||
+      //         //   printerName.toLowerCase().includes("thermal");
 
-//         // const finalData = isThermal
-//         //   ? formatThermal(content)
-//         //   : formatHTML(content);
+      //         // const finalData = isThermal
+      //         //   ? formatThermal(content)
+      //         //   : formatHTML(content);
 
-//         // const result = await printKOT(printerName, finalData, isThermal);
+      //         // const result = await printKOT(printerName, finalData, isThermal);
 
-//         // if (!result.success) {
-//         //   hasError = true;
-//         //   toast.error(`❌ ${printerName}: ${result.message}`);
-//         // }
-//       }
+      //         // if (!result.success) {
+      //         //   hasError = true;
+      //         //   toast.error(`❌ ${printerName}: ${result.message}`);
+      //         // }
+      //       }
 
       setSelectedVoidItems([]);
       if (tableData.fastFood === undefined) {
@@ -1391,7 +1341,7 @@ if (hasError) {
     const food = [...oldFoods, ...newFoods];
 
     return {
-      userCode:  appData?.user?.userCode || 0,
+      userCode: appData?.user?.userCode || 0,
       table: tableData.tableNumber || "",
       subTable: selectedSubTable || "A",
       outlet,
@@ -1418,7 +1368,7 @@ if (hasError) {
       vRemarks: "1",
 
       mode: "ADD",
-       subBillType: billGenerationSettings.subBillingType,
+      subBillType: billGenerationSettings.subBillingType,
       discountGroups: selectedGroups,
       plan: "",
       guestName: "",
@@ -1445,7 +1395,7 @@ if (hasError) {
     };
   };
   const handlePrintBill = async (billData: any) => {
-        setKotLoading(true);
+    setKotLoading(true);
     try {
       if (!billData) {
         throw new Error("No bill data");
@@ -1454,8 +1404,6 @@ if (hasError) {
       // ✅ 1. POST BILL (FULL OBJECT)
       const res = await postBill(billData);
       console.log("Bill Posted:", res);
-
- 
 
       toast.success("Bill Printed Successfully ✅");
       if (tableData.fastFood === undefined) {
@@ -1466,48 +1414,43 @@ if (hasError) {
       console.error("Print Bill Error:", err);
       toast.error(err.message || "Print failed ❌");
       return false;
-    }finally{
-        setKotLoading(false);
-
+    } finally {
+      setKotLoading(false);
     }
   };
-const handleGetBill = async (showPopup = true) => {
-  if (directbill) {
-    showPopup = false;
-  }
+  const handleGetBill = async (showPopup = true) => {
+    if (directbill) {
+      showPopup = false;
+    }
 
-  const payload = buildBillPayload();
+    const payload = buildBillPayload();
 
-  const res = await getBill(payload);
+    const res = await getBill(payload);
 
-  const finalResponse = {
-    cart: { ...payload },
-    tax: {
-      ...res,
-      taxList: res.taxList || [],
-      taxType: taxSettings?.taxType,
-    },
-    billingType: billGenerationSettings.billingType,
-    subBillingType: billGenerationSettings.subBillingType,
+    const finalResponse = {
+      cart: { ...payload },
+      tax: {
+        ...res,
+        taxList: res.taxList || [],
+        taxType: taxSettings?.taxType,
+      },
+      billingType: billGenerationSettings.billingType,
+      subBillingType: billGenerationSettings.subBillingType,
+    };
+
+    setBillData(finalResponse);
+
+    if (showPopup) {
+      setShowInvoice(true);
+    }
+
+    return finalResponse;
   };
-
-  setBillData(finalResponse);
-
-  if (showPopup) {
-    setShowInvoice(true);
+  /* ---------------- GLOBAL LOADER ---------------- */
+  /* ---------------- GLOBAL LOADER ---------------- */
+  if (loading || categoryLoading || kotLoading) {
+    return <Loader />;
   }
-
-  return finalResponse;
-};
-  /* ---------------- GLOBAL LOADER ---------------- */
-  /* ---------------- GLOBAL LOADER ---------------- */
-if (
-  loading ||
-  categoryLoading ||
-  kotLoading
-) {
-  return <Loader />;
-}
 
   const selectedItem = cart.find((i) => i.id === instructionItemId);
   /* ---------------- UI ---------------- */
@@ -1582,11 +1525,10 @@ if (
     }
   };
   const handleKotToNcKot = async () => {
-      const isNC = selectedNcCode !== null && selectedNcCode !== 0;
-    if (!openNcModal && !isNC ){
-      setOpenNcModal(true)
-      return
-
+    const isNC = selectedNcCode !== null && selectedNcCode !== 0;
+    if (!openNcModal && !isNC) {
+      setOpenNcModal(true);
+      return;
     }
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -1625,7 +1567,7 @@ if (
 
       // ✅ optional refresh
       await fetchOldCart(selectedSubTable);
-      navigate("/NewOrder")
+      navigate("/NewOrder");
     } catch (err) {
       console.error("KOT → NC Failed:", err);
       toast.error("Conversion failed ❌");
@@ -1718,19 +1660,20 @@ if (
         <main className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 md:p-3 pb-20">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
             {foods.map((item) => (
-            <FoodCard
-  key={`${item.itemCode}-${item.itemName}`}
-  id={item.itemCode}
-  name={item.itemName.trim()}
-  price={item.oidRate}
-  image={item.thumb || ""}
-  qty={
-    cart.find((c) => c.id === item.itemCode && !c.isAddon)?.qty || 0
-  }
-  onAdd={handleAdd}
-  onIncrease={increaseQty}
-  onDecrease={decreaseQty}
-/>
+              <FoodCard
+                key={`${item.itemCode}-${item.itemName}`}
+                id={item.itemCode}
+                name={item.itemName.trim()}
+                price={item.oidRate}
+                image={item.thumb || ""}
+                qty={
+                  cart.find((c) => c.id === item.itemCode && !c.isAddon)?.qty ||
+                  0
+                }
+                onAdd={handleAdd}
+                onIncrease={increaseQty}
+                onDecrease={decreaseQty}
+              />
             ))}
           </div>
         </main>
@@ -1739,8 +1682,8 @@ if (
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
-        directbill={directbill}
-             isFastfood={tableData.fastFood}
+          directbill={directbill}
+          isFastfood={tableData.fastFood}
           showPast={showPast}
           setShowPast={setShowPast}
           openNcModal={openNcModal}
@@ -1766,19 +1709,19 @@ if (
             setInstructionItemId(id);
             setOpenInstructionModal(true);
           }}
-     onKOT={() => {
-  // If waiter/pax must be selected first
-  if (dontopenkotmodel && !session) {
-    setOpenSessionModal(true);
-    return;
-  }
+          onKOT={() => {
+            // If waiter/pax must be selected first
+            if (dontopenkotmodel && !session) {
+              setOpenSessionModal(true);
+              return;
+            }
 
-  if (tableData.fastFood === undefined) {
-    handleKOT();
-  } else {
-    setOpenPayment(true);
-  }
-}}
+            if (tableData.fastFood === undefined) {
+              handleKOT();
+            } else {
+              setOpenPayment(true);
+            }
+          }}
           onVoid={handleVoid}
           kotLoading={kotLoading}
         />
@@ -1786,12 +1729,12 @@ if (
 
       {/* MOBILE CART */}
       <MobileCartButton
-         directbill={directbill}
-      isFastfood={tableData.fastFood}
+        directbill={directbill}
+        isFastfood={tableData.fastFood}
         showPast={showPast}
-          setShowPast={setShowPast}
-          openNcModal={openNcModal}
-          setOpenNcModal={setOpenNcModal}
+        setShowPast={setShowPast}
+        openNcModal={openNcModal}
+        setOpenNcModal={setOpenNcModal}
         onConvertion={handleKotToNcKot}
         handleGetBill={handleGetBill}
         onVoid={handleVoid}
@@ -1810,19 +1753,19 @@ if (
           setInstructionItemId(id);
           setOpenInstructionModal(true);
         }}
-    onKOT={() => {
-  // If waiter/pax must be selected first
-  if (dontopenkotmodel && !session) {
-    setOpenSessionModal(true);
-    return;
-  }
+        onKOT={() => {
+          // If waiter/pax must be selected first
+          if (dontopenkotmodel && !session) {
+            setOpenSessionModal(true);
+            return;
+          }
 
-  if (tableData.fastFood === undefined) {
-    handleKOT();
-  } else {
-    setOpenPayment(true);
-  }
-}}
+          if (tableData.fastFood === undefined) {
+            handleKOT();
+          } else {
+            setOpenPayment(true);
+          }
+        }}
         kotLoading={kotLoading}
         selectedNcCode={selectedNcCode}
         setSelectedNcCode={setSelectedNcCode}
@@ -1831,7 +1774,7 @@ if (
       />
       {/* SESSION MODAL */}
       <TableSessionModal
-      dontopenkotmodel={dontopenkotmodel}
+        dontopenkotmodel={dontopenkotmodel}
         isOpen={openSessionModal}
         initialPax={session?.pax}
         initialWaiter={session?.waiterCode}
@@ -1932,7 +1875,7 @@ if (
           setOpenUnsettledPayment(false);
           setUnbillData(null);
           setOpenKOTModal(true);
-          navigate("/NewOrder")
+          navigate("/NewOrder");
         }}
         onPay={handleBillSettlement}
       />
@@ -1945,17 +1888,16 @@ if (
         unbillData={billData}
       />
       <AlertPopup
-  isOpen={alertOpen}
-  message={alertMsg}
-  type={alertType}
-  onClose={() => setAlertOpen(false)}
-/>
-{openAddonModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
-
-    {/* POPUP */}
-    <div
-      className="
+        isOpen={alertOpen}
+        message={alertMsg}
+        type={alertType}
+        onClose={() => setAlertOpen(false)}
+      />
+      {openAddonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3">
+          {/* POPUP */}
+          <div
+            className="
         w-full
         sm:w-[95vw]
         md:w-[85vw]
@@ -1972,68 +1914,56 @@ if (
         overflow-hidden
         flex flex-col
       "
-    >
+          >
+            {/* HEADER */}
+            <div className="bg-gradient-to-r from-[#0576B2] to-[#0EA5E9] px-4 sm:px-6 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-white text-xl sm:text-2xl font-bold">
+                    Select Add Ons
+                  </h2>
 
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-[#0576B2] to-[#0EA5E9] px-4 sm:px-6 py-4">
+                  <p className="text-blue-100 text-xs sm:text-sm mt-1">
+                    Customize your item with extra add-ons
+                  </p>
+                </div>
 
-        <div className="flex items-start justify-between gap-3">
-
-          <div>
-            <h2 className="text-white text-xl sm:text-2xl font-bold">
-              Select Add Ons
-            </h2>
-
-            <p className="text-blue-100 text-xs sm:text-sm mt-1">
-              Customize your item with extra add-ons
-            </p>
-          </div>
-
-          <button
-            onClick={() =>
-              setOpenAddonModal(false)
-            }
-            className="
+                <button
+                  onClick={() => setOpenAddonModal(false)}
+                  className="
               h-9 w-9 rounded-full
               bg-white/20 text-white
               flex items-center justify-center
               text-lg font-bold
             "
-          >
-            ✕
-          </button>
-        </div>
-      </div>
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
 
-      {/* BODY */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-5">
-
-        <div
-          className="
+            {/* BODY */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+              <div
+                className="
             grid grid-cols-1
             sm:grid-cols-2
             md:grid-cols-3
             lg:grid-cols-4
             gap-4
           "
-        >
+              >
+                {addonItems.map((addon) => {
+                  const selectedAddon = selectedAddons.find(
+                    (a) => a.addOnItemCode === addon.addOnItemCode,
+                  );
 
-          {addonItems.map((addon) => {
+                  const qty = selectedAddon?.qty || 0;
 
-            const selectedAddon =
-              selectedAddons.find(
-                (a) =>
-                  a.addOnItemCode ===
-                  addon.addOnItemCode
-              );
-
-            const qty =
-              selectedAddon?.qty || 0;
-
-            return (
-              <div
-                key={addon.addOnItemCode}
-                className={`
+                  return (
+                    <div
+                      key={addon.addOnItemCode}
+                      className={`
                   rounded-2xl border overflow-hidden
                   transition-all duration-300
                   ${
@@ -2042,27 +1972,25 @@ if (
                       : "border-gray-200 bg-white"
                   }
                 `}
-              >
-
-                {/* IMAGE */}
-                <div className="relative">
-
-                  <img
-                    src={
-                      addon.thumb ||
-                      addon.image ||
-                      "https://placehold.co/400x250/png"
-                    }
-                    alt={addon.addOnName}
-                    className="
+                    >
+                      {/* IMAGE */}
+                      <div className="relative">
+                        <img
+                          src={
+                            addon.thumb ||
+                            addon.image ||
+                            "https://placehold.co/400x250/png"
+                          }
+                          alt={addon.addOnName}
+                          className="
                       h-32 sm:h-36 w-full
                       object-cover
                     "
-                  />
+                        />
 
-                  {qty > 0 && (
-                    <div
-                      className="
+                        {qty > 0 && (
+                          <div
+                            className="
                         absolute top-2 right-2
                         h-7 min-w-[28px]
                         px-2 rounded-full
@@ -2070,243 +1998,205 @@ if (
                         text-white text-xs font-bold
                         flex items-center justify-center
                       "
-                    >
-                      {qty}
-                    </div>
-                  )}
-                </div>
+                          >
+                            {qty}
+                          </div>
+                        )}
+                      </div>
 
-                {/* CONTENT */}
-                <div className="p-3">
-
-                  <h3
-                    className="
+                      {/* CONTENT */}
+                      <div className="p-3">
+                        <h3
+                          className="
                       text-sm sm:text-base
                       font-bold text-gray-800
                       line-clamp-1
                     "
-                  >
-                    {addon.addOnName}
-                  </h3>
+                        >
+                          {addon.addOnName}
+                        </h3>
 
-                  <p className="text-xs text-gray-500 mt-1">
-                    Extra Add-On
-                  </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Extra Add-On
+                        </p>
 
-                  {/* PRICE + QTY */}
-                  <div className="mt-4 flex items-center justify-between">
-
-                    <div>
-                      <p
-                        className="
+                        {/* PRICE + QTY */}
+                        <div className="mt-4 flex items-center justify-between">
+                          <div>
+                            <p
+                              className="
                           text-lg sm:text-xl
                           font-extrabold
                           text-[#0576B2]
                         "
-                      >
-                        ₹{addon.itemRate}
-                      </p>
-                    </div>
+                            >
+                              ₹{addon.itemRate}
+                            </p>
+                          </div>
 
-                    {/* QTY CONTROLS */}
-                    {qty === 0 ? (
-                      <button
-                        onClick={() => {
-                          setSelectedAddons(
-                            (prev) => [
-                              ...prev,
-                              {
-                                ...addon,
-                                qty: 1,
-                              },
-                            ]
-                          );
-                        }}
-                        className="
+                          {/* QTY CONTROLS */}
+                          {qty === 0 ? (
+                            <button
+                              onClick={() => {
+                                setSelectedAddons((prev) => [
+                                  ...prev,
+                                  {
+                                    ...addon,
+                                    qty: 1,
+                                  },
+                                ]);
+                              }}
+                              className="
                           rounded-xl
                           bg-[#0576B2]
                           px-4 py-2
                           text-sm font-semibold
                           text-white
                         "
-                      >
-                        ADD
-                      </button>
-                    ) : (
-                      <div
-                        className="
+                            >
+                              ADD
+                            </button>
+                          ) : (
+                            <div
+                              className="
                           flex items-center gap-3
                           rounded-xl
                           bg-[#0576B2]
                           px-3 py-2
                           text-white
                         "
-                      >
+                            >
+                              {/* MINUS */}
+                              <button
+                                onClick={() => {
+                                  setSelectedAddons((prev) =>
+                                    prev
+                                      .map((a) =>
+                                        a.addOnItemCode === addon.addOnItemCode
+                                          ? {
+                                              ...a,
+                                              qty: a.qty - 1,
+                                            }
+                                          : a,
+                                      )
+                                      .filter((a) => a.qty > 0),
+                                  );
+                                }}
+                                className="text-lg font-bold"
+                              >
+                                -
+                              </button>
 
-                        {/* MINUS */}
-                        <button
-                          onClick={() => {
-                            setSelectedAddons(
-                              (prev) =>
-                                prev
-                                  .map((a) =>
-                                    a.addOnItemCode ===
-                                    addon.addOnItemCode
-                                      ? {
-                                          ...a,
-                                          qty:
-                                            a.qty -
-                                            1,
-                                        }
-                                      : a
-                                  )
-                                  .filter(
-                                    (a) =>
-                                      a.qty > 0
-                                  )
-                            );
-                          }}
-                          className="text-lg font-bold"
-                        >
-                          -
-                        </button>
+                              {/* QTY */}
+                              <span className="min-w-[20px] text-center text-sm font-bold">
+                                {qty}
+                              </span>
 
-                        {/* QTY */}
-                        <span className="min-w-[20px] text-center text-sm font-bold">
-                          {qty}
-                        </span>
-
-                        {/* PLUS */}
-                        <button
-                          onClick={() => {
-                            setSelectedAddons(
-                              (prev) =>
-                                prev.map((a) =>
-                                  a.addOnItemCode ===
-                                  addon.addOnItemCode
-                                    ? {
-                                        ...a,
-                                        qty:
-                                          a.qty +
-                                          1,
-                                      }
-                                    : a
-                                )
-                            );
-                          }}
-                          className="text-lg font-bold"
-                        >
-                          +
-                        </button>
+                              {/* PLUS */}
+                              <button
+                                onClick={() => {
+                                  setSelectedAddons((prev) =>
+                                    prev.map((a) =>
+                                      a.addOnItemCode === addon.addOnItemCode
+                                        ? {
+                                            ...a,
+                                            qty: a.qty + 1,
+                                          }
+                                        : a,
+                                    ),
+                                  );
+                                }}
+                                className="text-lg font-bold"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
 
-      {/* FOOTER */}
-      <div
-        className="
+            {/* FOOTER */}
+            <div
+              className="
           border-t bg-white
           px-4 sm:px-6 py-4
           flex items-center justify-between
         "
-      >
+            >
+              {/* LEFT */}
+              <div>
+                <p className="text-xs text-gray-500">Selected Add Ons</p>
 
-        {/* LEFT */}
-        <div>
-          <p className="text-xs text-gray-500">
-            Selected Add Ons
-          </p>
+                <p className="text-xl font-bold text-[#0576B2]">
+                  {selectedAddons.reduce((s, i) => s + i.qty, 0)}
+                </p>
+              </div>
 
-          <p className="text-xl font-bold text-[#0576B2]">
-            {selectedAddons.reduce(
-              (s, i) => s + i.qty,
-              0
-            )}
-          </p>
-        </div>
-
-        {/* BUTTONS */}
-        <div className="flex gap-3">
-
-          <button
-            onClick={() =>
-              setOpenAddonModal(false)
-            }
-            className="
+              {/* BUTTONS */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setOpenAddonModal(false)}
+                  className="
               rounded-xl border
               border-gray-300
               px-4 py-2
               text-sm sm:text-base
             "
-          >
-            Cancel
-          </button>
+                >
+                  Cancel
+                </button>
 
-        <div className="flex gap-3">
+                <div className="flex gap-3">
+                  {selectedAddons.length === 0 ? (
+                    <button
+                      onClick={() => {
+                        if (selectedFood) {
+                          addItemToCart(
+                            selectedFood.food,
+                            selectedFood.category,
+                          );
+                        }
 
-  {selectedAddons.length === 0 ? (
-    <button
-      onClick={() => {
-        if (selectedFood) {
-          addItemToCart(
-            selectedFood.food,
-            selectedFood.category
-          );
-        }
-
-        setOpenAddonModal(false);
-        setSelectedAddons([]);
-      }}
-      className="
+                        setOpenAddonModal(false);
+                        setSelectedAddons([]);
+                      }}
+                      className="
         rounded-xl
         bg-gray-500
         px-5 py-2
         text-white
         font-semibold
       "
-    >
-      Skip
-    </button>
-  ) : (
-    <button
-      onClick={handleAddonConfirm}
-      className="
+                    >
+                      Skip
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleAddonConfirm}
+                      className="
         rounded-xl
         bg-[#0576B2]
         px-5 py-2
         text-white
         font-semibold
       "
-    >
-      Add To Cart
-    </button>
-  )}
-
-</div>
+                    >
+                      Add To Cart
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
+      )}
     </div>
   );
 }
 
 export default OrderingBoard;
-
-
-
-
-
-
-
-
-
