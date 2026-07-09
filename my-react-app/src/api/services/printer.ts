@@ -3,46 +3,39 @@ import { getBillConfiguration } from "./products.service";
 
 const formatThermal = (c: any) => {
   const WIDTH = 42;
-
   const line = "-".repeat(WIDTH);
 
-  const center = (text: string) => {
-    const spaces = Math.max(
-      0,
-      Math.floor((WIDTH - text.length) / 2)
-    );
-    return " ".repeat(spaces) + text + "\n";
-  };
+ 
 
-  const wrapText = (text: string, max = 34) => {
+  const wrap = (text: string, width = 35) => {
     const words = text.split(" ");
     const lines: string[] = [];
     let current = "";
 
-    words.forEach((w) => {
-      if ((current + w).length > max) {
+    for (const word of words) {
+      if ((current + word).length > width) {
         lines.push(current.trim());
-        current = w + " ";
+        current = word + " ";
       } else {
-        current += w + " ";
+        current += word + " ";
       }
-    });
+    }
 
     if (current.trim()) lines.push(current.trim());
 
     return lines;
   };
 
-  const qtyLine = (qty: number, name: string) => {
-    const lines = wrapText(name);
+  const item = (qty: number, name: string) => {
+    const lines = wrap(name);
 
     let out = "";
 
-    lines.forEach((l, index) => {
-      if (index === 0) {
-        out += `${String(qty).padStart(3)} x ${l}\n`;
+    lines.forEach((l, i) => {
+      if (i === 0) {
+        out += `${qty.toString().padStart(2)}  ${l}\n`;
       } else {
-        out += "     " + l + "\n";
+        out += "    " + l + "\n";
       }
     });
 
@@ -51,29 +44,36 @@ const formatThermal = (c: any) => {
 
   let d = "";
 
-  /* RESET */
+  // RESET
   d += "\x1B\x40";
 
-  /* CENTER */
+  // LEFT MARGIN 0
+  d += "\x1D\x4C\x00\x00";
+
+  // FONT A
+  d += "\x1BM\x00";
+
+  // CENTER
   d += "\x1B\x61\x01";
 
-  /* TITLE */
+  // BIG TITLE
   d += "\x1B\x45\x01";
-  d += center(c.title || "KOT");
+  d += "\x1B\x21\x30";
+  d += c.title
+  d += "\x1B\x21\x00";
   d += "\x1B\x45\x00";
 
-  /* OUTLET */
-  d += center(
-    localStorage.getItem("activeOltName") ||
-      "Restaurant"
-  );
+  // Outlet
+  d += "\x1B\x45\x01";
+  d += localStorage.getItem("activeOltName") || "RESTAURANT"
+  d += "\x1B\x45\x00";
 
   d += line + "\n";
 
-  /* LEFT */
+  // LEFT ALIGN
   d += "\x1B\x61\x00";
 
-  d += `KOT    : ${c.kotId || ""}\n`;
+  d += `KOT    : ${c.kotId}\n`;
   d += `TABLE  : ${c.table}-${c.subTable}\n`;
   d += `WAITER : ${c.waiter}\n`;
   d += `PAX    : ${c.pax}\n`;
@@ -82,20 +82,20 @@ const formatThermal = (c: any) => {
   d += line + "\n";
 
   d += "\x1B\x45\x01";
-  d += "Qty  Item\n";
+  d += "QTY  ITEM\n";
   d += "\x1B\x45\x00";
 
   d += line + "\n";
 
-  c.items.forEach((item: any) => {
-    d += qtyLine(item.qty, item.name);
+  c.items.forEach((i: any) => {
 
-    if (
-      item.instructions &&
-      item.instructions.length
-    ) {
-      item.instructions.forEach((ins: string) => {
-        d += `     * ${ins}\n`;
+    d += "\x1B\x45\x01";
+    d += item(i.qty, i.name);
+    d += "\x1B\x45\x00";
+
+    if (i.instructions?.length) {
+      i.instructions.forEach((x: string) => {
+        d += "     * " + x + "\n";
       });
     }
 
@@ -104,10 +104,7 @@ const formatThermal = (c: any) => {
 
   d += line + "\n";
 
-  const total = c.items.reduce(
-    (s: number, i: any) => s + i.qty,
-    0
-  );
+  const total = c.items.reduce((s: number, i: any) => s + Number(i.qty), 0);
 
   d += "\x1B\x45\x01";
   d += `TOTAL ITEMS : ${total}\n`;
@@ -117,12 +114,11 @@ const formatThermal = (c: any) => {
 
   d += "\n\n\n";
 
-  /* CUT */
+  // CUT
   d += "\x1D\x56\x41\x10";
 
   return d;
 };
-
 const formatHTML = (c: any) => `
 <!DOCTYPE html>
 <html>
@@ -226,6 +222,8 @@ export const printKOT = async (
   content: any,
   isThermal?: boolean,
 ) => {
+  console.log(content);
+  
   debugger
   try {
     console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
@@ -247,24 +245,32 @@ if (isMobile) {
     9100,
     "192.168.1.158"
   );
+
+  JSPM.JSPrintManager.getPrinters().then(printers => {
+  console.log(printers);
+});
 } else if (printerName?.trim()) {
   cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
 } else {
   cpj.clientPrinter = new JSPM.DefaultPrinter();
 }
 const data = isThermal
-  ? formatThermal(content)   // <-- create this
+  ? formatThermal(content)
   : formatHTML(content);
 
-cpj.files.push(
-  new JSPM.PrintFileTXT(
-    data,
-    isThermal ? "kot.txt" : "print.html",
-    1
-  )
-);
- console.log("Before send");
-
+if (isThermal) {
+  // RAW ESC/POS
+  cpj.printerCommands = data;
+} else {
+  cpj.files.push(
+  new JSPM.PrintFile(
+      data,
+      JSPM.FileSourceType.Text,
+      "print.html",
+      1
+    )
+  );
+}
 await cpj.sendToClient();
 
 console.log("After send");
