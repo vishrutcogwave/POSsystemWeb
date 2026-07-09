@@ -1,3 +1,6 @@
+
+
+
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CategorySidebar from "../components/CategorySidebar";
@@ -39,6 +42,7 @@ import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 import PaymentModal from "../components/PaymentModal";
 import { useAppContext } from "../context/AppContext";
 import AlertPopup from "../components/AlertPopup";
+import { printBill, printKOT } from "../api/services/printer";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -746,6 +750,7 @@ const handleAddonConfirm = () => {
 };
 
   const handleKOT = async () => {
+    debugger
      if (dayDetails?.openDayResponse?.success === false) {
     setAlertMsg(
       dayDetails?.openDayResponse?.message ||
@@ -829,7 +834,100 @@ const handleAddonConfirm = () => {
 
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
+/* ---------------- PRINT ---------------- */
 
+const printers = res.printers || [];
+const foodItems = res.food || [];
+
+const printerItemMap: Record<string, any[]> = {};
+
+printers.forEach((printer: any) => {
+  const matchedItems = foodItems.filter((item: any) =>
+    printer.categoryIds.includes(Number(item.category))
+  );
+
+  if (matchedItems.length > 0) {
+    printerItemMap[printer.printerName] = matchedItems;
+  }
+});
+
+const generateContent = (items: any[]) => ({
+  title: isNC ? "NC KOT" : "KOT",
+  kotId: res.kotId || res.kotID || res.kotNo || "",
+  table: tableData.tableNumber,
+  subTable: selectedSubTable || "A",
+  waiter: session.waiterName,
+  pax: session.pax,
+  items: items.map((item: any) => ({
+    qty: item.origQty,
+    name: item.food,
+   instructions: item.comment
+  ? item.comment.split(",")
+  : [],
+  })),
+});
+
+// If no printer is configured, print everything to the default printer
+if (Object.keys(printerItemMap).length === 0) {
+  const result = await printKOT(
+    null,
+    generateContent(foodItems),
+    true
+  );
+
+  if (!result.success) {
+    toast.error(`❌ Default Printer: ${result.message}`);
+  }
+} else {
+  for (const rawPrinterName in printerItemMap) {
+    const printerItems = printerItemMap[rawPrinterName];
+
+    const content = generateContent(printerItems);
+
+    const printerName = rawPrinterName?.trim() || null;
+const thermalKeywords = [
+  "pos",
+  "thermal",
+  "epson tm",
+  "tm-",
+  "xp-",
+  "tsp",
+  "58mm",
+  "80mm",
+  "receipt",
+  "usb printer",
+  "rp",
+  "gp",
+];
+    const isThermal = thermalKeywords.some(keyword =>
+      (printerName || "").toLowerCase().includes(keyword)
+    );
+
+    const result = await printKOT(
+      printerName,
+      content,
+      isThermal
+    );
+
+    if (!result.success) {
+      toast.error(
+        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
+      );
+    }
+  }
+}
+
+/* ---------- FAST FOOD BILL PRINT ---------- */
+
+if (tableData.fastFood === true || directbill) {
+  const printRes = await printBill(
+    billData,
+    res.fnBillResponse,
+    _companyInfo
+  );
+
+  console.log("Bill Print:", printRes);
+}
    
       setCart([]);
       setSession(null);
@@ -984,52 +1082,77 @@ const handleAddonConfirm = () => {
           printerItemMap[printer.printerName] = matchedItems;
         }
       });
+const generateContent = (items: any[]) => ({
+  title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
+  kotId: res.kotId || res.kotID || res.kotNo || "",
+  table: tableData.tableNumber,
+  subTable: selectedSubTable || "A",
+  waiter: session.waiterName,
+  pax: session.pax,
+  items: items.map((item: any) => ({
+    qty: item.origQty || item.qty || 0,
+    name: item.food,
+    instructions: item.comment ? [item.comment] : [],
+  })),
+});
 
-// const generateContent = (items: any[]) => ({
-//   title: isNC ? "NC KOT" : "KOT",
-//   kotId: res.kotId || "",
-//   table: tableData?.tableNumber,
-//   subTable: selectedSubTable || "A",
-//   waiter: session.waiterName,
-//   pax: session.pax,
+const thermalKeywords = [
+  "pos",
+  "thermal",
+  "epson tm",
+  "tm-",
+  "xp-",
+  "tsp",
+  "58mm",
+  "80mm",
+  "receipt",
+  "usb printer",
+  "rp",
+  "gp",
+];
 
-//   items: items.map((item) => ({
-//     qty: item.origQty,
-//     name: item.food,
-//     instructions: getInstructionLines(item.comment),
-//   })),
-// });
+let hasError = false;
+// If no printer is configured, print everything to the default printer
+if (Object.keys(printerItemMap).length === 0) {
+  const result = await printKOT(
+    null,
+    generateContent(foodItems),
+    true
+  );
 
-      // for (const printerName in printerItemMap) {
-      //   // const content = generateContent(printerItemMap[printerName]);
+  if (!result.success) {
+    toast.error(`❌ Default Printer: ${result.message}`);
+  }
+} else {
+  for (const rawPrinterName in printerItemMap) {
+    const printerItems = printerItemMap[rawPrinterName];
 
-      //   const isThermal =
-      //     printerName.toLowerCase().includes("pos") ||
-      //     printerName.toLowerCase().includes("thermal");
-      //   console.log("isThermal", isThermal);
+    const content = generateContent(printerItems);
 
-      //   // const finalData = isThermal
-      //   //   ? formatThermal(content)
-      //   //   : formatHTML(content);
+    const printerName = rawPrinterName?.trim() || null;
 
-      //   // await printKOT(printerName, finalData, isThermal);
-      // }
+    const isThermal = thermalKeywords.some(keyword =>
+      (printerName || "").toLowerCase().includes(keyword)
+    );
 
-      /* 🔥 PRINT BILL */
-//       if (billData) {
-//         // const printRes = await printBill(
-//         //   billData,
-//         //   res.fnBillResponse,
-//         //   companyInfo,
-//         // );
+    const result = await printKOT(
+      printerName,
+      content,
+      isThermal
+    );
 
-// //      if (!printRes?.success) {
-// //   throw new Error(
-// //     printRes?.message || "Print failed"
-// //   );
-// // }
-//       }
-
+    if (!result.success) {
+      toast.error(
+        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
+      );
+    }
+  }
+}
+if (hasError) {
+  toast.error("Some printers failed ❌");
+} else {
+  toast.success("Items voided & printed successfully ✅");
+}
       setCart([]);
       setOpenPayment(false);
 
@@ -2179,3 +2302,12 @@ if (
 }
 
 export default OrderingBoard;
+
+
+
+
+
+
+
+
+

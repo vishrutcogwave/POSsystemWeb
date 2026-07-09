@@ -1,675 +1,903 @@
-// import * as JSPM from "jsprintmanager";
-// import { getBillConfiguration } from "./products.service";
+import * as JSPM from "jsprintmanager";
+import { getBillConfiguration } from "./products.service";
 
+const formatThermal = (c: any) => {
+  const WIDTH = 42;
 
-// /* ---------------- PRINT ---------------- */
-// export const printKOT = async (
-//   printerName: string | null,
-//   data: string,
-//   isThermal?: boolean,
-// ) => {
-//   try {
-//     if (
-//       JSPM.JSPrintManager.websocket_status !==
-//       JSPM.WSStatus.Open
-//     ) {
-//       throw new Error("JSPrintManager is not running");
-//     }
+  const line = "-".repeat(WIDTH);
 
-//     const cpj = new JSPM.ClientPrintJob();
+  const center = (text: string) => {
+    const spaces = Math.max(
+      0,
+      Math.floor((WIDTH - text.length) / 2)
+    );
+    return " ".repeat(spaces) + text + "\n";
+  };
 
-//     // Use default printer if no printer name is provided
-//     if (printerName && printerName.trim() !== "") {
-//       cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
-//     } else {
-//       cpj.clientPrinter = new JSPM.DefaultPrinter();
-//     }
+  const wrapText = (text: string, max = 34) => {
+    const words = text.split(" ");
+    const lines: string[] = [];
+    let current = "";
 
-//  if (isThermal) {
-//   // Send raw ESC/POS commands directly
-//   cpj.printerCommands = data;
-// } else {
-//   cpj.files.push(
-//     new JSPM.PrintFileTXT(
-//       data,
-//       "print.html",
-//       1
-//     )
-//   );
-// }
-//     await cpj.sendToClient();
+    words.forEach((w) => {
+      if ((current + w).length > max) {
+        lines.push(current.trim());
+        current = w + " ";
+      } else {
+        current += w + " ";
+      }
+    });
 
-//     return {
-//       success: true,
-//       printer: printerName ?? "Default Printer",
-//     };
-//   } catch (err: any) {
-//     console.error("PRINT ERROR:", err);
+    if (current.trim()) lines.push(current.trim());
 
-//     return {
-//       success: false,
-//       printer: printerName,
-//       message: err?.message || "Printing failed",
-//     };
-//   }
-// };
+    return lines;
+  };
 
-// export const printBill = async (
-//   billData: any,
-//   billNo: any,
-//   companyInfo: any,
-// ) => {
+  const qtyLine = (qty: number, name: string) => {
+    const lines = wrapText(name);
+
+    let out = "";
+
+    lines.forEach((l, index) => {
+      if (index === 0) {
+        out += `${String(qty).padStart(3)} x ${l}\n`;
+      } else {
+        out += "     " + l + "\n";
+      }
+    });
+
+    return out;
+  };
+
+  let d = "";
+
+  /* RESET */
+  d += "\x1B\x40";
+
+  /* CENTER */
+  d += "\x1B\x61\x01";
+
+  /* TITLE */
+  d += "\x1B\x45\x01";
+  d += center(c.title || "KOT");
+  d += "\x1B\x45\x00";
+
+  /* OUTLET */
+  d += center(
+    localStorage.getItem("activeOltName") ||
+      "Restaurant"
+  );
+
+  d += line + "\n";
+
+  /* LEFT */
+  d += "\x1B\x61\x00";
+
+  d += `KOT    : ${c.kotId || ""}\n`;
+  d += `TABLE  : ${c.table}-${c.subTable}\n`;
+  d += `WAITER : ${c.waiter}\n`;
+  d += `PAX    : ${c.pax}\n`;
+  d += `TIME   : ${new Date().toLocaleTimeString()}\n`;
+
+  d += line + "\n";
+
+  d += "\x1B\x45\x01";
+  d += "Qty  Item\n";
+  d += "\x1B\x45\x00";
+
+  d += line + "\n";
+
+  c.items.forEach((item: any) => {
+    d += qtyLine(item.qty, item.name);
+
+    if (
+      item.instructions &&
+      item.instructions.length
+    ) {
+      item.instructions.forEach((ins: string) => {
+        d += `     * ${ins}\n`;
+      });
+    }
+
+    d += "\n";
+  });
+
+  d += line + "\n";
+
+  const total = c.items.reduce(
+    (s: number, i: any) => s + i.qty,
+    0
+  );
+
+  d += "\x1B\x45\x01";
+  d += `TOTAL ITEMS : ${total}\n`;
+  d += "\x1B\x45\x00";
+
+  d += line + "\n";
+
+  d += "\n\n\n";
+
+  /* CUT */
+  d += "\x1D\x56\x41\x10";
+
+  return d;
+};
+
+const formatHTML = (c: any) => `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:20px;
+    font-size:14px;
+}
+
+.container{
+    width:280px;
+    margin:auto;
+}
+
+.center{
+    text-align:center;
+    font-weight:bold;
+}
+
+.line{
+    border-top:1px dashed #000;
+    margin:8px 0;
+}
+
+.item{
+    display:flex;
+    margin:4px 0;
+}
+
+.qty{
+    width:40px;
+    font-weight:bold;
+}
+
+.name{
+    flex:1;
+}
+
+.note{
+    margin-left:40px;
+    font-size:12px;
+}
+
+.footer{
+    font-weight:bold;
+    margin-top:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="center">${c.title}</div>
+<div class="center">${localStorage.getItem("activeOltName")}</div>
+
+<div class="line"></div>
+
+<div>KOT : ${c.kotId}</div>
+<div>Table : ${c.table}-${c.subTable}</div>
+<div>Waiter : ${c.waiter}</div>
+<div>Pax : ${c.pax}</div>
+<div>Time : ${new Date().toLocaleTimeString()}</div>
+
+<div class="line"></div>
+
+${c.items
+  .map(
+    (i:any)=>`
+<div class="item">
+<div class="qty">${i.qty}</div>
+<div class="name">${i.name}</div>
+</div>
+
+${i.instructions
+.map((x:string)=>`<div class="note">• ${x}</div>`)
+.join("")}
+`
+)
+.join("")}
+
+<div class="line"></div>
+
+<div class="footer">
+Total Items :
+${c.items.reduce((s:number,i:any)=>s+i.qty,0)}
+</div>
+
+</div>
+
+</body>
+</html>
+`;
+/* ---------------- PRINT ---------------- */
+export const printKOT = async (
+  printerName: string | null,
+  content: any,
+  isThermal?: boolean,
+) => {
+  try {
+    console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
+    if (
+      JSPM.JSPrintManager.websocket_status !==
+      JSPM.WSStatus.Open
+    ) {
+      throw new Error("JSPrintManager is not running");
+    }
+
+    const cpj = new JSPM.ClientPrintJob();
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(
+  navigator.userAgent
+);
+
+if (isMobile) {
+  cpj.clientPrinter = new JSPM.NetworkPrinter(
+    9100,
+    "192.168.1.158"
+  );
+} else if (printerName?.trim()) {
+  cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
+} else {
+  cpj.clientPrinter = new JSPM.DefaultPrinter();
+}
+const data = isThermal
+  ? formatThermal(content)
+  : formatHTML(content);
+ if (isThermal) {
+  // Send raw ESC/POS commands directly
+  cpj.printerCommands = data;
+} else {
+  cpj.files.push(
+    new JSPM.PrintFileTXT(
+      data,
+      "print.html",
+      1
+    )
+  );
+}
+    await cpj.sendToClient();
+
+    return {
+      success: true,
+      printer: printerName ?? "Default Printer",
+    };
+  } catch (err: any) {
+    console.error("PRINT ERROR:", err);
+
+    return {
+      success: false,
+      printer: printerName,
+      message: err?.message || "Printing failed",
+    };
+  }
+};
+
+export const printBill = async (
+  billData: any,
+  billNo: any,
+  companyInfo: any,
+) => {
    
-//   console.log("inside the print", billData, billNo, companyInfo);
+  console.log("inside the print", billData, billNo, companyInfo);
 
-//   try {
-// if (
-//   JSPM.JSPrintManager.websocket_status !==
-//   JSPM.WSStatus.Open
-// ) {
-//   throw new Error("JSPrintManager is not running");
-// }
+  try {
+if (
+  JSPM.JSPrintManager.websocket_status !==
+  JSPM.WSStatus.Open
+) {
+  throw new Error("JSPrintManager is not running");
+}
 
-// // Use default printer
-// let printerName: string | null = null;
+// Use default printer
+let printerName: string | null = null;
 
-// // If you already store the selected printer name,
-// // assign it here instead of null.
+// If you already store the selected printer name,
+// assign it here instead of null.
 
-// const isThermal = true;
-//     const cart = billData.cart;
-//     const tax = billData.tax;
+const isThermal = true;
+    const cart = billData.cart;
+    const tax = billData.tax;
 
-//     const content = {
-//       company: companyInfo || null, // ✅ FROM PARAM
-//       outlet: cart.outletName,
-//       table: cart.table,
-//       subTable: cart.subTable,
-//       waiter: cart.waiterName,
-//       pax: cart.pax,
-//       items: cart.food,
-//       total: tax.totalAmount,
-//       taxes: tax.taxList,
-//       taxType: tax.taxType,
-//       grandTotal: tax.grandTotal,
-//       roundOff: tax.roundOff, // ✅ ADD THIS
-//         discount: tax.discount || 0,
-//   discountIn: tax.discountIn || "amt",
-//     };
+    const content = {
+      company: companyInfo || null, // ✅ FROM PARAM
+      outlet: cart.outletName,
+      table: cart.table,
+      subTable: cart.subTable,
+      waiter: cart.waiterName,
+      pax: cart.pax,
+      items: cart.food,
+      total: tax.totalAmount,
+      taxes: tax.taxList,
+      taxType: tax.taxType,
+      grandTotal: tax.grandTotal,
+      roundOff: tax.roundOff, // ✅ ADD THIS
+        discount: tax.discount || 0,
+  discountIn: tax.discountIn || "amt",
+    };
 
     
-//     const formatThermal = (c: any) => {
-//   const width = 42;
+    const formatThermal = (c: any) => {
+  const width = 42;
 
-//   /* -------- HELPERS -------- */
-//   const line2Col = (left: string, right: string) => {
-//     const space = width - left.length - right.length;
-//     return left + " ".repeat(Math.max(1, space)) + right + "\n";
-//   };
+  /* -------- HELPERS -------- */
+  const line2Col = (left: string, right: string) => {
+    const space = width - left.length - right.length;
+    return left + " ".repeat(Math.max(1, space)) + right + "\n";
+  };
 
-//   const formatRow = (
-//     name: string,
-//     qty: number,
-//     rate: number,
-//     amt: number,
-//   ) => {
-//     const nameCol = name.substring(0, 22).padEnd(22, " ");
-//     const qtyCol = String(qty).padStart(4, " ");
-//     const rateCol = String(rate).padStart(7, " ");
-//     const amtCol = amt.toFixed(2).padStart(9, " ");
+  const formatRow = (
+    name: string,
+    qty: number,
+    rate: number,
+    amt: number,
+  ) => {
+    const nameCol = name.substring(0, 22).padEnd(22, " ");
+    const qtyCol = String(qty).padStart(4, " ");
+    const rateCol = String(rate).padStart(7, " ");
+    const amtCol = amt.toFixed(2).padStart(9, " ");
 
-//     return `${nameCol}${qtyCol}${rateCol}${amtCol}\n`;
-//   };
+    return `${nameCol}${qtyCol}${rateCol}${amtCol}\n`;
+  };
 
-//   const mergeItems = (items: any[]) => {
-//     const map = new Map();
-//     items.forEach((item) => {
-//       const key = `${item.id}_${item.food}`;
-//       if (map.has(key)) {
-//         map.get(key).qty += item.qty;
-//       } else {
-//         map.set(key, { ...item });
-//       }
-//     });
-//     return Array.from(map.values());
-//   };
+  const mergeItems = (items: any[]) => {
+    const map = new Map();
+    items.forEach((item) => {
+      const key = `${item.id}_${item.food}`;
+      if (map.has(key)) {
+        map.get(key).qty += item.qty;
+      } else {
+        map.set(key, { ...item });
+      }
+    });
+    return Array.from(map.values());
+  };
 
-//   /* ✅ BOLD */
-//   const boldOn = "\x1B\x45\x01";
-//   const boldOff = "\x1B\x45\x00";
+  /* ✅ BOLD */
+  const boldOn = "\x1B\x45\x01";
+  const boldOff = "\x1B\x45\x00";
 
-//   let d = "";
+  let d = "";
 
-//   d += "\x1B\x40"; // reset
+  d += "\x1B\x40"; // reset
 
-//   /* -------- COMPANY HEADER (UNCHANGED) -------- */
-//   if (c.company) {
-//     d += "\x1B\x61\x01"; // center align
+  /* -------- COMPANY HEADER (UNCHANGED) -------- */
+  if (c.company) {
+    d += "\x1B\x61\x01"; // center align
 
-//     const printCenter = (text: string, bold = false) => {
-//       if (!text) return;
+    const printCenter = (text: string, bold = false) => {
+      if (!text) return;
 
-//       const clean = text.trim();
+      const clean = text.trim();
 
-//       if (bold) d += boldOn;
+      if (bold) d += boldOn;
 
-//       let line = "";
-//       clean.split(" ").forEach((word: string) => {
-//         if ((line + word).length > width) {
-//           d += line.trim() + "\n";
-//           line = word + " ";
-//         } else {
-//           line += word + " ";
-//         }
-//       });
+      let line = "";
+      clean.split(" ").forEach((word: string) => {
+        if ((line + word).length > width) {
+          d += line.trim() + "\n";
+          line = word + " ";
+        } else {
+          line += word + " ";
+        }
+      });
 
-//       if (line) d += line.trim() + "\n";
+      if (line) d += line.trim() + "\n";
 
-//       if (bold) d += boldOff;
-//     };
+      if (bold) d += boldOff;
+    };
 
-//     printCenter(c.company.company_Name || "", true);
-//     printCenter(c.company.address1 || "");
-//     printCenter(c.company.address2 || "");
+    printCenter(c.company.company_Name || "", true);
+    printCenter(c.company.address1 || "");
+    printCenter(c.company.address2 || "");
 
-//     if (c.company.phone_number) {
-//       printCenter(`Ph: ${c.company.phone_number}`);
-//     }
+    if (c.company.phone_number) {
+      printCenter(`Ph: ${c.company.phone_number}`);
+    }
 
-//     if (c.company.tin_no) {
-//       printCenter(`GSTIN: ${c.company.tin_no}`);
-//     }
+    if (c.company.tin_no) {
+      printCenter(`GSTIN: ${c.company.tin_no}`);
+    }
 
-//     d += "\x1B\x61\x00"; // back to left
-//   }
+    d += "\x1B\x61\x00"; // back to left
+  }
 
-//   d += "-".repeat(width) + "\n";
+  d += "-".repeat(width) + "\n";
 
-//   /* -------- BILL INFO -------- */
-//   d += line2Col(`Bill : ${billNo.billNo}`, `Outlet : ${c.outlet}`);
-//   d += line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`);
-//   d += `Pax : ${c.pax}\n`;
+  /* -------- BILL INFO -------- */
+  d += line2Col(`Bill : ${billNo.billNo}`, `Outlet : ${c.outlet}`);
+  d += line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`);
+  d += `Pax : ${c.pax}\n`;
 
-//   d += "-".repeat(width) + "\n";
+  d += "-".repeat(width) + "\n";
 
-//   /* -------- HEADER (BOLD) -------- */
-//   d += boldOn;
-//   d += "Item Name              Qty   Rate    Amount\n";
-//   d += boldOff;
+  /* -------- HEADER (BOLD) -------- */
+  d += boldOn;
+  d += "Item Name              Qty   Rate    Amount\n";
+  d += boldOff;
 
-//   d += "-".repeat(width) + "\n";
+  d += "-".repeat(width) + "\n";
 
 
-//   /* -------- ON BILL TAX -------- */
-// if (c.taxType?.toLowerCase() === "onbilltax") {
-//   const mergedItems = mergeItems(c.items);
+  /* -------- ON BILL TAX -------- */
+if (c.taxType?.toLowerCase() === "onbilltax") {
+  const mergedItems = mergeItems(c.items);
 
-//   mergedItems.forEach((i: any) => {
-//     d += formatRow(
-//       i.food,
-//       i.qty,
-//       i.price,
-//       i.price * i.qty
-//     );
-//   });
+  mergedItems.forEach((i: any) => {
+    d += formatRow(
+      i.food,
+      i.qty,
+      i.price,
+      i.price * i.qty
+    );
+  });
 
-//   d += "-".repeat(width) + "\n";
+  d += "-".repeat(width) + "\n";
 
-//   c.taxes.forEach((t: any) => {
-//     d += line2Col(
-//       t.taxName,
-//       (t.taxAmount || 0).toFixed(2)
-//     );
-//   });
-// }
-//   /* -------- GROUPED TAX -------- */
-//   if (c.taxType?.toLowerCase() === "groupedtax") {
-//     const groupMap: Record<number, any[]> = {};
+  c.taxes.forEach((t: any) => {
+    d += line2Col(
+      t.taxName,
+      (t.taxAmount || 0).toFixed(2)
+    );
+  });
+}
+  /* -------- GROUPED TAX -------- */
+  if (c.taxType?.toLowerCase() === "groupedtax") {
+    const groupMap: Record<number, any[]> = {};
 
-//     mergeItems(c.items).forEach((item: any) => {
-//       const grp = item.grpCode || 0;
-//       if (!groupMap[grp]) groupMap[grp] = [];
-//       groupMap[grp].push(item);
-//     });
+    mergeItems(c.items).forEach((item: any) => {
+      const grp = item.grpCode || 0;
+      if (!groupMap[grp]) groupMap[grp] = [];
+      groupMap[grp].push(item);
+    });
 
-//     Object.keys(groupMap).forEach((grp) => {
-//       const grpNum = Number(grp);
-//       const groupItems = groupMap[grpNum];
+    Object.keys(groupMap).forEach((grp) => {
+      const grpNum = Number(grp);
+      const groupItems = groupMap[grpNum];
 
-//       const groupTaxes = c.taxes.filter((t: any) => t.groupCode === grpNum);
+      const groupTaxes = c.taxes.filter((t: any) => t.groupCode === grpNum);
 
-//       d += "\n";
+      d += "\n";
 
-//       /* ✅ GROUP NAME BOLD */
-//       d += boldOn;
-//       d += `*** ${groupTaxes[0]?.groupName || "OTHERS"} ***\n`;
-//       d += boldOff;
+      /* ✅ GROUP NAME BOLD */
+      d += boldOn;
+      d += `*** ${groupTaxes[0]?.groupName || "OTHERS"} ***\n`;
+      d += boldOff;
 
-//       d += "-".repeat(width) + "\n";
+      d += "-".repeat(width) + "\n";
 
-//       /* ITEMS */
-//       groupItems.forEach((i: any) => {
-//         d += formatRow(i.food, i.qty, i.price, i.price * i.qty);
-//       });
+      /* ITEMS */
+      groupItems.forEach((i: any) => {
+        d += formatRow(i.food, i.qty, i.price, i.price * i.qty);
+      });
 
-//       d += "-".repeat(width) + "\n";
+      d += "-".repeat(width) + "\n";
 
-//       /* TAX */
-//       groupTaxes.forEach((tax: any) => {
-//  /* ✅ SPLIT TAX NAME DYNAMICALLY */
-// const taxParts = (tax.taxName || "")
-//   .split("+")
-//   .map((x: string) => x.trim());
+      /* TAX */
+      groupTaxes.forEach((tax: any) => {
+ /* ✅ SPLIT TAX NAME DYNAMICALLY */
+const taxParts = (tax.taxName || "")
+  .split("+")
+  .map((x: string) => x.trim());
 
-// if (taxParts.length >= 2) {
-//   d += line2Col(taxParts[0], (tax.cgst || 0).toFixed(2));
-//   d += line2Col(taxParts[1], (tax.sgst || 0).toFixed(2));
-// } else {
-//   // fallback
-//   d += line2Col("CGST", (tax.cgst || 0).toFixed(2));
-//   d += line2Col("SGST", (tax.sgst || 0).toFixed(2));
-// }
+if (taxParts.length >= 2) {
+  d += line2Col(taxParts[0], (tax.cgst || 0).toFixed(2));
+  d += line2Col(taxParts[1], (tax.sgst || 0).toFixed(2));
+} else {
+  // fallback
+  d += line2Col("CGST", (tax.cgst || 0).toFixed(2));
+  d += line2Col("SGST", (tax.sgst || 0).toFixed(2));
+}
 
-//         d += "-".repeat(width) + "\n";
+        d += "-".repeat(width) + "\n";
 
-//         /* ✅ SUBTOTAL BOLD */
-//         d += boldOn;
-//         d += line2Col("Subtotal", (tax.total || 0).toFixed(2));
-//         d += boldOff;
-//       });
-//     });
-//   }
+        /* ✅ SUBTOTAL BOLD */
+        d += boldOn;
+        d += line2Col("Subtotal", (tax.total || 0).toFixed(2));
+        d += boldOff;
+      });
+    });
+  }
 
-//   /* -------- TOTAL -------- */
-//  /* -------- TOTAL -------- */
-// /* -------- TOTAL -------- */
-// d += "-".repeat(width) + "\n";
-// d += "-".repeat(width) + "\n";
+  /* -------- TOTAL -------- */
+ /* -------- TOTAL -------- */
+/* -------- TOTAL -------- */
+d += "-".repeat(width) + "\n";
+d += "-".repeat(width) + "\n";
 
-// d += boldOn;
+d += boldOn;
 
-// /* ✅ DISCOUNT */
-// if ((c.discount || 0) > 0) {
-//   let discountLabel = "Discount";
+/* ✅ DISCOUNT */
+if ((c.discount || 0) > 0) {
+  let discountLabel = "Discount";
 
-//   if (c.discountIn === "amt") {
-//     discountLabel += " (Rs.)";
-//     d += line2Col(discountLabel, `-${c.discount.toFixed(2)}`);
-//   } else if (c.discountIn === "per") {
-//     discountLabel += " (%)";
-//     d += line2Col(discountLabel, `-${c.discount}%`);
-//   }
-// }
+  if (c.discountIn === "amt") {
+    discountLabel += " (Rs.)";
+    d += line2Col(discountLabel, `-${c.discount.toFixed(2)}`);
+  } else if (c.discountIn === "per") {
+    discountLabel += " (%)";
+    d += line2Col(discountLabel, `-${c.discount}%`);
+  }
+}
 
-// /* ✅ ROUND OFF */
-// const roundOff = c.roundOff || 0;
-// if (roundOff !== 0) {
-//   d += line2Col("Round Off", roundOff.toFixed(2));
-// }
+/* ✅ ROUND OFF */
+const roundOff = c.roundOff || 0;
+if (roundOff !== 0) {
+  d += line2Col("Round Off", roundOff.toFixed(2));
+}
 
-// /* ✅ GRAND TOTAL */
-// d += line2Col("GRAND TOTAL", c.grandTotal.toFixed(2));
+/* ✅ GRAND TOTAL */
+d += line2Col("GRAND TOTAL", c.grandTotal.toFixed(2));
 
-// d += boldOff;
+d += boldOff;
 
-//   d += "\n\n\n";
-//   d += "\x1D\x56\x41\x10";
+  d += "\n\n\n";
+  d += "\x1D\x56\x41\x10";
 
-//   return d;
-// };
+  return d;
+};
     
-//     const finalData = isThermal
-//       ? formatThermal(content)
-//       : "<div>HTML PRINT</div>";
-// let printCount = 1;
+    const finalData = isThermal
+      ? formatThermal(content)
+      : "<div>HTML PRINT</div>";
+let printCount = 1;
 
-// try {
-//   const branchCode =
-//     billData?.cart?.branchCode ||
-//     localStorage.getItem("branch") ||
-//     "DEROY";
+try {
+  const branchCode =
+    billData?.cart?.branchCode ||
+    localStorage.getItem("branch") ||
+    "DEROY";
 
-//   const billConfig = await getBillConfiguration(branchCode);
+  const billConfig = await getBillConfiguration(branchCode);
 
-//   if (
-//     billConfig?.success &&
-//     billConfig?.data?.length > 0
-//   ) {
-//     printCount = Number(
-//       billConfig.data[0].reqBill || 1
-//     );
-//   }
-// } catch (err) {
-//   console.error("Bill Configuration Error", err);
-// }
-// let result;
+  if (
+    billConfig?.success &&
+    billConfig?.data?.length > 0
+  ) {
+    printCount = Number(
+      billConfig.data[0].reqBill || 1
+    );
+  }
+} catch (err) {
+  console.error("Bill Configuration Error", err);
+}
+let result;
 
-// for (let i = 0; i < printCount; i++) {
-//   result = await printKOT(
-//     printerName,
-//     finalData,
-//     isThermal
-//   );
-// }
+for (let i = 0; i < printCount; i++) {
+  result = await printKOT(
+    printerName,
+    finalData,
+    isThermal
+  );
+}
 
-// return result;
+return result;
 
-// return result;
-//   } catch (err: any) {
-//     return {
-//       success: false,
-//       message: err.message,
-//     };
-//   }
-// };
-// export const reprintBill = async (
-//   apiData: any,
-//   formData: any,
-//   companyInfo: any,
-// ) => {
+return result;
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message,
+    };
+  }
+};
+export const reprintBill = async (
+  apiData: any,
+  formData: any,
+  companyInfo: any,
+) => {
 
-//   console.log(apiData,"apidta");
+  console.log(apiData,"apidta");
   
-//   try {
-// if (
-//   JSPM.JSPrintManager.websocket_status !==
-//   JSPM.WSStatus.Open
-// ) {
-//   throw new Error("JSPrintManager is not running");
-// }
+  try {
+if (
+  JSPM.JSPrintManager.websocket_status !==
+  JSPM.WSStatus.Open
+) {
+  throw new Error("JSPrintManager is not running");
+}
 
-// // Use default printer
-// let printerName: string | null = null;
+// Use default printer
+let printerName: string | null = null;
 
-// // If you store the selected printer name in your settings,
-// // assign it here instead of null.
+// If you store the selected printer name in your settings,
+// assign it here instead of null.
 
-// // Assuming you're printing to a thermal printer
-// const isThermal = true;
-//     const cart = apiData?.cart || {};
-//     const tax = apiData?.tax || {};
+// Assuming you're printing to a thermal printer
+const isThermal = true;
+    const cart = apiData?.cart || {};
+    const tax = apiData?.tax || {};
 
-//     const content = {
-//       company: companyInfo,
-//       outlet: cart.outletName,
-//       table: cart.table,
-//       subTable: cart.subTable,
-//       waiter: cart.waiterName,
-//       pax: cart.pax,
-//       items: cart.food || [],
-//       total: tax.totalAmount || 0,
-//       taxes: tax.taxList || [],
-//       taxType: cart.taxType || "groupedtax",
-//       grandTotal: tax.grandTotal || 0,
-//       roundOff: tax.roundOff || 0,
-//     };
-
-
-// const formatThermal = (c: any) => {
-//   const width = 42;
-
-//   /* ALIGN HELPERS */
-//   const line2Col = (l: string, r: string = "") => {
-//     const space = width - l.length - r.length;
-//     return l + " ".repeat(Math.max(1, space)) + r;
-//   };
-
-// const centerBlock = (text: string) => {
-//   const LEFT_FIX = 2; // adjust 1–3 if needed
-
-//   return (
-//     text
-//       .split("\n")
-//       .map((line) => {
-//         const padding = Math.max(
-//           0,
-//           Math.floor((width - line.length) / 2),
-//         );
-//         return " ".repeat(padding + LEFT_FIX) + line;
-//       })
-//       .join("\n") + "\n"
-//   );
-// };
-
-//   const formatRow = (
-//     name: string,
-//     qty: number,
-//     rate: number,
-//     amt: number,
-//   ) => {
-//     return (
-//       name.substring(0, 22).padEnd(22) +
-//       String(qty).padStart(4) +
-//       String(rate).padStart(7) +
-//       amt.toFixed(2).padStart(9)
-//     );
-//   };
-
-//   const mergeItems = (items: any[]) => {
-//     const map = new Map();
-//     items.forEach((i) => {
-//       const key = `${i.id}_${i.food}`;
-//       if (map.has(key)) map.get(key).qty += i.qty;
-//       else map.set(key, { ...i });
-//     });
-//     return Array.from(map.values());
-//   };
-
-//   /* ✅ BOLD */
-//   const boldOn = "\x1B\x45\x01";
-//   const boldOff = "\x1B\x45\x00";
-
-//   let d = "";
-//   d += "\x1B\x40";
-
-//   const line = "-".repeat(width);
-
-//   /* ===== COMPANY (CENTER ONLY HERE) ===== */
-//   let companyBlock = "";
-//   if (c.company) {
-//     const name = c.company.company_Name || "";
-// const padding = Math.max(0, Math.floor((width - name.length) / 2));
-
-// companyBlock +=
-//   " ".repeat(padding) +
-//   boldOn +
-//   name +
-//   boldOff +
-//   "\n";
-//     companyBlock += c.company.address1 + "\n";
-//     companyBlock += c.company.address2 + "\n";
-
-//     if (c.company.phone_number)
-//       companyBlock += `Ph: ${c.company.phone_number}\n`;
-
-//     if (c.company.tin_no)
-//       companyBlock += `GSTIN: ${c.company.tin_no}\n`;
-//   }
-
-//   d += centerBlock(companyBlock);
-//   d += line + "\n";
-
-//   /* ===== GST ===== */
-//   if (formData.guestGST) {
-//     let gstBlock = "";
-
-//     gstBlock +=
-//    gstBlock += `Guest : ${formData.guestName || "-"}\n`;
-// gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
-
-//     gstBlock += line2Col(`State : ${formData.stateCode || "-"}`) + "\n";
-//     gstBlock += line2Col(`Address : ${formData.address || "-"}`) + "\n";
-
-//     gstBlock += line + "\n";
-
-//     d += gstBlock; // ❌ removed center
-//   }
-
-//   /* ===== BILL INFO ===== */
-//   let billBlock = "";
-
-//   billBlock +=
-//     line2Col(`Bill : ${formData.billNo}`, `Outlet : ${c.outlet}`) + "\n";
-
-//   billBlock +=
-//     line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`) +
-//     "\n";
-
-//   billBlock += line2Col(`Pax : ${c.pax}`) + "\n";
-
-//   billBlock += line + "\n";
-
-//   d += billBlock; // ❌ removed center
-
-//   /* ===== HEADER ===== */
-//   let headerBlock = "";
-//   headerBlock +=
-//     boldOn +
-//     "Item Name              Qty   Rate    Amount" +
-//     boldOff +
-//     "\n";
-//   headerBlock += line + "\n";
-
-//   d += headerBlock;
-
-//   if (c.taxType?.toLowerCase() === "onbilltax") {
-//   const mergedItems = mergeItems(c.items);
-
-//   mergedItems.forEach((i: any) => {
-//     d +=
-//       formatRow(
-//         i.food,
-//         i.qty,
-//         i.price,
-//         i.price * i.qty
-//       ) + "\n";
-//   });
-
-//   d += line + "\n";
-
-//   c.taxes.forEach((t: any) => {
-//     d += line2Col(
-//       t.taxName,
-//       Number(t.taxAmount || 0).toFixed(2)
-//     ) + "\n";
-//   });
-
-//   d += line + "\n";
-// }
+    const content = {
+      company: companyInfo,
+      outlet: cart.outletName,
+      table: cart.table,
+      subTable: cart.subTable,
+      waiter: cart.waiterName,
+      pax: cart.pax,
+      items: cart.food || [],
+      total: tax.totalAmount || 0,
+      taxes: tax.taxList || [],
+      taxType: cart.taxType || "groupedtax",
+      grandTotal: tax.grandTotal || 0,
+      roundOff: tax.roundOff || 0,
+    };
 
 
-//   /* ===== GROUPED ITEMS (UNCHANGED LOGIC) ===== */
-//   if (c.taxType?.toLowerCase() === "groupedtax") {
-//     const groupMap: Record<number, any[]> = {};
+const formatThermal = (c: any) => {
+  const width = 42;
 
-//     mergeItems(c.items).forEach((item: any) => {
-//       const grp = item.grpCode || 0;
-//       if (!groupMap[grp]) groupMap[grp] = [];
-//       groupMap[grp].push(item);
-//     });
+  /* ALIGN HELPERS */
+  const line2Col = (l: string, r: string = "") => {
+    const space = width - l.length - r.length;
+    return l + " ".repeat(Math.max(1, space)) + r;
+  };
 
-//     Object.keys(groupMap).forEach((grp) => {
-//       let grpBlock = "";
+const centerBlock = (text: string) => {
+  const LEFT_FIX = 2; // adjust 1–3 if needed
 
-//       const grpNum = Number(grp);
-//       const groupItems = groupMap[grpNum];
+  return (
+    text
+      .split("\n")
+      .map((line) => {
+        const padding = Math.max(
+          0,
+          Math.floor((width - line.length) / 2),
+        );
+        return " ".repeat(padding + LEFT_FIX) + line;
+      })
+      .join("\n") + "\n"
+  );
+};
 
-//       const groupTaxes = c.taxes.filter(
-//         (t: any) => t.groupCode === grpNum,
-//       );
+  const formatRow = (
+    name: string,
+    qty: number,
+    rate: number,
+    amt: number,
+  ) => {
+    return (
+      name.substring(0, 22).padEnd(22) +
+      String(qty).padStart(4) +
+      String(rate).padStart(7) +
+      amt.toFixed(2).padStart(9)
+    );
+  };
 
-//       grpBlock += "\n";
+  const mergeItems = (items: any[]) => {
+    const map = new Map();
+    items.forEach((i) => {
+      const key = `${i.id}_${i.food}`;
+      if (map.has(key)) map.get(key).qty += i.qty;
+      else map.set(key, { ...i });
+    });
+    return Array.from(map.values());
+  };
 
-//       /* ✅ LEFT ALIGNED GROUP NAME */
-//       const groupName = `*** ${
-//         groupTaxes[0]?.groupName || "OTHERS"
-//       } ***`;
+  /* ✅ BOLD */
+  const boldOn = "\x1B\x45\x01";
+  const boldOff = "\x1B\x45\x00";
 
-//       grpBlock += boldOn + groupName.padEnd(width) + boldOff + "\n";
-//       grpBlock += line + "\n";
+  let d = "";
+  d += "\x1B\x40";
 
-//       groupItems.forEach((i: any) => {
-//         grpBlock +=
-//           formatRow(i.food, i.qty, i.price, i.price * i.qty) + "\n";
-//       });
+  const line = "-".repeat(width);
 
-//       grpBlock += line + "\n";
+  /* ===== COMPANY (CENTER ONLY HERE) ===== */
+  let companyBlock = "";
+  if (c.company) {
+    const name = c.company.company_Name || "";
+const padding = Math.max(0, Math.floor((width - name.length) / 2));
 
-//       groupTaxes.forEach((t: any) => {
-//         const half = (t.taxper || 0) / 2;
+companyBlock +=
+  " ".repeat(padding) +
+  boldOn +
+  name +
+  boldOff +
+  "\n";
+    companyBlock += c.company.address1 + "\n";
+    companyBlock += c.company.address2 + "\n";
 
-//         grpBlock +=
-//           line2Col(`CGST ${half}%`, (t.cgst || 0).toFixed(2)) + "\n";
+    if (c.company.phone_number)
+      companyBlock += `Ph: ${c.company.phone_number}\n`;
 
-//         grpBlock +=
-//           line2Col(`SGST ${half}%`, (t.sgst || 0).toFixed(2)) + "\n";
+    if (c.company.tin_no)
+      companyBlock += `GSTIN: ${c.company.tin_no}\n`;
+  }
 
-//         grpBlock += line + "\n";
+  d += centerBlock(companyBlock);
+  d += line + "\n";
 
-//         grpBlock +=
-//           boldOn +
-//           line2Col("Subtotal", (t.total || 0).toFixed(2)) +
-//           boldOff +
-//           "\n";
-//       });
+  /* ===== GST ===== */
+  if (formData.guestGST) {
+    let gstBlock = "";
 
-//       d += grpBlock; // ❌ removed center
-//     });
-//   }
+    gstBlock +=
+   gstBlock += `Guest : ${formData.guestName || "-"}\n`;
+gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
 
-//   /* ===== TOTAL ===== */
-//   /* ===== TOTAL ===== */
-// let totalBlock = "";
+    gstBlock += line2Col(`State : ${formData.stateCode || "-"}`) + "\n";
+    gstBlock += line2Col(`Address : ${formData.address || "-"}`) + "\n";
 
-// /* ✅ DISCOUNT (SHOW ONLY IF > 0) */
-// /* ✅ DISCOUNT (SHOW ONLY IF > 0) */
-// if ((tax.discount || 0) > 0) {
-//   let discountLabel = "Discount";
+    gstBlock += line + "\n";
 
-//   if (tax.discountIn === "amt") {
-//     discountLabel +=" (Rs.)";
-//   } else if (tax.discountIn === "per") {
-//     discountLabel += " (%)";
-//   }
+    d += gstBlock; // ❌ removed center
+  }
 
-//   totalBlock +=
-//     line2Col(discountLabel, `-${tax.discount.toFixed(2)}`) + "\n";
-// }
-// /* ROUND OFF */
-// if (c.roundOff !== 0) {
-//   totalBlock += line2Col("Round Off", c.roundOff.toFixed(2)) + "\n";
-// }
+  /* ===== BILL INFO ===== */
+  let billBlock = "";
 
-// /* GRAND TOTAL */
-// totalBlock +=
-//   boldOn +
-//   line2Col("GRAND TOTAL", c.grandTotal.toFixed(2)) +
-//   boldOff +
-//   "\n";
+  billBlock +=
+    line2Col(`Bill : ${formData.billNo}`, `Outlet : ${c.outlet}`) + "\n";
 
-// d += totalBlock;
-//   d += "\n\n\n";
-//   d += "\x1D\x56\x41\x10";
+  billBlock +=
+    line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`) +
+    "\n";
 
-//   return d;
-// };
-//  const finalData = isThermal
-//   ? formatThermal(content)
-//   : "<div>HTML PRINT</div>";
+  billBlock += line2Col(`Pax : ${c.pax}`) + "\n";
 
-// return await printKOT(
-//   printerName,
-//   finalData,
-//   isThermal
-// );
-//   } catch (err: any) {
-//     return {
-//       success: false,
-//       message: err.message,
-//     };
-//   }
-// };
+  billBlock += line + "\n";
 
+  d += billBlock; // ❌ removed center
+
+  /* ===== HEADER ===== */
+  let headerBlock = "";
+  headerBlock +=
+    boldOn +
+    "Item Name              Qty   Rate    Amount" +
+    boldOff +
+    "\n";
+  headerBlock += line + "\n";
+
+  d += headerBlock;
+
+  if (c.taxType?.toLowerCase() === "onbilltax") {
+  const mergedItems = mergeItems(c.items);
+
+  mergedItems.forEach((i: any) => {
+    d +=
+      formatRow(
+        i.food,
+        i.qty,
+        i.price,
+        i.price * i.qty
+      ) + "\n";
+  });
+
+  d += line + "\n";
+
+  c.taxes.forEach((t: any) => {
+    d += line2Col(
+      t.taxName,
+      Number(t.taxAmount || 0).toFixed(2)
+    ) + "\n";
+  });
+
+  d += line + "\n";
+}
+
+
+  /* ===== GROUPED ITEMS (UNCHANGED LOGIC) ===== */
+  if (c.taxType?.toLowerCase() === "groupedtax") {
+    const groupMap: Record<number, any[]> = {};
+
+    mergeItems(c.items).forEach((item: any) => {
+      const grp = item.grpCode || 0;
+      if (!groupMap[grp]) groupMap[grp] = [];
+      groupMap[grp].push(item);
+    });
+
+    Object.keys(groupMap).forEach((grp) => {
+      let grpBlock = "";
+
+      const grpNum = Number(grp);
+      const groupItems = groupMap[grpNum];
+
+      const groupTaxes = c.taxes.filter(
+        (t: any) => t.groupCode === grpNum,
+      );
+
+      grpBlock += "\n";
+
+      /* ✅ LEFT ALIGNED GROUP NAME */
+      const groupName = `*** ${
+        groupTaxes[0]?.groupName || "OTHERS"
+      } ***`;
+
+      grpBlock += boldOn + groupName.padEnd(width) + boldOff + "\n";
+      grpBlock += line + "\n";
+
+      groupItems.forEach((i: any) => {
+        grpBlock +=
+          formatRow(i.food, i.qty, i.price, i.price * i.qty) + "\n";
+      });
+
+      grpBlock += line + "\n";
+
+      groupTaxes.forEach((t: any) => {
+        const half = (t.taxper || 0) / 2;
+
+        grpBlock +=
+          line2Col(`CGST ${half}%`, (t.cgst || 0).toFixed(2)) + "\n";
+
+        grpBlock +=
+          line2Col(`SGST ${half}%`, (t.sgst || 0).toFixed(2)) + "\n";
+
+        grpBlock += line + "\n";
+
+        grpBlock +=
+          boldOn +
+          line2Col("Subtotal", (t.total || 0).toFixed(2)) +
+          boldOff +
+          "\n";
+      });
+
+      d += grpBlock; // ❌ removed center
+    });
+  }
+
+  /* ===== TOTAL ===== */
+  /* ===== TOTAL ===== */
+let totalBlock = "";
+
+/* ✅ DISCOUNT (SHOW ONLY IF > 0) */
+/* ✅ DISCOUNT (SHOW ONLY IF > 0) */
+if ((tax.discount || 0) > 0) {
+  let discountLabel = "Discount";
+
+  if (tax.discountIn === "amt") {
+    discountLabel +=" (Rs.)";
+  } else if (tax.discountIn === "per") {
+    discountLabel += " (%)";
+  }
+
+  totalBlock +=
+    line2Col(discountLabel, `-${tax.discount.toFixed(2)}`) + "\n";
+}
+/* ROUND OFF */
+if (c.roundOff !== 0) {
+  totalBlock += line2Col("Round Off", c.roundOff.toFixed(2)) + "\n";
+}
+
+/* GRAND TOTAL */
+totalBlock +=
+  boldOn +
+  line2Col("GRAND TOTAL", c.grandTotal.toFixed(2)) +
+  boldOff +
+  "\n";
+
+d += totalBlock;
+  d += "\n\n\n";
+  d += "\x1D\x56\x41\x10";
+
+  return d;
+};
+ const finalData = isThermal
+  ? formatThermal(content)
+  : "<div>HTML PRINT</div>";
+
+return await printKOT(
+  printerName,
+  finalData,
+  isThermal
+);
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err.message,
+    };
+  }
+};
 
 
 
