@@ -226,6 +226,7 @@ export const printKOT = async (
   content: any,
   isThermal?: boolean,
 ) => {
+  debugger
   try {
     console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
     if (
@@ -240,7 +241,7 @@ export const printKOT = async (
 const isMobile = /Android|iPhone|iPad|iPod/i.test(
   navigator.userAgent
 );
-
+console.log(cpj);
 if (isMobile) {
   cpj.clientPrinter = new JSPM.NetworkPrinter(
     9100,
@@ -252,21 +253,25 @@ if (isMobile) {
   cpj.clientPrinter = new JSPM.DefaultPrinter();
 }
 const data = isThermal
-  ? formatThermal(content)
+  ? formatThermal(content)   // <-- create this
   : formatHTML(content);
- if (isThermal) {
-  // Send raw ESC/POS commands directly
-  cpj.printerCommands = data;
-} else {
-  cpj.files.push(
-    new JSPM.PrintFileTXT(
-      data,
-      "print.html",
-      1
-    )
-  );
-}
-    await cpj.sendToClient();
+
+cpj.files.push(
+  new JSPM.PrintFileTXT(
+    data,
+    isThermal ? "kot.txt" : "print.html",
+    1
+  )
+);
+ console.log("Before send");
+
+await cpj.sendToClient();
+
+console.log("After send");
+console.log("WS Status:", JSPM.JSPrintManager.websocket_status);
+console.log("Printer:", printerName);
+console.log("Thermal:", isThermal);
+console.log("Data Length:", data.length);
 
     return {
       success: true,
