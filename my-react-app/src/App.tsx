@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import * as JSPM from "jsprintmanager";
-import  { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 
 import LandingPage from "./screens/LandingPage";
 import { ItemProvider } from "./context/ItemContext";
@@ -10,26 +10,18 @@ import CursorEffect from "./components/CursorEffect";
 
 export default function App() {
 useEffect(() => {
-  JSPM.JSPrintManager.auto_reconnect = true;
+  console.log("license_url before:", JSPM.JSPrintManager.license_url);
 
-  JSPM.JSPrintManager.start();
+JSPM.JSPrintManager.license_url =
+  "http://192.168.1.109:8080/api/POS/jspm";
 
-  const timer = setInterval(() => {
-    const status = JSPM.JSPrintManager.websocket_status;
+console.log("license_url after:", JSPM.JSPrintManager.license_url);
 
-    alert(`JSPM Status: ${status}`);
+console.log(JSPM.JSPrintManager);
 
-    if (status === JSPM.WSStatus.Open) {
-          alert(`JSPM Status: ${status}`);
-      alert("✅ JSPrintManager Connected");
-      clearInterval(timer);
-    } else {
-      alert("❌ JSPrintManager Not Connected");
-    }
-  }, 3000); // Check every 3 seconds
-
-  return () => clearInterval(timer);
+JSPM.JSPrintManager.start();
 }, []);
+
   return (
     <>
       <CursorEffect />

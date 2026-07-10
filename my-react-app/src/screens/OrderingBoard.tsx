@@ -894,10 +894,14 @@ function OrderingBoard() {
         newprintBill(res, _companyInfo);
         setKotLoading(false);
          setOpenUnsettledPayment(true) ;
-         
+         if(isNC){
+             navigate("/NewOrder");
+         }
         handleUnsettledSubTable(res?.fnBillResponse);
       }
-      if (tableData.fastFood === undefined || !directbill || isNC ) {
+      console.log("inside the kot isNC",isNC);
+      
+      if (tableData.fastFood === undefined && !directbill ) {
         navigate("/NewOrder");
       }
       if (tableData.fastFood !== undefined) {
