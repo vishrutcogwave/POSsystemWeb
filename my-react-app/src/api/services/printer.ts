@@ -659,7 +659,6 @@ let printerName: string | null = null;
 // assign it here instead of null.
 
 // Assuming you're printing to a thermal printer
-const isThermal = true;
     const cart = apiData?.cart || {};
     const tax = apiData?.tax || {};
 
