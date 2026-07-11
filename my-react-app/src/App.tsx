@@ -12,8 +12,7 @@ export default function App() {
 useEffect(() => {
   console.log("license_url before:", JSPM.JSPrintManager.license_url);
 
-JSPM.JSPrintManager.license_url =
-  "https://sparshhennurpos.cogwave.in/api/POS/jspm";
+JSPM.JSPrintManager.license_url ="https://sparshhennurpos.cogwave.in/api/POS/jspm";
 
 console.log("license_url after:", JSPM.JSPrintManager.license_url);
 
