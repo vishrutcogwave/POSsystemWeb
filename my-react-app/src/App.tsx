@@ -13,7 +13,7 @@ useEffect(() => {
   console.log("license_url before:", JSPM.JSPrintManager.license_url);
 
 JSPM.JSPrintManager.license_url =
-  "http://192.168.1.109:8080/api/POS/jspm";
+  "https://sparshhennurpos.cogwave.in/api/POS/jspm";
 
 console.log("license_url after:", JSPM.JSPrintManager.license_url);
 
