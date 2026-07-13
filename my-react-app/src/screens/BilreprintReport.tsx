@@ -181,7 +181,19 @@ if (!outletId) return;
 
         <BillReprint
           isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
+          onClose={() =>{ setIsOpen(false)
+            setFormData({
+      outlet: "",
+      billDate: "",
+      billNo: "",
+      discount: 0,
+      guestName: "",
+      address: "",
+      gstNo: "",
+      stateCode: "",
+      guestGST: false,
+    })
+          }}
           formData={formData}
           setFormData={setFormData}
           onPrint={handlePrint}
