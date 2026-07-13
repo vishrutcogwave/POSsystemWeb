@@ -11,8 +11,10 @@ import CursorEffect from "./components/CursorEffect";
 export default function App() {
 useEffect(() => {
   console.log("license_url before:", JSPM.JSPrintManager.license_url);
-
-JSPM.JSPrintManager.license_url ="https://sparshhennurpos.cogwave.in/api/POS/jspm";
+  const baseURL = localStorage.getItem("baseUrl") || "";
+  console.log("baseURL",baseURL);
+  
+JSPM.JSPrintManager.license_url = `${baseURL}api/POS/jspm`;
 
 console.log("license_url after:", JSPM.JSPrintManager.license_url);
 
