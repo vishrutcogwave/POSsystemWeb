@@ -982,7 +982,6 @@ export const newprintBill = async (
   res: any,
   companyInfo: any,
 ) => {
-  debugger
   console.log("========== NEW PRINT BILL ==========");
   console.log("Response:", res);
   console.log("Company:", companyInfo);

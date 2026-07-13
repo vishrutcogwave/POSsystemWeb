@@ -1507,7 +1507,10 @@ function OrderingBoard() {
 
       paymentDetails: paymentDetails.map((p: any) => ({
         mode: p.mode,
-        subMode: p.subMode || "",
+        subMode:
+    p.mode?.toLowerCase() === "cash"
+      ? "Cash"
+      : (p.subMode || "").trim(),
         amount: Number(p.amount),
         remarks: (p.remarks || "").trim(),
       })),
@@ -1612,6 +1615,12 @@ function OrderingBoard() {
           <div className="flex items-center justify-between border-b bg-[#E0F0FA] px-3 sm:px-4 py-2 shadow-sm">
             {/* LEFT SIDE INFO */}
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
+              {activeOltName && (
+    <span className="flex items-center gap-1 bg-orange-100 text-orange-700 border border-orange-300 px-2 sm:px-3 py-1 rounded-md font-semibold whitespace-nowrap">
+      🏪 {activeOltName}
+    </span>
+  )}
+
               <span className="flex items-center gap-1 bg-blue-50 text-[#0576B2] px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
                 🍽 Table {tableData.tableNumber}
               </span>
