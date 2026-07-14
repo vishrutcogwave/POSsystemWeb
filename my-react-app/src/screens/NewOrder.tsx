@@ -34,6 +34,7 @@ type Outlet = {
   oltName: string;
     isDirectKOTandBill: boolean;
   isDirectPaxandStw: boolean;
+  isDirectBill:boolean;
   tables: {
     tblNo: string;
     tableStatus: string;
@@ -273,6 +274,7 @@ console.log("table",selectedOutlet);
       kotStatus: table.kotStatus,
       isDirectKOTandBill: selectedOutlet?.isDirectKOTandBill ?? false,
       isDirectPaxandStw: selectedOutlet?.isDirectPaxandStw ?? false,
+      isDirectBill:selectedOutlet?.isDirectBill ?? false
     },
   });
 };

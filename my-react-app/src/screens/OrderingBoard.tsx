@@ -123,13 +123,16 @@ function OrderingBoard() {
       waiter?: string;
       waiterName?: string;
       pax?: number;
-
+      isDirectBill?: boolean;
       isDirectKOTandBill?: boolean;
       isDirectPaxandStw?: boolean;
     }) || {};
 
   const directbill = tableData.isDirectKOTandBill ?? false;
   const dontopenkotmodel = tableData.isDirectPaxandStw ?? false;
+  const IsDirectBill = tableData.isDirectBill ?? false;
+  console.log("IsDirectBill",IsDirectBill);
+  
   console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
@@ -831,45 +834,46 @@ function OrderingBoard() {
           instructions: item.comment ? item.comment.split(",") : [],
         })),
       });
-
-      // If no printer is configured, print everything to the default printer
-      if (Object.keys(printerItemMap).length === 0) {
-        const result = await printKOT(null, generateContent(foodItems), true);
-
-        if (!result.success) {
-          toast.error(`❌ Default Printer: ${result.message}`);
-        }
-      } else {
-        for (const rawPrinterName in printerItemMap) {
-          const printerItems = printerItemMap[rawPrinterName];
-
-          const content = generateContent(printerItems);
-
-          const printerName = rawPrinterName?.trim() || null;
-          const thermalKeywords = [
-            "pos",
-            "thermal",
-            "epson tm",
-            "tm-",
-            "xp-",
-            "tsp",
-            "58mm",
-            "80mm",
-            "receipt",
-            "usb printer",
-            "rp",
-            "gp",
-          ];
-          const isThermal = thermalKeywords.some((keyword) =>
-            (printerName || "").toLowerCase().includes(keyword),
-          );
-
-          const result = await printKOT(printerName, content, isThermal);
+      if (!IsDirectBill) {
+        // If no printer is configured, print everything to the default printer
+        if (Object.keys(printerItemMap).length === 0) {
+          const result = await printKOT(null, generateContent(foodItems), true);
 
           if (!result.success) {
-            toast.error(
-              `❌ ${printerName ?? "Default Printer"}: ${result.message}`,
+            toast.error(`❌ Default Printer: ${result.message}`);
+          }
+        } else {
+          for (const rawPrinterName in printerItemMap) {
+            const printerItems = printerItemMap[rawPrinterName];
+
+            const content = generateContent(printerItems);
+
+            const printerName = rawPrinterName?.trim() || null;
+            const thermalKeywords = [
+              "pos",
+              "thermal",
+              "epson tm",
+              "tm-",
+              "xp-",
+              "tsp",
+              "58mm",
+              "80mm",
+              "receipt",
+              "usb printer",
+              "rp",
+              "gp",
+            ];
+            const isThermal = thermalKeywords.some((keyword) =>
+              (printerName || "").toLowerCase().includes(keyword),
             );
+
+            const result = await printKOT(printerName, content, isThermal);
+
+            if (!result.success) {
+              toast.error(
+                `❌ ${printerName ?? "Default Printer"}: ${result.message}`,
+              );
+            }
           }
         }
       }
@@ -893,15 +897,15 @@ function OrderingBoard() {
       if (directbill) {
         newprintBill(res, _companyInfo);
         setKotLoading(false);
-         setOpenUnsettledPayment(true) ;
-         if(isNC){
-             navigate("/NewOrder");
-         }
+        setOpenUnsettledPayment(true);
+        if (isNC) {
+          navigate("/NewOrder");
+        }
         handleUnsettledSubTable(res?.fnBillResponse);
       }
-      console.log("inside the kot isNC",isNC);
-      
-      if (tableData.fastFood === undefined && !directbill ) {
+      console.log("inside the kot isNC", isNC);
+
+      if (tableData.fastFood === undefined && !directbill) {
         navigate("/NewOrder");
       }
       if (tableData.fastFood !== undefined) {
@@ -1508,9 +1512,7 @@ function OrderingBoard() {
       paymentDetails: paymentDetails.map((p: any) => ({
         mode: p.mode,
         subMode:
-    p.mode?.toLowerCase() === "cash"
-      ? "Cash"
-      : (p.subMode || "").trim(),
+          p.mode?.toLowerCase() === "cash" ? "Cash" : (p.subMode || "").trim(),
         amount: Number(p.amount),
         remarks: (p.remarks || "").trim(),
       })),
@@ -1616,10 +1618,10 @@ function OrderingBoard() {
             {/* LEFT SIDE INFO */}
             <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-medium text-gray-700 overflow-hidden">
               {activeOltName && (
-    <span className="flex items-center gap-1 bg-orange-100 text-orange-700 border border-orange-300 px-2 sm:px-3 py-1 rounded-md font-semibold whitespace-nowrap">
-      🏪 {activeOltName}
-    </span>
-  )}
+                <span className="flex items-center gap-1 bg-orange-100 text-orange-700 border border-orange-300 px-2 sm:px-3 py-1 rounded-md font-semibold whitespace-nowrap">
+                  🏪 {activeOltName}
+                </span>
+              )}
 
               <span className="flex items-center gap-1 bg-blue-50 text-[#0576B2] px-2 sm:px-3 py-1 rounded-md whitespace-nowrap">
                 🍽 Table {tableData.tableNumber}
