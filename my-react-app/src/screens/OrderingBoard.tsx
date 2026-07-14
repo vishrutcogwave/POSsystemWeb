@@ -1030,6 +1030,8 @@ function OrderingBoard() {
           remarks: p.remarks || "",
         })),
       };
+      console.log("payload2",payload2);
+      
       const selttelbill = await settleBill(payload2);
       console.log("selttelbill", selttelbill);
 

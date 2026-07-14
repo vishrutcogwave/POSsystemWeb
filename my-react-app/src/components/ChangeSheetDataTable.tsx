@@ -121,84 +121,168 @@ const outletMatch =
   }, [filteredData]);
 
   // EXPORT
- const handleExcel = () => {
-  const excelData: Record<string, any>[] = [];
+const handleExcel = () => {
+  const wsData: any[][] = [];
 
   Object.entries(groupedData).forEach(([outletName, rows]) => {
     // Outlet Heading
-    excelData.push({
-      BillNo: outletName,
-    });
+    wsData.push([outletName]);
 
-    // Data Rows
+    // Column Headers
+    wsData.push([
+      "Bill No",
+      "Date",
+      "Time",
+      "Sale",
+      "Tax",
+      "CGST",
+      "SGST",
+      "Total",
+      "Round",
+      "Grand",
+      "Cash",
+      "Card",
+      "UPI",
+      "Online",
+      "Cheque",
+      "Credit",
+      "Status",
+    ]);
+
+    // Data
     rows.forEach((row) => {
-      excelData.push({
-        BillNo: row.billNo,
-        Date: formatDate(row.date),
-        Time: row.billTime,
-        Sale: row.itemSale,
-        Tax: row.tax,
-        CGST: row.cgst,
-        SGST: row.sgst,
-        Total: row.total,
-        Round: row.roundOff,
-        Grand: row.grand,
-        Cash: row.cash,
-        Card: row.card,
-        Online: row.online,
-        Status: row.kbsRefName || "-",
-      });
+      wsData.push([
+        row.billNo,
+        formatDate(row.date),
+        row.billTime,
+        row.itemSale,
+        row.tax,
+        row.cgst,
+        row.sgst,
+        row.total,
+        row.roundOff,
+        row.grand,
+        row.cash,
+        row.card,
+        row.upi,
+        row.online,
+        row.cheque,
+        row.credit,
+        row.kbsRefName || "-",
+      ]);
     });
 
     // Outlet Total
-    excelData.push({
-      BillNo: "Total",
-      Sale: rows.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2),
-      Tax: rows.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2),
-      CGST: rows.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2),
-      SGST: rows.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2),
-      Total: rows.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2),
-      Round: rows.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2),
-      Grand: rows.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2),
-      Cash: rows.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2),
-      Card: rows.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2),
-      Online: rows.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2),
-    });
+    wsData.push([
+      "Outlet Total",
+      "",
+      "",
+      rows.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.upi || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.cheque || 0), 0).toFixed(2),
+      rows.reduce((s, r) => s + Number(r.credit || 0), 0).toFixed(2),
+      "",
+    ]);
 
-    // Blank Row
-    excelData.push({});
+    wsData.push([]);
   });
 
-  // Overall Total
-  excelData.push({ BillNo: "Overall Total" });
+  // ==========================
+  // Overall Summary (Box Layout)
+  // ==========================
+  wsData.push([]);
+  wsData.push(["OVERALL SUMMARY"]);
+  wsData.push([]);
 
-  excelData.push({
-    Sale: filteredData.reduce((s, r) => s + Number(r.itemSale || 0), 0).toFixed(2),
-    Tax: filteredData.reduce((s, r) => s + Number(r.tax || 0), 0).toFixed(2),
-    CGST: filteredData.reduce((s, r) => s + Number(r.cgst || 0), 0).toFixed(2),
-    SGST: filteredData.reduce((s, r) => s + Number(r.sgst || 0), 0).toFixed(2),
-    Total: filteredData.reduce((s, r) => s + Number(r.total || 0), 0).toFixed(2),
-    Round: filteredData.reduce((s, r) => s + Number(r.roundOff || 0), 0).toFixed(2),
-    Grand: filteredData.reduce((s, r) => s + Number(r.grand || 0), 0).toFixed(2),
-    Cash: filteredData.reduce((s, r) => s + Number(r.cash || 0), 0).toFixed(2),
-    Card: filteredData.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2),
-    Online: filteredData.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2),
-  });
+  wsData.push([
+    "Sale",
+    Number(summary.total || 0).toFixed(2),
+    "",
+    "CGST",
+    Number(summary.cgst || 0).toFixed(2),
+    "",
+    "SGST",
+    Number(summary.sgst || 0).toFixed(2),
+  ]);
 
+  wsData.push([
+    "Grand",
+    Number(summary.grand || 0).toFixed(2),
+    "",
+    "Round",
+    Number(summary.roundOff || 0).toFixed(2),
+    "",
+    "Cash",
+    Number(summary.cash || 0).toFixed(2),
+  ]);
+
+  wsData.push([
+    "Card",
+    Number(summary.card || 0).toFixed(2),
+    "",
+    "UPI",
+    Number(summary.upi || 0).toFixed(2),
+    "",
+    "Online",
+    Number(summary.online || 0).toFixed(2),
+  ]);
+
+  wsData.push([
+    "Cheque",
+    Number(summary.cheque || 0).toFixed(2),
+    "",
+    "Credit",
+    Number(summary.credit || 0).toFixed(2),
+  ]);
+
+  // ==========================
   // Remarks Summary
-  if (remarksSummary.length) {
-    excelData.push({});
-    excelData.push({ BillNo: "Remarks Summary" });
+  // ==========================
+  if (remarksSummary.length > 0) {
+    wsData.push([]);
+    wsData.push(["REMARKS SUMMARY"]);
+    wsData.push(["Particular", "Amount"]);
 
     remarksSummary.forEach((item) => {
-      excelData.push({
-        BillNo: item.particulars,
-        Total: Number(item.amount).toFixed(2),
-      });
+      wsData.push([
+        item.particulars,
+        Number(item.amount || 0).toFixed(2),
+      ]);
     });
   }
 
-  const ws = XLSX.utils.json_to_sheet(excelData);
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Auto column width
+  ws["!cols"] = [
+    { wch: 18 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 6 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 18 },
+  ];
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Change Sheet");
 
