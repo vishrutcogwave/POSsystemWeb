@@ -47,7 +47,7 @@ export default function CategorySidebar({
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = FALLBACK_IMAGE;
                 }}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-fill"
                 alt={cat.name}
               />
 

@@ -46,11 +46,16 @@ type RemarksSummary = {
   amount: number;
 };
 
+type OutletWiseSummary = {
+  outletName: string;
+  totalAmount: number;
+};
 type Props = {
   title: string;
   data: Bill[];
   summary: Summary;
   remarksSummary: RemarksSummary[];
+  outletWiseSummary: OutletWiseSummary[];
 
   selectedOutlet: string;
   outlets: { id: string; label: string }[];
@@ -61,12 +66,12 @@ type Props = {
   setFromDate: (val: string) => void;
   setToDate: (val: string) => void;
 };
-
 export default function ChangeSheetDataTable({
   title,
   data,
   summary,
   remarksSummary,
+  outletWiseSummary,
   selectedOutlet,
   outlets,
   setOutlet,
@@ -678,6 +683,24 @@ const handlePrint = () => {
       {remarksSummary.map((item, index) => (
         <div key={index}>
           {item.particulars}: {Number(item.amount || 0).toFixed(2)}
+        </div>
+      ))}
+    </div>
+    
+  </div>
+)}
+{outletWiseSummary.length > 0 && (
+  <div className="mt-6 border rounded p-4 bg-green-600 text-white">
+    <h3 className="font-semibold mb-3">Outlet Wise Summary</h3>
+
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      {outletWiseSummary.map((item, index) => (
+        <div
+          key={index}
+          className="bg-white/10 rounded p-3"
+        >
+          <div className="font-semibold">{item.outletName}</div>
+          <div>₹ {Number(item.totalAmount).toFixed(2)}</div>
         </div>
       ))}
     </div>

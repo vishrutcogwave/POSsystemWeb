@@ -7,6 +7,11 @@ import {
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
+
+type OutletWiseSummary = {
+  outletName: string;
+  totalAmount: number;
+};
 type Bill = {
   billNo: string;
   date: string;
@@ -54,6 +59,7 @@ export default function Chancesheet() {
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [remarksSummary, setRemarksSummary] = useState<RemarksSummary[]>([]);
+  const [outletWiseSummary, setOutletWiseSummary] = useState<OutletWiseSummary[]>([]);
 const {appData}=useAppContext()
   const today = new Date();
   const formattedToday = today.toISOString().split("T")[0];
@@ -94,9 +100,15 @@ console.log("formattedOutlets",formattedOutlets);
 
       const res = await getChanceSheetReport(fromDate, toDate, outletId,appData?.user?.branch_code,);
 
-     setData((res?.data || []) as Bill[]);
+
+console.log("RES", res);
+console.log("RES.DATA", res.data);
+console.log("OUTLET 1", res.outletWiseSummary);
+console.log("OUTLET 2", res.data?.outletWiseSummary);
+setData((res?.data || []) as Bill[]);
 setSummary((res?.summary || {}) as Summary);
-setRemarksSummary(res?.remarksSummary || [])
+setRemarksSummary(res?.remarksSummary || []);
+setOutletWiseSummary(res?.outletWiseSummary || []);
     } catch (error) {
       console.error("API Error:", error);
     } finally {
@@ -124,6 +136,7 @@ setRemarksSummary(res?.remarksSummary || [])
 
       <div className="flex-1 overflow-auto">
      <ChangeSheetDataTable
+       outletWiseSummary={outletWiseSummary}
   title="Chance Sheet"
   data={data}
   summary={summary}
