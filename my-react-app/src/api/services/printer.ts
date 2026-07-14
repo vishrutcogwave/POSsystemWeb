@@ -250,73 +250,207 @@ Total Items : ${c.items.reduce((s: number, i: any) => s + i.qty, 0)}
 </html>
 `;
 /* ---------------- PRINT ---------------- */
+// export const printKOT = async (
+//   printerName: string | null,
+//   content: any,
+//   isThermal?: boolean,
+// ) => {
+//   console.log(content);
+  
+//   try {
+//     console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
+//     if (
+//       JSPM.JSPrintManager.websocket_status !==
+//       JSPM.WSStatus.Open
+//     ) {
+//       throw new Error("JSPrintManager is not running");
+//     }
+
+//     const cpj = new JSPM.ClientPrintJob();
+
+// const isMobile = /Android|iPhone|iPad|iPod/i.test(
+//   navigator.userAgent
+// );
+// console.log(cpj);
+// if (isMobile) {
+//   cpj.clientPrinter = new JSPM.NetworkPrinter(
+//     9100,
+//     "192.168.1.158"
+//   );
+
+//   JSPM.JSPrintManager.getPrinters().then(printers => {
+//   console.log(printers);
+// });
+// } else if (printerName?.trim()) {
+//   cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
+// } else {
+//   cpj.clientPrinter = new JSPM.DefaultPrinter();
+// }
+// const data = isThermal
+//   ? formatThermal(content)
+//   : formatHTML(content);
+
+// if (isThermal) {
+//   // RAW ESC/POS
+//   cpj.printerCommands = data;
+// } else {
+// cpj.files.push(
+//   new JSPM.PrintFile(
+//     data,
+//     JSPM.FileSourceType.Text,
+//     "receipt.htm",
+//     1
+//   )
+// );
+// }
+// await cpj.sendToClient();
+
+// console.log("After send");
+// console.log("WS Status:", JSPM.JSPrintManager.websocket_status);
+// console.log("Printer:", printerName);
+// console.log("Thermal:", isThermal);
+// console.log("Data Length:", data.length);
+
+//     return {
+//       success: true,
+//       printer: printerName ?? "Default Printer",
+//     };
+//   } catch (err: any) {
+//     console.error("PRINT ERROR:", err);
+
+//     return {
+//       success: false,
+//       printer: printerName,
+//       message: err?.message || "Printing failed",
+//     };
+//   }
+// };  
+
+
+
 export const printKOT = async (
   printerName: string | null,
   content: any,
   isThermal?: boolean,
 ) => {
-  console.log(content);
-  
   try {
-    console.log("TTTTTTTTTTTTTTTT",JSPM.NetworkPrinter);
+    console.log("========== PRINT START ==========");
+
+    console.log("User Agent:", navigator.userAgent);
+
+    console.log(
+      "Current WS Status:",
+      JSPM.JSPrintManager.websocket_status
+    );
+
     if (
       JSPM.JSPrintManager.websocket_status !==
       JSPM.WSStatus.Open
     ) {
+      console.error("❌ WebSocket is NOT OPEN");
       throw new Error("JSPrintManager is not running");
     }
 
+    console.log("✅ WebSocket Connected");
+
     const cpj = new JSPM.ClientPrintJob();
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(
-  navigator.userAgent
-);
-console.log(cpj);
-if (isMobile) {
-  cpj.clientPrinter = new JSPM.NetworkPrinter(
-    9100,
-    "192.168.1.158"
-  );
+    console.log("✅ ClientPrintJob Created");
 
-  JSPM.JSPrintManager.getPrinters().then(printers => {
-  console.log(printers);
-});
-} else if (printerName?.trim()) {
-  cpj.clientPrinter = new JSPM.InstalledPrinter(printerName);
-} else {
-  cpj.clientPrinter = new JSPM.DefaultPrinter();
-}
-const data = isThermal
-  ? formatThermal(content)
-  : formatHTML(content);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(
+      navigator.userAgent
+    );
 
-if (isThermal) {
-  // RAW ESC/POS
-  cpj.printerCommands = data;
-} else {
-cpj.files.push(
-  new JSPM.PrintFile(
-    data,
-    JSPM.FileSourceType.Text,
-    "receipt.htm",
-    1
-  )
-);
-}
-await cpj.sendToClient();
+    console.log("Is Mobile:", isMobile);
 
-console.log("After send");
-console.log("WS Status:", JSPM.JSPrintManager.websocket_status);
-console.log("Printer:", printerName);
-console.log("Thermal:", isThermal);
-console.log("Data Length:", data.length);
+    if (isMobile) {
+      console.log("Using Network Printer");
+
+      console.log("Printer IP:", "192.168.1.158");
+      console.log("Printer Port:", 9100);
+
+      try {
+        cpj.clientPrinter = new JSPM.NetworkPrinter(
+          9100,
+          "192.168.1.158"
+        );
+
+        console.log("✅ NetworkPrinter object created");
+      } catch (e: any) {
+        console.error("❌ NetworkPrinter Creation Failed", e);
+      }
+
+      try {
+        const printers =
+          await JSPM.JSPrintManager.getPrinters();
+
+        console.log("Printers Returned:", printers);
+      } catch (e: any) {
+        console.error("❌ getPrinters Failed", e);
+      }
+    } else if (printerName?.trim()) {
+      console.log("Using Installed Printer");
+
+      cpj.clientPrinter = new JSPM.InstalledPrinter(
+        printerName
+      );
+
+      console.log("Printer:", printerName);
+    } else {
+      console.log("Using Default Printer");
+
+      cpj.clientPrinter = new JSPM.DefaultPrinter();
+    }
+
+    const data = isThermal
+      ? formatThermal(content)
+      : formatHTML(content);
+
+    console.log("Data Length:", data.length);
+
+    if (isThermal) {
+      console.log("Thermal Mode");
+
+      cpj.printerCommands = data;
+
+      console.log("✅ ESC/POS Commands Assigned");
+    } else {
+      console.log("HTML Mode");
+
+      cpj.files.push(
+        new JSPM.PrintFile(
+          data,
+          JSPM.FileSourceType.Text,
+          "receipt.htm",
+          1
+        )
+      );
+
+      console.log("✅ HTML File Added");
+    }
+
+    console.log("Calling sendToClient()...");
+
+    try {
+      await cpj.sendToClient();
+
+      console.log("✅ sendToClient SUCCESS");
+    } catch (e: any) {
+      console.error("❌ sendToClient FAILED", e);
+      throw e;
+    }
+
+    console.log("✅ Print Completed Successfully");
 
     return {
       success: true,
       printer: printerName ?? "Default Printer",
     };
   } catch (err: any) {
-    console.error("PRINT ERROR:", err);
+    console.error("========== PRINT ERROR ==========");
+    console.error("Message:", err?.message || "Unknown Error");
+    console.error("Stack:", err?.stack || "No Stack");
+    console.error("Full Error Object:", err);
 
     return {
       success: false,
@@ -324,8 +458,7 @@ console.log("Data Length:", data.length);
       message: err?.message || "Printing failed",
     };
   }
-};  
-
+};
 export const printBill = async (
   billData: any,
   billNo: any,
