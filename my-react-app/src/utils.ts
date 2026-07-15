@@ -1,4 +1,4 @@
-import fallbackImage from "./assets/SPARSHIMG.png"
+import fallbackImage from "./assets/fallbackimage.png"
 
 export const FALLBACK_IMAGE = fallbackImage
 
