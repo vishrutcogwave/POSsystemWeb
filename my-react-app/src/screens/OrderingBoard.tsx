@@ -1524,30 +1524,46 @@ toast.success("Items voided & printed successfully ✅");
       },
     };
   };
-  const handlePrintBill = async (billData: any) => {
-    setKotLoading(true);
-    try {
-      if (!billData) {
-        throw new Error("No bill data");
-      }
+const handlePrintBill = async (billData: any) => {
+  
+  setKotLoading(true);
 
-      // ✅ 1. POST BILL (FULL OBJECT)
-      const res = await postBill(billData);
-      console.log("Bill Posted:", res);
-
-      toast.success("Bill Printed Successfully ✅");
-      if (tableData.fastFood === undefined) {
-        navigate("/NewOrder");
-      }
-      return true;
-    } catch (err: any) {
-      console.error("Print Bill Error:", err);
-      toast.error(err.message || "Print failed ❌");
-      return false;
-    } finally {
-      setKotLoading(false);
+  try {
+    if (!billData) {
+      throw new Error("No bill data");
     }
-  };
+
+    // ✅ POST BILL
+    const res = await postBill(billData);
+    console.log("Bill Posted:", res);
+
+    // ✅ PRINT BILL
+    const printRes = await printBill(
+      billData,
+      res,
+      _companyInfo,
+      res.ipAddress || ""   // <-- pass IP from postBill response
+    );
+
+    if (!printRes?.success) {
+      throw new Error(printRes?.message || "Print failed");
+    }
+
+    toast.success("Bill Printed Successfully ✅");
+
+    if (tableData.fastFood === undefined) {
+      navigate("/NewOrder");
+    }
+
+    return true;
+  } catch (err: any) {
+    console.error("Print Bill Error:", err);
+    toast.error(err.message || "Print failed ❌");
+    return false;
+  } finally {
+    setKotLoading(false);
+  }
+};
   const handleGetBill = async (showPopup = true) => {
     if (directbill) {
       showPopup = false;
