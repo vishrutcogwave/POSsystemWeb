@@ -722,6 +722,7 @@ function OrderingBoard() {
   };
 
   const handleKOT = async () => {
+    debugger
     if (dayDetails?.openDayResponse?.success === false) {
       setAlertMsg(
         dayDetails?.openDayResponse?.message ||
@@ -811,15 +812,17 @@ function OrderingBoard() {
 
       const printerItemMap: Record<string, any[]> = {};
 
-      printers.forEach((printer: any) => {
-        const matchedItems = foodItems.filter((item: any) =>
-          printer.categoryIds.includes(Number(item.category)),
-        );
+  printers.forEach((printer: any) => {
+  const categoryIds = printer.categoryIds ?? [];
 
-        if (matchedItems.length > 0) {
-          printerItemMap[printer.printerName] = matchedItems;
-        }
-      });
+  const matchedItems = foodItems.filter((item: any) =>
+    categoryIds.includes(Number(item.category))
+  );
+
+  if (matchedItems.length > 0) {
+    printerItemMap[printer.printerName || "default"] = matchedItems;
+  }
+});
 
       const generateContent = (items: any[]) => ({
         title: isNC ? "NC KOT" : "KOT",
@@ -1063,15 +1066,17 @@ function OrderingBoard() {
 
       const printerItemMap: Record<string, any[]> = {};
 
-      printers.forEach((printer: any) => {
-        const matchedItems = foodItems.filter((item: any) =>
-          printer.categoryIds.includes(Number(item.category)),
-        );
+  printers.forEach((printer: any) => {
+  const categoryIds = printer.categoryIds ?? [];
 
-        if (matchedItems.length > 0) {
-          printerItemMap[printer.printerName] = matchedItems;
-        }
-      });
+  const matchedItems = foodItems.filter((item: any) =>
+    categoryIds.includes(Number(item.category))
+  );
+
+  if (matchedItems.length > 0) {
+    printerItemMap[printer.printerName || "default"] = matchedItems;
+  }
+});
       const generateContent = (items: any[]) => ({
         title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
         kotId: res.kotId || res.kotID || res.kotNo || "",
@@ -1252,16 +1257,17 @@ function OrderingBoard() {
 
       const printerItemMap: Record<string, any[]> = {};
 
-      printers.forEach((printer: any) => {
-        const matchedItems = foodItems.filter((item: any) =>
-          printer.categoryIds.includes(Number(item.category)),
-        );
+   printers.forEach((printer: any) => {
+  const categoryIds = printer.categoryIds ?? [];
 
-        if (matchedItems.length > 0) {
-          printerItemMap[printer.printerName] = matchedItems;
-        }
-      });
+  const matchedItems = foodItems.filter((item: any) =>
+    categoryIds.includes(Number(item.category))
+  );
 
+  if (matchedItems.length > 0) {
+    printerItemMap[printer.printerName || "default"] = matchedItems;
+  }
+});
       // const generateContent = (items: any[]) => ({
       //   title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
       //   table: tableData?.tableNumber,
