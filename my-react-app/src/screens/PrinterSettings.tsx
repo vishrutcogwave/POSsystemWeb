@@ -144,6 +144,11 @@ const handleDeleteConfiguration = async (grpCode: number) => {
         return;
       }
 
+      const selectedPrinter = printers.find(
+  (p) => p.printerName === form.printerName
+);
+
+
       const payload = {
         printerName: form.printerName,
         billType: form.billType,
@@ -151,6 +156,8 @@ const handleDeleteConfiguration = async (grpCode: number) => {
         oltCode: String(selectedOutlet),
         printType: form.printType,
         grpCode: form.grpCode,
+        ipAddress:selectedPrinter?.ipAddress || "",
+
       };
 
       setLoading(true);

@@ -131,8 +131,8 @@ function OrderingBoard() {
   const directbill = tableData.isDirectKOTandBill ?? false;
   const dontopenkotmodel = tableData.isDirectPaxandStw ?? false;
   const IsDirectBill = tableData.isDirectBill ?? false;
-  console.log("IsDirectBill",IsDirectBill);
-  
+  console.log("IsDirectBill", IsDirectBill);
+
   console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {
     if (tableData.fastFood) {
@@ -835,39 +835,57 @@ function OrderingBoard() {
         })),
       });
       if (!IsDirectBill) {
-        // If no printer is configured, print everything to the default printer
+        const thermalKeywords = [
+          "pos",
+          "thermal",
+          "epson tm",
+          "tm-",
+          "xp-",
+          "tsp",
+          "58mm",
+          "80mm",
+          "receipt",
+          "usb printer",
+          "rp",
+          "gp",
+        ];
+
+        // No printer mapping -> print all items to first configured printer
         if (Object.keys(printerItemMap).length === 0) {
-          const result = await printKOT(null, generateContent(foodItems), true);
+          const defaultPrinter = printers[0];
+
+          const result = await printKOT(
+            defaultPrinter?.printerName || null,
+            generateContent(foodItems),
+            defaultPrinter?.ipAddress || "",
+            true,
+          );
 
           if (!result.success) {
-            toast.error(`❌ Default Printer: ${result.message}`);
+            toast.error(
+              `❌ ${defaultPrinter?.printerName ?? "Default Printer"}: ${result.message}`,
+            );
           }
         } else {
-          for (const rawPrinterName in printerItemMap) {
-            const printerItems = printerItemMap[rawPrinterName];
+          for (const printer of printers) {
+            const printerItems = printerItemMap[printer.printerName];
+
+            if (!printerItems) continue;
 
             const content = generateContent(printerItems);
 
-            const printerName = rawPrinterName?.trim() || null;
-            const thermalKeywords = [
-              "pos",
-              "thermal",
-              "epson tm",
-              "tm-",
-              "xp-",
-              "tsp",
-              "58mm",
-              "80mm",
-              "receipt",
-              "usb printer",
-              "rp",
-              "gp",
-            ];
+            const printerName = printer.printerName?.trim() || null;
+
             const isThermal = thermalKeywords.some((keyword) =>
               (printerName || "").toLowerCase().includes(keyword),
             );
 
-            const result = await printKOT(printerName, content, isThermal);
+            const result = await printKOT(
+              printerName,
+              content,
+              printer.ipAddress || "",
+              isThermal,
+            );
 
             if (!result.success) {
               toast.error(
@@ -881,21 +899,25 @@ function OrderingBoard() {
       /* ---------- FAST FOOD BILL PRINT ---------- */
 
       if (tableData.fastFood === true) {
+        const defaultPrinter = res.printers?.[0];
+
         const printRes = await printBill(
           billData,
           res.fnBillResponse,
           _companyInfo,
+          defaultPrinter?.ipAddress || "",
         );
 
         console.log("Bill Print:", printRes);
       }
-
       setCart([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
       if (directbill) {
-        newprintBill(res, _companyInfo);
+        const defaultPrinter = res.printers?.[0];
+
+        await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
         setKotLoading(false);
         setOpenUnsettledPayment(true);
         if (isNC) {
@@ -1030,8 +1052,8 @@ function OrderingBoard() {
           remarks: p.remarks || "",
         })),
       };
-      console.log("payload2",payload2);
-      
+      console.log("payload2", payload2);
+
       const selttelbill = await settleBill(payload2);
       console.log("selttelbill", selttelbill);
 
@@ -1082,10 +1104,19 @@ function OrderingBoard() {
       let hasError = false;
       // If no printer is configured, print everything to the default printer
       if (Object.keys(printerItemMap).length === 0) {
-        const result = await printKOT(null, generateContent(foodItems), true);
+        const defaultPrinter = printers[0];
+
+        const result = await printKOT(
+          defaultPrinter?.printerName || null,
+          generateContent(foodItems),
+          defaultPrinter?.ipAddress || "",
+          true,
+        );
 
         if (!result.success) {
-          toast.error(`❌ Default Printer: ${result.message}`);
+          toast.error(
+            `❌ ${defaultPrinter?.printerName ?? "Default Printer"}: ${result.message}`,
+          );
         }
       } else {
         for (const rawPrinterName in printerItemMap) {
@@ -1095,11 +1126,20 @@ function OrderingBoard() {
 
           const printerName = rawPrinterName?.trim() || null;
 
+          const printer = printers.find(
+            (p: any) => p.printerName === rawPrinterName,
+          );
+
           const isThermal = thermalKeywords.some((keyword) =>
             (printerName || "").toLowerCase().includes(keyword),
           );
 
-          const result = await printKOT(printerName, content, isThermal);
+          const result = await printKOT(
+            printerName,
+            content,
+            printer?.ipAddress || "",
+            isThermal,
+          );
 
           if (!result.success) {
             toast.error(
@@ -1262,7 +1302,81 @@ function OrderingBoard() {
       //         //   toast.error(`❌ ${printerName}: ${result.message}`);
       //         // }
       //       }
+const generateContent = (items: any[]) => ({
+  title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
+  kotId: res.kotId || res.kotID || res.kotNo || "",
+  table: tableData.tableNumber,
+  subTable: selectedSubTable || "A",
+  waiter: session.waiterName,
+  pax: session.pax,
+  items: items.map((item: any) => ({
+    qty: item.origQty || item.qty || 0,
+    name: item.food,
+    instructions: item.comment ? item.comment.split(",") : [],
+  })),
+});
 
+const thermalKeywords = [
+  "pos",
+  "thermal",
+  "epson tm",
+  "tm-",
+  "xp-",
+  "tsp",
+  "58mm",
+  "80mm",
+  "receipt",
+  "usb printer",
+  "rp",
+  "gp",
+];
+
+// No category mapping -> print everything to first configured printer
+if (Object.keys(printerItemMap).length === 0) {
+  const defaultPrinter = printers[0];
+
+  const result = await printKOT(
+    defaultPrinter?.printerName || null,
+    generateContent(foodItems),
+    defaultPrinter?.ipAddress || "",
+    true
+  );
+
+  if (!result.success) {
+    toast.error(
+      `❌ ${defaultPrinter?.printerName ?? "Default Printer"}: ${result.message}`
+    );
+  }
+} else {
+  for (const printer of printers) {
+    const printerItems = printerItemMap[printer.printerName];
+
+    if (!printerItems) continue;
+
+    const content = generateContent(printerItems);
+
+    const printerName = printer.printerName?.trim() || null;
+
+    const isThermal = thermalKeywords.some((keyword) =>
+      (printerName || "").toLowerCase().includes(keyword)
+    );
+
+    const result = await printKOT(
+      printerName,
+      content,
+      printer.ipAddress || "",
+      isThermal
+    );
+
+    if (!result.success) {
+      toast.error(
+        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
+      );
+    }
+  }
+}
+
+toast.success("Items voided & printed successfully ✅");
       setSelectedVoidItems([]);
       if (tableData.fastFood === undefined) {
         navigate("/NewOrder");

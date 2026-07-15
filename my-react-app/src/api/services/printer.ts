@@ -1,29 +1,25 @@
 import * as JSPM from "jsprintmanager";
 import { getBillConfiguration } from "./products.service";
 const getClientPrinter = async (
-  printerName: string | null
+  printerName: string | null,
+  ipAddress: string
 ) => {
   const isMobile =
     /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isMobile) {
     console.log("Using Network Printer");
-    console.log("Printer IP:", "192.168.1.158");
-    console.log("Printer Port:", 9100);
+    console.log("Printer IP:", ipAddress);
 
     return new JSPM.NetworkPrinter(
       9100,
-      "192.168.1.158"
+      ipAddress || "" // fallback
     );
   }
 
   if (printerName?.trim()) {
-    console.log("Using Installed Printer:", printerName);
-
     return new JSPM.InstalledPrinter(printerName);
   }
-
-  console.log("Using Default Printer");
 
   return new JSPM.DefaultPrinter();
 };
@@ -281,7 +277,9 @@ Total Items : ${c.items.reduce((s: number, i: any) => s + i.qty, 0)}
 export const printKOT = async (
   printerName: string | null,
   content: any,
+   ipAddress: string,
   isThermal?: boolean,
+  
 ) => {
   try {
     console.log("========== PRINT START ==========");
@@ -307,7 +305,7 @@ export const printKOT = async (
 
     console.log("✅ ClientPrintJob Created");
 
-cpj.clientPrinter = await getClientPrinter(printerName);
+cpj.clientPrinter = await getClientPrinter(printerName,ipAddress);
 
     const data = isThermal
       ? formatThermal(content)
@@ -370,6 +368,7 @@ export const printBill = async (
   billData: any,
   billNo: any,
   companyInfo: any,
+  ipAddress:string
 ) => {
    
   console.log("inside the print", billData, billNo, companyInfo);
@@ -656,7 +655,7 @@ try {
 }
 const cpj = new JSPM.ClientPrintJob();
 
-cpj.clientPrinter = await getClientPrinter(printerName);
+cpj.clientPrinter = await getClientPrinter(printerName,ipAddress);
 
 cpj.printerCommands = finalData;
 
@@ -704,6 +703,7 @@ export const reprintBill = async (
   apiData: any,
   formData: any,
   companyInfo: any,
+  ipAddress?:string
 ) => {
 
   console.log(apiData,"apidta");
@@ -1010,7 +1010,7 @@ console.log("=========== ESC/POS ===========");
 console.log(data);
 const cpj = new JSPM.ClientPrintJob();
 
-cpj.clientPrinter = await getClientPrinter(printerName);
+cpj.clientPrinter = await getClientPrinter(printerName,ipAddress || "");
 
 cpj.printerCommands = data;
 
@@ -1040,6 +1040,7 @@ try {
 export const newprintBill = async (
   res: any,
   companyInfo: any,
+  ipAddress:string,
 ) => {
   console.log("========== NEW PRINT BILL ==========");
   console.log("Response:", res);
@@ -1406,7 +1407,7 @@ console.log(data);
 
 const cpj = new JSPM.ClientPrintJob();
 
-cpj.clientPrinter = await getClientPrinter(printerName);
+cpj.clientPrinter = await getClientPrinter(printerName,ipAddress);
 
 cpj.printerCommands = data;
 
