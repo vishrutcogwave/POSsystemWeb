@@ -24,12 +24,12 @@ const getClientPrinter = async (
   return new JSPM.DefaultPrinter();
 };
 const formatThermal = (c: any) => {
-  const WIDTH = 42;
+  const WIDTH = 48;
   const line = "-".repeat(WIDTH);
 
  
 
-  const wrap = (text: string, width = 35) => {
+  const wrap = (text: string, width = 43) => {
     const words = text.split(" ");
     const lines: string[] = [];
     let current = "";
@@ -55,9 +55,9 @@ const formatThermal = (c: any) => {
 
     lines.forEach((l, i) => {
       if (i === 0) {
-        out += `${qty.toString().padStart(2)}  ${l}\n`;
+        out += `${String(qty).padStart(3)}  ${l}\n`;
       } else {
-        out += "    " + l + "\n";
+        out += "     " + l + "\n";
       }
     });
 
@@ -66,43 +66,44 @@ const formatThermal = (c: any) => {
 
   let d = "";
 
-  // RESET
+  // Reset
   d += "\x1B\x40";
 
-  // LEFT MARGIN 0
-  d += "\x1D\x4C\x00\x00";
-
-  // FONT A
+  // Font A
   d += "\x1BM\x00";
 
-  // CENTER
-  d += "\x1B\x61\x01";
+// Center Align
+d += "\x1B\x61\x01";
 
-  // BIG TITLE
-  d += "\x1B\x45\x01";
-  d += "\x1B\x21\x30";
-  d += c.title
-  d += "\x1B\x21\x00";
-  d += "\x1B\x45\x00";
+// Title - Double Size + Bold
+d += "\x1B\x45\x01";
+d += "\x1D\x21\x11";
+d += (c.title || "KITCHEN ORDER") + "\n";
 
-  // Outlet
-  d += "\x1B\x45\x01";
-  d += localStorage.getItem("activeOltName") || "RESTAURANT"
-  d += "\x1B\x45\x00";
+// Normal Size
+d += "\x1D\x21\x00";
 
-  d += line + "\n";
+// Outlet
+d += (localStorage.getItem("activeOltName") || "RESTAURANT") + "\n";
 
-  // LEFT ALIGN
+// Bold Off
+d += "\x1B\x45\x00";
+
+// Divider
+d += line + "\n";
+
+  // Left Align
   d += "\x1B\x61\x00";
 
-  d += `KOT    : ${c.kotId}\n`;
-  d += `TABLE  : ${c.table}-${c.subTable}\n`;
-  d += `WAITER : ${c.waiter}\n`;
-  d += `PAX    : ${c.pax}\n`;
-  d += `TIME   : ${new Date().toLocaleTimeString()}\n`;
+  d += `KOT      : ${c.kotId}\n`;
+  d += `TABLE    : ${c.table}-${c.subTable}\n`;
+  d += `WAITER   : ${c.waiter}\n`;
+  d += `PAX      : ${c.pax}\n`;
+  d += `TIME     : ${new Date().toLocaleString()}\n`;
 
   d += line + "\n";
 
+  // Header
   d += "\x1B\x45\x01";
   d += "QTY  ITEM\n";
   d += "\x1B\x45\x00";
@@ -110,14 +111,13 @@ const formatThermal = (c: any) => {
   d += line + "\n";
 
   c.items.forEach((i: any) => {
-
     d += "\x1B\x45\x01";
     d += item(i.qty, i.name);
     d += "\x1B\x45\x00";
 
     if (i.instructions?.length) {
       i.instructions.forEach((x: string) => {
-        d += "     * " + x + "\n";
+        d += `     * ${x}\n`;
       });
     }
 
@@ -126,7 +126,10 @@ const formatThermal = (c: any) => {
 
   d += line + "\n";
 
-  const total = c.items.reduce((s: number, i: any) => s + Number(i.qty), 0);
+  const total = c.items.reduce(
+    (sum: number, i: any) => sum + Number(i.qty),
+    0
+  );
 
   d += "\x1B\x45\x01";
   d += `TOTAL ITEMS : ${total}\n`;
@@ -136,7 +139,7 @@ const formatThermal = (c: any) => {
 
   d += "\n\n\n";
 
-  // CUT
+  // Cut Paper
   d += "\x1D\x56\x41\x10";
 
   return d;
@@ -880,7 +883,21 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   headerBlock += line + "\n";
 
   d += headerBlock;
+const mergedItems = mergeItems(c.items);
 
+mergedItems.forEach((i: any) => {
+  const qty = Number(i.qty || i.origQty || 0);
+  const rate = Number(i.price || 0);
+
+  d += formatRow(
+    i.food,
+    qty,
+    rate,
+    qty * rate
+  ) + "\n";
+});
+
+d += line + "\n";
   if (c.taxType?.toLowerCase() === "onbilltax") {
   const mergedItems = mergeItems(c.items);
 
