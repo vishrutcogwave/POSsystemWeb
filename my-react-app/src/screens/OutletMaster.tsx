@@ -32,6 +32,7 @@ type Outlet = {
   inExTax: boolean;
     isDirectKOTandBill: false,
   isDirectPaxandStw: false,
+    isDirectBill: boolean;
 };
 
 export default function OutletMaster() {
@@ -74,7 +75,8 @@ export default function OutletMaster() {
     inExTax: false,
       isDirectKOTandBill: false,
   isDirectPaxandStw: false,
-    
+      isDirectBill: false,
+
   });
 
   /* ================= FETCH ================= */
@@ -168,6 +170,7 @@ export default function OutletMaster() {
         oltIsFastFood: form.oltIsFastFood,
           isDirectKOTandBill: form.isDirectKOTandBill,
   isDirectPaxandStw: form.isDirectPaxandStw,
+   isDirectBill: form.isDirectBill,
 
       };
 
@@ -193,6 +196,7 @@ export default function OutletMaster() {
         inExTax: false,
           isDirectKOTandBill: false,
   isDirectPaxandStw: false,
+  isDirectBill:false,
       });
 
         fetchOutlets();
@@ -235,6 +239,7 @@ export default function OutletMaster() {
         oltIsFastFood: form.oltIsFastFood,
           isDirectKOTandBill: form.isDirectKOTandBill,
   isDirectPaxandStw: form.isDirectPaxandStw,
+   isDirectBill: form.isDirectBill,
 
       };
 
@@ -260,6 +265,7 @@ export default function OutletMaster() {
         inExTax: false,
           isDirectKOTandBill: false,
   isDirectPaxandStw: false,
+  isDirectBill:false
       });
 
         setIsEdit(false);
@@ -296,6 +302,7 @@ export default function OutletMaster() {
       inExTax: row.inExTax,
         isDirectKOTandBill: row.isDirectKOTandBill,
   isDirectPaxandStw: row.isDirectPaxandStw,
+    isDirectBill: row.isDirectBill,
     });
   };
 
@@ -386,15 +393,15 @@ export default function OutletMaster() {
             </select>
           </div>
 
-      {[
+{[
   ["oltIsRoomService", "Room Service"],
   ["oltIsParcelService", "Parcel Service"],
   ["oltIsFastFood", "Fast Food"],
   ["oltServiceTaxRequired", "Service Tax"],
   ["inExTax", "In/Ex Tax"],
-
   ["isDirectKOTandBill", "Direct KOT & Bill"],
   ["isDirectPaxandStw", "Direct Pax & Steward"],
+  ["isDirectBill", "Direct Bill"],
 ].map(([key, label]) => (
   <div key={key} className="flex items-center gap-2">
     <input
@@ -451,6 +458,7 @@ export default function OutletMaster() {
             inExTax: false,
               isDirectKOTandBill: false,
   isDirectPaxandStw: false,
+  isDirectBill:false
           });
 
           await fetchNextCode();
