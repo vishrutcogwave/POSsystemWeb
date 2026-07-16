@@ -143,7 +143,6 @@ if (!outletId) return;
         // ✅ FIXED CALL
         const res = await getReprintBill(payload);
         console.log(res);
-        debugger
 
         const printRes = await reprintBill(
                 res,

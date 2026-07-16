@@ -722,7 +722,6 @@ function OrderingBoard() {
   };
 
   const handleKOT = async () => {
-    debugger
     if (dayDetails?.openDayResponse?.success === false) {
       setAlertMsg(
         dayDetails?.openDayResponse?.message ||

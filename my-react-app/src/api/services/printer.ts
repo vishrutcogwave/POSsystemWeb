@@ -528,13 +528,22 @@ if (c.taxType?.toLowerCase() === "onbilltax") {
   });
 
   d += "-".repeat(width) + "\n";
+console.log("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",billData);
 
-  c.taxes.forEach((t: any) => {
-    d += line2Col(
-      t.taxName,
-      (t.taxAmount || 0).toFixed(2)
-    );
-  });
+c.taxes.forEach((t: any) => {
+  let amount = Number(t.taxAmount || 0);
+
+  if ((t.taxName || "").toUpperCase().includes("CGST")) {
+    amount = Number(tax.cgstAmt || 0);
+  } else if ((t.taxName || "").toUpperCase().includes("SGST")) {
+    amount = Number(tax.sgstAmt || 0);
+  }
+
+  d += line2Col(
+    t.taxName,
+    amount.toFixed(2)
+  );
+});
 }
   /* -------- GROUPED TAX -------- */
   if (c.taxType?.toLowerCase() === "groupedtax") {
@@ -702,6 +711,27 @@ return result;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const reprintBill = async (
   apiData: any,
   formData: any,
@@ -710,6 +740,7 @@ export const reprintBill = async (
 ) => {
 
   console.log(apiData,"apidta");
+  console.log("repppppppppppppppppppppp",apiData.tax);
   
   try {
 if (
@@ -885,33 +916,41 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   d += headerBlock;
 
 d += line + "\n";
-  if (c.taxType?.toLowerCase() === "onbilltax") {
+if (c.taxType?.toLowerCase() === "onbilltax") {
   const mergedItems = mergeItems(c.items);
 
- mergedItems.forEach((i: any) => {
-  const qty = Number(i.qty || i.origQty || 0);
-  const rate = Number(i.price || 0);
+  mergedItems.forEach((i: any) => {
+    const qty = Number(i.qty || i.origQty || 0);
+    const rate = Number(i.price || 0);
 
-  d += formatRow(
-    i.food,
-    qty,
-    rate,
-    qty * rate
-  ) + "\n";
-});
+    d += formatRow(
+      i.food,
+      qty,
+      rate,
+      qty * rate
+    ) + "\n";
+  });
 
   d += line + "\n";
 
+  // Print taxes using cgstAmt and sgstAmt from apiData.tax
   c.taxes.forEach((t: any) => {
+    let amount = Number(t.taxAmount || 0);
+
+    if (t.taxName.toUpperCase().includes("CGST")) {
+      amount = Number(tax.cgstAmt || 0);
+    } else if (t.taxName.toUpperCase().includes("SGST")) {
+      amount = Number(tax.sgstAmt || 0);
+    }
+
     d += line2Col(
       t.taxName,
-      Number(t.taxAmount || 0).toFixed(2)
+      amount.toFixed(2)
     ) + "\n";
   });
 
   d += line + "\n";
 }
-
 
   /* ===== GROUPED ITEMS (UNCHANGED LOGIC) ===== */
   if (c.taxType?.toLowerCase() === "groupedtax") {
