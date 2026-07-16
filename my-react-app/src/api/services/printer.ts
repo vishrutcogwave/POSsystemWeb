@@ -1120,32 +1120,34 @@ export const newprintBill = async (
         );
       };
 
-      const formatRow = (
-        name: string,
-        qty: number,
-        rate: number,
-        amt: number,
-      ) => {
-        const nameCol = name
-          .substring(0, 22)
-          .padEnd(22);
+  const formatRow = (
+  name: string,
+  qty: number,
+  rate: number,
+  amt: number,
+) => {
+  const nameCol = name
+    .substring(0, 22)
+    .padEnd(22);
 
-        const qtyCol = String(qty).padStart(4);
+  const qtyCol = String(qty).padStart(4);
 
-        const rateCol = String(rate).padStart(7);
+  const rateCol = String(rate).padStart(7);
 
-        const amtCol = amt
-          .toFixed(2)
-          .padStart(9);
+  const amtCol = amt
+    .toFixed(2)
+    .padStart(9);
 
-        return (
-          nameCol +
-          qtyCol +
-          rateCol +
-          amtCol +
-          "\n"
-        );
-      };
+  return (
+    boldOn +
+    nameCol +
+    boldOff +
+    qtyCol +
+    rateCol +
+    amtCol +
+    "\n"
+  );
+};
 
       const mergeItems = (items: any[]) => {
         const map = new Map();
@@ -1408,6 +1410,18 @@ d += line2Col(
 );
 
 d += boldOff;
+
+d += "-".repeat(width) + "\n";
+
+d += "\x1B\x61\x01"; // Center Align
+
+d += boldOn;
+d += "THANK YOU FOR VISITING!\n";
+d += boldOff;
+
+d += "Please Visit Again\n";
+
+d += "\x1B\x61\x00"; // Left Align
 
 d += "\n\n\n";
 
