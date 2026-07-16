@@ -883,19 +883,6 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   headerBlock += line + "\n";
 
   d += headerBlock;
-const mergedItems = mergeItems(c.items);
-
-mergedItems.forEach((i: any) => {
-  const qty = Number(i.qty || i.origQty || 0);
-  const rate = Number(i.price || 0);
-
-  d += formatRow(
-    i.food,
-    qty,
-    rate,
-    qty * rate
-  ) + "\n";
-});
 
 d += line + "\n";
   if (c.taxType?.toLowerCase() === "onbilltax") {
