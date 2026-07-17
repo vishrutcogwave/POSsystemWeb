@@ -539,6 +539,9 @@ c.taxes.forEach((t: any) => {
     amount = Number(tax.sgstAmt || 0);
   }
 
+  // Don't print zero-value taxes
+  if (amount <= 0) return;
+
   d += line2Col(
     t.taxName,
     amount.toFixed(2)
@@ -578,28 +581,46 @@ c.taxes.forEach((t: any) => {
       d += "-".repeat(width) + "\n";
 
       /* TAX */
-      groupTaxes.forEach((tax: any) => {
- /* ✅ SPLIT TAX NAME DYNAMICALLY */
-const taxParts = (tax.taxName || "")
-  .split("+")
-  .map((x: string) => x.trim());
+   groupTaxes.forEach((tax: any) => {
+  /* ✅ SPLIT TAX NAME DYNAMICALLY */
+  const taxParts = (tax.taxName || "")
+    .split("+")
+    .map((x: string) => x.trim());
 
-if (taxParts.length >= 2) {
-  d += line2Col(taxParts[0], (tax.cgst || 0).toFixed(2));
-  d += line2Col(taxParts[1], (tax.sgst || 0).toFixed(2));
-} else {
-  // fallback
-  d += line2Col("CGST", (tax.cgst || 0).toFixed(2));
-  d += line2Col("SGST", (tax.sgst || 0).toFixed(2));
-}
+  // Show CGST only if amount > 0
+  if (Number(tax.cgst || 0) > 0) {
+    d += line2Col(
+      taxParts.length >= 2 ? taxParts[0] : "CGST",
+      Number(tax.cgst || 0).toFixed(2)
+    );
+  }
 
-        d += "-".repeat(width) + "\n";
+  // Show SGST only if amount > 0
+  if (Number(tax.sgst || 0) > 0) {
+    d += line2Col(
+      taxParts.length >= 2 ? taxParts[1] : "SGST",
+      Number(tax.sgst || 0).toFixed(2)
+    );
+  }
 
-        /* ✅ SUBTOTAL BOLD */
-        d += boldOn;
-        d += line2Col("Subtotal", (tax.total || 0).toFixed(2));
-        d += boldOff;
-      });
+  d += "-".repeat(width) + "\n";
+
+  /* ✅ SUBTOTAL BOLD */
+  const foodTotal = groupItems.reduce(
+    (sum: number, item: any) =>
+      sum + Number(item.qty) * Number(item.price),
+    0
+  );
+
+  const subtotal =
+    foodTotal +
+    Number(tax.cgst || 0) +
+    Number(tax.sgst || 0);
+
+  d += boldOn;
+  d += line2Col("Subtotal", subtotal.toFixed(2));
+  d += boldOff;
+});
     });
   }
 
@@ -916,6 +937,7 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   d += headerBlock;
 
 d += line + "\n";
+
 if (c.taxType?.toLowerCase() === "onbilltax") {
   const mergedItems = mergeItems(c.items);
 
@@ -934,20 +956,23 @@ if (c.taxType?.toLowerCase() === "onbilltax") {
   d += line + "\n";
 
   // Print taxes using cgstAmt and sgstAmt from apiData.tax
-  c.taxes.forEach((t: any) => {
-    let amount = Number(t.taxAmount || 0);
+c.taxes.forEach((t: any) => {
+  let amount = Number(t.taxAmount || 0);
 
-    if (t.taxName.toUpperCase().includes("CGST")) {
-      amount = Number(tax.cgstAmt || 0);
-    } else if (t.taxName.toUpperCase().includes("SGST")) {
-      amount = Number(tax.sgstAmt || 0);
-    }
+  if (t.taxName.toUpperCase().includes("CGST")) {
+    amount = Number(tax.cgstAmt || 0);
+  } else if (t.taxName.toUpperCase().includes("SGST")) {
+    amount = Number(tax.sgstAmt || 0);
+  }
 
-    d += line2Col(
-      t.taxName,
-      amount.toFixed(2)
-    ) + "\n";
-  });
+  // Skip if tax amount is 0
+  if (amount <= 0) return;
+
+  d += line2Col(
+    t.taxName,
+    amount.toFixed(2)
+  ) + "\n";
+});
 
   d += line + "\n";
 }
@@ -989,23 +1014,42 @@ if (c.taxType?.toLowerCase() === "onbilltax") {
 
       grpBlock += line + "\n";
 
-      groupTaxes.forEach((t: any) => {
-        const half = (t.taxper || 0) / 2;
+   groupTaxes.forEach((t: any) => {
+  const half = (t.taxper || 0) / 2;
 
-        grpBlock +=
-          line2Col(`CGST ${half}%`, (t.cgst || 0).toFixed(2)) + "\n";
+  // Show CGST only if percentage or amount is greater than 0
+  if (half > 0 || Number(t.cgst || 0) > 0) {
+    grpBlock +=
+      line2Col(`CGST ${half}%`, Number(t.cgst || 0).toFixed(2)) + "\n";
+  }
 
-        grpBlock +=
-          line2Col(`SGST ${half}%`, (t.sgst || 0).toFixed(2)) + "\n";
+  // Show SGST only if percentage or amount is greater than 0
+  if (half > 0 || Number(t.sgst || 0) > 0) {
+    grpBlock +=
+      line2Col(`SGST ${half}%`, Number(t.sgst || 0).toFixed(2)) + "\n";
+  }
 
-        grpBlock += line + "\n";
+  grpBlock += line + "\n";
 
-        grpBlock +=
-          boldOn +
-          line2Col("Subtotal", (t.total || 0).toFixed(2)) +
-          boldOff +
-          "\n";
-      });
+  // Food total for this group
+  const foodTotal = groupItems.reduce(
+    (sum: number, item: any) =>
+      sum + Number(item.qty || 0) * Number(item.price || 0),
+    0
+  );
+
+  // Manual subtotal = Food + CGST + SGST
+  const subtotal =
+    foodTotal +
+    Number(t.cgst || 0) +
+    Number(t.sgst || 0);
+
+  grpBlock +=
+    boldOn +
+    line2Col("Subtotal", subtotal.toFixed(2)) +
+    boldOff +
+    "\n";
+});
 
       d += grpBlock; // ❌ removed center
     });
