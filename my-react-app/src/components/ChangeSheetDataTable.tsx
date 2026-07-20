@@ -669,7 +669,7 @@ const handlePrint = () => {
     <div>
       Online:{" "}
       {filteredData
-        .reduce((s, r) => s + Number(r.online || 0), 0)
+        .reduce((s, r) => s + Number(r.upi || 0), 0)
         .toFixed(2)}
     </div>
   </div>
