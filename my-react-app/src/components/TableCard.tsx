@@ -64,7 +64,11 @@ const TableCard: React.FC<TableCardProps> = ({
 
       {/* 🔁 Transfer Icon (only for Occupied) */}
       {status === "Occupied" && (
-        <div onClick={handleOpenTableTransfer} className="absolute -top-3 bg-white rounded-full p-2 shadow-md border">
+        <div        onClick={(e) => {
+        e.stopPropagation();
+        handleOpenTableTransfer();
+      }}
+ className="absolute -top-3 bg-white rounded-full p-2 shadow-md border">
           <ArrowRightLeft size={16} className="text-gray-600" />
         </div>
       )}
