@@ -500,10 +500,19 @@ const isThermal = true;
   d += "-".repeat(width) + "\n";
 
   /* -------- BILL INFO -------- */
-  d += line2Col(`Bill : ${billNo.billNo}`, `Outlet : ${c.outlet}`);
-  d += line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`);
-  d += `Pax : ${c.pax}\n`;
+d += line2Col(`Bill : ${billNo.billNo}`, `Outlet : ${c.outlet}`);
 
+d += line2Col(
+  `Date : ${billNo.billDate}`,
+  `Time : ${billNo.billTime}`
+);
+
+d += line2Col(
+  `Table : ${c.table}-${c.subTable}`,
+  `Waiter : ${c.waiter}`
+);
+
+d += `Pax : ${c.pax}\n`;
   d += "-".repeat(width) + "\n";
 
   /* -------- HEADER (BOLD) -------- */
@@ -1149,7 +1158,8 @@ export const newprintBill = async (
       company: companyInfo || null,
 
       billNo: res.fnBillResponse?.billNo || "",
-
+  billDate: res.fnBillResponse?.billDate || "",
+  billTime: res.fnBillResponse?.billTime || "",
       outlet: res.outletName,
       table: res.kotTblNo,
       subTable: res.subTable,
@@ -1304,23 +1314,22 @@ export const newprintBill = async (
 
       d += "-".repeat(width) + "\n";
 
-      d += line2Col(
-        "Bill : " + c.billNo,
-        "Outlet : " + c.outlet,
-      );
+  d += line2Col(
+  "Bill : " + c.billNo,
+  "Outlet : " + c.outlet,
+);
 
-      d += line2Col(
-        "Table : " +
-          c.table +
-          "-" +
-          c.subTable,
-        "Waiter : " + c.waiter,
-      );
+d += line2Col(
+  "Date : " + c.billDate,
+  "Time : " + c.billTime,
+);
 
-      d +=
-        "Pax : " +
-        c.pax +
-        "\n";
+d += line2Col(
+  "Table : " + c.table + "-" + c.subTable,
+  "Waiter : " + c.waiter,
+);
+
+d += "Pax : " + c.pax + "\n";
 
       d += "-".repeat(width) + "\n";
 
