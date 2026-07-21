@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import api from "../axios";
 const token = localStorage.getItem("token");
 export const getBranchesByUser = async (username: string) => {
@@ -4694,4 +4695,31 @@ export const getOnlinePaymentType = async () => {
   });
 
   return response.data;
+};
+
+
+export const validateDay = async (payload: {
+  posEntryDate: string;
+  branchcode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/validateday",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+      toast.error(  error.response?.data?.message);
+  
+  }
 };
