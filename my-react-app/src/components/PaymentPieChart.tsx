@@ -7,30 +7,15 @@ import {
   Legend,
 } from "recharts";
 
-const data = [
-  {
-    name: "Cash",
-    value: 5339,
-    color: "#16A34A", // Green
-  },
-  {
-    name: "UPI",
-    value: 26483,
-    color: "#2563EB", // Blue
-  },
-  {
-    name: "Card",
-    value: 920,
-    color: "#9333EA", // Purple
-  },
-  {
-    name: "Cancelled",
-    value: 1,
-    color: "#DC2626", // Red
-  },
-];
+interface PaymentPieChartProps {
+  data: {
+    name: string;
+    value: number;
+    color: string;
+  }[];
+}
 
-function PaymentPieChart() {
+function PaymentPieChart({ data }: PaymentPieChartProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 h-[350px]">
       <h3 className="text-lg font-semibold text-gray-800 mb-4">

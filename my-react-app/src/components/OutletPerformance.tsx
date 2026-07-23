@@ -1,37 +1,15 @@
-const outlets = [
-  {
-    name: "CAFE VISITOR",
-    sales: 18450,
-    progress: 82,
-    color: "bg-blue-500",
-  },
-  {
-    name: "CAFE STAFF",
-    sales: 12680,
-    progress: 62,
-    color: "bg-green-500",
-  },
-  {
-    name: "ROOM SERVICE",
-    sales: 8450,
-    progress: 42,
-    color: "bg-orange-500",
-  },
-  {
-    name: "DELI VISITOR",
-    sales: 4620,
-    progress: 24,
-    color: "bg-purple-500",
-  },
-  {
-    name: "DELI STAFF",
-    sales: 2750,
-    progress: 14,
-    color: "bg-pink-500",
-  },
-];
+interface Outlet {
+  name: string;
+  sales: number;
+  progress: number;
+  color: string;
+}
 
-function OutletPerformance() {
+interface OutletPerformanceProps {
+  data: Outlet[];
+}
+
+function OutletPerformance({ data }: OutletPerformanceProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
       <div className="flex items-center justify-between mb-5">
@@ -45,7 +23,7 @@ function OutletPerformance() {
       </div>
 
       <div className="space-y-5">
-        {outlets.map((outlet) => (
+        {data.map((outlet) => (
           <div key={outlet.name}>
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-700">

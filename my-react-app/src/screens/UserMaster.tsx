@@ -96,17 +96,25 @@ const [roles, setRoles] = useState<RoleType[]>([]);
       const res = await getUserDetailsList(appData?.user?.branch_code);
 
       if (res?.success) {
-        const formattedData = (res.data || []).map((item: any) => ({
-          id: item.userCode,
-          userCode: item.userCode,
-          userName: item.userName,
-          userPassword: item.userPassword,
-          branch_code: item.branch_code,
-          disPercent: item.disPercent,
-          disAmount: item.disAmount,
-          roleId: item.roleId,
-        }));
+const formattedData = (res.data || [])
+  .filter(
+    (item: any) =>
+      !["admin", "cogwave"].includes(
+        item.userName?.toLowerCase()
+      )
+  )
+  .map((item: any) => ({
+    id: item.userCode,
+    userCode: item.userCode,
+    userName: item.userName,
+    userPassword: item.userPassword,
+    branch_code: item.branch_code,
+    disPercent: item.disPercent,
+    disAmount: item.disAmount,
+    roleId: item.roleId,
+  }));
 
+setData(formattedData);
         setData(formattedData);
       } else {
         toast.error(res?.message || "Failed to fetch ❌");

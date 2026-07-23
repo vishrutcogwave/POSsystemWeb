@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   DollarSign,
   Receipt,
@@ -10,6 +11,8 @@ import PaymentCard from "./PaymentCard";
 import HourlySalesChart from "./HourlySalesChart";
 import PaymentPieChart from "./PaymentPieChart";
 import OutletPerformance from "./OutletPerformance";
+import { getChanceSheetReport } from "../api/services/products.service";
+import { useAppContext } from "../context/AppContext";
 
 const cards = [
   {
@@ -27,6 +30,105 @@ const cards = [
 ];
 
 function SalesDashboard() {
+const [dashboardData, setDashboardData] = useState<any[]>([]);
+const [remarksSummary, setRemarksSummary] = useState<any[]>([]);
+const [loading, setLoading] = useState(false);
+const {appData} = useAppContext();
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+const loadDashboard = async () => {
+  try {
+    setLoading(true);
+
+    const response = await getChanceSheetReport(
+      "2026-07-22",
+      "2026-07-23",
+      "All",
+      appData?.user?.branch_code
+    );
+
+    console.log("Dashboard Response", response);
+
+    setDashboardData(response.data || []);
+    setRemarksSummary(response.remarksSummary || []);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // ================= KPI =================
+
+  const totalRevenue = dashboardData.reduce(
+    (sum, item) => sum + Number(item.grand || 0),
+    0
+  );
+
+  const totalBills = dashboardData.filter(
+    (item) => Number(item.grand) > 0
+  ).length;
+
+  const taxCollected = dashboardData.reduce(
+    (sum, item) => sum + Number(item.tax || 0),
+    0
+  );
+
+  const totalCustomers = totalBills;
+
+  
+
+const pieColors = [
+  "#16A34A",
+  "#2563EB",
+  "#9333EA",
+  "#F97316",
+  "#DC2626",
+  "#14B8A6",
+  "#EAB308",
+  "#EC4899",
+  "#6366F1",
+  "#0EA5E9",
+];
+
+const paymentPieData = remarksSummary.map(
+  (item: any, index: number) => ({
+    name: item.particulars,
+    value: Number(item.amount),
+    color: pieColors[index % pieColors.length],
+  })
+);
+  // ================= Outlet Performance =================
+
+  const colors = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-orange-500",
+    "bg-purple-500",
+    "bg-pink-500",
+  ];
+
+  const outletMap = dashboardData.reduce(
+    (acc: Record<string, number>, item) => {
+      acc[item.oltName] = (acc[item.oltName] || 0) + Number(item.grand || 0);
+      return acc;
+    },
+    {}
+  );
+
+  const maxSale = Math.max(...Object.values(outletMap), 1);
+
+  const outletData = Object.entries(outletMap).map(
+    ([name, sales], index) => ({
+      name,
+      sales: sales as number,
+      progress: Math.round(((sales as number) / maxSale) * 100),
+      color: colors[index % colors.length],
+    })
+  );
+
   return (
     <div className="space-y-6 p-2 md:p-5">
 
@@ -37,7 +139,7 @@ function SalesDashboard() {
         </h1>
       </div>
 
-      {/* Today / Month / Year Cards */}
+      {/* Dummy Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {cards.map((card) => (
           <div
@@ -58,11 +160,12 @@ function SalesDashboard() {
         ))}
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+
         <DashboardCard
           title="Total Revenue"
-          value="₹ 32,772.00"
+          value={`₹ ${totalRevenue.toLocaleString()}`}
           icon={<DollarSign className="text-blue-600" size={22} />}
           iconBg="bg-blue-100"
           borderColor="border-blue-200"
@@ -70,14 +173,14 @@ function SalesDashboard() {
 
         <DashboardCard
           title="Total Bills"
-          value="144"
+          value={totalBills.toString()}
           icon={<Receipt className="text-gray-700" size={22} />}
           iconBg="bg-gray-100"
         />
 
         <DashboardCard
           title="Total Customers"
-          value="170"
+          value={totalCustomers.toString()}
           icon={<TrendingUp className="text-green-600" size={22} />}
           iconBg="bg-green-100"
           borderColor="border-green-200"
@@ -85,29 +188,55 @@ function SalesDashboard() {
 
         <DashboardCard
           title="Tax Collected"
-          value="₹ 1,564.58"
+          value={`₹ ${taxCollected.toLocaleString()}`}
           icon={<Wallet className="text-orange-500" size={22} />}
           iconBg="bg-orange-100"
           borderColor="border-orange-200"
         />
+
       </div>
 
-      {/* Payment Summary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <PaymentCard title="Cash" value="₹ 5,339" valueColor="text-green-600" />
-        <PaymentCard title="UPI" value="₹ 26,483" valueColor="text-blue-600" />
-        <PaymentCard title="Card" value="₹ 920" valueColor="text-purple-600" />
-        <PaymentCard title="Cancelled" value="1" valueColor="text-red-600" />
-      </div>
+      {/* Payments */}
+   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  {remarksSummary.map((item: any, index: number) => {
+    const valueColors = [
+      "text-green-600",
+      "text-blue-600",
+      "text-purple-600",
+      "text-orange-600",
+      "text-red-600",
+      "text-cyan-600",
+      "text-pink-600",
+      "text-indigo-600",
+      "text-amber-600",
+      "text-teal-600",
+    ];
+
+    return (
+      <PaymentCard
+        key={item.particulars}
+        title={item.particulars}
+        value={`₹ ${Number(item.amount).toLocaleString()}`}
+        valueColor={valueColors[index % valueColors.length]}
+      />
+    );
+  })}
+</div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <HourlySalesChart />
-        <PaymentPieChart />
+        <HourlySalesChart data={dashboardData} />
+        <PaymentPieChart data={paymentPieData} />
       </div>
 
       {/* Outlet Performance */}
-      <OutletPerformance />
+      <OutletPerformance data={outletData} />
+
+      {loading && (
+        <div className="text-center py-5 text-gray-500">
+          Loading Dashboard...
+        </div>
+      )}
 
     </div>
   );
