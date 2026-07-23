@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { dayClose, dayOpen, getOpenDayDetails } from "../api/services/products.service";
 import AlertPopup from "./AlertPopup";
+import Loader from "./Loader";
 
 interface Props {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface Props {
 }
 
 const DayEntryPopup: React.FC<Props> = ({ isOpen, onClose }) => {
+  const [loading, setLoading] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
 const [alertMsg, setAlertMsg] = useState("");
 const [alertType, setAlertType] = useState<"success" | "error">("success");
@@ -28,25 +30,41 @@ const [alertType, setAlertType] = useState<"success" | "error">("success");
   const { appData } = useAppContext();
   console.log("appData", appData);
 
-  const fetchData = async () => {
-    try {
-      const data = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
-      setData(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  const init = async () => {
-    setDate(getCurrentDate());
-    setTime(getCurrentTime());
+const fetchData = async () => {
+  try {
+    setLoading(true);
 
-    try {
-      const res = await getOpenDayDetails(appData?.user?.userCode,appData?.user?.branch_code);
-      setData(res);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    const data = await getOpenDayDetails(
+      appData?.user?.userCode,
+      appData?.user?.branch_code
+    );
+
+    setData(data);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+const init = async () => {
+  setDate(getCurrentDate());
+  setTime(getCurrentTime());
+
+  try {
+    setLoading(true);
+
+    const res = await getOpenDayDetails(
+      appData?.user?.userCode,
+      appData?.user?.branch_code
+    );
+
+    setData(res);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (!isOpen) return;
@@ -103,6 +121,8 @@ const getISTDateTime = () => {
 
 const handleDayClose = async () => {
   try {
+    setLoading(true);
+
     const payload = {
       userId: appData?.user?.userCode,
       systemTime: getISTDateTime(),
@@ -116,21 +136,25 @@ const handleDayClose = async () => {
     setAlertType("success");
     setAlertOpen(true);
 
-    fetchData();
+    await fetchData();
   } catch (err: any) {
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
     setAlertType("error");
     setAlertOpen(true);
+  } finally {
+    setLoading(false);
   }
 };
 
 const handleDayOpen = async () => {
   try {
+    setLoading(true);
+
     const payload = {
       userId: appData?.user?.userCode,
       systemTime: getISTDateTime(),
       systemDate: getISTDateTime(),
-      branchCode:appData?.user?.branch_code,
+      branchCode: appData?.user?.branch_code,
     };
 
     console.log("DayOpen Payload:", payload);
@@ -141,11 +165,13 @@ const handleDayOpen = async () => {
     setAlertType("success");
     setAlertOpen(true);
 
-    fetchData(); // refresh status
+    await fetchData();
   } catch (err: any) {
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
     setAlertType("error");
     setAlertOpen(true);
+  } finally {
+    setLoading(false);
   }
 };
 const handleOK = () => {
@@ -156,6 +182,8 @@ const handleOK = () => {
 
 
   return (
+    <>
+    {loading && <Loader />}
     <div className="fixed inset-0 bg-black/40 flex justify-center items-end sm:items-center z-50">
       {/* MODAL (same pattern as your InvoicePopup) */}
       <div className="w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-xl bg-white">
@@ -235,6 +263,7 @@ const handleOK = () => {
   onClose={handleOK}
 />
     </div>
+    </>
   );
 };
 
