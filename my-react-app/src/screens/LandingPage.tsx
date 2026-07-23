@@ -42,6 +42,7 @@ import SettlementBillModify from "./SettlementBillModify";
 import CompanyBillSettlement from "./companybillsettlement";
 import BillModify from "./BillModification";
 import PrinterSettings from "./PrinterSettings";
+import RealDashboard from "./RealDashboard";
 
 function LandingPage() {
   const location = useLocation();
@@ -103,6 +104,8 @@ function LandingPage() {
         <Route path="/pos/voidkot" element={<Voidkot />} />
         <Route path="/pos/nckot" element={<Nckot />} />
         <Route path="/pos/billreprint" element={<BilreprintReport />} />
+         <Route path="RealDashboard" element={<RealDashboard />} />
+
         <Route
   path="/pos/kotcancellation"
   element={<KotCancellationReport />}
