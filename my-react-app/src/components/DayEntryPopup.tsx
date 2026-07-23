@@ -54,10 +54,18 @@ const [alertType, setAlertType] = useState<"success" | "error">("success");
     init();
     fetchData();
   }, [isOpen]);
-const getISODateTime = () => {
+const getISTDateTime = () => {
   const now = new Date();
-  return now.toISOString().slice(0, 19); // removes milliseconds + Z
+
+  // Add 5 hours 30 minutes
+  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+
+  return ist.toISOString().slice(0, 19);
 };
+
+
+// Output: "2026-07-23T10:15:30"
+// Output: "2026-07-23T10:15:30Z"
 
 // const handleDayClose = async () => {
    
@@ -97,7 +105,7 @@ const handleDayClose = async () => {
   try {
     const payload = {
       userId: appData?.user?.userCode,
-      systemTime: getISODateTime(),
+      systemTime: getISTDateTime(),
       posEntryDate: data?.shiftDate,
       branchCode: appData?.user?.branch_code,
     };
@@ -120,8 +128,8 @@ const handleDayOpen = async () => {
   try {
     const payload = {
       userId: appData?.user?.userCode,
-      systemTime: getISODateTime(),
-      systemDate: getISODateTime(),
+      systemTime: getISTDateTime(),
+      systemDate: getISTDateTime(),
       branchCode:appData?.user?.branch_code,
     };
 
