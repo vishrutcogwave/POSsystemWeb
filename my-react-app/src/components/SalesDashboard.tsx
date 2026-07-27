@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import {
+  ClipboardList,
+  ClipboardX,
+  FileText,
   IndianRupeeIcon,
   ReceiptText,
   Users,
@@ -11,10 +14,10 @@ import PaymentCard from "./PaymentCard";
 import HourlySalesChart from "./HourlySalesChart";
 import PaymentPieChart from "./PaymentPieChart";
 import OutletPerformance from "./OutletPerformance";
-import { getChanceSheetReport, getNCKOTReport } from "../api/services/products.service";
+import { getBillGenerationSettings, getChanceSheetReport, getKotRegisterReport, getNCKOTReport, getVoidKOTReport } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import Loader from "./Loader";
-import NCKOTDepartmentChart from "./NCKOTDepartmentChart";
+import OutletDayWiseChart from "./OutletDayWiseChart";
 
 const cards = [
   {
@@ -39,6 +42,8 @@ const today = new Date().toISOString().split("T")[0];
 const [ncKotData, setNcKotData] = useState<any[]>([]);
 const [fromDate, setFromDate] = useState(today);
 const [toDate, setToDate] = useState(today);
+const [kotRegisterData, setKotRegisterData] = useState<any[]>([]);
+const [voidKotData, setVoidKotData] = useState<any[]>([]);
 const {appData} = useAppContext();
   useEffect(() => {
     loadDashboard();
@@ -47,24 +52,51 @@ const {appData} = useAppContext();
 const loadDashboard = async () => {
   try {
     setLoading(true);
-
-  const [dashboardResponse, ncKotResponse] = await Promise.all([
+const res = await getBillGenerationSettings(appData?.user?.branch_code);
+const [
+  dashboardResponse,
+  ncKotResponse,
+  kotRegisterResponse,
+  voidKotResponse,
+] = await Promise.all([
   getChanceSheetReport(
     fromDate,
     toDate,
     "All",
     appData?.user?.branch_code
   ),
+
   getNCKOTReport(
+    fromDate,
+    toDate,
+    "All"
+  ),
+
+  getKotRegisterReport({
+    BranchCode: appData?.user?.branch_code,
+    IsAsOnDate: false,
+    IsBetweenDates: true,
+    Date: null,
+    FromDate: fromDate,
+    ToDate: toDate,
+    BillingType: res.data[0].billingType || "",
+    OutletCode: "All",
+    TableNo: "All",
+    IsPendingkot: false,
+  }),
+
+  getVoidKOTReport(
     fromDate,
     toDate,
     "All"
   ),
 ]);
 
-    setDashboardData(dashboardResponse.data || []);
-    setRemarksSummary(dashboardResponse.remarksSummary || []);
-    setNcKotData(ncKotResponse || []);
+setDashboardData(dashboardResponse.data || []);
+setRemarksSummary(dashboardResponse.remarksSummary || []);
+setNcKotData(ncKotResponse || []);
+setKotRegisterData(kotRegisterResponse || []);
+setVoidKotData(voidKotResponse || []);
   } catch (error) {
     console.error(error);
   } finally {
@@ -238,6 +270,35 @@ return (
         borderColor="border-orange-200"
       />
     </div>
+    <h2 className="text-lg font-semibold text-gray-800 mb-3">
+  Kot Summary
+</h2>
+
+<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+  <DashboardCard
+    title="KOT"
+    value={kotRegisterData?.length.toLocaleString()}
+    icon={<ClipboardList className="text-indigo-600" size={22} />}
+    iconBg="bg-indigo-100"
+    borderColor="border-indigo-200"
+  />
+
+  <DashboardCard
+    title="NC KOT"
+    value={ncKotData?.length.toLocaleString()}
+    icon={<FileText className="text-red-600" size={22} />}
+    iconBg="bg-red-100"
+    borderColor="border-red-200"
+  />
+
+    <DashboardCard
+    title="VOID KOT"
+  value={voidKotData?.length.toLocaleString()}
+    icon={<ClipboardX className="text-red-600" size={22} />}
+    iconBg="bg-red-100"
+    borderColor="border-red-200"
+  />
+</div>
 
     {/* Payments */}
     <h2 className="text-lg font-semibold text-gray-800 mb-3">
@@ -275,7 +336,7 @@ return (
       <PaymentPieChart data={paymentPieData} />
     </div>
     <div className="mt-6">
-      <NCKOTDepartmentChart data={ncKotData} />
+      <OutletDayWiseChart data={dashboardData} />
     </div>
     {/* Outlet Performance */}
     <OutletPerformance data={outletData} />
