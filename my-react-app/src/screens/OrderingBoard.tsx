@@ -1721,6 +1721,7 @@ const handlePrintBill = async (billData: any) => {
     console.log("FINAL DATA:", finalPayload);
 
     try {
+         setKotLoading(true); 
       await settleBill(finalPayload);
 
       toast.success("Bill Settled Successfully ✅");
@@ -1732,6 +1733,9 @@ const handlePrintBill = async (billData: any) => {
       console.error(err);
       toast.error("Settlement Failed ❌");
     }
+     finally {
+    setKotLoading(false); // ✅ Hide Loader
+  }
   };
   const handleKotToNcKot = async () => {
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
