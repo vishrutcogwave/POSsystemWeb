@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-  DollarSign,
-  Receipt,
-  TrendingUp,
+  IndianRupeeIcon,
+  ReceiptText,
+  Users,
   Wallet,
 } from "lucide-react";
 
@@ -11,22 +11,23 @@ import PaymentCard from "./PaymentCard";
 import HourlySalesChart from "./HourlySalesChart";
 import PaymentPieChart from "./PaymentPieChart";
 import OutletPerformance from "./OutletPerformance";
-import { getChanceSheetReport } from "../api/services/products.service";
+import { getChanceSheetReport, getNCKOTReport } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import Loader from "./Loader";
+import NCKOTDepartmentChart from "./NCKOTDepartmentChart";
 
 const cards = [
   {
     title: "Today Sales",
-    amount: "₹ 32,772.00",
+    amount: "₹ 0",
   },
   {
     title: "This Month Sales",
-    amount: "₹ 1,84,220.00",
+    amount: "₹ 0",
   },
   {
     title: "This Year Sales",
-    amount: "₹ 22,78,650.00",
+    amount: "₹ 0",
   },
 ];
 
@@ -35,7 +36,7 @@ const [dashboardData, setDashboardData] = useState<any[]>([]);
 const [remarksSummary, setRemarksSummary] = useState<any[]>([]);
 const [loading, setLoading] = useState(false);
 const today = new Date().toISOString().split("T")[0];
-
+const [ncKotData, setNcKotData] = useState<any[]>([]);
 const [fromDate, setFromDate] = useState(today);
 const [toDate, setToDate] = useState(today);
 const {appData} = useAppContext();
@@ -47,17 +48,23 @@ const loadDashboard = async () => {
   try {
     setLoading(true);
 
-    const response = await getChanceSheetReport(
-      fromDate,
-      toDate,
-      "All",
-      appData?.user?.branch_code
-    );
+  const [dashboardResponse, ncKotResponse] = await Promise.all([
+  getChanceSheetReport(
+    fromDate,
+    toDate,
+    "All",
+    appData?.user?.branch_code
+  ),
+  getNCKOTReport(
+    fromDate,
+    toDate,
+    "All"
+  ),
+]);
 
-    console.log("Dashboard Response", response);
-
-    setDashboardData(response.data || []);
-    setRemarksSummary(response.remarksSummary || []);
+    setDashboardData(dashboardResponse.data || []);
+    setRemarksSummary(dashboardResponse.remarksSummary || []);
+    setNcKotData(ncKotResponse || []);
   } catch (error) {
     console.error(error);
   } finally {
@@ -203,7 +210,7 @@ return (
       <DashboardCard
         title="Total Revenue"
         value={`₹ ${totalRevenue.toLocaleString()}`}
-        icon={<DollarSign className="text-blue-600" size={22} />}
+    icon={<IndianRupeeIcon className="text-blue-600" size={22} />}
         iconBg="bg-blue-100"
         borderColor="border-blue-200"
       />
@@ -211,14 +218,14 @@ return (
       <DashboardCard
         title="Total Bills"
         value={totalBills.toString()}
-        icon={<Receipt className="text-gray-700" size={22} />}
+         icon={<ReceiptText className="text-gray-700" size={22} />}
         iconBg="bg-gray-100"
       />
 
       <DashboardCard
         title="Total Customers"
         value={totalCustomers.toString()}
-        icon={<TrendingUp className="text-green-600" size={22} />}
+         icon={<Users className="text-green-600" size={22} />}
         iconBg="bg-green-100"
         borderColor="border-green-200"
       />
@@ -233,6 +240,9 @@ return (
     </div>
 
     {/* Payments */}
+    <h2 className="text-lg font-semibold text-gray-800 mb-3">
+  Collection Summary
+</h2>
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {remarksSummary.map((item: any, index: number) => {
         const valueColors = [
@@ -264,7 +274,9 @@ return (
       <HourlySalesChart data={dashboardData} />
       <PaymentPieChart data={paymentPieData} />
     </div>
-
+    <div className="mt-6">
+      <NCKOTDepartmentChart data={ncKotData} />
+    </div>
     {/* Outlet Performance */}
     <OutletPerformance data={outletData} />
 
