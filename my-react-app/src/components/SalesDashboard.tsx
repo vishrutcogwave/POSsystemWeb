@@ -13,6 +13,7 @@ import PaymentPieChart from "./PaymentPieChart";
 import OutletPerformance from "./OutletPerformance";
 import { getChanceSheetReport } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
+import Loader from "./Loader";
 
 const cards = [
   {
@@ -33,18 +34,22 @@ function SalesDashboard() {
 const [dashboardData, setDashboardData] = useState<any[]>([]);
 const [remarksSummary, setRemarksSummary] = useState<any[]>([]);
 const [loading, setLoading] = useState(false);
+const today = new Date().toISOString().split("T")[0];
+
+const [fromDate, setFromDate] = useState(today);
+const [toDate, setToDate] = useState(today);
 const {appData} = useAppContext();
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [fromDate, toDate]);
 
 const loadDashboard = async () => {
   try {
     setLoading(true);
 
     const response = await getChanceSheetReport(
-      "2026-07-22",
-      "2026-07-23",
+      fromDate,
+      toDate,
       "All",
       appData?.user?.branch_code
     );
@@ -59,7 +64,6 @@ const loadDashboard = async () => {
     setLoading(false);
   }
 };
-
   // ================= KPI =================
 
   const totalRevenue = dashboardData.reduce(
@@ -128,118 +132,146 @@ const paymentPieData = remarksSummary.map(
       color: colors[index % colors.length],
     })
   );
+return (
+  <div className="space-y-6 p-2 md:p-5">
+      {loading && <Loader />}
 
-  return (
-    <div className="space-y-6 p-2 md:p-5">
+    {/* Header */}
+    <div className="border-b pb-3">
+      <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+        Sales Dashboard
+      </h1>
+    </div>
 
-      {/* Header */}
-      <div className="border-b pb-3">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-          Sales Dashboard
-        </h1>
-      </div>
+    {/* Date Filters */}
+    <div className="bg-white border rounded-xl shadow-sm p-4">
+      <div className="flex flex-col sm:flex-row gap-4">
 
-      {/* Dummy Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {cards.map((card) => (
-          <div
-            key={card.title}
-            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-md px-5 py-4 h-[95px]"
-          >
-            <div className="absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10"></div>
-            <div className="absolute right-8 bottom-0 w-10 h-10 rounded-full bg-white/10"></div>
-
-            <p className="text-xs font-medium text-white/90">
-              {card.title}
-            </p>
-
-            <h2 className="mt-2 text-3xl font-bold">
-              {card.amount}
-            </h2>
-          </div>
-        ))}
-      </div>
-
-      {/* KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-
-        <DashboardCard
-          title="Total Revenue"
-          value={`₹ ${totalRevenue.toLocaleString()}`}
-          icon={<DollarSign className="text-blue-600" size={22} />}
-          iconBg="bg-blue-100"
-          borderColor="border-blue-200"
-        />
-
-        <DashboardCard
-          title="Total Bills"
-          value={totalBills.toString()}
-          icon={<Receipt className="text-gray-700" size={22} />}
-          iconBg="bg-gray-100"
-        />
-
-        <DashboardCard
-          title="Total Customers"
-          value={totalCustomers.toString()}
-          icon={<TrendingUp className="text-green-600" size={22} />}
-          iconBg="bg-green-100"
-          borderColor="border-green-200"
-        />
-
-        <DashboardCard
-          title="Tax Collected"
-          value={`₹ ${taxCollected.toLocaleString()}`}
-          icon={<Wallet className="text-orange-500" size={22} />}
-          iconBg="bg-orange-100"
-          borderColor="border-orange-200"
-        />
-
-      </div>
-
-      {/* Payments */}
-   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-  {remarksSummary.map((item: any, index: number) => {
-    const valueColors = [
-      "text-green-600",
-      "text-blue-600",
-      "text-purple-600",
-      "text-orange-600",
-      "text-red-600",
-      "text-cyan-600",
-      "text-pink-600",
-      "text-indigo-600",
-      "text-amber-600",
-      "text-teal-600",
-    ];
-
-    return (
-      <PaymentCard
-        key={item.particulars}
-        title={item.particulars}
-        value={`₹ ${Number(item.amount).toLocaleString()}`}
-        valueColor={valueColors[index % valueColors.length]}
-      />
-    );
-  })}
+       <div>
+  <label className="block text-sm font-medium text-gray-600 mb-1">
+    From Date
+  </label>
+  <input
+    type="date"
+    value={fromDate}
+    max={toDate}
+    onChange={(e) => setFromDate(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
 </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <HourlySalesChart data={dashboardData} />
-        <PaymentPieChart data={paymentPieData} />
+<div>
+  <label className="block text-sm font-medium text-gray-600 mb-1">
+    To Date
+  </label>
+  <input
+    type="date"
+    value={toDate}
+    min={fromDate}
+    max={today}
+    onChange={(e) => setToDate(e.target.value)}
+    className="border rounded-lg px-3 py-2 w-full md:w-48 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
+
       </div>
-
-      {/* Outlet Performance */}
-      <OutletPerformance data={outletData} />
-
-      {loading && (
-        <div className="text-center py-5 text-gray-500">
-          Loading Dashboard...
-        </div>
-      )}
-
     </div>
-  );
+
+    {/* Dummy Cards */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      {cards.map((card) => (
+        <div
+          key={card.title}
+          className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-md px-5 py-4 h-[95px]"
+        >
+          <div className="absolute -right-5 -bottom-5 w-20 h-20 rounded-full bg-white/10"></div>
+          <div className="absolute right-8 bottom-0 w-10 h-10 rounded-full bg-white/10"></div>
+
+          <p className="text-xs font-medium text-white/90">
+            {card.title}
+          </p>
+
+          <h2 className="mt-2 text-3xl font-bold">
+            {card.amount}
+          </h2>
+        </div>
+      ))}
+    </div>
+
+    {/* KPI */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <DashboardCard
+        title="Total Revenue"
+        value={`₹ ${totalRevenue.toLocaleString()}`}
+        icon={<DollarSign className="text-blue-600" size={22} />}
+        iconBg="bg-blue-100"
+        borderColor="border-blue-200"
+      />
+
+      <DashboardCard
+        title="Total Bills"
+        value={totalBills.toString()}
+        icon={<Receipt className="text-gray-700" size={22} />}
+        iconBg="bg-gray-100"
+      />
+
+      <DashboardCard
+        title="Total Customers"
+        value={totalCustomers.toString()}
+        icon={<TrendingUp className="text-green-600" size={22} />}
+        iconBg="bg-green-100"
+        borderColor="border-green-200"
+      />
+
+      <DashboardCard
+        title="Tax Collected"
+        value={`₹ ${taxCollected.toLocaleString()}`}
+        icon={<Wallet className="text-orange-500" size={22} />}
+        iconBg="bg-orange-100"
+        borderColor="border-orange-200"
+      />
+    </div>
+
+    {/* Payments */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {remarksSummary.map((item: any, index: number) => {
+        const valueColors = [
+          "text-green-600",
+          "text-blue-600",
+          "text-purple-600",
+          "text-orange-600",
+          "text-red-600",
+          "text-cyan-600",
+          "text-pink-600",
+          "text-indigo-600",
+          "text-amber-600",
+          "text-teal-600",
+        ];
+
+        return (
+          <PaymentCard
+            key={item.particulars}
+            title={item.particulars}
+            value={`₹ ${Number(item.amount).toLocaleString()}`}
+            valueColor={valueColors[index % valueColors.length]}
+          />
+        );
+      })}
+    </div>
+
+    {/* Charts */}
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <HourlySalesChart data={dashboardData} />
+      <PaymentPieChart data={paymentPieData} />
+    </div>
+
+    {/* Outlet Performance */}
+    <OutletPerformance data={outletData} />
+
+   
+
+  </div>
+);
 }
 
 export default SalesDashboard;
