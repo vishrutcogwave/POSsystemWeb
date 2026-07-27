@@ -174,6 +174,7 @@ function OrderingBoard() {
   const [instructionItemId, setInstructionItemId] = useState<number | null>(
     null,
   );
+  const [totalAmount, setTotalAmount] = useState(0);
   // const [openDayDetails, setOpenDayDetails] = useState<any>(null);
   const [taxSettings, setTaxSettings] = useState<any>(null);
   const [selectedVoidItems, setSelectedVoidItems] = useState<CartItem[]>([]);
@@ -418,7 +419,32 @@ function OrderingBoard() {
       setKotLoading(false);
     }
   };
+const fetchTotalAmount = async () => {
+  if (!session) {
+    setTotalAmount(0);
+    return;
+  }
 
+  try {
+    const payload = buildBillPayload();
+    if (!payload) return;
+
+    const res = await getBill(payload);
+
+    // Replace this with the correct field from your API response
+    setTotalAmount(res?.grandTotal || 0);
+  } catch (err) {
+    console.error(err);
+    setTotalAmount(0);
+  }
+};
+useEffect(() => {
+  if (cart.length > 0) {
+    fetchTotalAmount();
+  } else {
+    setTotalAmount(0);
+  }
+}, [cart]);
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   const getNextSubTable = (list: any[]) => {
@@ -1871,6 +1897,7 @@ const handlePrintBill = async (billData: any) => {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+        totalAmount={totalAmount}
           directbill={directbill}
           isFastfood={tableData.fastFood}
           showPast={showPast}
@@ -1918,6 +1945,8 @@ const handlePrintBill = async (billData: any) => {
 
       {/* MOBILE CART */}
       <MobileCartButton
+      totalAmount={totalAmount}
+      
         directbill={directbill}
         isFastfood={tableData.fastFood}
         showPast={showPast}

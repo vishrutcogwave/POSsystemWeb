@@ -31,11 +31,13 @@ type CartPanelProps = {
   setShowPast: React.Dispatch<React.SetStateAction<boolean>>;
   openNcModal: boolean;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
-     directbill:boolean
+     directbill:boolean;
+     totalAmount:number
 };
 
 export default function CartPanel({
   openNcModal,
+  totalAmount,
   setOpenNcModal,
   setShowPast,
   directbill,
@@ -312,6 +314,15 @@ export default function CartPanel({
         {/* TOTALS */}
         <div className="border-t p-4 bg-white">
           <div className="border-t p-4 bg-white space-y-3">
+            {/* TOTAL AMOUNT */}
+<div className="flex justify-between items-center bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+  <span className="text-base font-semibold text-gray-700">
+    Total Amount
+  </span>
+  <span className="text-xl font-bold text-[#0576B2]">
+  {totalAmount || 0}
+  </span>
+</div>
             {/* NC TOGGLE BUTTON */}
             {hasNcKotPermission && isFastfood === undefined && (
               <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">

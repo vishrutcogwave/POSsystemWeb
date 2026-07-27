@@ -32,9 +32,11 @@ isFastfood:any
   openNcModal: boolean;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
      directbill:boolean
+     totalAmount:number
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   openNcModal,
+  totalAmount,
   setOpenNcModal,
   directbill,
   setShowPast,
@@ -91,6 +93,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              totalAmount={totalAmount}
                  directbill={directbill}
               isFastfood={isFastfood}
                 showPast={showPast}
