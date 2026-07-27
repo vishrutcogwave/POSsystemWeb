@@ -1711,14 +1711,16 @@ const handlePrintBill = async (billData: any) => {
 
       paymentDetails: paymentDetails.map((p: any) => ({
         mode: p.mode,
-subMode:
+       subMode:
   p.mode?.toLowerCase() === "cash"
     ? "Cash"
     : p.mode?.toLowerCase() === "pluxee"
     ? "Pluxee"
-    : p.mode?.toLowerCase() === "neft"
-    ? "NEFT"
+     : p.mode?.toLowerCase() === "neft"
+    ? "neft"
     : (p.subMode || "").trim(),
+        amount: Number(p.amount),
+        remarks: (p.remarks || "").trim(),
       })),
     };
 
