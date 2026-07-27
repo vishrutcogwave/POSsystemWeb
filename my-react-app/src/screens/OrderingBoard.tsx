@@ -28,7 +28,7 @@ import {
   postBill,
   postKotToNcKot,
   settleBill,
-  validateDay,
+  // validateDay,
 } from "../api/services/products.service";
 import { useItems } from "../context/ItemContext";
 import InstructionModal from "../components/InstructionModal";
@@ -174,7 +174,7 @@ function OrderingBoard() {
   const [instructionItemId, setInstructionItemId] = useState<number | null>(
     null,
   );
-  const [openDayDetails, setOpenDayDetails] = useState<any>(null);
+  // const [openDayDetails, setOpenDayDetails] = useState<any>(null);
   const [taxSettings, setTaxSettings] = useState<any>(null);
   const [selectedVoidItems, setSelectedVoidItems] = useState<CartItem[]>([]);
   const [openInstructionModal, setOpenInstructionModal] = useState(false);
@@ -285,19 +285,19 @@ function OrderingBoard() {
       console.error("Failed to fetch NC reasons", err);
     }
   };
-  const fetchOpenDayDetails = async () => {
-  try {
-    const res = await getOpenDayDetails(
-      appData?.user?.userCode || 0,
-      appData?.user?.branch_code || ""
-    );
+//   const fetchOpenDayDetails = async () => {
+//   try {
+//     const res = await getOpenDayDetails(
+//       appData?.user?.userCode || 0,
+//       appData?.user?.branch_code || ""
+//     );
 
-    console.log("Open Day Details:", res);
-    setOpenDayDetails(res);
-  } catch (err) {
-    console.error(err);
-  }
-};
+//     console.log("Open Day Details:", res);
+//     // setOpenDayDetails(res);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
 
   useEffect(() => {
     void fetchTaxSettings();
@@ -309,7 +309,7 @@ function OrderingBoard() {
     void fetchDiscountTypes();
     void fetchdayDeatilsData();
     void fetchBillGenerationSettings();
-    void fetchOpenDayDetails()
+    // void fetchOpenDayDetails()
   }, []);
 
   const fetchSubTables = async () => {
@@ -749,25 +749,25 @@ function OrderingBoard() {
     }
 
 
-      try {
-        debugger
-    const validateRes = await validateDay({
-      posEntryDate: openDayDetails?.shiftDate|| "",
-      branchcode: appData?.user?.branch_code || "",
-    });
+  //     try {
+  //       debugger
+  //   const validateRes = await validateDay({
+  //     posEntryDate: openDayDetails?.shiftDate|| "",
+  //     branchcode: appData?.user?.branch_code || "",
+  //   });
 
-    if (!validateRes?.success) {
-      toast.error(
-        validateRes?.message ||
-          "Clear all pending bills from Settlement Window"
-      );
-      return; // 🚨 Don't allow KOT
-    }
-  } catch (err:any) {
-    console.error("Validate Day Error:", err);
+  //   if (!validateRes?.success) {
+  //     toast.error(
+  //       validateRes?.message ||
+  //         "Clear all pending bills from Settlement Window"
+  //     );
+  //     return; // 🚨 Don't allow KOT
+  //   }
+  // } catch (err:any) {
+  //   console.error("Validate Day Error:", err);
   
-    return;
-  }
+  //   return;
+  // }
     if (!session || cart.length === 0) return;
 
     setKotLoading(true);
