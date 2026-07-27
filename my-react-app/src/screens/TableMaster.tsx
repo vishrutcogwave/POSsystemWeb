@@ -293,8 +293,28 @@ useEffect(() => {
 
     await fetchNextCode();
   };
+const validateForm = () => {
+  if (!form.oltCode) {
+    toast.error("Please select an outlet");
+    return false;
+  }
 
+  if (!form.tblNo.trim()) {
+    toast.error("Please enter table number");
+    return false;
+  }
+
+  if (form.tblSeatCount <= 0) {
+    toast.error("Please enter a valid seat count");
+    return false;
+  }
+
+  
+
+  return true;
+};
   const handleSave = async () => {
+     if (!validateForm()) return;
     try {
       setLoading(true);
 

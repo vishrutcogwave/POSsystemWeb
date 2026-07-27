@@ -147,6 +147,67 @@ const [addonSearch, setAddonSearch] =
 const [selectedAddons, setSelectedAddons] =
   useState<any[]>([]);
 
+
+  const validateForm = () => {
+  if (!form.itemName.trim()) {
+    toast.error("Please enter Item Name");
+    return false;
+  }
+
+  if (selectedOltCodes.length === 0) {
+    toast.error("Please select at least one Outlet");
+    return false;
+  }
+
+  if (!form.catCode) {
+    toast.error("Please select Category");
+    return false;
+  }
+
+  if (!form.subCatCode) {
+    toast.error("Please select Sub Category");
+    return false;
+  }
+
+  if (!form.grpCode) {
+    toast.error("Please select Group");
+    return false;
+  }
+
+  if (!form.unitName) {
+    toast.error("Please select Unit");
+    return false;
+  }
+
+  if (!form.dep) {
+    toast.error("Please select Department");
+    return false;
+  }
+
+  if (!form.taxName) {
+    toast.error("Please select Tax");
+    return false;
+  }
+
+  if (!form.printDepartment) {
+    toast.error("Please select Print Department");
+    return false;
+  }
+
+  if (!form.sacCode.trim()) {
+    toast.error("Please enter SAC Code");
+    return false;
+  }
+
+  if (form.itemRate <= 0) {
+    toast.error("Please enter a valid Item Rate");
+    return false;
+  }
+
+
+
+  return true;
+};
 const fetchAddonList = async (
   itemCode: number
 ) => {
@@ -633,6 +694,7 @@ setSelectedOltCodes(selectedOutlets);
     // ✅ show image name in edit mode
   };
   const handleSave = async () => {
+     if (!validateForm()) return;
     try {
       setLoading(true);
           if (selectedOltCodes.length === 0) {
