@@ -1711,8 +1711,12 @@ const handlePrintBill = async (billData: any) => {
 
       paymentDetails: paymentDetails.map((p: any) => ({
         mode: p.mode,
-        subMode:
-          p.mode?.toLowerCase() === "cash" ? "Cash" : (p.subMode || "").trim(),
+       subMode:
+  p.mode?.toLowerCase() === "cash"
+    ? "Cash"
+    : p.mode?.toLowerCase() === "pluxee"
+    ? "Pluxee"
+    : (p.subMode || "").trim(),
         amount: Number(p.amount),
         remarks: (p.remarks || "").trim(),
       })),
