@@ -1156,7 +1156,7 @@ export const newprintBill = async (
 
     const content = {
       company: companyInfo || null,
-
+      Kotno:res?.kotId || "",
       billNo: res.fnBillResponse?.billNo || "",
   billDate: res.fnBillResponse?.billDate || "",
   billTime: res.fnBillResponse?.billTime || "",
@@ -1498,7 +1498,7 @@ d += boldOn;
 d += "THANK YOU FOR VISITING!\n";
 d += boldOff;
 
-d += "Please Visit Again\n";
+d += `KOT No : ${c.Kotno}\n`;
 
 d += "\x1B\x61\x00"; // Left Align
 
