@@ -100,6 +100,9 @@ d += line + "\n";
   d += `WAITER   : ${c.waiter}\n`;
   d += `PAX      : ${c.pax}\n`;
   d += `TIME     : ${new Date().toLocaleString()}\n`;
+if (c.ncDepName?.trim()) {
+  d += `NcDepName   : ${c.ncDepName}\n`;
+}
 
   d += line + "\n";
 
@@ -1164,6 +1167,7 @@ export const newprintBill = async (
       table: res.kotTblNo,
       subTable: res.subTable,
       waiter: res.waiterName,
+      ncDepName:res.ncDepName || "",
       pax: res.pax,
 
       items: (res.food || []).map((i: any) => ({
@@ -1328,8 +1332,12 @@ d += line2Col(
   "Table : " + c.table + "-" + c.subTable,
   "Waiter : " + c.waiter,
 );
-
-d += "Pax : " + c.pax + "\n";
+  d += line2Col(
+  "Kot : " + c.Kotno,
+  "pax : " + c.pax,
+);
+if (c.ncDepName?.trim()) {
+d += "ncDepName : " + c.ncDepName + "\n";}
 
       d += "-".repeat(width) + "\n";
 
@@ -1498,7 +1506,7 @@ d += boldOn;
 d += "THANK YOU FOR VISITING!\n";
 d += boldOff;
 
-d += `KOT No : ${c.Kotno}\n`;
+
 
 d += "\x1B\x61\x00"; // Left Align
 

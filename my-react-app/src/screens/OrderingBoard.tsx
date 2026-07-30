@@ -891,6 +891,7 @@ useEffect(() => {
         kotId: res.kotId || res.kotID || res.kotNo || "",
         table: tableData.tableNumber,
         subTable: selectedSubTable || "A",
+        ncDepName:res.ncDepName || "",
         waiter: session.waiterName,
         pax: session.pax,
         items: items.map((item: any) => ({
