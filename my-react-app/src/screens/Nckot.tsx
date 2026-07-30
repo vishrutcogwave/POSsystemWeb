@@ -1,50 +1,57 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
-import ReportTable from "../components/ReportDataTable";
-import {  getNCKOTReport, getOutletList } from "../api/services/products.service";
+import ReportTablefornce from "../components/ReportTableforNCReport";
+import {
+  getNCKOTReport,
+  getOutletList,
+} from "../api/services/products.service";
 
-
-type Row = Record<string, any>; // Generic row type
+type Row = Record<string, any>;
 
 export default function Nckot() {
   const [data, setData] = useState<Row[]>([]);
   const [columns, setColumns] = useState<{ key: string; label: string }[]>([]);
   const [outlets, setOutlets] = useState<{ id: string; label: string }[]>([]);
+
   const today = new Date();
-  const formattedToday = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
+  const formattedToday = today.toISOString().split("T")[0];
 
   const [fromDate, setFromDate] = useState(formattedToday);
   const [toDate, setToDate] = useState(formattedToday);
   const [selectedOutlet, setSelectedOutlet] = useState("All");
 
-  // Fetch outlets from API
-const fetchOutletData = async () => {
-  try {
-    const branchcode = localStorage.getItem("branch") || "";
+  // Department filter
+  const [selectedDepartment, setSelectedDepartment] = useState("All");
 
-    const response = await getOutletList(branchcode);
+  // Fetch outlets
+  const fetchOutletData = async () => {
+    try {
+      const branchcode = localStorage.getItem("branch") || "";
 
-    const formattedOutlets = (response.data || []).map((outlet: any) => ({
-      id: outlet.oltCode.toString(),
-      label: outlet.oltName.trim(),
-    }));
+      const response = await getOutletList(branchcode);
 
-    setOutlets(formattedOutlets);
-  } catch (error) {
-    console.error("Error fetching outlets:", error);
-    setOutlets([]);
-  }
-};
+      const formattedOutlets = (response.data || []).map((outlet: any) => ({
+        id: outlet.oltCode.toString(),
+        label: outlet.oltName.trim(),
+      }));
 
-  // Fetch report data based on selected outlet and dates
+      setOutlets(formattedOutlets);
+    } catch (error) {
+      console.error("Error fetching outlets:", error);
+      setOutlets([]);
+    }
+  };
+
+  // Fetch report
   const fetchData = async () => {
     try {
-      const outletId: string | number =
+      const outletId =
         selectedOutlet === "All"
           ? "All"
           : Number(outlets.find((o) => o.label === selectedOutlet)?.id);
 
-      if (!outletId || (typeof outletId === "number" && isNaN(outletId))) return;
+      if (!outletId || (typeof outletId === "number" && isNaN(outletId)))
+        return;
 
       const res = await getNCKOTReport(fromDate, toDate, outletId);
 
@@ -53,6 +60,7 @@ const fetchOutletData = async () => {
           key,
           label: key.charAt(0).toUpperCase() + key.slice(1),
         }));
+
         setColumns(dynamicColumns);
       }
 
@@ -70,15 +78,33 @@ const fetchOutletData = async () => {
     fetchData();
   }, [fromDate, toDate, selectedOutlet, outlets]);
 
+  // Department List
+  const departments = useMemo(() => {
+    return [
+      "All",
+      ...Array.from(
+        new Set(
+          data
+            .map((item) => item.ncDepName)
+            .filter(Boolean)
+        )
+      ),
+    ];
+  }, [data]);
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       <Header showNeworderButton={false} />
+
       <div className="flex-1 overflow-auto">
-        <ReportTable
-        title="NC Kot Report"
+        <ReportTablefornce
+          title="NC Kot Report"
           columns={columns}
           data={data}
           outlets={outlets}
+          departments={departments}
+          selectedDepartment={selectedDepartment}
+          setSelectedDepartment={setSelectedDepartment}
           fromDate={fromDate}
           toDate={toDate}
           outlet={selectedOutlet}
