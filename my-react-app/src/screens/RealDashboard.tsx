@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import SalesDashboard from "../components/SalesDashboard";
+import TableMatrix from "./TableMatrix";
 
 function RealDashboard() {
   const navigate = useNavigate();
@@ -168,12 +169,7 @@ const handleReportNavigation = (report: string) => {
           <div className="bg-white rounded-xl shadow min-h-full p-4 md:p-6">
           {selectedMenu === "Dashboard" && <SalesDashboard />}
 
-            {selectedMenu === "Table Matrix" && (
-              <div>
-                {/* <TableMatrixComponent /> */}
-                Table Matrix Component
-              </div>
-            )}
+              {selectedMenu === "Table Matrix" && <TableMatrix />}
           </div>
         </main>
       </div>
