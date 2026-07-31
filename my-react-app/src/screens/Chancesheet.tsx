@@ -31,6 +31,7 @@ type Bill = {
   credit: number;
   kbsRefName: string;
   oltName: string;
+  pluxee:number
 };
 
 type Summary = {
