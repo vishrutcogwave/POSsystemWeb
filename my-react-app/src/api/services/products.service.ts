@@ -4723,3 +4723,104 @@ export const validateDay = async (payload: {
   
   }
 };
+
+
+export const getAdjustmentLoadData = async (payload: {
+  branchCode: string;
+  oltCode: string;
+  fromDate: string;
+  toDate: string;
+  paymentMode: string;
+  excludedBills: string[];
+  rankByType: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/GetAdjustmentLoadData",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error loading adjustment data:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const getCalculateRankAmount = async (
+  rankId: number,
+  totalAmount: number,
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/api/POS/GetCalculateRankAmount", {
+      params: {
+        RankId: rankId,
+        TotalAmount: totalAmount,
+        BranchCode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error calculating rank amount:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+
+export const newBiddingCheck = async (
+  rankId: number,
+  bidAmount: number,
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/NewbiddingCheck",
+      null,
+      {
+        params: {
+          RankId: rankId,
+          BidAmount: bidAmount,
+          BranchCode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error checking bidding:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

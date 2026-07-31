@@ -324,6 +324,8 @@ export default function SettlementBillModify() {
                   <th className="border px-3 py-2">Cancelled</th>
 
                   <th className="border px-3 py-2">Bill Date</th>
+
+                   <th className="border px-3 py-2">Payment Status</th>
                 </tr>
               </thead>
 
@@ -375,6 +377,11 @@ export default function SettlementBillModify() {
                       <td className="border px-3 py-2">
                         {item?.ksmBillDate?.split("T")[0]}
                       </td>
+
+                             <td className="border px-3 py-2">
+                        {item?.paymentStatus}
+                      </td>
+
                     </tr>
                   ))
                 ) : (

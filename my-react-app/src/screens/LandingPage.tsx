@@ -43,6 +43,7 @@ import CompanyBillSettlement from "./companybillsettlement";
 import BillModify from "./BillModification";
 import PrinterSettings from "./PrinterSettings";
 import RealDashboard from "./RealDashboard";
+import BillAdjustment from "./BillAdjustment";
 
 function LandingPage() {
   const location = useLocation();
@@ -155,6 +156,10 @@ function LandingPage() {
 <Route
   path="/master/categorymaster"
   element={<CategoryMaster />}
+/>
+<Route
+  path="/billadjustment"
+  element={<BillAdjustment />}
 />
 <Route
   path="/utility/utilitysettings"
