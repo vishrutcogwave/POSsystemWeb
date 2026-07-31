@@ -15,7 +15,7 @@ type CartPanelProps = {
   instructions: { spid: number; spinfo: string }[];
   ncRemarks: string;
   setNcRemarks: (text: string) => void;
-
+onUpdateQty: (id: number, qty: number) => void;
   onIncrease: (id: number) => void;
   onDecrease: (id: number) => void;
   onClear: () => void;
@@ -47,6 +47,7 @@ export default function CartPanel({
   setSelectedVoidItems,
   onVoid,
   items,
+  onUpdateQty,
   handleGetBill,
   pastItems,
   onIncrease,
@@ -182,7 +183,20 @@ export default function CartPanel({
                       –
                     </button>
 
-                    <span className="text-sm">{item.qty}</span>
+<input
+  type="text"
+  inputMode="numeric"
+  pattern="[0-9]*"
+  value={item.qty}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, "");
+
+    if (value === "") return;
+
+    onUpdateQty(item.id, Number(value));
+  }}
+  className="w-14 h-8 border rounded text-center text-sm outline-none"
+/>
 
                     <button
                       onClick={() => onIncrease(item.id)}

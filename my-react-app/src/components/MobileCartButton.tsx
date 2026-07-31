@@ -21,7 +21,7 @@ isFastfood:any
 
   selectedNcCode: number | null;
   setSelectedNcCode: (code: number | null) => void;
-
+onUpdateQty: (id: number, qty: number) => void;
   status?: string;
   kotStatus?: string;
   ncRemarks: string;
@@ -63,6 +63,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   ncRemarks,
   setNcRemarks,
   onConvertion,
+  onUpdateQty
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -93,6 +94,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              onUpdateQty={onUpdateQty}
               totalAmount={totalAmount}
                  directbill={directbill}
               isFastfood={isFastfood}

@@ -602,6 +602,23 @@ useEffect(() => {
       ];
     });
   };
+  const updateQty = (id: number, qty: number) => {
+  if (qty <= 0) {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+    return;
+  }
+
+  setCart((prev) =>
+    prev.map((i) =>
+      i.id === id
+        ? {
+            ...i,
+            qty,
+          }
+        : i
+    )
+  );
+};
   const handleAdd = async (itemCode: number) => {
     if (!session) {
       toast.error("Start table session first");
@@ -1908,6 +1925,7 @@ const handlePrintBill = async (billData: any) => {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+        onUpdateQty={updateQty}
         totalAmount={totalAmount}
           directbill={directbill}
           isFastfood={tableData.fastFood}
@@ -1957,7 +1975,7 @@ const handlePrintBill = async (billData: any) => {
       {/* MOBILE CART */}
       <MobileCartButton
       totalAmount={totalAmount}
-      
+          onUpdateQty={updateQty}
         directbill={directbill}
         isFastfood={tableData.fastFood}
         showPast={showPast}
