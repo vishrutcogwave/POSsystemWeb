@@ -548,7 +548,7 @@ const handlePrint = () => {
       <td className="px-4 py-2 text-right">{row.grand}</td>
       <td className="px-4 py-2 text-right">{row.cash}</td>
       <td className="px-4 py-2 text-right">{row.card}</td>
-      <td className="px-4 py-2 text-right">{row.online}</td>
+      <td className="px-4 py-2 text-right">{row.upi}</td>
        <td className="px-4 py-2 text-right">{row.pluxee}</td>
       <td className="px-4 py-2">
         {row.kbsRefName || "-"}
@@ -590,7 +590,7 @@ const handlePrint = () => {
       {rows.reduce((s, r) => s + Number(r.card || 0), 0).toFixed(2)}
     </td>
     <td className="text-right px-4 py-2">
-      {rows.reduce((s, r) => s + Number(r.online || 0), 0).toFixed(2)}
+      {rows.reduce((s, r) => s + Number(r.upi || 0), 0).toFixed(2)}
     </td>
         <td className="text-right px-4 py-2">
       {rows.reduce((s, r) => s + Number(r.pluxee || 0), 0).toFixed(2)}
