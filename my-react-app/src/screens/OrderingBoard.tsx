@@ -951,7 +951,9 @@ useEffect(() => {
           }
         } else {
           for (const printer of printers) {
-            const printerItems = printerItemMap[printer.printerName];
+            const key = printer.printerName?.trim() || "default";
+
+const printerItems = printerItemMap[key];
 
             if (!printerItems) continue;
 
@@ -1435,7 +1437,9 @@ if (Object.keys(printerItemMap).length === 0) {
   }
 } else {
   for (const printer of printers) {
-    const printerItems = printerItemMap[printer.printerName];
+    const key = printer.printerName?.trim() || "default";
+
+const printerItems = printerItemMap[key];
 
     if (!printerItems) continue;
 
