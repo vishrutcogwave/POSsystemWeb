@@ -901,20 +901,20 @@ useEffect(() => {
         })),
       });
       if (!IsDirectBill) {
-        const thermalKeywords = [
-          "pos",
-          "thermal",
-          "epson tm",
-          "tm-",
-          "xp-",
-          "tsp",
-          "58mm",
-          "80mm",
-          "receipt",
-          "usb printer",
-          "rp",
-          "gp",
-        ];
+        // const thermalKeywords = [
+        //   "pos",
+        //   "thermal",
+        //   "epson tm",
+        //   "tm-",
+        //   "xp-",
+        //   "tsp",
+        //   "58mm",
+        //   "80mm",
+        //   "receipt",
+        //   "usb printer",
+        //   "rp",
+        //   "gp",
+        // ];
 
         // No printer mapping -> print all items to first configured printer
         if (Object.keys(printerItemMap).length === 0) {
@@ -942,15 +942,15 @@ useEffect(() => {
 
             const printerName = printer.printerName?.trim() || null;
 
-            const isThermal = thermalKeywords.some((keyword) =>
-              (printerName || "").toLowerCase().includes(keyword),
-            );
+            // const isThermal = thermalKeywords.some((keyword) =>
+            //   (printerName || "").toLowerCase().includes(keyword),
+            // );
 
             const result = await printKOT(
               printerName,
               content,
               printer.ipAddress || "",
-              isThermal,
+              true,
             );
 
             if (!result.success) {
@@ -1154,20 +1154,20 @@ useEffect(() => {
         })),
       });
 
-      const thermalKeywords = [
-        "pos",
-        "thermal",
-        "epson tm",
-        "tm-",
-        "xp-",
-        "tsp",
-        "58mm",
-        "80mm",
-        "receipt",
-        "usb printer",
-        "rp",
-        "gp",
-      ];
+      // const thermalKeywords = [
+      //   "pos",
+      //   "thermal",
+      //   "epson tm",
+      //   "tm-",
+      //   "xp-",
+      //   "tsp",
+      //   "58mm",
+      //   "80mm",
+      //   "receipt",
+      //   "usb printer",
+      //   "rp",
+      //   "gp",
+      // ];
 
       let hasError = false;
       // If no printer is configured, print everything to the default printer
@@ -1198,15 +1198,15 @@ useEffect(() => {
             (p: any) => p.printerName === rawPrinterName,
           );
 
-          const isThermal = thermalKeywords.some((keyword) =>
-            (printerName || "").toLowerCase().includes(keyword),
-          );
+          // const isThermal = thermalKeywords.some((keyword) =>
+          //   (printerName || "").toLowerCase().includes(keyword),
+          // );
 
           const result = await printKOT(
             printerName,
             content,
             printer?.ipAddress || "",
-            isThermal,
+            true,
           );
 
           if (!result.success) {
