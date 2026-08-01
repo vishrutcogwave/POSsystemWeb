@@ -88,6 +88,8 @@ const PaymentModal: React.FC<Props> = ({
     {},
   );
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetail[]>([]);
+  const [submitLoading, setSubmitLoading] = useState(false);
+
 
   const PAYABLE_AMOUNT = Math.round(Number(unbillData?.[0]?.total || 0));
   // inside component states
@@ -730,35 +732,42 @@ const PaymentModal: React.FC<Props> = ({
             Cancel
           </button>
 
-          <button
-            onClick={() => {
-              // ✅ COMPANY VALIDATION
-              const companyPayment = paymentDetails.find((p) =>
-                p.mode?.toLowerCase().includes("company"),
-              );
+         <button
+  onClick={async () => {
+    if (submitLoading) return;
 
-              if (companyPayment && !companyPayment.subMode) {
-                toast.error("Please select company");
+    setSubmitLoading(true);
 
-                return;
-              }
+    try {
+      // ✅ COMPANY VALIDATION
+      const companyPayment = paymentDetails.find((p) =>
+        p.mode?.toLowerCase().includes("company"),
+      );
 
-              onPay({
-                paymentDetails,
-                total,
-                difference,
-                payableAmount: PAYABLE_AMOUNT,
-              });
-            }}
-            disabled={difference !== 0}
-            className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
-              difference === 0
-                ? "bg-green-600"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Submit
-          </button>
+      if (companyPayment && !companyPayment.subMode) {
+        toast.error("Please select company");
+        return;
+      }
+
+      await onPay({
+        paymentDetails,
+        total,
+        difference,
+        payableAmount: PAYABLE_AMOUNT,
+      });
+    } finally {
+      setSubmitLoading(false);
+    }
+  }}
+  disabled={difference !== 0 || submitLoading}
+  className={`w-full sm:w-auto px-4 py-2 rounded text-white ${
+    difference === 0 && !submitLoading
+      ? "bg-green-600"
+      : "bg-gray-400 cursor-not-allowed"
+  }`}
+>
+  {submitLoading ? "Submitting..." : "Submit"}
+</button>
         </div>
       </div>
     </div>
