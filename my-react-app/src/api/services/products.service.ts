@@ -4824,3 +4824,33 @@ export const newBiddingCheck = async (
     throw error;
   }
 };
+
+
+export const saveBidChanges = async (payload: {
+  branchCode: string;
+  oltCode: string;
+  fromDate: string;
+  toDate: string;
+  finalSaleAmount: number;
+  rankByType: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post("/api/POS/SaveBidChanges", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving bid changes:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
