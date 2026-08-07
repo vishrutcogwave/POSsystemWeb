@@ -99,10 +99,12 @@ const handleSettingsAccess = () => {
       const data = await login(payload);
       console.log("logingdtatails", data);
 
-      setAppData(data);
-      console.log("Token:", data.token);
-
-      toast.success("Login successful");
+      setAppData(data.data);
+      console.log("Token:", data.data.token);
+toast(data.message, {
+  icon: "⚠️",
+  duration: 5000, // 10 seconds
+});
 
       navigate("/dashboard", { replace: true });
     } catch (error) {

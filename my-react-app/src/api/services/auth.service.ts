@@ -12,5 +12,5 @@ export const login = async (data: LoginRequest): Promise<any> => {
 
   localStorage.setItem("branch", data.branch_code);
 
-  return response.data.data;
+  return response.data;
 };

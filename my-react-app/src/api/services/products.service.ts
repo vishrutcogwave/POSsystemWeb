@@ -4024,42 +4024,31 @@ export const deleteSubMenuDetail = async (
 };
 
 export interface SettlementBillModifyRequest {
-  branch: string;
+  oltCode: number;
+  outletName: string;
   userCode: number;
-  companyCode: number;
-  companyName: string;
-  guestCode: number;
+  billId: number;
+  billNo: number;
+  tableNo: string;
+  subTableNo: string;
+  discount: number;
+  taxAmount: number;
+  tips: number;
+  changeAmount: number;
+  grandAmount: number;
+  refNo: string;
+  cardName: string;
+  billDate: string;
+  branchCode: string;
+  guestCode: string;
   guestName: string;
   checkInNo: string;
-  remarks: string;
-  outletCode: number;
-  outletName: string;
-  roomNo: string;
-  subBillingType: string;
-  payMode: string;
-  bill: {
-    oltCode: number;
-    userCode: number;
-    billId: number;
-    billNo: number;
-    tableNo: string;
-    subTableNo: string;
-    discount: number;
-    taxAmount: number;
-    tips: number;
-    changeAmount: number;
-    grandAmount: number;
-    refNo: string;
-    cardName: string;
-    billDate: string;
-    branchCode: string;
-    paymentDetails: {
-      mode: string;
-      subMode: string;
-      amount: number;
-      remarks: string;
-    }[];
-  };
+  paymentDetails: {
+    mode: string;
+    subMode: string;
+    amount: number;
+    remarks: string;
+  }[];
 }
 
 export const settlementBillModify = async (
@@ -4853,4 +4842,150 @@ export const saveBidChanges = async (payload: {
     );
     throw error;
   }
+};
+
+
+
+export const getTableListForRoomService = async (
+  oltCode: string | number,
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POS/GetTableListForRoomService",
+      {
+        params: {
+          Oltcode: oltCode,
+          Branchcode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`, // Remove if API doesn't require auth
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching room service table list:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+export const getDashboardData = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/api/POSReports/GetDashboardData", {
+      params: {
+        Branchcode: branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`, // Remove if this API doesn't require auth
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching dashboard data:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+// ================= PRODUCT LICENCE =================
+
+export const getProductLicenceKey = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/ProductLicence/GetProductLicenceKey",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`, // Remove if API doesn't require token
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching product licence:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const saveProductLicenceKey = async (payload: {
+  serialKey: string;
+  productKey: string;
+  trDate: string;
+  validDate: string;
+  clientName: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/ProductLicence/SaveProductLicenceKey",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving product licence:",
+      error.response?.data || error.message
+    );
+
+    // Return API response instead of throwing
+    return (
+      error.response?.data || {
+        success: false,
+        message: "Something went wrong.",
+        data: null,
+      }
+    );
+  }
+};
+
+export const getRoomInActive = async (
+  RoomNo: string,
+  BillNo: number
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/POS/GetRoomInActive", {
+    params: {
+      RoomNo,
+      BillNo,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      accept: "*/*",
+    },
+  });
+
+  return response.data;
 };

@@ -44,11 +44,14 @@ import BillModify from "./BillModification";
 import PrinterSettings from "./PrinterSettings";
 import RealDashboard from "./RealDashboard";
 import BillAdjustment from "./BillAdjustment";
+import AdminPanel from "./AdminPanel";
+import Expired from "./Expired";
+import { useAppContext } from "../context/AppContext";
 
 function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
-
+const {appData} = useAppContext()
   const showHeader =
     location.pathname === "/NewOrder" || location.pathname === "/OrderingBoard";
 
@@ -90,6 +93,12 @@ function LandingPage() {
     }
   }, [location.pathname, navigate]);
 
+
+  
+
+if (appData?.serialKeyExpired) {
+  return <Expired />;
+}
   return (
     <>
       {showHeader && <Header showNeworderButton />}
@@ -200,6 +209,11 @@ function LandingPage() {
 <Route
   path="/master/branchmaster"
   element={<BranchMaster />}
+/>
+
+<Route
+  path="/adminpanel"
+  element={<AdminPanel />}
 />
 <Route
   path="/master/usermaster"

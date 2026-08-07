@@ -1,5 +1,4 @@
   import { useEffect, useState } from "react";
-  import Header from "../components/Header";
   import { useAppContext } from "../context/AppContext";
   import {
     getAdjustmentLoadData,
@@ -158,11 +157,10 @@
 };
     return (
       <>
-        {loading && <Loader />} <Header showNeworderButton={false} />
+        {loading && <Loader />} 
         <div className="min-h-[calc(100vh-100px)] bg-gray-50 p-4 md:p-6 space-y-6">
           <div className="bg-white rounded-xl shadow p-4 md:p-6">
             {/* Header */}
-            <h2 className="text-lg font-semibold mb-4">Bill Adjustment</h2>
 
             {/* Top Controls */}
             <div className="space-y-4">

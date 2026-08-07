@@ -28,11 +28,15 @@ import {
   CreditCard,
   FilePen,
   Home,
+  ShieldAlert,
+  XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
 import { useAppContext } from "../context/AppContext";
 import BillCancellationPopup from "./BillCancellationPopup";
+import { getProductLicenceKey } from "../api/services/products.service";
+import toast from "react-hot-toast";
 
 const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -42,10 +46,35 @@ const [showBillCancelPopup, setShowBillCancelPopup] =
   useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { userRights } = useAppContext();
+  const { userRights,clearAppData } = useAppContext();
   console.log("userRightslllllllllllll",userRights);
-  
+  const [license,setlicense] = useState<any>({})
+  const [showLicensePopup, setShowLicensePopup] = useState(false);
+const [remainingDays, setRemainingDays] = useState(0);
+const [showLicenseAlert, setShowLicenseAlert] = useState(false);
+useEffect(() => {
+  if (!license?.validDate) return;
 
+  const today = new Date();
+
+  const expiry = new Date(license.validDate);
+
+  // remove time
+  today.setHours(0, 0, 0, 0);
+  expiry.setHours(0, 0, 0, 0);
+
+  const diff =
+    Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  setRemainingDays(diff);
+
+  if (diff <= 15 && diff >= 0) {
+    setShowLicenseAlert(true);
+  } else {
+    setShowLicenseAlert(false);
+  }
+}, [license]);
+const {appData}= useAppContext()
   const hasMainMenuAccess = (menuName: string) => {
     return userRights?.some(
       (menu: any) =>
@@ -335,14 +364,28 @@ const utilityItems = [
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+clearAppData()
+     navigate("/", { replace: true });
   };
 
   const toggleMenu = (menu: string) => {
     setActiveMenu((prev) => (prev === menu ? null : menu));
   };
 
+  const getProductKeyDetails=async()=>{
+    debugger
+    try{
+      const res= await getProductLicenceKey(appData?.user?.branch_code)
+      console.log(res.data);
+      setlicense(res.data)
+    }catch(e:any){
+toast.error(e)
+    }
+  }
+
   useEffect(() => {
+getProductKeyDetails()
+
     const handleClickOutside = (e: MouseEvent) => {
       if (
         wrapperRef.current &&
@@ -365,6 +408,11 @@ const utilityItems = [
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEsc);
     };
+
+
+
+
+    
   }, []);
 
   return (
@@ -596,13 +644,35 @@ const utilityItems = [
         </div>
 
         {/* LOGOUT */}
+        
+<div className="flex items-center gap-3">
+
+  {showLicenseAlert && (
     <button
-  onClick={handleLogout}
-  className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
->
-  <LogOut size={16} />
-  <span>Logout</span>
-</button>
+      onClick={() => setShowLicensePopup(true)}
+      className="relative"
+      title="License Expiring Soon"
+    >
+      <ShieldAlert
+        size={28}
+        className="text-red-600 animate-pulse"
+      />
+
+      <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-bold">
+        !
+      </span>
+    </button>
+  )}
+
+  <button
+    onClick={handleLogout}
+    className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
+  >
+    <LogOut size={16} />
+    <span>Logout</span>
+  </button>
+
+</div>
       </div>
 
       {/* MOBILE MENU */}
@@ -794,6 +864,66 @@ const utilityItems = [
     setShowBillCancelPopup(false)
   }
 />
+{showLicensePopup && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+
+    <div className="bg-white rounded-xl w-[400px] p-6 shadow-xl relative">
+
+      <button
+        onClick={() => setShowLicensePopup(false)}
+        className="absolute right-3 top-3"
+      >
+        <XCircle className="text-gray-500" />
+      </button>
+
+      <div className="flex justify-center mb-4">
+        <ShieldAlert
+          size={60}
+          className="text-red-600 animate-bounce"
+        />
+      </div>
+
+      <h2 className="text-xl font-bold text-center text-red-600">
+        License Expiring Soon
+      </h2>
+
+      <p className="text-center mt-4 text-gray-700">
+
+        Your license will expire in
+
+        <span className="font-bold text-red-600">
+          {" "}
+          {remainingDays} day{remainingDays !== 1 ? "s" : ""}
+        </span>
+
+      </p>
+
+      <div className="mt-5 bg-red-50 rounded-lg p-3">
+
+        <p>
+          <strong>Expiry Date :</strong>{" "}
+          {new Date(license.validDate).toLocaleDateString()}
+        </p>
+
+        <p className="mt-2">
+          Please renew your license before it expires.
+        </p>
+
+      </div>
+
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={() => setShowLicensePopup(false)}
+          className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+        >
+          OK
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+)}
     </div>
   );
 };
