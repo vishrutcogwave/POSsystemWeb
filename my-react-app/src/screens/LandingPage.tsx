@@ -52,8 +52,8 @@ import BillClear from "../components/BillClear";
 import SupplierMaster from "./SupplierMaster";
 import InventoryItemCategory from "./InventoryItemCategory";
 import InventoryItemSubCategory from "./InventoryItemSubCategory";
-import InventoryItemStore from "./InventoryItemStore";
 import InventoryStore from "./InventoryStore";
+import InventoryItemStore from "./InventoryItemStore";
 
 function LandingPage() {
   const location = useLocation();

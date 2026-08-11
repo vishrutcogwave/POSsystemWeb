@@ -5301,3 +5301,175 @@ export const deleteStoreMaster = async (storeId: number, branch: string) => {
   }
 };
  
+
+export const getInventoryItemStoreList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/InventoryItemStoreGetList",
+      {
+        params: {
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching inventory item store list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const createInventoryItemStore = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: number;
+  subCatCode: number;
+  storeid: string;
+  grpCode: string;
+  unitCode: number;
+  unitName: string;
+  purchaseRate: string;
+  noofUnits: number;
+  itemRate: number;
+  itemOpStock: number;
+  itemOpRate: number;
+  itemROQ: number;
+  itemROL: number;
+  barCode: string;
+  taxCode: number;
+  taxName: string;
+  picture: string;
+  userCode: string;
+  lastModify: string;
+  mostRunningItemSrNo: string;
+  branch_Code: string;
+  firstUnit: number;
+  firstUnitDesc: string;
+  finalUnit: number;
+  finalUnitDesc: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/InventoryItemStoreCreate",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating inventory item store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const updateInventoryItemStore = async (payload: {
+  itemCode: number;
+  itemName: string;
+  catCode: number;
+  subCatCode: number;
+  storeid: string;
+  grpCode: string;
+  unitCode: number;
+  unitName: string;
+  purchaseRate: string;
+  noofUnits: number;
+  itemRate: number;
+  itemOpStock: number;
+  itemOpRate: number;
+  itemROQ: number;
+  itemROL: number;
+  barCode: string;
+  taxCode: number;
+  taxName: string;
+  picture: string;
+  userCode: string;
+  lastModify: string;
+  mostRunningItemSrNo: string;
+  branch_Code: string;
+  firstUnit: number;
+  firstUnitDesc: string;
+  finalUnit: number;
+  finalUnitDesc: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/InventoryItemStoreUpdate",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating inventory item store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const deleteInventoryItemStore = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/InventoryItemStoreDelete",
+      {
+        params: {
+          id,
+          branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting inventory item store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
