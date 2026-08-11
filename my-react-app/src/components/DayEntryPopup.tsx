@@ -3,6 +3,7 @@ import { useAppContext } from "../context/AppContext";
 import { dayClose, dayOpen, getOpenDayDetails } from "../api/services/products.service";
 import AlertPopup from "./AlertPopup";
 import Loader from "./Loader";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   isOpen: boolean;
@@ -14,6 +15,7 @@ const DayEntryPopup: React.FC<Props> = ({ isOpen, onClose }) => {
   const [alertOpen, setAlertOpen] = useState(false);
 const [alertMsg, setAlertMsg] = useState("");
 const [alertType, setAlertType] = useState<"success" | "error">("success");
+const navigate=useNavigate()
   const getCurrentDate = () => {
     const today = new Date();
     return today.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -28,10 +30,12 @@ const [alertType, setAlertType] = useState<"success" | "error">("success");
   const [time, setTime] = useState(getCurrentTime());
   const [data, setData] = useState<any>({});
   const { appData } = useAppContext();
+  const [errorpopup,seterrorpopup] = useState("")
   console.log("appData", appData);
 
 const fetchData = async () => {
   try {
+    debugger
     setLoading(true);
 
     const data = await getOpenDayDetails(
@@ -134,13 +138,14 @@ const handleDayClose = async () => {
 
     setAlertMsg(res?.message || "Success");
     setAlertType("success");
-    setAlertOpen(true);
 
     await fetchData();
   } catch (err: any) {
+    seterrorpopup(err?.response?.data?.popupStatus)
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
     setAlertType("error");
     setAlertOpen(true);
+
   } finally {
     setLoading(false);
   }
@@ -163,7 +168,6 @@ const handleDayOpen = async () => {
 
     setAlertMsg(res?.message || "Day Opened Successfully");
     setAlertType("success");
-    setAlertOpen(true);
 
     await fetchData();
   } catch (err: any) {
@@ -177,6 +181,10 @@ const handleDayOpen = async () => {
 const handleOK = () => {
   setAlertOpen(false); // close alert
   onClose(); // close main popup
+};
+const onNavigate = () => {
+  
+  navigate(errorpopup)
 };
   if (!isOpen) return null;
 
@@ -261,6 +269,7 @@ const handleOK = () => {
   message={alertMsg}
   type={alertType}
   onClose={handleOK}
+  onNavigate={onNavigate}
 />
     </div>
     </>

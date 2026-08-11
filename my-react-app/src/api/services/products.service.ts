@@ -4989,3 +4989,102 @@ export const getRoomInActive = async (
 
   return response.data;
 };
+export const getUnsettledKOTDetails = async (
+  fromdate: string,
+  todate: string,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/api/POS/GetUnsettledKOTDetails", {
+      params: {
+        fromdate,
+        todate,
+        Branchcode: branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching unsettled KOT details:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const updateUnsettledKOT = async (
+  payload: {
+    kotId: string;
+    oltCode: string;
+    kotDate: string;
+    branchcode: string;
+  }[]
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/UpdateUnsettledKOT",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating unsettled KOT:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const getUnsettledBillDetails = async (
+  fromdate: string,
+  todate: string,
+  Branchcode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/POS/GetUnsettledBillDetails",
+      {
+        params: {
+          fromdate,
+          todate,
+          Branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching unsettled bill details:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

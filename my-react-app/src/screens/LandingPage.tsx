@@ -47,6 +47,8 @@ import BillAdjustment from "./BillAdjustment";
 import AdminPanel from "./AdminPanel";
 import Expired from "./Expired";
 import { useAppContext } from "../context/AppContext";
+import KOTClear from "../components/KOTClear";
+import BillClear from "../components/BillClear";
 
 function LandingPage() {
   const location = useLocation();
@@ -226,6 +228,14 @@ if (appData?.serialKeyExpired) {
 <Route
   path="/pos/companybillsettlement"
   element={<CompanyBillSettlement />}
+/>
+<Route
+  path="/showKOTcancelscreen"
+  element={<KOTClear />}
+/>
+<Route
+  path="/showBillsettlescreen"
+  element={<BillClear />}
 />
       </Routes>
     </>
