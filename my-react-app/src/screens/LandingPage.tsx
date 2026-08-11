@@ -44,6 +44,11 @@ import BillModify from "./BillModification";
 import PrinterSettings from "./PrinterSettings";
 import RealDashboard from "./RealDashboard";
 import BillAdjustment from "./BillAdjustment";
+import AdminPanel from "./AdminPanel";
+import Expired from "./Expired";
+import { useAppContext } from "../context/AppContext";
+import KOTClear from "../components/KOTClear";
+import BillClear from "../components/BillClear";
 import SupplierMaster from "./SupplierMaster";
 import InventoryItemCategory from "./InventoryItemCategory";
 import InventoryItemSubCategory from "./InventoryItemSubCategory";
@@ -52,7 +57,7 @@ import InventoryItemStore from "./InventoryItemStore";
 function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
-
+  const { appData } = useAppContext();
   const showHeader =
     location.pathname === "/NewOrder" || location.pathname === "/OrderingBoard";
 
@@ -94,6 +99,9 @@ function LandingPage() {
     }
   }, [location.pathname, navigate]);
 
+  if (appData?.serialKeyExpired) {
+    return <Expired />;
+  }
   return (
     <>
       {showHeader && <Header showNeworderButton />}
@@ -169,26 +177,16 @@ function LandingPage() {
           element={<PropertyMasterCreation />}
         />
         <Route path="/master/branchmaster" element={<BranchMaster />} />
+
+        <Route path="/adminpanel" element={<AdminPanel />} />
         <Route path="/master/usermaster" element={<UserMaster />} />
         <Route path="/master/userrightsmaster" element={<UserRightsMaster />} />
         <Route
           path="/pos/companybillsettlement"
           element={<CompanyBillSettlement />}
         />
-        <Route path="/inventory/supplier" element={<SupplierMaster />} />
-        <Route
-          path="/inventory/inventoryitemcategory"
-          element={<InventoryItemCategory />}
-        />
-        <Route
-          path="/inventory/inventoryitemsubcategory"
-          element={<InventoryItemSubCategory />}
-        />
-        <Route
-          path="/inventory/inventoryitemstore"
-          element={<InventoryItemStore />}
-        />
-        <Route path="/inventory/inventorystore" element={<InventoryStore />} />
+        <Route path="/showKOTcancelscreen" element={<KOTClear />} />
+        <Route path="/showBillsettlescreen" element={<BillClear />} />
       </Routes>
     </>
   );

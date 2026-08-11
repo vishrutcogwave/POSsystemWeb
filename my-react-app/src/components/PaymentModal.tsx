@@ -5,10 +5,12 @@ import {
   getCompanyList,
   getOnlinePaymentType,
   getPaymentStatusRequestDQRDevice,
+
   sendPaymentRequestDQRDevice,
   sendPaymentRequestOwnDevice,
 } from "../api/services/products.service";
 import QRCode from "react-qr-code";
+
 type SubMode = {
   subModeId: number;
   subModeType: string;
@@ -36,6 +38,7 @@ type Props = {
   unbillData?: any;
   billNo?: any;
   refresh?: () => void;
+  roomServiceList?:any;
 };
 
 const PaymentModal: React.FC<Props> = ({
@@ -46,8 +49,10 @@ const PaymentModal: React.FC<Props> = ({
   onPay,
   paymentModes,
   unbillData,
+  roomServiceList
 }) => {
   const [isQRActive, setIsQRActive] = useState(false);
+console.log(roomServiceList,"roomServiceList");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -323,8 +328,10 @@ const PaymentModal: React.FC<Props> = ({
   };
 
   /* ---------------- SELECT MODE ---------------- */
-  const handleModeClick = (modeType: string) => {
+  const handleModeClick = async (modeType: string) => {
     // DEFAULT QR DEVICE FOR UPI
+
+    
     if (modeType?.toLowerCase().includes("company")) {
       loadCompanies();
     }
@@ -356,8 +363,17 @@ const PaymentModal: React.FC<Props> = ({
       const currentTotal = prev.reduce((sum, p) => sum + p.amount, 0);
       const remaining = PAYABLE_AMOUNT - currentTotal;
 
-      const modeObj = paymentModes.find((m) => m.modeType === modeType);
-      const firstSubMode = modeObj?.subModes?.[0]?.subModeType || "";
+const modeObj = paymentModes.find((m) => m.modeType === modeType);
+
+let firstSubMode = modeObj?.subModes?.[0]?.subModeType || "";
+
+// Default first room for Transfer To Room
+if (modeType.toLowerCase() === "transfer to room") {
+  firstSubMode =
+    roomServiceList?.data?.find(
+      (room: any) => room.tableStatus === "Available"
+    )?.checkinNo || "";
+}
 
       return [
         ...prev,
@@ -676,6 +692,35 @@ const PaymentModal: React.FC<Props> = ({
                   </div>
                 )}
 
+               {p.mode?.toLowerCase().includes("room") && (
+  <div className="space-y-2">
+    <label className="text-sm font-medium">
+      Transfer To Room
+    </label>
+
+    <select
+      value={p.subMode || ""}
+      onChange={(e) =>
+        updatePayment(p.mode, "subMode", e.target.value)
+      }
+      className="w-full border rounded px-3 py-2"
+    >
+      <option value="">Select Room</option>
+
+      {roomServiceList.data
+        ?.filter((room: any) => room.tableStatus === "Available")
+        .map((room: any) => (
+          <option
+            key={room.checkinNo}
+            value={room.checkinNo}
+          >
+            {room.roomNo} - {room.guestName}
+          </option>
+        ))}
+    </select>
+  </div>
+)}
+
                 <textarea
                   value={p.remarks || ""}
                   onChange={(e) =>
@@ -748,13 +793,23 @@ const PaymentModal: React.FC<Props> = ({
         toast.error("Please select company");
         return;
       }
+    const transferRoomPayment = paymentDetails.find(
+  (p) => p.mode?.toLowerCase() === "transfer to room"
+);
 
-      await onPay({
-        paymentDetails,
-        total,
-        difference,
-        payableAmount: PAYABLE_AMOUNT,
-      });
+const selectedTransferRoom =
+  roomServiceList?.data?.find(
+    (room: any) => room.checkinNo === transferRoomPayment?.subMode
+  ) || null;
+
+await onPay({
+  paymentDetails,
+  total,
+  difference,
+  payableAmount: PAYABLE_AMOUNT,
+  isTransferToRoom: !!transferRoomPayment,
+  selectedTransferRoom,
+});
     } finally {
       setSubmitLoading(false);
     }
@@ -770,6 +825,7 @@ const PaymentModal: React.FC<Props> = ({
 </button>
         </div>
       </div>
+     
     </div>
   );
 };

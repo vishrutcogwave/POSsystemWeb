@@ -8,17 +8,16 @@ import {
   getFastfoodDetails,
   getKotTransferType,
   getOldCart,
-  getPaymentModeMaster,
   getSubTables,
+  getTableListForRoomService,
   postKotTransferTable,
-  settleBill,
 } from "../api/services/products.service";
 import Loader from "../components/Loader";
 import { useActiveOLT } from "../context/ActiveOLTContext";
-import PaymentModal from "../components/PaymentModal";
-import toast from "react-hot-toast";
+
 import TableTransferPopup from "../components/TableTransferPopup";
 import { useAppContext } from "../context/AppContext";
+import RoomServiceCard from "../components/RoomServiceCard";
 
 /* ---------------- TYPES ---------------- */
 export type Table = {
@@ -32,9 +31,10 @@ export type Table = {
 type Outlet = {
   oltCode: number;
   oltName: string;
-    isDirectKOTandBill: boolean;
+  oltIsRoomService: boolean;
+  isDirectKOTandBill: boolean;
   isDirectPaxandStw: boolean;
-  isDirectBill:boolean;
+  isDirectBill: boolean;
   tables: {
     tblNo: string;
     tableStatus: string;
@@ -51,19 +51,17 @@ const NewOrder: React.FC = () => {
   const [activeTab, setActiveTab] = useState("");
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [openPayment, setOpenPayment] = useState(false);
   const [openTableTransfer, setOpenTableTransfer] = useState(false);
   const navigate = useNavigate();
   const [selectedKotIds, setSelectedKotIds] = useState<number[]>([]);
   const { activeOltCode, setActiveOLT } = useActiveOLT();
   const [subTables, setSubTables] = useState<any[]>([]);
-  const [unbillData, _setUnbillData] = useState<any>(null);
-  const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const outletCode = localStorage.getItem("activeOltCode") || "";
   const [transferTypes, setTransferTypes] = useState<any[]>([]);
   const [oldCartData, setOldcartData] = useState<any[]>([]);
   const { appData } = useAppContext();
-const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [outlets, setOutlets] = useState<Outlet[]>([]);
+  const [roomServiceTables, setRoomServiceTables] = useState<any[]>([]);
   const [selectedSubTableTable, setselectedSubTableTable] = useState<
     string | null
   >(null); // sub table
@@ -74,10 +72,13 @@ const [outlets, setOutlets] = useState<Outlet[]>([]);
   const handleOpenTableTransfer = async (table: Table) => {
     setSelectedTable(table);
     try {
-      
       const outlet = localStorage.getItem("activeOltCode") || "";
 
-      const data = await getSubTables(outlet, table.tableNumber,appData?.user?.branch_code);
+      const data = await getSubTables(
+        outlet,
+        table.tableNumber,
+        appData?.user?.branch_code,
+      );
 
       setSubTables(data);
       setOpenTableTransfer(true);
@@ -92,7 +93,7 @@ const [outlets, setOutlets] = useState<Outlet[]>([]);
         selectedTable?.tableNumber || null,
         outletCode,
         selectedSubTableTable || "",
-        appData?.user?.branch_code
+        appData?.user?.branch_code,
       );
       console.log(res, "oldcartdetils");
       setOldcartData(res);
@@ -104,30 +105,46 @@ const [outlets, setOutlets] = useState<Outlet[]>([]);
     void getOldcartData();
   }, [selectedSubTableTable]);
   /* ---------------- FETCH PAYMENT MODES ---------------- */
-  const fetchPaymentModes = async () => {
-    try {
-      const branch = localStorage.getItem("branch") || "";
-      const data = await getPaymentModeMaster(branch);
-      setPaymentModes(data || []);
-    } catch (err) {
-      console.error("Failed to fetch payment modes", err);
-    }
-  };
 
+  const fetchRoomServiceTables = async (outletCode: number | string) => {
+  try {
+    localStorage.setItem(
+      "roomserviceoldcode",
+      JSON.stringify(outletCode)
+    );
+
+    const res = await getTableListForRoomService(
+      outletCode,
+      appData?.user?.branch_code || ""
+    );
+
+    setRoomServiceTables(res.data || []);
+    console.log("Room Service Tables:", res);
+  } catch (err) {
+    console.error("Failed to fetch room service tables", err);
+  }
+};
   /* ---------------- FETCH DATA ---------------- */
   const fetchData = async () => {
+    debugger;
     setLoading(true);
     try {
-  const data: Outlet[] = await getCombinedOutletAndTableMasterList(
-  localStorage.getItem("branch") || "",
-  appData?.user?.userCode,
-);
+      const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+        appData?.user?.branch_code || "",
+        appData?.user?.userCode,
+      );
 
-// ✅ Store the outlet data
-setOutlets(data);
-      const formattedTabs = data.map((outlet) => ({
+      // ✅ Store the outlet data
+      setOutlets(data);
+      // Check if any outlet is Room Service
+const roomServiceOutlet = data.find((outlet) => outlet.oltIsRoomService);
+
+if (roomServiceOutlet) {
+  await fetchRoomServiceTables(roomServiceOutlet.oltCode);
+}      const formattedTabs = data.map((outlet) => ({
         id: outlet.oltCode.toString(),
         label: outlet.oltName.trim(),
+        isRoomservice: outlet.oltIsRoomService || false,
       }));
 
       setTabs(formattedTabs);
@@ -201,6 +218,18 @@ setOutlets(data);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  if (!activeTab) return;
+
+  const selectedOutlet = outlets.find(
+    (o) => o.oltCode.toString() === activeTab
+  );
+
+  if (selectedOutlet?.oltIsRoomService) {
+    fetchRoomServiceTables(selectedOutlet.oltCode);
+  }
+}, [activeTab, outlets]);
   const fetchTransferTypes = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -215,7 +244,6 @@ setOutlets(data);
   useEffect(() => {
     void fetchData();
     void fetchTransferTypes();
-    void fetchPaymentModes();
   }, []);
 
   /* ---------------- TAB CHANGE ---------------- */
@@ -259,25 +287,25 @@ setOutlets(data);
   };
 
   /* ---------------- TABLE CLICK ---------------- */
-const handleTableClick = async (table: Table) => {
-  setSelectedTable(table);
+  const handleTableClick = async (table: Table) => {
+    setSelectedTable(table);
 
-  const selectedOutlet = outlets.find(
-    (o) => o.oltCode.toString() === activeTab
-  );
-console.log("table",selectedOutlet);
+    const selectedOutlet = outlets.find(
+      (o) => o.oltCode.toString() === activeTab,
+    );
+    console.log("table", selectedOutlet);
 
-  navigate("/OrderingBoard", {
-    state: {
-      tableNumber: table.tableNumber,
-      status: table.status,
-      kotStatus: table.kotStatus,
-      isDirectKOTandBill: selectedOutlet?.isDirectKOTandBill ?? false,
-      isDirectPaxandStw: selectedOutlet?.isDirectPaxandStw ?? false,
-      isDirectBill:selectedOutlet?.isDirectBill ?? false
-    },
-  });
-};
+    navigate("/OrderingBoard", {
+      state: {
+        tableNumber: table.tableNumber,
+        status: table.status,
+        kotStatus: table.kotStatus,
+        isDirectKOTandBill: selectedOutlet?.isDirectKOTandBill ?? false,
+        isDirectPaxandStw: selectedOutlet?.isDirectPaxandStw ?? false,
+        isDirectBill: selectedOutlet?.isDirectBill ?? false,
+      },
+    });
+  };
   /* ---------------- SPLIT FASTFOOD ---------------- */
   const fastFoodTab = tabs.find((t) => t.label.toUpperCase().includes("FAST"));
 
@@ -286,74 +314,6 @@ console.log("table",selectedOutlet);
   );
 
   /* ---------------- UI ---------------- */
-
-  const handleSettleBill = async (data: any) => {
-    const { paymentDetails, difference, payableAmount } = data;
-
-    if (difference !== 0) {
-      toast.error(`Amount must match ₹${payableAmount}`);
-      return;
-    }
-
-    // ✅ VALIDATION
-    for (let p of paymentDetails) {
-      const mode = paymentModes.find((m) => m.modeType === p.mode);
-
-      if (mode && mode.subModes && mode.subModes.length > 0 && !p.subMode) {
-        toast.error(`Select sub mode for ${p.mode}`);
-        return;
-      }
-
-      if (!p.amount || p.amount <= 0) {
-        toast.error(`Enter valid amount for ${p.mode}`);
-        return;
-      }
-    }
-
-    const bill = unbillData?.[0] || {};
-    const branch = localStorage.getItem("branch") || "";
-
-    const finalPayload = {
-      oltCode: bill?.oltCode || 0,
-      userCode: bill?.userCode || 0,
-      billId: selectedTable?.BillNo || 0,
-      billNo: selectedTable?.BillNo || 0,
-      tableNo: bill?.tableNo || "",
-      subTableNo: bill?.subTableNo || "",
-      discount: bill?.discount || 0,
-      taxAmount: bill?.taxAmount || 0,
-      tips: bill?.tips || 0,
-      changeAmount: bill?.changeAmount || 0,
-      grandAmount: payableAmount,
-      billDate: new Date().toISOString(),
-      branchCode: branch,
-
-      paymentDetails: paymentDetails.map((p: any) => ({
-        mode: p.mode,
-        subMode: p.subMode || "",
-        amount: p.amount,
-        remarks: (p.remarks || "").trim() || "",
-      })),
-    };
-
-    console.log("FINAL DATA:", finalPayload);
-
-    try {
-      const res = await settleBill(finalPayload);
-
-      console.log("SETTLE RESPONSE:", res);
-
-      toast.success("Bill Settled Successfully ✅");
-
-      setOpenPayment(false);
-      setSelectedTable(null);
-
-      fetchData(); // 🔥 refresh tables
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to settle bill ❌");
-    }
-  };
 
   const handleTransfer = async () => {
     try {
@@ -377,16 +337,21 @@ console.log("table",selectedOutlet);
       const res = await postKotTransferTable(payload);
       console.log("TRANSFER SUCCESS:", res);
       setOpenTableTransfer(false);
-        setselectedSubTableTable("");
-          setSelectedKotIds([]);
-          setSelectedTransferType("");
-          setTransformSelectedTable("");
-          setOldcartData([]);
+      setselectedSubTableTable("");
+      setSelectedKotIds([]);
+      setSelectedTransferType("");
+      setTransformSelectedTable("");
+      setOldcartData([]);
       fetchData();
     } catch (err) {
       console.error("TRANSFER FAILED:", err);
     }
   };
+  const selectedOutlet = outlets.find(
+    (o) => o.oltCode.toString() === activeTab,
+  );
+
+  const isRoomService = selectedOutlet?.oltIsRoomService;
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
       {loading && <Loader />}
@@ -419,32 +384,51 @@ console.log("table",selectedOutlet);
       <div className="flex-1 overflow-y-auto p-2 sm:p-4">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-4">
           {activeTab &&
-            tablesData[activeTab]?.map((table) => (
-              <TableCard
-                handleOpenTableTransfer={() => handleOpenTableTransfer(table)}
-                key={table.tableNumber}
-                billNo={table.BillNo}
-                tableNumber={table.tableNumber}
-                status={table.status}
-                kotStatus={table.kotStatus}
-                peopleCount={table.peopleCount}
-                handleCardClick={() => handleTableClick(table)}
-              />
-            ))}
+            (isRoomService
+              ? roomServiceTables.map((room) => (
+                  <RoomServiceCard
+                    key={room.roomNo}
+                    room={room}
+                    onClick={() => {
+                      navigate("/OrderingBoard", {
+                        state: {
+                          tableNumber: room.roomNo,
+                          kotStatus: room.tableStatus,
+                          status: room.tableStatus,
+                          roomNo: room.roomNo,
+                          guestName: room.guestName,
+                          guestCode: room.guestCode,
+                          checkinNo: room.checkinNo,
+                          pax: room.pax,
+                          planId: room.planId,
+                          roomService: true,
+                          isDirectKOTandBill:
+                            selectedOutlet?.isDirectKOTandBill ?? false,
+                          isDirectPaxandStw:
+                            selectedOutlet?.isDirectPaxandStw ?? false,
+                          isDirectBill: selectedOutlet?.isDirectBill ?? false,
+                        },
+                      });
+                    }}
+                  />
+                ))
+              : tablesData[activeTab]?.map((table) => (
+                  <TableCard
+                    key={table.tableNumber}
+                    billNo={table.BillNo}
+                    tableNumber={table.tableNumber}
+                    status={table.status}
+                    kotStatus={table.kotStatus}
+                    peopleCount={table.peopleCount}
+                    handleCardClick={() => handleTableClick(table)}
+                    handleOpenTableTransfer={() =>
+                      handleOpenTableTransfer(table)
+                    }
+                  />
+                )))}
         </div>
       </div>
-      <PaymentModal
-        paymentModes={paymentModes}
-        isOpen={openPayment}
-        unbillData={unbillData}
-        billNo={selectedTable?.BillNo} // ✅ correct bill
-        refresh={fetchData}
-        onClose={() => {
-          setOpenPayment(false);
-          setSelectedTable(null); // reset
-        }}
-        onPay={handleSettleBill}
-      />
+
       <TableTransferPopup
         selectedKotId={selectedKotIds}
         setSelectedKotId={setSelectedKotIds}
@@ -469,8 +453,8 @@ console.log("table",selectedOutlet);
         handleSubmit={handleTransfer}
         oldcartdata={oldCartData}
         selectedTable={selectedTable}
-          selectedItems={selectedItems}
-  setSelectedItems={setSelectedItems}
+        selectedItems={selectedItems}
+        setSelectedItems={setSelectedItems}
       />
     </div>
   );

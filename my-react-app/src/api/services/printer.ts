@@ -287,7 +287,6 @@ export const printKOT = async (
   isThermal?: boolean,
   
 ) => {
-  debugger
   try {
     console.log("========== PRINT START ==========");
 

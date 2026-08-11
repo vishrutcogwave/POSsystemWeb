@@ -11,6 +11,8 @@ import {
   getBillDetails,
   getOutletList,
   getPaymentModeMaster,
+  getTableListForRoomService,
+  getRoomInActive,
 } from "../api/services/products.service";
 
 import { useAppContext } from "../context/AppContext";
@@ -30,7 +32,7 @@ export default function SettlementBillModify() {
   const [selectedBill, setSelectedBill] = useState<any>(null);
 
   const [reason, setReason] = useState("");
-
+  const [roomServiceList, setRoomServiceList] = useState<any[]>([]);
   const getToday = () => {
     return new Date().toISOString().split("T")[0];
   };
@@ -111,6 +113,7 @@ export default function SettlementBillModify() {
   // ================= MODIFY SETTLEMENT =================
 
   const handleSettlementModify = async () => {
+    debugger
     if (!paymentData?.paymentDetails?.length) {
       toast.error("Select payment mode");
 
@@ -131,75 +134,128 @@ export default function SettlementBillModify() {
     try {
       setLoading(true);
 
+
       const payload = {
-        branch: appData?.user?.branch_code,
+  oltCode: Number(selectedOutlet),
 
-        userCode: appData?.user?.userCode,
+  outletName:
+    outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
+      ?.oltName || "",
 
-        companyCode: 0,
+  userCode: appData?.user?.userCode,
 
-        companyName: "",
+  billId: selectedBill?.ksmId || 0,
 
-        guestCode: 0,
+  billNo: selectedBill?.ksmBillNo || 0,
 
-        guestName: "",
+  tableNo: selectedBill?.ksmTblNo || "",
 
-        checkInNo: "",
+  subTableNo: selectedBill?.subTableNo || "",
 
-        remarks: reason,
+  discount: selectedBill?.ksmBillDiscount || 0,
 
-        outletCode: Number(selectedOutlet),
+  taxAmount: selectedBill?.ksmBillTaxAmt || 0,
 
-        outletName:
-          outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
-            ?.oltName || "",
+  tips: 0,
 
-        roomNo: "",
+  changeAmount: 0,
 
-        subBillingType: "",
+  grandAmount: selectedBill?.ksmBillAmount || 0,
 
-        payMode: "POS",
+  refNo: "",
 
-        bill: {
-          oltCode: Number(selectedOutlet),
+  cardName: "",
 
-          userCode: appData?.user?.userCode,
+  billDate: selectedBill?.ksmBillDate,
 
-          billId: selectedBill?.ksmId || 0,
+  branchCode: appData?.user?.branch_code,
 
-          billNo: selectedBill?.ksmBillNo,
+  guestCode: "", // or selected guest code
 
-          tableNo: selectedBill?.ksmTblNo || "",
+  guestName: "", // or selected guest name
 
-          subTableNo: selectedBill?.subTableNo || "",
+  checkInNo: "", // or selected check-in number
 
-          discount: selectedBill?.ksmBillDiscount || 0,
+  paymentDetails:
+    paymentData?.paymentDetails?.map((p: any) => ({
+      mode: p.mode,
+      subMode: p.subMode,
+      amount: Number(p.amount || 0),
+      remarks: reason,
+    })) || [],
+};
 
-          taxAmount: selectedBill?.ksmBillTaxAmt || 0,
 
-          tips: 0,
 
-          changeAmount: 0,
+      // const payload = {
+      //   branch: appData?.user?.branch_code,
 
-          grandAmount: selectedBill?.ksmBillAmount || 0,
+      //   userCode: appData?.user?.userCode,
 
-          refNo: "",
+      //   companyCode: 0,
 
-          cardName: "",
+      //   companyName: "",
 
-          billDate: selectedBill?.ksmBillDate,
+      //   guestCode: 0,
 
-          branchCode: appData?.user?.branch_code,
+      //   guestName: "",
 
-          paymentDetails:
-            paymentData?.paymentDetails?.map((p: any) => ({
-              mode: p.mode,
-              subMode: p.subMode,
-              amount: Number(p.amount || 0),
-              remarks: reason,
-            })) || [],
-        },
-      };
+      //   checkInNo: "",
+
+      //   remarks: reason,
+
+      //   outletCode: Number(selectedOutlet),
+
+      //   outletName:
+      //     outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
+      //       ?.oltName || "",
+
+      //   roomNo: "",
+
+      //   subBillingType: "",
+
+      //   payMode: "POS",
+
+      //   bill: {
+      //     oltCode: Number(selectedOutlet),
+
+      //     userCode: appData?.user?.userCode,
+
+      //     billId: selectedBill?.ksmId || 0,
+
+      //     billNo: selectedBill?.ksmBillNo,
+
+      //     tableNo: selectedBill?.ksmTblNo || "",
+
+      //     subTableNo: selectedBill?.subTableNo || "",
+
+      //     discount: selectedBill?.ksmBillDiscount || 0,
+
+      //     taxAmount: selectedBill?.ksmBillTaxAmt || 0,
+
+      //     tips: 0,
+
+      //     changeAmount: 0,
+
+      //     grandAmount: selectedBill?.ksmBillAmount || 0,
+
+      //     refNo: "",
+
+      //     cardName: "",
+
+      //     billDate: selectedBill?.ksmBillDate,
+
+      //     branchCode: appData?.user?.branch_code,
+
+      //     paymentDetails:
+      //       paymentData?.paymentDetails?.map((p: any) => ({
+      //         mode: p.mode,
+      //         subMode: p.subMode,
+      //         amount: Number(p.amount || 0),
+      //         remarks: reason,
+      //       })) || [],
+      //   },
+      // };
 
       console.log("Settlement Modify Payload", payload);
 
@@ -220,12 +276,31 @@ export default function SettlementBillModify() {
       setLoading(false);
     }
   };
+  const fetchRoomServiceList = async () => {
+    try {
+      setLoading(true);
 
+      const branchCode = appData?.user?.branch_code || "";
+      const oltCode = JSON.parse(
+        localStorage.getItem("roomserviceoldcode") || "",
+      ); // or appData?.user?.oltcode
+
+      const res = await getTableListForRoomService(oltCode, branchCode);
+
+      // Store response.data
+      setRoomServiceList(res || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch room service list");
+    } finally {
+      setLoading(false);
+    }
+  };
   // ================= INITIAL =================
 
   useEffect(() => {
     fetchOutlets();
-
+fetchRoomServiceList()
     fetchPaymentModes();
   }, []);
   // ================= AUTO FETCH =================
@@ -236,6 +311,7 @@ export default function SettlementBillModify() {
     }
   }, [selectedOutlet, fromDate, toDate]);
   const handlePaymentSubmit = async (data: any) => {
+    debugger
     setPaymentData(data);
 
     setOpenPayment(false);
@@ -339,7 +415,7 @@ export default function SettlementBillModify() {
                       }`}
                     >
                       <td className="border px-3 py-2 text-center">
-                        <input
+                        {/* <input
                           type="radio"
                           checked={selectedBill?.ksmBillNo === item?.ksmBillNo}
                           onChange={() => {
@@ -347,7 +423,35 @@ export default function SettlementBillModify() {
 
                             setOpenPayment(true);
                           }}
-                        />
+                        /> */}
+            <input
+  type="radio"
+  checked={selectedBill?.ksmBillNo === item?.ksmBillNo}
+  onChange={async () => {
+    try {
+      if (
+        item?.paymentStatus?.toLowerCase() === "room transfer"
+      ) {
+        const res = await getRoomInActive(item?.ksmTblNo, item?.ksmBillNo);
+
+        if (res.success && res.data === false) {
+          setSelectedBill(item);
+          setOpenPayment(true);
+        } else {
+          toast.error(res.message);
+          return;
+        }
+      } else {
+        // For all other payment statuses
+        setSelectedBill(item);
+        setOpenPayment(true);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Something went wrong");
+    }
+  }}
+/>
                       </td>
 
                       <td className="border px-3 py-2">{item?.ksmBillNo}</td>
@@ -422,6 +526,8 @@ export default function SettlementBillModify() {
           </div>
         </div>
         <PaymentModal
+           roomServiceList={roomServiceList}
+        billNo={selectedBill?.ksmBillNo}
           isOpen={openPayment}
           onClose={() => {
             setOpenPayment(false);

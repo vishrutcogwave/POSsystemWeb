@@ -23,6 +23,7 @@ import {
   getPaymentModeMaster,
   getSpecialInfo,
   getSubTables,
+  getTableListForRoomService,
   getTaxSettings,
   getUnbillDetails,
   postBill,
@@ -75,7 +76,28 @@ function OrderingBoard() {
     billingType: "",
     subBillingType: "",
   });
+  const [roomServiceList, setRoomServiceList] = useState<any[]>([]);
 
+  const fetchRoomServiceList = async () => {
+    try {
+      setKotLoading(true);
+
+      const branchCode = appData?.user?.branch_code || "";
+      const oltCode = JSON.parse(
+        localStorage.getItem("roomserviceoldcode") || "",
+      ); // or appData?.user?.oltcode
+
+      const res = await getTableListForRoomService(oltCode, branchCode);
+
+      // Store response.data
+      setRoomServiceList(res || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch room service list");
+    } finally {
+      setKotLoading(false);
+    }
+  };
   const fetchBillGenerationSettings = async () => {
     try {
       const branch = localStorage.getItem("branch") || "";
@@ -127,6 +149,10 @@ function OrderingBoard() {
       isDirectBill?: boolean;
       isDirectKOTandBill?: boolean;
       isDirectPaxandStw?: boolean;
+      guestName: string;
+      guestCode: string;
+      checkinNo: string;
+      planId: string;
     }) || {};
 
   const directbill = tableData.isDirectKOTandBill ?? false;
@@ -286,19 +312,19 @@ function OrderingBoard() {
       console.error("Failed to fetch NC reasons", err);
     }
   };
-//   const fetchOpenDayDetails = async () => {
-//   try {
-//     const res = await getOpenDayDetails(
-//       appData?.user?.userCode || 0,
-//       appData?.user?.branch_code || ""
-//     );
+  //   const fetchOpenDayDetails = async () => {
+  //   try {
+  //     const res = await getOpenDayDetails(
+  //       appData?.user?.userCode || 0,
+  //       appData?.user?.branch_code || ""
+  //     );
 
-//     console.log("Open Day Details:", res);
-//     // setOpenDayDetails(res);
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
+  //     console.log("Open Day Details:", res);
+  //     // setOpenDayDetails(res);
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
 
   useEffect(() => {
     void fetchTaxSettings();
@@ -310,6 +336,7 @@ function OrderingBoard() {
     void fetchDiscountTypes();
     void fetchdayDeatilsData();
     void fetchBillGenerationSettings();
+    void fetchRoomServiceList();
     // void fetchOpenDayDetails()
   }, []);
 
@@ -419,32 +446,32 @@ function OrderingBoard() {
       setKotLoading(false);
     }
   };
-const fetchTotalAmount = async () => {
-  if (!session) {
-    setTotalAmount(0);
-    return;
-  }
+  const fetchTotalAmount = async () => {
+    if (!session) {
+      setTotalAmount(0);
+      return;
+    }
 
-  try {
-    const payload = buildBillPayload();
-    if (!payload) return;
+    try {
+      const payload = buildBillPayload();
+      if (!payload) return;
 
-    const res = await getBill(payload);
+      const res = await getBill(payload);
 
-    // Replace this with the correct field from your API response
-    setTotalAmount(res?.grandTotal || 0);
-  } catch (err) {
-    console.error(err);
-    setTotalAmount(0);
-  }
-};
-useEffect(() => {
-  if (cart.length > 0) {
-    fetchTotalAmount();
-  } else {
-    setTotalAmount(0);
-  }
-}, [cart]);
+      // Replace this with the correct field from your API response
+      setTotalAmount(res?.grandTotal || 0);
+    } catch (err) {
+      console.error(err);
+      setTotalAmount(0);
+    }
+  };
+  useEffect(() => {
+    if (cart.length > 0) {
+      fetchTotalAmount();
+    } else {
+      setTotalAmount(0);
+    }
+  }, [cart]);
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
   const getNextSubTable = (list: any[]) => {
@@ -506,6 +533,7 @@ useEffect(() => {
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
+    debugger;
     if (tableData.fastFood) return; // 🔥 SKIP EVERYTHING
 
     if (tableData.status === "Available") {
@@ -603,22 +631,22 @@ useEffect(() => {
     });
   };
   const updateQty = (id: number, qty: number) => {
-  if (qty <= 0) {
-    setCart((prev) => prev.filter((i) => i.id !== id));
-    return;
-  }
+    if (qty <= 0) {
+      setCart((prev) => prev.filter((i) => i.id !== id));
+      return;
+    }
 
-  setCart((prev) =>
-    prev.map((i) =>
-      i.id === id
-        ? {
-            ...i,
-            qty,
-          }
-        : i
-    )
-  );
-};
+    setCart((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              qty,
+            }
+          : i,
+      ),
+    );
+  };
   const handleAdd = async (itemCode: number) => {
     if (!session) {
       toast.error("Start table session first");
@@ -791,26 +819,25 @@ useEffect(() => {
       return; // 🚨 STOP KOT
     }
 
+    //     try {
+    //       debugger
+    //   const validateRes = await validateDay({
+    //     posEntryDate: openDayDetails?.shiftDate|| "",
+    //     branchcode: appData?.user?.branch_code || "",
+    //   });
 
-  //     try {
-  //       debugger
-  //   const validateRes = await validateDay({
-  //     posEntryDate: openDayDetails?.shiftDate|| "",
-  //     branchcode: appData?.user?.branch_code || "",
-  //   });
+    //   if (!validateRes?.success) {
+    //     toast.error(
+    //       validateRes?.message ||
+    //         "Clear all pending bills from Settlement Window"
+    //     );
+    //     return; // 🚨 Don't allow KOT
+    //   }
+    // } catch (err:any) {
+    //   console.error("Validate Day Error:", err);
 
-  //   if (!validateRes?.success) {
-  //     toast.error(
-  //       validateRes?.message ||
-  //         "Clear all pending bills from Settlement Window"
-  //     );
-  //     return; // 🚨 Don't allow KOT
-  //   }
-  // } catch (err:any) {
-  //   console.error("Validate Day Error:", err);
-  
-  //   return;
-  // }
+    //   return;
+    // }
     if (!session || cart.length === 0) return;
 
     setKotLoading(true);
@@ -858,10 +885,10 @@ useEffect(() => {
 
       mode: "ADD",
       subBillType: billGenerationSettings.subBillingType,
-      plan: "",
-      guestName: "adc",
-      guestCode: "234",
-      checkInNo: "",
+      plan: tableData.planId || "",
+      guestName: tableData.guestName || "",
+      guestCode: tableData.guestCode || "",
+      checkInNo: tableData.checkinNo || "",
       kotMobileNo: "3456789021",
 
       homeDelivary: {
@@ -891,24 +918,24 @@ useEffect(() => {
 
       const printerItemMap: Record<string, any[]> = {};
 
-  printers.forEach((printer: any) => {
-  const categoryIds = printer.categoryIds ?? [];
+      printers.forEach((printer: any) => {
+        const categoryIds = printer.categoryIds ?? [];
 
-  const matchedItems = foodItems.filter((item: any) =>
-    categoryIds.includes(Number(item.category))
-  );
+        const matchedItems = foodItems.filter((item: any) =>
+          categoryIds.includes(Number(item.category)),
+        );
 
-  if (matchedItems.length > 0) {
-    printerItemMap[printer.printerName || "default"] = matchedItems;
-  }
-});
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName || "default"] = matchedItems;
+        }
+      });
 
       const generateContent = (items: any[]) => ({
         title: isNC ? "NC KOT" : "KOT",
         kotId: res.kotId || res.kotID || res.kotNo || "",
         table: tableData.tableNumber,
         subTable: selectedSubTable || "A",
-        ncDepName:res.ncDepName || "",
+        ncDepName: res.ncDepName || "",
         waiter: session.waiterName,
         pax: session.pax,
         items: items.map((item: any) => ({
@@ -953,7 +980,7 @@ useEffect(() => {
           for (const printer of printers) {
             const key = printer.printerName?.trim() || "default";
 
-const printerItems = printerItemMap[key];
+            const printerItems = printerItemMap[key];
 
             if (!printerItems) continue;
 
@@ -1105,7 +1132,7 @@ const printerItems = printerItemMap[key];
         isUpdate: 0,
       },
     };
-
+debugger
     try {
       const res = await createOrder(payload);
       console.log("FastFood KOT:", res);
@@ -1126,7 +1153,9 @@ const printerItems = printerItemMap[key];
 
         changeAmount: 0,
         grandAmount: billData?.tax?.grandTotal || 0,
-
+        guestCode: tableData.guestCode || "",
+        guestName: tableData.guestName || "",
+        checkInNo: tableData.checkinNo || "",
         billDate: new Date().toISOString(),
         branchCode: localStorage.getItem("branch") || "",
 
@@ -1148,17 +1177,17 @@ const printerItems = printerItemMap[key];
 
       const printerItemMap: Record<string, any[]> = {};
 
-  printers.forEach((printer: any) => {
-  const categoryIds = printer.categoryIds ?? [];
+      printers.forEach((printer: any) => {
+        const categoryIds = printer.categoryIds ?? [];
 
-  const matchedItems = foodItems.filter((item: any) =>
-    categoryIds.includes(Number(item.category))
-  );
+        const matchedItems = foodItems.filter((item: any) =>
+          categoryIds.includes(Number(item.category)),
+        );
 
-  if (matchedItems.length > 0) {
-    printerItemMap[printer.printerName || "default"] = matchedItems;
-  }
-});
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName || "default"] = matchedItems;
+        }
+      });
       const generateContent = (items: any[]) => ({
         title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
         kotId: res.kotId || res.kotID || res.kotNo || "",
@@ -1339,17 +1368,17 @@ const printerItems = printerItemMap[key];
 
       const printerItemMap: Record<string, any[]> = {};
 
-   printers.forEach((printer: any) => {
-  const categoryIds = printer.categoryIds ?? [];
+      printers.forEach((printer: any) => {
+        const categoryIds = printer.categoryIds ?? [];
 
-  const matchedItems = foodItems.filter((item: any) =>
-    categoryIds.includes(Number(item.category))
-  );
+        const matchedItems = foodItems.filter((item: any) =>
+          categoryIds.includes(Number(item.category)),
+        );
 
-  if (matchedItems.length > 0) {
-    printerItemMap[printer.printerName || "default"] = matchedItems;
-  }
-});
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName || "default"] = matchedItems;
+        }
+      });
       // const generateContent = (items: any[]) => ({
       //   title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
       //   table: tableData?.tableNumber,
@@ -1390,83 +1419,83 @@ const printerItems = printerItemMap[key];
       //         //   toast.error(`❌ ${printerName}: ${result.message}`);
       //         // }
       //       }
-const generateContent = (items: any[]) => ({
-  title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
-  kotId: res.kotId || res.kotID || res.kotNo || "",
-  table: tableData.tableNumber,
-  subTable: selectedSubTable || "A",
-  waiter: session.waiterName,
-  pax: session.pax,
-  items: items.map((item: any) => ({
-    qty: item.origQty || item.qty || 0,
-    name: item.food,
-    instructions: item.comment ? item.comment.split(",") : [],
-  })),
-});
+      const generateContent = (items: any[]) => ({
+        title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
+        kotId: res.kotId || res.kotID || res.kotNo || "",
+        table: tableData.tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: items.map((item: any) => ({
+          qty: item.origQty || item.qty || 0,
+          name: item.food,
+          instructions: item.comment ? item.comment.split(",") : [],
+        })),
+      });
 
-const thermalKeywords = [
-  "pos",
-  "thermal",
-  "epson tm",
-  "tm-",
-  "xp-",
-  "tsp",
-  "58mm",
-  "80mm",
-  "receipt",
-  "usb printer",
-  "rp",
-  "gp",
-];
+      const thermalKeywords = [
+        "pos",
+        "thermal",
+        "epson tm",
+        "tm-",
+        "xp-",
+        "tsp",
+        "58mm",
+        "80mm",
+        "receipt",
+        "usb printer",
+        "rp",
+        "gp",
+      ];
 
-// No category mapping -> print everything to first configured printer
-if (Object.keys(printerItemMap).length === 0) {
-  const defaultPrinter = printers[0];
+      // No category mapping -> print everything to first configured printer
+      if (Object.keys(printerItemMap).length === 0) {
+        const defaultPrinter = printers[0];
 
-  const result = await printKOT(
-    defaultPrinter?.printerName || null,
-    generateContent(foodItems),
-    defaultPrinter?.ipAddress || "",
-    true
-  );
+        const result = await printKOT(
+          defaultPrinter?.printerName || null,
+          generateContent(foodItems),
+          defaultPrinter?.ipAddress || "",
+          true,
+        );
 
-  if (!result.success) {
-    toast.error(
-      `❌ ${defaultPrinter?.printerName ?? "Default Printer"}: ${result.message}`
-    );
-  }
-} else {
-  for (const printer of printers) {
-    const key = printer.printerName?.trim() || "default";
+        if (!result.success) {
+          toast.error(
+            `❌ ${defaultPrinter?.printerName ?? "Default Printer"}: ${result.message}`,
+          );
+        }
+      } else {
+        for (const printer of printers) {
+          const key = printer.printerName?.trim() || "default";
 
-const printerItems = printerItemMap[key];
+          const printerItems = printerItemMap[key];
 
-    if (!printerItems) continue;
+          if (!printerItems) continue;
 
-    const content = generateContent(printerItems);
+          const content = generateContent(printerItems);
 
-    const printerName = printer.printerName?.trim() || null;
+          const printerName = printer.printerName?.trim() || null;
 
-    const isThermal = thermalKeywords.some((keyword) =>
-      (printerName || "").toLowerCase().includes(keyword)
-    );
+          const isThermal = thermalKeywords.some((keyword) =>
+            (printerName || "").toLowerCase().includes(keyword),
+          );
 
-    const result = await printKOT(
-      printerName,
-      content,
-      printer.ipAddress || "",
-      isThermal
-    );
+          const result = await printKOT(
+            printerName,
+            content,
+            printer.ipAddress || "",
+            isThermal,
+          );
 
-    if (!result.success) {
-      toast.error(
-        `❌ ${printerName ?? "Default Printer"}: ${result.message}`
-      );
-    }
-  }
-}
+          if (!result.success) {
+            toast.error(
+              `❌ ${printerName ?? "Default Printer"}: ${result.message}`,
+            );
+          }
+        }
+      }
 
-toast.success("Items voided & printed successfully ✅");
+      toast.success("Items voided & printed successfully ✅");
       setSelectedVoidItems([]);
       if (tableData.fastFood === undefined) {
         navigate("/NewOrder");
@@ -1584,10 +1613,10 @@ toast.success("Items voided & printed successfully ✅");
       mode: "ADD",
       subBillType: billGenerationSettings.subBillingType,
       discountGroups: selectedGroups,
-      plan: "",
-      guestName: "",
-      guestCode: "",
-      checkInNo: "",
+      plan: tableData.planId || "",
+      guestName: tableData.guestName || "",
+      guestCode: tableData.guestCode || "",
+      checkInNo: tableData.checkinNo || "",
       kotMobileNo: "",
       kotMinTimer: 0,
       taxType: taxType,
@@ -1608,46 +1637,45 @@ toast.success("Items voided & printed successfully ✅");
       },
     };
   };
-const handlePrintBill = async (billData: any) => {
-  
-  setKotLoading(true);
+  const handlePrintBill = async (billData: any) => {
+    setKotLoading(true);
 
-  try {
-    if (!billData) {
-      throw new Error("No bill data");
+    try {
+      if (!billData) {
+        throw new Error("No bill data");
+      }
+
+      // ✅ POST BILL
+      const res = await postBill(billData);
+      console.log("Bill Posted:", res);
+
+      // ✅ PRINT BILL
+      const printRes = await printBill(
+        billData,
+        res,
+        _companyInfo,
+        res.ipAddress || "", // <-- pass IP from postBill response
+      );
+
+      if (!printRes?.success) {
+        throw new Error(printRes?.message || "Print failed");
+      }
+
+      toast.success("Bill Printed Successfully ✅");
+
+      if (tableData.fastFood === undefined) {
+        navigate("/NewOrder");
+      }
+
+      return true;
+    } catch (err: any) {
+      console.error("Print Bill Error:", err);
+      toast.error(err.message || "Print failed ❌");
+      return false;
+    } finally {
+      setKotLoading(false);
     }
-
-    // ✅ POST BILL
-    const res = await postBill(billData);
-    console.log("Bill Posted:", res);
-
-    // ✅ PRINT BILL
-    const printRes = await printBill(
-      billData,
-      res,
-      _companyInfo,
-      res.ipAddress || ""   // <-- pass IP from postBill response
-    );
-
-    if (!printRes?.success) {
-      throw new Error(printRes?.message || "Print failed");
-    }
-
-    toast.success("Bill Printed Successfully ✅");
-
-    if (tableData.fastFood === undefined) {
-      navigate("/NewOrder");
-    }
-
-    return true;
-  } catch (err: any) {
-    console.error("Print Bill Error:", err);
-    toast.error(err.message || "Print failed ❌");
-    return false;
-  } finally {
-    setKotLoading(false);
-  }
-};
+  };
   const handleGetBill = async (showPopup = true) => {
     if (directbill) {
       showPopup = false;
@@ -1686,7 +1714,10 @@ const handlePrintBill = async (billData: any) => {
   /* ---------------- UI ---------------- */
 
   const handleBillSettlement = async (data: any) => {
-    const { paymentDetails, difference, payableAmount } = data;
+    debugger
+    const { paymentDetails, difference, payableAmount,isTransferToRoom,selectedTransferRoom } = data;
+    console.log(selectedTransferRoom);
+    
 
     // ❌ Amount mismatch check
     if (difference !== 0) {
@@ -1718,9 +1749,13 @@ const handlePrintBill = async (billData: any) => {
       billId: Number(bill?.ksmId || 0),
       billNo: Number(bill?.ksmBillNo || 0),
 
-      tableNo: bill?.ksmTblNo || "",
+      tableNo:isTransferToRoom?selectedTransferRoom?.roomNo: bill?.ksmTblNo || "",
       subTableNo: bill?.ksmsubtblno || "",
-
+      subBillType: "",
+      plan: "",
+      guestCode: selectedTransferRoom?.guestCode|| "",
+        guestName: selectedTransferRoom?.guestName || "",
+        checkInNo: selectedTransferRoom?.checkinNo || "",
       discount: Number(bill?.ksmBillDiscount || 0),
       taxAmount: Number(bill?.ksmBillTaxAmt || 0),
       tips: Number(bill?.tips || 0),
@@ -1733,14 +1768,14 @@ const handlePrintBill = async (billData: any) => {
 
       paymentDetails: paymentDetails.map((p: any) => ({
         mode: p.mode,
-       subMode:
-  p.mode?.toLowerCase() === "cash"
-    ? "Cash"
-    : p.mode?.toLowerCase() === "pluxee"
-    ? "Pluxee"
-     : p.mode?.toLowerCase() === "neft"
-    ? "neft"
-    : (p.subMode || "").trim(),
+        subMode:
+          p.mode?.toLowerCase() === "cash"
+            ? "Cash"
+            : p.mode?.toLowerCase() === "pluxee"
+              ? "Pluxee"
+              : p.mode?.toLowerCase() === "neft"
+                ? "neft"
+                : (p.subMode || "").trim(),
         amount: Number(p.amount),
         remarks: (p.remarks || "").trim(),
       })),
@@ -1749,7 +1784,7 @@ const handlePrintBill = async (billData: any) => {
     console.log("FINAL DATA:", finalPayload);
 
     try {
-         setKotLoading(true); 
+      setKotLoading(true);
       await settleBill(finalPayload);
 
       toast.success("Bill Settled Successfully ✅");
@@ -1760,10 +1795,9 @@ const handlePrintBill = async (billData: any) => {
     } catch (err) {
       console.error(err);
       toast.error("Settlement Failed ❌");
+    } finally {
+      setKotLoading(false); // ✅ Hide Loader
     }
-     finally {
-    setKotLoading(false); // ✅ Hide Loader
-  }
   };
   const handleKotToNcKot = async () => {
     const isNC = selectedNcCode !== null && selectedNcCode !== 0;
@@ -1929,8 +1963,8 @@ const handlePrintBill = async (billData: any) => {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
-        onUpdateQty={updateQty}
-        totalAmount={totalAmount}
+          onUpdateQty={updateQty}
+          totalAmount={totalAmount}
           directbill={directbill}
           isFastfood={tableData.fastFood}
           showPast={showPast}
@@ -1978,8 +2012,8 @@ const handlePrintBill = async (billData: any) => {
 
       {/* MOBILE CART */}
       <MobileCartButton
-      totalAmount={totalAmount}
-          onUpdateQty={updateQty}
+        totalAmount={totalAmount}
+        onUpdateQty={updateQty}
         directbill={directbill}
         isFastfood={tableData.fastFood}
         showPast={showPast}
@@ -2118,6 +2152,7 @@ const handlePrintBill = async (billData: any) => {
       />
       <PaymentModal
         paymentModes={paymentModes}
+        roomServiceList={roomServiceList}
         isOpen={openUnsettledPayment}
         unbillData={unbillData}
         billNo={unbillData?.[0]?.ksmBillNo || 0}

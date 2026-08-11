@@ -14,25 +14,11 @@ import PaymentCard from "./PaymentCard";
 import HourlySalesChart from "./HourlySalesChart";
 import PaymentPieChart from "./PaymentPieChart";
 import OutletPerformance from "./OutletPerformance";
-import { getBillGenerationSettings, getChanceSheetReport, getKotRegisterReport, getNCKOTReport, getVoidKOTReport } from "../api/services/products.service";
+import { getBillGenerationSettings, getChanceSheetReport, getDashboardData, getKotRegisterReport, getNCKOTReport, getVoidKOTReport } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import Loader from "./Loader";
 import OutletDayWiseChart from "./OutletDayWiseChart";
 
-const cards = [
-  {
-    title: "Today Sales",
-    amount: "₹ 0",
-  },
-  {
-    title: "This Month Sales",
-    amount: "₹ 0",
-  },
-  {
-    title: "This Year Sales",
-    amount: "₹ 0",
-  },
-];
 
 function SalesDashboard() {
 const [dashboardData, setDashboardData] = useState<any[]>([]);
@@ -45,6 +31,38 @@ const [toDate, setToDate] = useState(today);
 const [kotRegisterData, setKotRegisterData] = useState<any[]>([]);
 const [voidKotData, setVoidKotData] = useState<any[]>([]);
 const {appData} = useAppContext();
+
+const [salesSummary, setSalesSummary] = useState({
+  dailySalesTotal: 0,
+  monthlySalesTotal: 0,
+  yearlySalesTotal: 0,
+});
+const cards = [
+  {
+    title: "Today Sales",
+    amount: `₹ ${Number(
+      salesSummary.dailySalesTotal || 0
+    ).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+    })}`,
+  },
+  {
+    title: "This Month Sales",
+    amount: `₹ ${Number(
+      salesSummary.monthlySalesTotal || 0
+    ).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+    })}`,
+  },
+  {
+    title: "This Year Sales",
+    amount: `₹ ${Number(
+      salesSummary.yearlySalesTotal || 0
+    ).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+    })}`,
+  },
+];
   useEffect(() => {
     loadDashboard();
   }, [fromDate, toDate]);
@@ -54,11 +72,14 @@ const loadDashboard = async () => {
     setLoading(true);
 const res = await getBillGenerationSettings(appData?.user?.branch_code);
 const [
+  dashboardSummaryResponse,
   dashboardResponse,
   ncKotResponse,
   kotRegisterResponse,
   voidKotResponse,
 ] = await Promise.all([
+  getDashboardData(appData?.user?.branch_code),
+
   getChanceSheetReport(
     fromDate,
     toDate,
@@ -91,6 +112,7 @@ const [
     "All"
   ),
 ]);
+setSalesSummary(dashboardSummaryResponse);
 
 setDashboardData(dashboardResponse.data || []);
 setRemarksSummary(dashboardResponse.remarksSummary || []);
