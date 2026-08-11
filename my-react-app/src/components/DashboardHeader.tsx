@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutGrid,
@@ -42,39 +40,39 @@ const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showDayPopup, setShowDayPopup] = useState(false);
-const [showBillCancelPopup, setShowBillCancelPopup] =
-  useState(false);
+  const [showBillCancelPopup, setShowBillCancelPopup] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const { userRights,clearAppData } = useAppContext();
-  console.log("userRightslllllllllllll",userRights);
-  const [license,setlicense] = useState<any>({})
+  const { userRights, clearAppData } = useAppContext();
+  console.log("userRightslllllllllllll", userRights);
+  const [license, setlicense] = useState<any>({});
   const [showLicensePopup, setShowLicensePopup] = useState(false);
-const [remainingDays, setRemainingDays] = useState(0);
-const [showLicenseAlert, setShowLicenseAlert] = useState(false);
-useEffect(() => {
-  if (!license?.validDate) return;
+  const [remainingDays, setRemainingDays] = useState(0);
+  const [showLicenseAlert, setShowLicenseAlert] = useState(false);
+  useEffect(() => {
+    if (!license?.validDate) return;
 
-  const today = new Date();
+    const today = new Date();
 
-  const expiry = new Date(license.validDate);
+    const expiry = new Date(license.validDate);
 
-  // remove time
-  today.setHours(0, 0, 0, 0);
-  expiry.setHours(0, 0, 0, 0);
+    // remove time
+    today.setHours(0, 0, 0, 0);
+    expiry.setHours(0, 0, 0, 0);
 
-  const diff =
-    Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const diff = Math.ceil(
+      (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
-  setRemainingDays(diff);
+    setRemainingDays(diff);
 
-  if (diff <= 15 && diff >= 0) {
-    setShowLicenseAlert(true);
-  } else {
-    setShowLicenseAlert(false);
-  }
-}, [license]);
-const {appData}= useAppContext()
+    if (diff <= 15 && diff >= 0) {
+      setShowLicenseAlert(true);
+    } else {
+      setShowLicenseAlert(false);
+    }
+  }, [license]);
+  const { appData } = useAppContext();
   const hasMainMenuAccess = (menuName: string) => {
     return userRights?.some(
       (menu: any) =>
@@ -82,27 +80,26 @@ const {appData}= useAppContext()
         menu.menuPermission === true,
     );
   };
-const handleNavigation = (name: string) => {
+  const handleNavigation = (name: string) => {
+    if (name === "Day Close") {
+      setShowDayPopup(true);
+      setActiveMenu(null);
+      return;
+    }
 
-  if (name === "Day Close") {
-    setShowDayPopup(true);
+    if (name === "Bill Cancellation") {
+      setShowBillCancelPopup(true);
+      setActiveMenu(null);
+      return;
+    }
+
+    if (routeMap[name]) {
+      navigate(routeMap[name]);
+    }
+
     setActiveMenu(null);
-    return;
-  }
-
-  if (name === "Bill Cancellation") {
-    setShowBillCancelPopup(true);
-    setActiveMenu(null);
-    return;
-  }
-
-  if (routeMap[name]) {
-    navigate(routeMap[name]);
-  }
-
-  setActiveMenu(null);
-  setMobileOpen(false);
-};
+    setMobileOpen(false);
+  };
 
   const hasSubMenuAccess = (subMenuName: string) => {
     return userRights?.some((menu: any) =>
@@ -128,174 +125,173 @@ const handleNavigation = (name: string) => {
       permissionName: "Day Close",
     },
     {
-  name: "Bill Cancellation",
-  icon: Ban,
-  permissionName: "Bill Cancellation",
-  
-},
-{
-  name: "Settlement Modification",
-  icon: FilePen,
-  permissionName: "Settlement Modification",
-},
-  {
-    name: "Company Bill Settlement",
-    icon: CreditCard,
-    permissionName: "Company Bill Settlement",
-  },
-  {
-  name: "Bill Modification",
-  icon: FilePen,
-  permissionName: "Bill Modification",
-},
+      name: "Bill Cancellation",
+      icon: Ban,
+      permissionName: "Bill Cancellation",
+    },
+    {
+      name: "Settlement Modification",
+      icon: FilePen,
+      permissionName: "Settlement Modification",
+    },
+    {
+      name: "Company Bill Settlement",
+      icon: CreditCard,
+      permissionName: "Company Bill Settlement",
+    },
+    {
+      name: "Bill Modification",
+      icon: FilePen,
+      permissionName: "Bill Modification",
+    },
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
-const posReportItems = [
-  {
-    name: "DailySales",
-    icon: BarChart3,
-    permissionName: "DailySales",
-  },
-  {
-    name: "ItemSales",
-    icon: FileText,
-    permissionName: "ItemSales",
-  },
-  {
-    name: "ChanceSheet",
-    icon: ClipboardList,
-    permissionName: "ChanceSheet",
-  },
-  {
-    name: "VoidKot",
-    icon: Ban,
-    permissionName: "VoidKot",
-  },
-  {
-    name: "Nckot",
-    icon: FileX,
-    permissionName: "Nckot",
-  },
-  {
-    name: "BillReprint",
-    icon: FileText,
-    permissionName: "BillReprint",
-  },
-  {
-    name: "KotCancellation",
-    icon: Ban,
-    permissionName: "KotCancellation",
-  },
-  {
-    name: "BillCancellation",
-    icon: Ban,
-    permissionName: "BillCancellation",
-  },
-  {
-    name: "DailysaleCategorywise",
-    icon: BarChart3,
-    permissionName: "DailysaleCategorywise",
-  },
-  {
-    name: "KotRegister",
-    icon: ClipboardList,
-    permissionName: "KotRegister",
-  },
-];
+  const posReportItems = [
+    {
+      name: "DailySales",
+      icon: BarChart3,
+      permissionName: "DailySales",
+    },
+    {
+      name: "ItemSales",
+      icon: FileText,
+      permissionName: "ItemSales",
+    },
+    {
+      name: "ChanceSheet",
+      icon: ClipboardList,
+      permissionName: "ChanceSheet",
+    },
+    {
+      name: "VoidKot",
+      icon: Ban,
+      permissionName: "VoidKot",
+    },
+    {
+      name: "Nckot",
+      icon: FileX,
+      permissionName: "Nckot",
+    },
+    {
+      name: "BillReprint",
+      icon: FileText,
+      permissionName: "BillReprint",
+    },
+    {
+      name: "KotCancellation",
+      icon: Ban,
+      permissionName: "KotCancellation",
+    },
+    {
+      name: "BillCancellation",
+      icon: Ban,
+      permissionName: "BillCancellation",
+    },
+    {
+      name: "DailysaleCategorywise",
+      icon: BarChart3,
+      permissionName: "DailysaleCategorywise",
+    },
+    {
+      name: "KotRegister",
+      icon: ClipboardList,
+      permissionName: "KotRegister",
+    },
+  ];
   // 🔥 MASTER DROPDOWN
-const masterItems = [
-  {
-    name: "Company Master",
-    icon: Building2,
-    permissionName: "Company Master",
-  },
-  {
-    name: "Tax Master",
-    icon: Receipt,
-    permissionName: "Tax Master",
-  },
-  {
-    name: "Tax Description Master",
-    icon: Receipt,
-    permissionName: "Tax Description Master",
-  },
-  {
-    name: "Department Master",
-    icon: Boxes,
-    permissionName: "Department Master",
-  },
-  {
-    name: "Outlet Master",
-    icon: Store,
-    permissionName: "Outlet Master",
-  },
-  {
-    name: "Item Master",
-    icon: Package,
-    permissionName: "Item Master",
-  },
-  {
-    name: "Unit Master",
-    icon: Package,
-    permissionName: "Unit Master",
-  },
-  {
-    name: "Group Master",
-    icon: Package,
-    permissionName: "Group Master",
-  },
-  {
-    name: "Category Master",
-    icon: Package,
-    permissionName: "Category Master",
-  },
-  {
-    name: "Sub Category Master",
-    icon: Package,
-    permissionName: "Sub Category Master",
-  },
-  {
-    name: "Steward Master",
-    icon: UserCog,
-    permissionName: "Steward Master",
-  },
-  {
-    name: "NC Department Master",
-    icon: ShieldCheck,
-    permissionName: "NC Department Master",
-  },
-  {
-    name: "Printing Master",
-    icon: Printer,
-    permissionName: "Printing Master",
-  },
-  {
-    name: "Table Master",
-    icon: LayoutGrid,
-    permissionName: "Table Master",
-  },
-  {
-    name: "Property Master",
-    icon: Building2,
-    permissionName: "Property Master",
-  },
-  {
-    name: "Branch Master",
-    icon: Store,
-    permissionName: "Branch Master",
-  },
-  {
-    name: "User Master",
-    icon: UserCog,
-    permissionName: "User Master",
-  },
-  {
-    name: "User Rights Master",
-    icon: ShieldCheck,
-    permissionName: "User Rights Master",
-  },
-];
+  const masterItems = [
+    {
+      name: "Company Master",
+      icon: Building2,
+      permissionName: "Company Master",
+    },
+    {
+      name: "Tax Master",
+      icon: Receipt,
+      permissionName: "Tax Master",
+    },
+    {
+      name: "Tax Description Master",
+      icon: Receipt,
+      permissionName: "Tax Description Master",
+    },
+    {
+      name: "Department Master",
+      icon: Boxes,
+      permissionName: "Department Master",
+    },
+    {
+      name: "Outlet Master",
+      icon: Store,
+      permissionName: "Outlet Master",
+    },
+    {
+      name: "Item Master",
+      icon: Package,
+      permissionName: "Item Master",
+    },
+    {
+      name: "Unit Master",
+      icon: Package,
+      permissionName: "Unit Master",
+    },
+    {
+      name: "Group Master",
+      icon: Package,
+      permissionName: "Group Master",
+    },
+    {
+      name: "Category Master",
+      icon: Package,
+      permissionName: "Category Master",
+    },
+    {
+      name: "Sub Category Master",
+      icon: Package,
+      permissionName: "Sub Category Master",
+    },
+    {
+      name: "Steward Master",
+      icon: UserCog,
+      permissionName: "Steward Master",
+    },
+    {
+      name: "NC Department Master",
+      icon: ShieldCheck,
+      permissionName: "NC Department Master",
+    },
+    {
+      name: "Printing Master",
+      icon: Printer,
+      permissionName: "Printing Master",
+    },
+    {
+      name: "Table Master",
+      icon: LayoutGrid,
+      permissionName: "Table Master",
+    },
+    {
+      name: "Property Master",
+      icon: Building2,
+      permissionName: "Property Master",
+    },
+    {
+      name: "Branch Master",
+      icon: Store,
+      permissionName: "Branch Master",
+    },
+    {
+      name: "User Master",
+      icon: UserCog,
+      permissionName: "User Master",
+    },
+    {
+      name: "User Rights Master",
+      icon: ShieldCheck,
+      permissionName: "User Rights Master",
+    },
+  ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [
     {
@@ -304,22 +300,22 @@ const masterItems = [
       permissionName: "Outlet Items Details",
     },
   ];
-// 🔥 UTILITY DROPDOWN
-const utilityItems = [
-  {
-    name: "Utility Settings",
-    icon: Wrench,
-    permissionName: "Utility Settings",
-  },
+  // 🔥 UTILITY DROPDOWN
+  const utilityItems = [
     {
-    name: "Printer Settings",
-    icon: Printer,
-    permissionName: "Printer Settings",
-  },
-];
+      name: "Utility Settings",
+      icon: Wrench,
+      permissionName: "Utility Settings",
+    },
+    {
+      name: "Printer Settings",
+      icon: Printer,
+      permissionName: "Printer Settings",
+    },
+  ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
-      Dashboard: "/dashboard",
+    Dashboard: "/dashboard",
     "Bill Modification": "/pos/BillModification",
     KotRegister: "/pos/kotregister",
     "Touch Screen": "/NewOrder",
@@ -352,39 +348,34 @@ const utilityItems = [
     BillCancellation: "/pos/billcancellation",
     DailysaleCategorywise: "/pos/dailysalecategorywise",
     "Utility Settings": "/utility/utilitysettings",
-    "Settlement Modification":
-  "/pos/settlementmodification",
-    "Company Bill Settlement":
-    "/pos/companybillsettlement",
-      "Printer Settings": "/utility/printersettings",
-    
+    "Settlement Modification": "/pos/settlementmodification",
+    "Company Bill Settlement": "/pos/companybillsettlement",
+    "Printer Settings": "/utility/printersettings",
   };
-
-
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-clearAppData()
-     navigate("/", { replace: true });
+    clearAppData();
+    navigate("/", { replace: true });
   };
 
   const toggleMenu = (menu: string) => {
     setActiveMenu((prev) => (prev === menu ? null : menu));
   };
 
-  const getProductKeyDetails=async()=>{
-    debugger
-    try{
-      const res= await getProductLicenceKey(appData?.user?.branch_code)
+  const getProductKeyDetails = async () => {
+    debugger;
+    try {
+      const res = await getProductLicenceKey(appData?.user?.branch_code);
       console.log(res.data);
-      setlicense(res.data)
-    }catch(e:any){
-toast.error(e)
+      setlicense(res.data);
+    } catch (e: any) {
+      toast.error(e);
     }
-  }
+  };
 
   useEffect(() => {
-getProductKeyDetails()
+    getProductKeyDetails();
 
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -408,11 +399,6 @@ getProductKeyDetails()
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEsc);
     };
-
-
-
-
-    
   }, []);
 
   return (
@@ -441,15 +427,15 @@ getProductKeyDetails()
           <div className="hidden sm:flex items-center gap-6">
             {/* MASTER DROPDOWN */}
             {/* DASHBOARD */}
-{hasMainMenuAccess("Dashboard") && (
-  <button
-    onClick={() => navigate("/RealDashboard")}
-    className="flex items-center gap-2 hover:text-green-600"
-  >
-    <Home size={16} className="text-green-600" />
-    Dashboard
-  </button>
-)}
+            {hasMainMenuAccess("Dashboard") && (
+              <button
+                onClick={() => navigate("/RealDashboard")}
+                className="flex items-center gap-2 hover:text-green-600"
+              >
+                <Home size={16} className="text-green-600" />
+                Dashboard
+              </button>
+            )}
             {hasMainMenuAccess("Master") && (
               <div className="relative">
                 <button
@@ -593,43 +579,39 @@ getProductKeyDetails()
             )}
 
             {/* UTILITY DROPDOWN */}
-{hasMainMenuAccess("POS Reports") && (
-  <div className="relative">
-    <button
-      onClick={() => toggleMenu("UTILITY")}
-      className="flex items-center gap-2 hover:text-teal-600"
-    >
-      <Wrench size={16} className="text-teal-600" />
-      Utility
-      <ChevronDown size={14} />
-    </button>
+            {hasMainMenuAccess("POS Reports") && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu("UTILITY")}
+                  className="flex items-center gap-2 hover:text-teal-600"
+                >
+                  <Wrench size={16} className="text-teal-600" />
+                  Utility
+                  <ChevronDown size={14} />
+                </button>
 
-    {activeMenu === "UTILITY" && (
-      <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
-        {utilityItems
-          .filter((item) =>
-            hasSubMenuAccess(item.permissionName)
-          )
-          .map((item, index) => {
-            const Icon = item.icon;
+                {activeMenu === "UTILITY" && (
+                  <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+                    {utilityItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, index) => {
+                        const Icon = item.icon;
 
-            return (
-              <div
-                key={index}
-                onClick={() =>
-                  handleNavigation(item.name)
-                }
-                className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
-              >
-                <Icon size={16} />
-                {item.name}
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <Icon size={16} />
+                            {item.name}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
-            );
-          })}
-      </div>
-    )}
-  </div>
-)}
+            )}
             {/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
@@ -644,35 +626,30 @@ getProductKeyDetails()
         </div>
 
         {/* LOGOUT */}
-        
-<div className="flex items-center gap-3">
 
-  {showLicenseAlert && (
-    <button
-      onClick={() => setShowLicensePopup(true)}
-      className="relative"
-      title="License Expiring Soon"
-    >
-      <ShieldAlert
-        size={28}
-        className="text-red-600 animate-pulse"
-      />
+        <div className="flex items-center gap-3">
+          {showLicenseAlert && (
+            <button
+              onClick={() => setShowLicensePopup(true)}
+              className="relative"
+              title="License Expiring Soon"
+            >
+              <ShieldAlert size={28} className="text-red-600 animate-pulse" />
 
-      <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-bold">
-        !
-      </span>
-    </button>
-  )}
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-[10px] w-5 h-5 flex items-center justify-center font-bold">
+                !
+              </span>
+            </button>
+          )}
 
-  <button
-    onClick={handleLogout}
-    className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
-  >
-    <LogOut size={16} />
-    <span>Logout</span>
-  </button>
-
-</div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* MOBILE MENU */}
@@ -813,41 +790,37 @@ getProductKeyDetails()
           )}
 
           {/* UTILITY */}
-{hasMainMenuAccess("POS Reports") && (
-  <div>
-    <button
-      onClick={() => toggleMenu("UTILITY")}
-      className="flex justify-between w-full"
-    >
-      Utility <ChevronDown size={16} />
-    </button>
-
-    {activeMenu === "UTILITY" && (
-      <div className="ml-4 mt-2 flex flex-col gap-2">
-        {utilityItems
-          .filter((item) =>
-            hasSubMenuAccess(item.permissionName)
-          )
-          .map((item, i) => {
-            const Icon = item.icon;
-
-            return (
+          {hasMainMenuAccess("POS Reports") && (
+            <div>
               <button
-                key={i}
-                onClick={() =>
-                  handleNavigation(item.name)
-                }
-                className="flex items-center gap-2"
+                onClick={() => toggleMenu("UTILITY")}
+                className="flex justify-between w-full"
               >
-                <Icon size={16} />
-                {item.name}
+                Utility <ChevronDown size={16} />
               </button>
-            );
-          })}
-      </div>
-    )}
-  </div>
-)}
+
+              {activeMenu === "UTILITY" && (
+                <div className="ml-4 mt-2 flex flex-col gap-2">
+                  {utilityItems
+                    .filter((item) => hasSubMenuAccess(item.permissionName))
+                    .map((item, i) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleNavigation(item.name)}
+                          className="flex items-center gap-2"
+                        >
+                          <Icon size={16} />
+                          {item.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
           {/* 
           <button>Inventory Reports</button>
           <button>Utility</button> */}
@@ -859,71 +832,57 @@ getProductKeyDetails()
       />
 
       <BillCancellationPopup
-  isOpen={showBillCancelPopup}
-  onClose={() =>
-    setShowBillCancelPopup(false)
-  }
-/>
-{showLicensePopup && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+        isOpen={showBillCancelPopup}
+        onClose={() => setShowBillCancelPopup(false)}
+      />
+      {showLicensePopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-xl w-[400px] p-6 shadow-xl relative">
+            <button
+              onClick={() => setShowLicensePopup(false)}
+              className="absolute right-3 top-3"
+            >
+              <XCircle className="text-gray-500" />
+            </button>
 
-    <div className="bg-white rounded-xl w-[400px] p-6 shadow-xl relative">
+            <div className="flex justify-center mb-4">
+              <ShieldAlert size={60} className="text-red-600 animate-bounce" />
+            </div>
 
-      <button
-        onClick={() => setShowLicensePopup(false)}
-        className="absolute right-3 top-3"
-      >
-        <XCircle className="text-gray-500" />
-      </button>
+            <h2 className="text-xl font-bold text-center text-red-600">
+              License Expiring Soon
+            </h2>
 
-      <div className="flex justify-center mb-4">
-        <ShieldAlert
-          size={60}
-          className="text-red-600 animate-bounce"
-        />
-      </div>
+            <p className="text-center mt-4 text-gray-700">
+              Your license will expire in
+              <span className="font-bold text-red-600">
+                {" "}
+                {remainingDays} day{remainingDays !== 1 ? "s" : ""}
+              </span>
+            </p>
 
-      <h2 className="text-xl font-bold text-center text-red-600">
-        License Expiring Soon
-      </h2>
+            <div className="mt-5 bg-red-50 rounded-lg p-3">
+              <p>
+                <strong>Expiry Date :</strong>{" "}
+                {new Date(license.validDate).toLocaleDateString()}
+              </p>
 
-      <p className="text-center mt-4 text-gray-700">
+              <p className="mt-2">
+                Please renew your license before it expires.
+              </p>
+            </div>
 
-        Your license will expire in
-
-        <span className="font-bold text-red-600">
-          {" "}
-          {remainingDays} day{remainingDays !== 1 ? "s" : ""}
-        </span>
-
-      </p>
-
-      <div className="mt-5 bg-red-50 rounded-lg p-3">
-
-        <p>
-          <strong>Expiry Date :</strong>{" "}
-          {new Date(license.validDate).toLocaleDateString()}
-        </p>
-
-        <p className="mt-2">
-          Please renew your license before it expires.
-        </p>
-
-      </div>
-
-      <div className="mt-6 flex justify-center">
-        <button
-          onClick={() => setShowLicensePopup(false)}
-          className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-        >
-          OK
-        </button>
-      </div>
-
-    </div>
-
-  </div>
-)}
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setShowLicensePopup(false)}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
