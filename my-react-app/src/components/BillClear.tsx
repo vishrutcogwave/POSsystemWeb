@@ -204,7 +204,7 @@ export default function BillClear() {
   const handleBillSettlement = async (
     paymentData: any
   ) => {
-    debugger;
+    
 
     const {
       paymentDetails,

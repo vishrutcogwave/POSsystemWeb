@@ -35,7 +35,7 @@ const navigate=useNavigate()
 
 const fetchData = async () => {
   try {
-    debugger
+    
     setLoading(true);
 
     const data = await getOpenDayDetails(

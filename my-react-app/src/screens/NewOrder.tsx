@@ -126,7 +126,7 @@ const NewOrder: React.FC = () => {
 };
   /* ---------------- FETCH DATA ---------------- */
   const fetchData = async () => {
-    debugger;
+    
     setLoading(true);
     try {
       const data: Outlet[] = await getCombinedOutletAndTableMasterList(

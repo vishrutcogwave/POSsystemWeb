@@ -5104,7 +5104,7 @@ export const updateInventorySubCategoryMaster = async (payload: {
   trDate: string;
   branch_Code: string;
 }) => {
-  debugger;
+  
   try {
     const token = localStorage.getItem("token");
  
@@ -5165,7 +5165,7 @@ export const deleteInventorySubCategoryMaster = async (
 =========================== */
  
 export const getStoreMasterList = async (branch: string) => {
-  debugger;
+  
   try {
     const token = localStorage.getItem("token");
  
@@ -5241,7 +5241,7 @@ export const updateStoreMaster = async (payload: {
   branch_Code: string;
 }) => {
   try {
-    debugger;
+    
     const token = localStorage.getItem("token");
  
     const response = await api.put(
@@ -5272,7 +5272,7 @@ export const updateStoreMaster = async (payload: {
 =========================== */
  
 export const deleteStoreMaster = async (storeId: number, branch: string) => {
-  debugger;
+  
   try {
     const token = localStorage.getItem("token");
  

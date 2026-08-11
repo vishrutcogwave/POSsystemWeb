@@ -399,7 +399,7 @@ const DashboardHeader: React.FC = () => {
   };
 
   const getProductKeyDetails = async () => {
-    debugger;
+    
     try {
       const res = await getProductLicenceKey(appData?.user?.branch_code);
       console.log(res.data);

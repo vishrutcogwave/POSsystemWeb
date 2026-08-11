@@ -533,7 +533,7 @@ function OrderingBoard() {
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
-    debugger;
+    
     if (tableData.fastFood) return; // 🔥 SKIP EVERYTHING
 
     if (tableData.status === "Available") {
@@ -820,7 +820,7 @@ function OrderingBoard() {
     }
 
     //     try {
-    //       debugger
+    //       
     //   const validateRes = await validateDay({
     //     posEntryDate: openDayDetails?.shiftDate|| "",
     //     branchcode: appData?.user?.branch_code || "",
@@ -1132,7 +1132,7 @@ function OrderingBoard() {
         isUpdate: 0,
       },
     };
-debugger
+
     try {
       const res = await createOrder(payload);
       console.log("FastFood KOT:", res);
@@ -1714,7 +1714,7 @@ debugger
   /* ---------------- UI ---------------- */
 
   const handleBillSettlement = async (data: any) => {
-    debugger
+    
     const { paymentDetails, difference, payableAmount,isTransferToRoom,selectedTransferRoom } = data;
     console.log(selectedTransferRoom);
     

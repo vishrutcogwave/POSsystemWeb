@@ -113,7 +113,7 @@ export default function SettlementBillModify() {
   // ================= MODIFY SETTLEMENT =================
 
   const handleSettlementModify = async () => {
-    debugger
+    
     if (!paymentData?.paymentDetails?.length) {
       toast.error("Select payment mode");
 
@@ -311,7 +311,7 @@ fetchRoomServiceList()
     }
   }, [selectedOutlet, fromDate, toDate]);
   const handlePaymentSubmit = async (data: any) => {
-    debugger
+    
     setPaymentData(data);
 
     setOpenPayment(false);
