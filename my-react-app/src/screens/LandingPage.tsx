@@ -53,7 +53,7 @@ import SupplierMaster from "./SupplierMaster";
 import InventoryItemCategory from "./InventoryItemCategory";
 import InventoryItemSubCategory from "./InventoryItemSubCategory";
 import InventoryStore from "./InventoryStore";
-import InventoryItemStore from "./InventoryItemStore";
+import InventoryItemStore from "./Inventoryitemstore";
 
 function LandingPage() {
   const location = useLocation();
