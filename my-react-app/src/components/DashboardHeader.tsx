@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutGrid,
@@ -28,6 +26,7 @@ import {
   CreditCard,
   FilePen,
   Home,
+  Truck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -38,13 +37,11 @@ const DashboardHeader: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showDayPopup, setShowDayPopup] = useState(false);
-const [showBillCancelPopup, setShowBillCancelPopup] =
-  useState(false);
+  const [showBillCancelPopup, setShowBillCancelPopup] = useState(false);
   const navigate = useNavigate();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { userRights } = useAppContext();
-  console.log("userRightslllllllllllll",userRights);
-  
+  console.log("userRightslllllllllllll", userRights);
 
   const hasMainMenuAccess = (menuName: string) => {
     return userRights?.some(
@@ -53,27 +50,26 @@ const [showBillCancelPopup, setShowBillCancelPopup] =
         menu.menuPermission === true,
     );
   };
-const handleNavigation = (name: string) => {
+  const handleNavigation = (name: string) => {
+    if (name === "Day Close") {
+      setShowDayPopup(true);
+      setActiveMenu(null);
+      return;
+    }
 
-  if (name === "Day Close") {
-    setShowDayPopup(true);
+    if (name === "Bill Cancellation") {
+      setShowBillCancelPopup(true);
+      setActiveMenu(null);
+      return;
+    }
+
+    if (routeMap[name]) {
+      navigate(routeMap[name]);
+    }
+
     setActiveMenu(null);
-    return;
-  }
-
-  if (name === "Bill Cancellation") {
-    setShowBillCancelPopup(true);
-    setActiveMenu(null);
-    return;
-  }
-
-  if (routeMap[name]) {
-    navigate(routeMap[name]);
-  }
-
-  setActiveMenu(null);
-  setMobileOpen(false);
-};
+    setMobileOpen(false);
+  };
 
   const hasSubMenuAccess = (subMenuName: string) => {
     return userRights?.some((menu: any) =>
@@ -99,174 +95,173 @@ const handleNavigation = (name: string) => {
       permissionName: "Day Close",
     },
     {
-  name: "Bill Cancellation",
-  icon: Ban,
-  permissionName: "Bill Cancellation",
-  
-},
-{
-  name: "Settlement Modification",
-  icon: FilePen,
-  permissionName: "Settlement Modification",
-},
-  {
-    name: "Company Bill Settlement",
-    icon: CreditCard,
-    permissionName: "Company Bill Settlement",
-  },
-  {
-  name: "Bill Modification",
-  icon: FilePen,
-  permissionName: "Bill Modification",
-},
+      name: "Bill Cancellation",
+      icon: Ban,
+      permissionName: "Bill Cancellation",
+    },
+    {
+      name: "Settlement Modification",
+      icon: FilePen,
+      permissionName: "Settlement Modification",
+    },
+    {
+      name: "Company Bill Settlement",
+      icon: CreditCard,
+      permissionName: "Company Bill Settlement",
+    },
+    {
+      name: "Bill Modification",
+      icon: FilePen,
+      permissionName: "Bill Modification",
+    },
   ];
 
   // 🔥 POS Reports dropdown items WITH ICONS
-const posReportItems = [
-  {
-    name: "DailySales",
-    icon: BarChart3,
-    permissionName: "DailySales",
-  },
-  {
-    name: "ItemSales",
-    icon: FileText,
-    permissionName: "ItemSales",
-  },
-  {
-    name: "ChanceSheet",
-    icon: ClipboardList,
-    permissionName: "ChanceSheet",
-  },
-  {
-    name: "VoidKot",
-    icon: Ban,
-    permissionName: "VoidKot",
-  },
-  {
-    name: "Nckot",
-    icon: FileX,
-    permissionName: "Nckot",
-  },
-  {
-    name: "BillReprint",
-    icon: FileText,
-    permissionName: "BillReprint",
-  },
-  {
-    name: "KotCancellation",
-    icon: Ban,
-    permissionName: "KotCancellation",
-  },
-  {
-    name: "BillCancellation",
-    icon: Ban,
-    permissionName: "BillCancellation",
-  },
-  {
-    name: "DailysaleCategorywise",
-    icon: BarChart3,
-    permissionName: "DailysaleCategorywise",
-  },
-  {
-    name: "KotRegister",
-    icon: ClipboardList,
-    permissionName: "KotRegister",
-  },
-];
+  const posReportItems = [
+    {
+      name: "DailySales",
+      icon: BarChart3,
+      permissionName: "DailySales",
+    },
+    {
+      name: "ItemSales",
+      icon: FileText,
+      permissionName: "ItemSales",
+    },
+    {
+      name: "ChanceSheet",
+      icon: ClipboardList,
+      permissionName: "ChanceSheet",
+    },
+    {
+      name: "VoidKot",
+      icon: Ban,
+      permissionName: "VoidKot",
+    },
+    {
+      name: "Nckot",
+      icon: FileX,
+      permissionName: "Nckot",
+    },
+    {
+      name: "BillReprint",
+      icon: FileText,
+      permissionName: "BillReprint",
+    },
+    {
+      name: "KotCancellation",
+      icon: Ban,
+      permissionName: "KotCancellation",
+    },
+    {
+      name: "BillCancellation",
+      icon: Ban,
+      permissionName: "BillCancellation",
+    },
+    {
+      name: "DailysaleCategorywise",
+      icon: BarChart3,
+      permissionName: "DailysaleCategorywise",
+    },
+    {
+      name: "KotRegister",
+      icon: ClipboardList,
+      permissionName: "KotRegister",
+    },
+  ];
   // 🔥 MASTER DROPDOWN
-const masterItems = [
-  {
-    name: "Company Master",
-    icon: Building2,
-    permissionName: "Company Master",
-  },
-  {
-    name: "Tax Master",
-    icon: Receipt,
-    permissionName: "Tax Master",
-  },
-  {
-    name: "Tax Description Master",
-    icon: Receipt,
-    permissionName: "Tax Description Master",
-  },
-  {
-    name: "Department Master",
-    icon: Boxes,
-    permissionName: "Department Master",
-  },
-  {
-    name: "Outlet Master",
-    icon: Store,
-    permissionName: "Outlet Master",
-  },
-  {
-    name: "Item Master",
-    icon: Package,
-    permissionName: "Item Master",
-  },
-  {
-    name: "Unit Master",
-    icon: Package,
-    permissionName: "Unit Master",
-  },
-  {
-    name: "Group Master",
-    icon: Package,
-    permissionName: "Group Master",
-  },
-  {
-    name: "Category Master",
-    icon: Package,
-    permissionName: "Category Master",
-  },
-  {
-    name: "Sub Category Master",
-    icon: Package,
-    permissionName: "Sub Category Master",
-  },
-  {
-    name: "Steward Master",
-    icon: UserCog,
-    permissionName: "Steward Master",
-  },
-  {
-    name: "NC Department Master",
-    icon: ShieldCheck,
-    permissionName: "NC Department Master",
-  },
-  {
-    name: "Printing Master",
-    icon: Printer,
-    permissionName: "Printing Master",
-  },
-  {
-    name: "Table Master",
-    icon: LayoutGrid,
-    permissionName: "Table Master",
-  },
-  {
-    name: "Property Master",
-    icon: Building2,
-    permissionName: "Property Master",
-  },
-  {
-    name: "Branch Master",
-    icon: Store,
-    permissionName: "Branch Master",
-  },
-  {
-    name: "User Master",
-    icon: UserCog,
-    permissionName: "User Master",
-  },
-  {
-    name: "User Rights Master",
-    icon: ShieldCheck,
-    permissionName: "User Rights Master",
-  },
-];
+  const masterItems = [
+    {
+      name: "Company Master",
+      icon: Building2,
+      permissionName: "Company Master",
+    },
+    {
+      name: "Tax Master",
+      icon: Receipt,
+      permissionName: "Tax Master",
+    },
+    {
+      name: "Tax Description Master",
+      icon: Receipt,
+      permissionName: "Tax Description Master",
+    },
+    {
+      name: "Department Master",
+      icon: Boxes,
+      permissionName: "Department Master",
+    },
+    {
+      name: "Outlet Master",
+      icon: Store,
+      permissionName: "Outlet Master",
+    },
+    {
+      name: "Item Master",
+      icon: Package,
+      permissionName: "Item Master",
+    },
+    {
+      name: "Unit Master",
+      icon: Package,
+      permissionName: "Unit Master",
+    },
+    {
+      name: "Group Master",
+      icon: Package,
+      permissionName: "Group Master",
+    },
+    {
+      name: "Category Master",
+      icon: Package,
+      permissionName: "Category Master",
+    },
+    {
+      name: "Sub Category Master",
+      icon: Package,
+      permissionName: "Sub Category Master",
+    },
+    {
+      name: "Steward Master",
+      icon: UserCog,
+      permissionName: "Steward Master",
+    },
+    {
+      name: "NC Department Master",
+      icon: ShieldCheck,
+      permissionName: "NC Department Master",
+    },
+    {
+      name: "Printing Master",
+      icon: Printer,
+      permissionName: "Printing Master",
+    },
+    {
+      name: "Table Master",
+      icon: LayoutGrid,
+      permissionName: "Table Master",
+    },
+    {
+      name: "Property Master",
+      icon: Building2,
+      permissionName: "Property Master",
+    },
+    {
+      name: "Branch Master",
+      icon: Store,
+      permissionName: "Branch Master",
+    },
+    {
+      name: "User Master",
+      icon: UserCog,
+      permissionName: "User Master",
+    },
+    {
+      name: "User Rights Master",
+      icon: ShieldCheck,
+      permissionName: "User Rights Master",
+    },
+  ];
   // 🔥 SUB MASTER DROPDOWN
   const subMasterItems = [
     {
@@ -275,22 +270,51 @@ const masterItems = [
       permissionName: "Outlet Items Details",
     },
   ];
-// 🔥 UTILITY DROPDOWN
-const utilityItems = [
-  {
-    name: "Utility Settings",
-    icon: Wrench,
-    permissionName: "Utility Settings",
-  },
+  // 🔥 UTILITY DROPDOWN
+  const utilityItems = [
     {
-    name: "Printer Settings",
-    icon: Printer,
-    permissionName: "Printer Settings",
-  },
-];
+      name: "Utility Settings",
+      icon: Wrench,
+      permissionName: "Utility Settings",
+    },
+    {
+      name: "Printer Settings",
+      icon: Printer,
+      permissionName: "Printer Settings",
+    },
+  ];
+
+  // 🔥 INVENTORY DROPDOWN
+  const inventoryItems = [
+    {
+      name: "Supplier Master",
+      icon: Truck,
+      permissionName: "Supplier",
+    },
+    {
+      name: "Inventory Category",
+      icon: Package,
+      permissionName: "InventoryItemCategory",
+    },
+    {
+      name: "Inventory Sub Category",
+      icon: Package,
+      permissionName: "InventoryItemSubCategory",
+    },
+    {
+      name: "Inventory Store",
+      icon: Store,
+      permissionName: "Inventory Store",
+    },
+    {
+      name: "Inventory Item Store",
+      icon: Store,
+      permissionName: "Inventory Item Store",
+    },
+  ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
-      Dashboard: "/dashboard",
+    Dashboard: "/dashboard",
     "Bill Modification": "/pos/BillModification",
     KotRegister: "/pos/kotregister",
     "Touch Screen": "/NewOrder",
@@ -323,15 +347,15 @@ const utilityItems = [
     BillCancellation: "/pos/billcancellation",
     DailysaleCategorywise: "/pos/dailysalecategorywise",
     "Utility Settings": "/utility/utilitysettings",
-    "Settlement Modification":
-  "/pos/settlementmodification",
-    "Company Bill Settlement":
-    "/pos/companybillsettlement",
-      "Printer Settings": "/utility/printersettings",
-    
+    "Settlement Modification": "/pos/settlementmodification",
+    "Company Bill Settlement": "/pos/companybillsettlement",
+    "Printer Settings": "/utility/printersettings",
+    "Supplier Master": "/inventory/supplier",
+    "Inventory Category": "/inventory/inventoryitemcategory",
+    "Inventory Sub Category": "/inventory/inventoryitemsubcategory",
+    "Inventory Store": "/inventory/inventorystore",
+    "Inventory Item Store": "/inventory/inventoryitemstore",
   };
-
-
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -393,15 +417,15 @@ const utilityItems = [
           <div className="hidden sm:flex items-center gap-6">
             {/* MASTER DROPDOWN */}
             {/* DASHBOARD */}
-{hasMainMenuAccess("Dashboard") && (
-  <button
-    onClick={() => navigate("/RealDashboard")}
-    className="flex items-center gap-2 hover:text-green-600"
-  >
-    <Home size={16} className="text-green-600" />
-    Dashboard
-  </button>
-)}
+            {hasMainMenuAccess("Dashboard") && (
+              <button
+                onClick={() => navigate("/RealDashboard")}
+                className="flex items-center gap-2 hover:text-green-600"
+              >
+                <Home size={16} className="text-green-600" />
+                Dashboard
+              </button>
+            )}
             {hasMainMenuAccess("Master") && (
               <div className="relative">
                 <button
@@ -545,43 +569,73 @@ const utilityItems = [
             )}
 
             {/* UTILITY DROPDOWN */}
-{hasMainMenuAccess("POS Reports") && (
-  <div className="relative">
-    <button
-      onClick={() => toggleMenu("UTILITY")}
-      className="flex items-center gap-2 hover:text-teal-600"
-    >
-      <Wrench size={16} className="text-teal-600" />
-      Utility
-      <ChevronDown size={14} />
-    </button>
+            {hasMainMenuAccess("POS Reports") && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu("UTILITY")}
+                  className="flex items-center gap-2 hover:text-teal-600"
+                >
+                  <Wrench size={16} className="text-teal-600" />
+                  Utility
+                  <ChevronDown size={14} />
+                </button>
 
-    {activeMenu === "UTILITY" && (
-      <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
-        {utilityItems
-          .filter((item) =>
-            hasSubMenuAccess(item.permissionName)
-          )
-          .map((item, index) => {
-            const Icon = item.icon;
+                {activeMenu === "UTILITY" && (
+                  <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+                    {utilityItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, index) => {
+                        const Icon = item.icon;
 
-            return (
-              <div
-                key={index}
-                onClick={() =>
-                  handleNavigation(item.name)
-                }
-                className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
-              >
-                <Icon size={16} />
-                {item.name}
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <Icon size={16} />
+                            {item.name}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
-            );
-          })}
-      </div>
-    )}
-  </div>
-)}
+            )}
+            {/* INVENTORY DROPDOWN */}
+            {hasMainMenuAccess("Inventory") && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu("INVENTORY")}
+                  className="flex items-center gap-2 hover:text-indigo-600"
+                >
+                  <Boxes size={16} className="text-indigo-600" />
+                  Inventory Master
+                  <ChevronDown size={14} />
+                </button>
+
+                {activeMenu === "INVENTORY" && (
+                  <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+                    {inventoryItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, index) => {
+                        const Icon = item.icon;
+
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <Icon size={16} />
+                            {item.name}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
             {/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
@@ -596,13 +650,13 @@ const utilityItems = [
         </div>
 
         {/* LOGOUT */}
-    <button
-  onClick={handleLogout}
-  className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
->
-  <LogOut size={16} />
-  <span>Logout</span>
-</button>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2 px-3 py-1.5 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          <LogOut size={16} />
+          <span>Logout</span>
+        </button>
       </div>
 
       {/* MOBILE MENU */}
@@ -743,41 +797,69 @@ const utilityItems = [
           )}
 
           {/* UTILITY */}
-{hasMainMenuAccess("POS Reports") && (
-  <div>
-    <button
-      onClick={() => toggleMenu("UTILITY")}
-      className="flex justify-between w-full"
-    >
-      Utility <ChevronDown size={16} />
-    </button>
-
-    {activeMenu === "UTILITY" && (
-      <div className="ml-4 mt-2 flex flex-col gap-2">
-        {utilityItems
-          .filter((item) =>
-            hasSubMenuAccess(item.permissionName)
-          )
-          .map((item, i) => {
-            const Icon = item.icon;
-
-            return (
+          {hasMainMenuAccess("POS Reports") && (
+            <div>
               <button
-                key={i}
-                onClick={() =>
-                  handleNavigation(item.name)
-                }
-                className="flex items-center gap-2"
+                onClick={() => toggleMenu("UTILITY")}
+                className="flex justify-between w-full"
               >
-                <Icon size={16} />
-                {item.name}
+                Utility <ChevronDown size={16} />
               </button>
-            );
-          })}
-      </div>
-    )}
-  </div>
-)}
+
+              {activeMenu === "UTILITY" && (
+                <div className="ml-4 mt-2 flex flex-col gap-2">
+                  {utilityItems
+                    .filter((item) => hasSubMenuAccess(item.permissionName))
+                    .map((item, i) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleNavigation(item.name)}
+                          className="flex items-center gap-2"
+                        >
+                          <Icon size={16} />
+                          {item.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+          {/* INVENTORY */}
+          {hasMainMenuAccess("Inventory") && (
+            <div>
+              <button
+                onClick={() => toggleMenu("INVENTORY")}
+                className="flex justify-between w-full"
+              >
+                Inventory Master <ChevronDown size={16} />
+              </button>
+
+              {activeMenu === "INVENTORY" && (
+                <div className="ml-4 mt-2 flex flex-col gap-2">
+                  {inventoryItems
+                    .filter((item) => hasSubMenuAccess(item.permissionName))
+                    .map((item, i) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleNavigation(item.name)}
+                          className="flex items-center gap-2"
+                        >
+                          <Icon size={16} />
+                          {item.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
           {/* 
           <button>Inventory Reports</button>
           <button>Utility</button> */}
@@ -789,11 +871,9 @@ const utilityItems = [
       />
 
       <BillCancellationPopup
-  isOpen={showBillCancelPopup}
-  onClose={() =>
-    setShowBillCancelPopup(false)
-  }
-/>
+        isOpen={showBillCancelPopup}
+        onClose={() => setShowBillCancelPopup(false)}
+      />
     </div>
   );
 };

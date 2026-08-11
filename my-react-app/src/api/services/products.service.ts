@@ -10,12 +10,12 @@ export const getBranchesByUser = async (username: string) => {
 };
 export const getCombinedOutletAndTableMasterList = async (
   branchcode: string,
-  usercode:number
+  usercode: number,
 ) => {
   const response = await api.get(
     "/api/POS/GetCombinedOutletandtablemasterList",
     {
-      params: { usercode,branchcode },
+      params: { usercode, branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -77,12 +77,16 @@ export const createOrder = async (orderData: any) => {
   }
 };
 
-export const getSubTables = async (outlet: string, tableno: string,branchcode:string) => {
+export const getSubTables = async (
+  outlet: string,
+  tableno: string,
+  branchcode: string,
+) => {
   const response = await api.get("/api/POS/getsubtables", {
     params: {
       outlet,
       tableno,
-      branchcode
+      branchcode,
     },
     headers: {
       Authorization: `Bearer ${token}`,
@@ -96,7 +100,7 @@ export const getOldCart = async (
   tableno: string | null,
   outlet: string,
   subtable: string,
-  branchCode:any
+  branchCode: any,
 ) => {
   const response = await api.get("/api/POS/GetOldCart", {
     params: {
@@ -113,26 +117,20 @@ export const getOldCart = async (
   return response.data;
 };
 
-export const getNCKOT = async (
-  branchcode: string
-) => {
-  const token =
-    localStorage.getItem("token");
+export const getNCKOT = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
 
-  const response = await api.get(
-    "/api/POS/getnckot",
-    {
-      params: {
-        branchcode,
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await api.get("/api/POS/getnckot", {
+    params: {
+      branchcode,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   return response.data;
-};;
+};
 
 export const getSpecialInfo = async () => {
   const response = await api.get("/api/POS/GetSpecialInfo", {
@@ -262,8 +260,8 @@ export const getDailySalesReport = async (
 export const getChanceSheetReport = async (
   fromdate: string,
   todate: string,
-  outlet:  string,
-  branchcode:string
+  outlet: string,
+  branchcode: string,
 ) => {
   const token = localStorage.getItem("token");
 
@@ -272,7 +270,7 @@ export const getChanceSheetReport = async (
       fromdate,
       todate,
       outlet,
-      branchcode
+      branchcode,
     },
     headers: {
       Authorization: `Bearer ${token}`,
@@ -557,9 +555,12 @@ export const getReprintBill = async (payload: {
   return response.data;
 };
 
-export const getOpenDayDetails = async (userid: number | string,branchCode:string) => {
+export const getOpenDayDetails = async (
+  userid: number | string,
+  branchCode: string,
+) => {
   const response = await api.post("/api/KOT/GetOpenDayDetais", null, {
-    params: { userid,branchCode }, // ✅ IMPORTANT FIX
+    params: { userid, branchCode }, // ✅ IMPORTANT FIX
     headers: {
       Authorization: `Bearer ${localStorage.getItem("token")}`,
     },
@@ -592,7 +593,7 @@ export const dayOpen = async (payload: {
   userId: number;
   systemTime: string;
   systemDate: string;
-  branchCode:string
+  branchCode: string;
 }) => {
   try {
     const response = await api.post("/api/KOT/Dayopen", payload, {
@@ -718,12 +719,12 @@ export const updateCompany = async (payload: {
   }
 };
 
-export const deleteCompany = async (id: number,branchcode:string) => {
+export const deleteCompany = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteCompany", {
-      params: { id,branchcode }, // ✅ query param
+      params: { id, branchcode }, // ✅ query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -810,12 +811,12 @@ export const updateTaxMaster = async (payload: {
   }
 };
 
-export const deleteTaxMaster = async (id: number,branchcode:string) => {
+export const deleteTaxMaster = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTaxMaster", {
-      params: { id ,branchcode}, // 🔥 query param
+      params: { id, branchcode }, // 🔥 query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -913,12 +914,12 @@ export const updateTaxDescription = async (payload: {
   }
 };
 
-export const deleteTaxDescription = async (id: number,branchcode:string) => {
+export const deleteTaxDescription = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTaxDescription", {
-      params: { id,branchcode }, // ✅ query param
+      params: { id, branchcode }, // ✅ query param
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1012,12 +1013,12 @@ export const updateDepartment = async (payload: {
   }
 };
 
-export const deleteDepartment = async (id: number,branchcode:string) => {
+export const deleteDepartment = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteDepartment", {
-      params: { id ,branchcode}, // 👈 ?id=6
+      params: { id, branchcode }, // 👈 ?id=6
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1034,6 +1035,7 @@ export const deleteDepartment = async (id: number,branchcode:string) => {
   }
 };
 export const getOutletList = async (branchcode: string) => {
+  debugger;
   try {
     const token = localStorage.getItem("token");
 
@@ -1099,12 +1101,12 @@ export const updateOutlet = async (payload: any) => {
   }
 };
 
-export const deleteOutlet = async (id: number,branchcode:string) => {
+export const deleteOutlet = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteOutlet", {
-      params: { id,branchcode }, // 👉 this creates ?id=89
+      params: { id, branchcode }, // 👉 this creates ?id=89
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1784,12 +1786,12 @@ export const updateUnitMaster = async (payload: {
   }
 };
 
-export const deleteUnitMaster = async (id: number,branchcode:string) => {
+export const deleteUnitMaster = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteUnitMaster", {
-      params: { id,branchcode },
+      params: { id, branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -1892,12 +1894,12 @@ export const updateGroupMaster = async (payload: {
   }
 };
 
-export const deleteGroupMaster = async (id: number,branchcode:string) => {
+export const deleteGroupMaster = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteGroupMaster", {
-      params: { id,branchcode },
+      params: { id, branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2008,12 +2010,12 @@ export const updateCategoryMaster = async (payload: {
   }
 };
 
-export const deleteCategoryMaster = async (id: number,branchcode:string) => {
+export const deleteCategoryMaster = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteCategoryMaster", {
-      params: { id ,branchcode},
+      params: { id, branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2126,12 +2128,15 @@ export const updateSubCategoryMaster = async (payload: {
   }
 };
 
-export const deleteSubCategoryMaster = async (id: number,branchcode:string) => {
+export const deleteSubCategoryMaster = async (
+  id: number,
+  branchcode: string,
+) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteSubCategoryMaster", {
-      params: { id,branchcode },
+      params: { id, branchcode },
       headers: {
         Authorization: `Bearer ${token}`,
         accept: "*/*",
@@ -2595,12 +2600,12 @@ export const updateTableMaster = async (payload: {
   }
 };
 
-export const deleteTableMaster = async (id: number,branchcode:string) => {
+export const deleteTableMaster = async (id: number, branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.delete("/api/Master/DeleteTableMaster", {
-      params: { id ,branchcode},
+      params: { id, branchcode },
 
       headers: {
         Authorization: `Bearer ${token}`,
@@ -4269,7 +4274,7 @@ export const getModifyBillData = async (
   oltcode: number | string,
   billno: number | string,
   branchcode: string | null,
-  settledDate:string
+  settledDate: string,
 ) => {
   try {
     const response = await api.get("/api/POS/GetModifyBillData", {
@@ -4278,7 +4283,7 @@ export const getModifyBillData = async (
         oltcode,
         billno,
         branchcode,
-        settledDate
+        settledDate,
       },
       headers: {
         accept: "*/*",
@@ -4377,48 +4382,33 @@ export const saveOrUpdateCatGroupSettings = async (payload: {
   }
 };
 
-
-
 export const modifyBillCalculation = async (payload: any) => {
   const token = localStorage.getItem("token");
 
-  const response = await api.post(
-    "/api/POS/ModifyBillCalculation",
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        accept: "*/*",
-      },
-    }
-  );
+  const response = await api.post("/api/POS/ModifyBillCalculation", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      accept: "*/*",
+    },
+  });
 
   return response.data;
 };
 
-
-
-export const modifyBillCreateUpdate = async (
-  payload: any
-) => {
+export const modifyBillCreateUpdate = async (payload: any) => {
   const token = localStorage.getItem("token");
 
-  const response = await api.post(
-    "/api/POS/ModifyBillCreateUpdate",
-    payload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        accept: "*/*",
-      },
-    }
-  );
+  const response = await api.post("/api/POS/ModifyBillCreateUpdate", payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      accept: "*/*",
+    },
+  });
 
   return response.data;
 };
-
 
 export const saveOrUpdatePrinterSettings = async (payload: {
   printerName: string;
@@ -4440,30 +4430,23 @@ export const saveOrUpdatePrinterSettings = async (payload: {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error saving printer settings:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
-
-
-
-
-
-
-
 export const deleteCatGroupSettings = async (
   grpCode: number,
   oltCode: number,
-  branchcode: string
+  branchcode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -4480,14 +4463,14 @@ export const deleteCatGroupSettings = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error deleting cart group:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -4496,7 +4479,7 @@ export const deleteCatGroupSettings = async (
 export const deleteprintGroupSettings = async (
   grpCode: number,
   oltCode: number,
-  branchcode: string
+  branchcode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -4513,19 +4496,18 @@ export const deleteprintGroupSettings = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error deleting cart group:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
-
 
 export const saveBillGenerationSettings = async (payload: {
   branchCode: string;
@@ -4544,28 +4526,21 @@ export const saveBillGenerationSettings = async (payload: {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error saving Bill Generation Settings:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
 
-
-
-
-
-
-export const getBillGenerationSettings = async (
-  branchCode: string
-) => {
+export const getBillGenerationSettings = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -4579,21 +4554,19 @@ export const getBillGenerationSettings = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching Bill Generation Settings:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
-
 
 export const saveKotConfiguration = async (payload: {
   oltCode: number;
@@ -4612,62 +4585,47 @@ export const saveKotConfiguration = async (payload: {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error saving KOT Configuration:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
-
-
-
-
-
-
-
-
-
 export const getKotConfiguration = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.get(
-      "/api/UtilitySetting/GetKotConfiguration",
-      {
-        params: {
-          Branch_Code: branchCode,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.get("/api/UtilitySetting/GetKotConfiguration", {
+      params: {
+        Branch_Code: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching KOT Configuration:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
 export const getBillConfiguration = async (branchCode: string) => {
-  const response = await api.get(
-    "/api/UtilitySetting/GetBillConfiguration",
-    {
-      params: { Branch_Code: branchCode },
-    }
-  );
+  const response = await api.get("/api/UtilitySetting/GetBillConfiguration", {
+    params: { Branch_Code: branchCode },
+  });
 
   return response.data;
 };
@@ -4677,12 +4635,11 @@ export const saveBillConfiguration = async (payload: {
 }) => {
   const response = await api.post(
     "/api/UtilitySetting/BillConfiguration",
-    payload
+    payload,
   );
 
   return response.data;
 };
-
 
 export const getOnlinePaymentType = async () => {
   const token = localStorage.getItem("token");
@@ -4697,7 +4654,6 @@ export const getOnlinePaymentType = async () => {
   return response.data;
 };
 
-
 export const validateDay = async (payload: {
   posEntryDate: string;
   branchcode: string;
@@ -4705,25 +4661,19 @@ export const validateDay = async (payload: {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.post(
-      "/api/POS/validateday",
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.post("/api/POS/validateday", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
-      toast.error(  error.response?.data?.message);
-  
+    toast.error(error.response?.data?.message);
   }
 };
-
 
 export const getAdjustmentLoadData = async (payload: {
   branchCode: string;
@@ -4737,23 +4687,19 @@ export const getAdjustmentLoadData = async (payload: {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.post(
-      "/api/POS/GetAdjustmentLoadData",
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.post("/api/POS/GetAdjustmentLoadData", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error loading adjustment data:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
@@ -4762,7 +4708,7 @@ export const getAdjustmentLoadData = async (payload: {
 export const getCalculateRankAmount = async (
   rankId: number,
   totalAmount: number,
-  branchCode: string
+  branchCode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -4783,44 +4729,456 @@ export const getCalculateRankAmount = async (
   } catch (error: any) {
     console.error(
       "Error calculating rank amount:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
-
-
 export const newBiddingCheck = async (
   rankId: number,
   bidAmount: number,
-  branchCode: string
+  branchCode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.post(
-      "/api/POS/NewbiddingCheck",
-      null,
-      {
-        params: {
-          RankId: rankId,
-          BidAmount: bidAmount,
-          BranchCode: branchCode,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.post("/api/POS/NewbiddingCheck", null, {
+      params: {
+        RankId: rankId,
+        BidAmount: bidAmount,
+        BranchCode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error checking bidding:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
+    throw error;
+  }
+};
+
+export const getSupplierList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/api/InventoryMaster/GetSupplierList", {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
+    console.log("Supplier List Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching supplier list:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+export const createSupplier = async (payload: any) => {
+  const response = await api.post(
+    "/api/InventoryMaster/CreateSupplier",
+    payload,
+  );
+
+  return response.data;
+};
+
+export const updateSupplier = async (payload: any) => {
+  const response = await api.put(
+    "/api/InventoryMaster/UpdateSupplier",
+    payload,
+  );
+
+  return response.data;
+};
+
+export const deleteSupplier = async (id: number, branchcode: string) => {
+  const response = await api.delete("/api/InventoryMaster/DeleteSupplier", {
+    params: {
+      id,
+      branchcode,
+    },
+  });
+
+  return response.data;
+};
+
+export const getInventoryItemCategoryList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryCategoryMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+    console.log(response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching category master list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const createInventoryItemCategory = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  imageUrl: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.log("Status:", error.response?.status);
+    console.log("Response:", error.response?.data);
+    throw error;
+  }
+};
+export const updateInventoryItemCategory = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  imageUrl: string;
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.put(
+    "/api/InventoryMaster/UpdateInventoryCategoryMaster",
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const deleteInventoryItemCategory = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryCategoryMaster",
+      {
+        params: { id, branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting category master:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const getInventorySubCategoryMasterList = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+  const response = await api.get(
+    "/api/InventoryMaster/GetInventorySubCategoryMasterList",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const createInventorySubCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  subCatCode: number;
+  subCatName: string;
+  userCode: string;
+  trDate: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventorySubCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating sub category:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const updateInventorySubCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  subCatCode: number;
+  subCatName: string;
+  userCode: string;
+  trDate: string;
+  branch_Code: string;
+}) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventorySubCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating sub category:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const deleteInventorySubCategoryMaster = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventorySubCategoryMaster",
+      {
+        params: { id, branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting sub category:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+/* ===========================
+      GET STORE LIST
+=========================== */
+
+export const getStoreMasterList = async (branch: string) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryStoreMasterList",
+      {
+        params: { branch },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    console.log(response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching store master list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+/* ===========================
+      CREATE STORE
+=========================== */
+
+export const createStoreMaster = async (payload: {
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryStoreMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+/* ===========================
+      UPDATE STORE
+=========================== */
+
+export const updateStoreMaster = async (payload: {
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+}) => {
+  try {
+    debugger;
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventoryStoreMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+/* ===========================
+      DELETE STORE
+=========================== */
+
+export const deleteStoreMaster = async (storeId: number, branch: string) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryStoreMaster",
+      {
+        params: {
+          storeId,
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting store:",
+      error.response?.data || error.message,
+    );
+
     throw error;
   }
 };

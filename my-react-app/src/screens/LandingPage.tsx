@@ -44,7 +44,11 @@ import BillModify from "./BillModification";
 import PrinterSettings from "./PrinterSettings";
 import RealDashboard from "./RealDashboard";
 import BillAdjustment from "./BillAdjustment";
-
+import SupplierMaster from "./SupplierMaster";
+import InventoryItemCategory from "./InventoryItemCategory";
+import InventoryItemSubCategory from "./InventoryItemSubCategory";
+import InventoryStore from "./InventoryStore";
+import InventoryItemStore from "./InventoryItemStore";
 function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -105,114 +109,86 @@ function LandingPage() {
         <Route path="/pos/voidkot" element={<Voidkot />} />
         <Route path="/pos/nckot" element={<Nckot />} />
         <Route path="/pos/billreprint" element={<BilreprintReport />} />
-         <Route path="RealDashboard" element={<RealDashboard />} />
+        <Route path="RealDashboard" element={<RealDashboard />} />
 
         <Route
-  path="/pos/kotcancellation"
-  element={<KotCancellationReport />}
-/>
+          path="/pos/kotcancellation"
+          element={<KotCancellationReport />}
+        />
 
-<Route
-  path="/pos/billcancellation"
-  element={<BillCancellationReport />}
-/>
-<Route
-  path="/pos/BillModification"
-  element={<BillModify />}
-/>
-<Route
-  path="/utility/printersettings"
-  element={<PrinterSettings />}
-/>
+        <Route
+          path="/pos/billcancellation"
+          element={<BillCancellationReport />}
+        />
+        <Route path="/pos/BillModification" element={<BillModify />} />
+        <Route path="/utility/printersettings" element={<PrinterSettings />} />
         <Route path="/master/company" element={<CompanyCreation />} />
         <Route path="/master/tax" element={<TaxMaster />} />
         <Route path="/master/taxdescrip" element={<TaxDescriptionMaster />} />
         <Route path="/master/departmentmaster" element={<DepartmentMaster />} />
 
         <Route path="/master/outletmaster" element={<OutletMaster />} />
-     
-          <Route path="/master/itemmaster"  element={<ItemMaster />   } />
+
+        <Route path="/master/itemmaster" element={<ItemMaster />} />
         <Route
           path="/submaster/outletitemsdetails"
           element={<OutletItemsDetails />}
         />
+        <Route path="/item-master-import" element={<ItemMasterImport />} />
+        <Route path="/master/unitmaster" element={<UnitMaster />} />
         <Route
-  path="/item-master-import"
-  element={<ItemMasterImport />}
-/>
-<Route
-  path="/master/unitmaster"
-  element={<UnitMaster />}
-/>
-<Route path="/pos/dailysalecategorywise" element={ <DailysaleCategorywisereport /> } />
-<Route
-  path="/master/groupmaster"
-  element={<GroupMaster />}
-/>
-<Route
-  path="/pos/kotregister"
-  element={<KotRegister />}
-/>
-<Route
-  path="/master/categorymaster"
-  element={<CategoryMaster />}
-/>
-<Route
-  path="/billadjustment"
-  element={<BillAdjustment />}
-/>
-<Route
-  path="/utility/utilitysettings"
-  element={<UtilitySettings />}
-/>
-<Route
-  path="/master/subcategorymaster"
-  element={<SubCategoryMaster />}
-/>
-<Route
-  path="/user-menu-submenu-creation"
-  element={<UserMenuOrSubmenuCreation />}
-/>
-<Route
-  path="/master/stewardmaster"
-  element={<StewardMaster />}
-/>
-<Route
-  path="/pos/settlementmodification"
-  element={<SettlementBillModify />}
-/>
-<Route
-  path="/master/ncdepartmentmaster"
-  element={<NCDepartmentMaster />}
-/>
-<Route
-  path="/master/printingmaster"
-  element={<PrintingMaster />}
-/>
-<Route
-  path="/master/tablemaster"
-  element={<TableMaster />}
-/>
-<Route
-  path="/master/propertymaster"
-  element={<PropertyMasterCreation />}
-/>
-<Route
-  path="/master/branchmaster"
-  element={<BranchMaster />}
-/>
-<Route
-  path="/master/usermaster"
-  element={<UserMaster />}
-/>
-<Route
-  path="/master/userrightsmaster"
-  element={<UserRightsMaster />}
-/>
-<Route
-  path="/pos/companybillsettlement"
-  element={<CompanyBillSettlement />}
-/>
+          path="/pos/dailysalecategorywise"
+          element={<DailysaleCategorywisereport />}
+        />
+        <Route path="/master/groupmaster" element={<GroupMaster />} />
+        <Route path="/pos/kotregister" element={<KotRegister />} />
+        <Route path="/master/categorymaster" element={<CategoryMaster />} />
+        <Route path="/billadjustment" element={<BillAdjustment />} />
+        <Route path="/utility/utilitysettings" element={<UtilitySettings />} />
+        <Route
+          path="/master/subcategorymaster"
+          element={<SubCategoryMaster />}
+        />
+        <Route
+          path="/user-menu-submenu-creation"
+          element={<UserMenuOrSubmenuCreation />}
+        />
+        <Route path="/master/stewardmaster" element={<StewardMaster />} />
+        <Route
+          path="/pos/settlementmodification"
+          element={<SettlementBillModify />}
+        />
+        <Route
+          path="/master/ncdepartmentmaster"
+          element={<NCDepartmentMaster />}
+        />
+        <Route path="/master/printingmaster" element={<PrintingMaster />} />
+        <Route path="/master/tablemaster" element={<TableMaster />} />
+        <Route
+          path="/master/propertymaster"
+          element={<PropertyMasterCreation />}
+        />
+        <Route path="/master/branchmaster" element={<BranchMaster />} />
+        <Route path="/master/usermaster" element={<UserMaster />} />
+        <Route path="/master/userrightsmaster" element={<UserRightsMaster />} />
+        <Route
+          path="/pos/companybillsettlement"
+          element={<CompanyBillSettlement />}
+        />
+        <Route path="/inventory/supplier" element={<SupplierMaster />} />
+        <Route
+          path="/inventory/inventoryitemcategory"
+          element={<InventoryItemCategory />}
+        />
+        <Route
+          path="/inventory/inventoryitemsubcategory"
+          element={<InventoryItemSubCategory />}
+        />
+        <Route
+          path="/inventory/inventoryitemstore"
+          element={<InventoryItemStore />}
+        />
+        <Route path="/inventory/inventorystore" element={<InventoryStore />} />
       </Routes>
     </>
   );
