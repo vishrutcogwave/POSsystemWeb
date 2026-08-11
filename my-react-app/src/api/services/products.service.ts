@@ -1306,132 +1306,6 @@ export const GetPrintingMasterList = async (branchcode: string) => {
   return response.data;
 };
 
-//   export const createItemMaster = async (payload: {
-//   itemCode: number;
-//   itemName: string;
-//   catCode: string;
-//   subCatCode: string;
-//   grpCode: string;
-//   itemDiscountAllowed: boolean;
-//   itemRate: number;
-//   userCode: string;
-//   lastModify: string;
-//   unitCode: number;
-//   unitName: string;
-//   dep: string;
-//   depCode: string;
-//   taxCode: number;
-//   taxName: string;
-//   printDepartment: string;
-//   branchCode: string;
-//   sacCode: string;
-//   thumb: string;
-//   barcode: string;
-//   isVeg: boolean;
-// }) => {
-//   try {
-//     const token = localStorage.getItem("token");
-
-//     const response = await api.post(
-//       "/api/Master/CreateItemMaster",
-//       payload,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "Content-Type": "application/json",
-//           accept: "*/*",
-//         },
-//       }
-//     );
-
-//     return response.data;
-//   } catch (error: any) {
-//     console.error(
-//       "Error creating item master:",
-//       error.response?.data || error.message
-//     );
-//     throw error;
-//   }
-// };
-
-// export const updateItemMaster = async (payload: {
-//   itemCode: number;
-//   itemName: string;
-//   catCode: string;
-//   subCatCode: string;
-//   grpCode: string;
-//   itemDiscountAllowed: boolean;
-//   itemRate: number;
-//   userCode: string;
-//   lastModify: string;
-//   unitCode: number;
-//   unitName: string;
-//   dep: string;
-//   depCode: string;
-//   taxCode: number;
-//   taxName: string;
-//   printDepartment: string;
-//   branchCode: string;
-//   sacCode: string;
-//   thumb: string;
-//   barcode: string;
-//   isVeg: boolean;
-// }) => {
-//   try {
-//     const token = localStorage.getItem("token");
-
-//     const response = await api.put(
-//       "/api/Master/UpdateItemMaster",
-//       payload,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "Content-Type": "application/json",
-//           accept: "*/*",
-//         },
-//       }
-//     );
-
-//     return response.data;
-//   } catch (error: any) {
-//     console.error(
-//       "Error updating item master:",
-//       error.response?.data || error.message
-//     );
-//     throw error;
-//   }
-// };
-
-// export const deleteItemMaster = async (
-//   id: number,
-//   branchcode: string
-// ) => {
-//   try {
-//     const token = localStorage.getItem("token");
-
-//     const response = await api.delete(
-//       "/api/Master/DeleteItemMaster",
-//       {
-//         params: {
-//           id,
-//           branchcode,
-//         },
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           accept: "*/*",
-//         },
-//       }
-//     );
-
-//     return response.data;
-//   } catch (error: any) {
-//     console.error(
-//       "Error deleting item master:",
-//       error.response?.data || error.message
-//     );
-//     throw error;
-//   }
-// };
 
 export const createItemMaster = async (payload: {
   itemCode: number;
@@ -5006,3 +4880,424 @@ export const getUnsettledBillDetails = async (
     throw error;
   }
 };
+
+
+ 
+export const getSupplierList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.get("/api/InventoryMaster/GetSupplierList", {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
+    console.log("Supplier List Response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching supplier list:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+ 
+export const createSupplier = async (payload: any) => {
+  const response = await api.post(
+    "/api/InventoryMaster/CreateSupplier",
+    payload,
+  );
+ 
+  return response.data;
+};
+ 
+export const updateSupplier = async (payload: any) => {
+  const response = await api.put(
+    "/api/InventoryMaster/UpdateSupplier",
+    payload,
+  );
+ 
+  return response.data;
+};
+ 
+export const deleteSupplier = async (id: number, branchcode: string) => {
+  const response = await api.delete("/api/InventoryMaster/DeleteSupplier", {
+    params: {
+      id,
+      branchcode,
+    },
+  });
+ 
+  return response.data;
+};
+ 
+export const getInventoryItemCategoryList = async (branchcode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryCategoryMasterList",
+      {
+        params: { branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+    console.log(response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching category master list:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+export const createInventoryItemCategory = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  imageUrl: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.log("Status:", error.response?.status);
+    console.log("Response:", error.response?.data);
+    throw error;
+  }
+};
+export const updateInventoryItemCategory = async (payload: {
+  catCode: number;
+  catName: string;
+  userCode: string;
+  lastModify: string;
+  branch_Code: string;
+  imageUrl: string;
+}) => {
+  const token = localStorage.getItem("token");
+ 
+  const response = await api.put(
+    "/api/InventoryMaster/UpdateInventoryCategoryMaster",
+    payload,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        accept: "*/*",
+      },
+    },
+  );
+ 
+  return response.data;
+};
+ 
+export const deleteInventoryItemCategory = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryCategoryMaster",
+      {
+        params: { id, branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting category master:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+export const getInventorySubCategoryMasterList = async (branchcode: string) => {
+  const token = localStorage.getItem("token");
+  const response = await api.get(
+    "/api/InventoryMaster/GetInventorySubCategoryMasterList",
+    {
+      params: { branchcode },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    },
+  );
+ 
+  return response.data;
+};
+ 
+export const createInventorySubCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  subCatCode: number;
+  subCatName: string;
+  userCode: string;
+  trDate: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventorySubCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating sub category:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+export const updateInventorySubCategoryMaster = async (payload: {
+  catCode: number;
+  catName: string;
+  subCatCode: number;
+  subCatName: string;
+  userCode: string;
+  trDate: string;
+  branch_Code: string;
+}) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventorySubCategoryMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating sub category:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+export const deleteInventorySubCategoryMaster = async (
+  id: number,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventorySubCategoryMaster",
+      {
+        params: { id, branchcode },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting sub category:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+/* ===========================
+      GET STORE LIST
+=========================== */
+ 
+export const getStoreMasterList = async (branch: string) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryStoreMasterList",
+      {
+        params: { branch },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    console.log(response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching store master list:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+/* ===========================
+      CREATE STORE
+=========================== */
+ 
+export const createStoreMaster = async (payload: {
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryStoreMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating store:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+/* ===========================
+      UPDATE STORE
+=========================== */
+ 
+export const updateStoreMaster = async (payload: {
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+}) => {
+  try {
+    debugger;
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventoryStoreMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating store:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 
+/* ===========================
+      DELETE STORE
+=========================== */
+ 
+export const deleteStoreMaster = async (storeId: number, branch: string) => {
+  debugger;
+  try {
+    const token = localStorage.getItem("token");
+ 
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryStoreMaster",
+      {
+        params: {
+          storeId,
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+ 
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting store:",
+      error.response?.data || error.message,
+    );
+ 
+    throw error;
+  }
+};
+ 

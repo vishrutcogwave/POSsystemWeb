@@ -28,6 +28,7 @@ import {
   Home,
   ShieldAlert,
   XCircle,
+  Truck,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -112,6 +113,35 @@ const DashboardHeader: React.FC = () => {
   };
 
   console.log("userRightsfromtheocntext", userRights);
+
+
+   const inventoryItems = [
+    {
+      name: "Supplier Master",
+      icon: Truck,
+      permissionName: "Supplier",
+    },
+    {
+      name: "Inventory Category",
+      icon: Package,
+      permissionName: "InventoryItemCategory",
+    },
+    {
+      name: "Inventory Sub Category",
+      icon: Package,
+      permissionName: "InventoryItemSubCategory",
+    },
+    {
+      name: "Inventory Store",
+      icon: Store,
+      permissionName: "Inventory Store",
+    },
+    {
+      name: "Inventory Item Store",
+      icon: Store,
+      permissionName: "Inventory Item Store",
+    },
+  ];
   // 🔥 POS dropdown items
   const posDropdownItems = [
     {
@@ -351,6 +381,11 @@ const DashboardHeader: React.FC = () => {
     "Settlement Modification": "/pos/settlementmodification",
     "Company Bill Settlement": "/pos/companybillsettlement",
     "Printer Settings": "/utility/printersettings",
+        "Supplier Master": "/inventory/supplier",
+    "Inventory Category": "/inventory/inventoryitemcategory",
+    "Inventory Sub Category": "/inventory/inventoryitemsubcategory",
+    "Inventory Store": "/inventory/inventorystore",
+    "Inventory Item Store": "/inventory/inventoryitemstore",
   };
 
   const handleLogout = () => {
@@ -610,6 +645,40 @@ const DashboardHeader: React.FC = () => {
                       })}
                   </div>
                 )}
+           
+              </div>
+            )}
+                   {hasMainMenuAccess("Inventory") && (
+              <div className="relative">
+                <button
+                  onClick={() => toggleMenu("INVENTORY")}
+                  className="flex items-center gap-2 hover:text-indigo-600"
+                >
+                  <Boxes size={16} className="text-indigo-600" />
+                  Inventory Master
+                  <ChevronDown size={14} />
+                </button>
+ 
+                {activeMenu === "INVENTORY" && (
+                  <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+                    {inventoryItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, index) => {
+                        const Icon = item.icon;
+ 
+                        return (
+                          <div
+                            key={index}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <Icon size={16} />
+                            {item.name}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
               </div>
             )}
             {/* 
@@ -806,6 +875,38 @@ const DashboardHeader: React.FC = () => {
                     .map((item, i) => {
                       const Icon = item.icon;
 
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleNavigation(item.name)}
+                          className="flex items-center gap-2"
+                        >
+                          <Icon size={16} />
+                          {item.name}
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+              {/* INVENTORY */}
+          {hasMainMenuAccess("Inventory") && (
+            <div>
+              <button
+                onClick={() => toggleMenu("INVENTORY")}
+                className="flex justify-between w-full"
+              >
+                Inventory Master <ChevronDown size={16} />
+              </button>
+ 
+              {activeMenu === "INVENTORY" && (
+                <div className="ml-4 mt-2 flex flex-col gap-2">
+                  {inventoryItems
+                    .filter((item) => hasSubMenuAccess(item.permissionName))
+                    .map((item, i) => {
+                      const Icon = item.icon;
+ 
                       return (
                         <button
                           key={i}

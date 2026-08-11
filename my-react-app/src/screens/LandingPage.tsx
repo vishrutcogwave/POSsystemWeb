@@ -49,6 +49,11 @@ import Expired from "./Expired";
 import { useAppContext } from "../context/AppContext";
 import KOTClear from "../components/KOTClear";
 import BillClear from "../components/BillClear";
+import SupplierMaster from "./SupplierMaster";
+import InventoryItemCategory from "./InventoryItemCategory";
+import InventoryItemSubCategory from "./InventoryItemSubCategory";
+import InventoryItemStore from "./InventoryItemStore";
+import InventoryStore from "./InventoryStore";
 
 function LandingPage() {
   const location = useLocation();
@@ -183,6 +188,21 @@ function LandingPage() {
         />
         <Route path="/showKOTcancelscreen" element={<KOTClear />} />
         <Route path="/showBillsettlescreen" element={<BillClear />} />
+
+              <Route path="/inventory/supplier" element={<SupplierMaster />} />
+        <Route
+          path="/inventory/inventoryitemcategory"
+          element={<InventoryItemCategory />}
+        />
+        <Route
+          path="/inventory/inventoryitemsubcategory"
+          element={<InventoryItemSubCategory />}
+        />
+        <Route
+          path="/inventory/inventoryitemstore"
+          element={<InventoryItemStore />}
+        />
+        <Route path="/inventory/inventorystore" element={<InventoryStore />} />
       </Routes>
     </>
   );
