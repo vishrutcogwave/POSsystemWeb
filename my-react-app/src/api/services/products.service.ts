@@ -5473,3 +5473,126 @@ export const deleteInventoryItemStore = async (
     throw error;
   }
 };
+
+export const getInventoryMiscList = async (branch: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryMiscList",
+      {
+        params: {
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching inventory misc list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const createInventoryMisc = async (payload: {
+  chargeId: number;
+  chargeName: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryMisc",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating inventory misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const updateInventoryMisc = async (payload: {
+  chargeId: number;
+  chargeName: string;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventoryMisc",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating inventory misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+export const deleteInventoryMisc = async (
+  chargeId: number,
+  branch: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryMisc",
+      {
+        params: {
+          chargeId,
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting inventory misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

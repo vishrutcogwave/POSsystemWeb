@@ -53,7 +53,8 @@ import SupplierMaster from "./SupplierMaster";
 import InventoryItemCategory from "./InventoryItemCategory";
 import InventoryItemSubCategory from "./InventoryItemSubCategory";
 import InventoryStore from "./InventoryStore";
-import InventoryItemStore from "./Inventoryitemstore";
+import Miscellaneous from "./Miscellaneous";
+import InventoryItemStore from "./InventoryItemStore";
 
 function LandingPage() {
   const location = useLocation();
@@ -203,6 +204,7 @@ function LandingPage() {
           element={<InventoryItemStore />}
         />
         <Route path="/inventory/inventorystore" element={<InventoryStore />} />
+            <Route path="/inventory/Miscellaneous" element={<Miscellaneous />} />
       </Routes>
     </>
   );

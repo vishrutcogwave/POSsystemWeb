@@ -140,7 +140,11 @@ const DashboardHeader: React.FC = () => {
       name: "Inventory Item Store",
       icon: Store,
       permissionName: "Inventory Item Store",
-    },
+    },{
+    name: "Miscellaneous",
+    icon: Receipt,
+    permissionName: "Miscellaneous",
+  },
   ];
   // 🔥 POS dropdown items
   const posDropdownItems = [
@@ -386,6 +390,7 @@ const DashboardHeader: React.FC = () => {
     "Inventory Sub Category": "/inventory/inventoryitemsubcategory",
     "Inventory Store": "/inventory/inventorystore",
     "Inventory Item Store": "/inventory/inventoryitemstore",
+    "Miscellaneous":"/inventory/Miscellaneous"
   };
 
   const handleLogout = () => {
