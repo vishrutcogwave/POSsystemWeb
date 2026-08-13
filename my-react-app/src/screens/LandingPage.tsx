@@ -55,6 +55,7 @@ import InventoryItemSubCategory from "./InventoryItemSubCategory";
 import InventoryStore from "./InventoryStore";
 import Miscellaneous from "./Miscellaneous";
 import InventoryItemStore from "./InventoryItemStore";
+import InventoryGRNMiscellaneous from "./InventoryGRNMiscellaneous";
 
 function LandingPage() {
   const location = useLocation();
@@ -205,6 +206,10 @@ function LandingPage() {
         />
         <Route path="/inventory/inventorystore" element={<InventoryStore />} />
             <Route path="/inventory/Miscellaneous" element={<Miscellaneous />} />
+            <Route
+  path="/inventory/InventoryGRNMiscellaneous"
+  element={<InventoryGRNMiscellaneous />}
+/>
       </Routes>
     </>
   );

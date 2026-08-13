@@ -5596,3 +5596,131 @@ export const deleteInventoryMisc = async (
     throw error;
   }
 };
+
+
+export const getInventoryGRNMiscList = async (branch: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryGRNMiscList",
+      {
+        params: {
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Inventory GRN Misc list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const createInventoryGRNMisc = async (payload: {
+  grnId:number
+  pno: number;
+  chargeId: number;
+  chargeAmt: number;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryGRNMisc",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating Inventory GRN Misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const updateInventoryGRNMisc = async (payload: {
+  grnId:number;
+  pno: number;
+  chargeId: number;
+  chargeAmt: number;
+  branch_Code: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventoryGRNMisc",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating Inventory GRN Misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const deleteInventoryGRNMisc = async (
+  GRNId: number,
+  branch: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryGRNMisc",
+      {
+        params: {
+          GRNId,
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting Inventory GRN Misc:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
