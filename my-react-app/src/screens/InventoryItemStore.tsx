@@ -27,7 +27,7 @@ type InventoryItemStore = {
   catCode: number;
   subCatCode: number;
 
-  storeid: string;
+  storeid: string[];
   grpCode: string;
 
   unitCode: number;
@@ -124,6 +124,8 @@ export default function InventoryItemStore() {
 
   const [stores, setStores] =
     useState<StoreMasterModel[]>([]);
+    const [showStoreDropdown, setShowStoreDropdown] =
+  useState(false);
 
   const [taxes, setTaxes] =
     useState<TaxMasterModel[]>([]);
@@ -137,7 +139,7 @@ export default function InventoryItemStore() {
     catCode: 0,
     subCatCode: 0,
 
-    storeid: "",
+    storeid: [],
     grpCode: "",
 
     unitCode: 0,
@@ -213,11 +215,10 @@ export default function InventoryItemStore() {
       toast.error("Please enter Item Name");
       return false;
     }
-
-    if (!form.storeid.trim()) {
-      toast.error("Please select Store");
-      return false;
-    }
+if (form.storeid.length === 0) {
+  toast.error("Please select at least one Store");
+  return false;
+}
 
     if (!form.catCode) {
       toast.error("Please select Category");
@@ -399,8 +400,13 @@ export default function InventoryItemStore() {
           subCatCode:
             Number(item.subCatCode) || 0,
 
-          storeid:
-            item.storeid || "",
+     storeid:
+  item.storeid
+    ? String(item.storeid)
+        .split(",")
+        .map((id: string) => id.trim())
+        .filter(Boolean)
+    : [],
 
           grpCode:
             item.grpCode || "",
@@ -769,7 +775,7 @@ export default function InventoryItemStore() {
       catCode: 0,
       subCatCode: 0,
 
-      storeid: "",
+      storeid: [],
       grpCode: "",
 
       unitCode: 0,
@@ -903,8 +909,7 @@ export default function InventoryItemStore() {
         subCatCode:
           form.subCatCode,
 
-        storeid:
-          form.storeid,
+       storeid: form.storeid.join(","),
 
         grpCode:
           form.grpCode,
@@ -1004,7 +1009,7 @@ export default function InventoryItemStore() {
           itemName: "",
           catCode: 0,
           subCatCode: 0,
-          storeid: "",
+          storeid: [],
           grpCode: "",
           unitCode: 0,
           unitName: "",
@@ -1078,9 +1083,7 @@ export default function InventoryItemStore() {
         subCatCode:
           form.subCatCode,
 
-        storeid:
-          form.storeid,
-
+  storeid: form.storeid.join(","),
         grpCode:
           form.grpCode,
 
@@ -1183,7 +1186,7 @@ export default function InventoryItemStore() {
           itemName: "",
           catCode: 0,
           subCatCode: 0,
-          storeid: "",
+          storeid: [],
           grpCode: "",
           unitCode: 0,
           unitName: "",
@@ -1291,32 +1294,149 @@ export default function InventoryItemStore() {
 
             {/* STORE */}
 
-            <div className="flex flex-col">
-              <label className="text-sm mb-1">
-                Store
-              </label>
+{/* STORE MULTI SELECT */}
 
-              <select
-                name="storeid"
-                value={form.storeid}
-                onChange={handleChange}
-                className="border rounded-lg px-3 py-2"
-              >
-                <option value="">
-                  Select Store
-                </option>
+<div className="flex flex-col relative">
+  <label className="text-sm mb-1">
+    Store
+  </label>
 
-                {stores.map((store) => (
-                  <option
-                    key={store.storeId}
-                    value={store.storeId}
-                  >
-                    {store.storeName}
-                  </option>
-                ))}
-              </select>
-            </div>
+  {/* SELECT BOX */}
+  <div
+    onClick={() =>
+      setShowStoreDropdown((prev) => !prev)
+    }
+    className="
+      border rounded-lg px-3 py-2
+      bg-white cursor-pointer
+      h-[42px]
+      flex items-center justify-between
+    "
+  >
+    <span
+      className={`truncate ${
+        form.storeid.length === 0
+          ? "text-gray-500"
+          : "text-black"
+      }`}
+    >
+      {form.storeid.length > 0
+        ? form.storeid.join(", ")
+        : "Select Stores"}
+    </span>
 
+    {/* ARROW */}
+    <svg
+      className="w-4 h-4 text-gray-600 flex-shrink-0"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </div>
+
+  {/* DROPDOWN */}
+  {showStoreDropdown && (
+    <div
+      className="
+        absolute top-full left-0 mt-1
+        w-full bg-white border rounded-lg
+        shadow-lg z-50
+        max-h-60 overflow-y-auto
+      "
+    >
+      {/* SELECT ALL */}
+      <label
+        className="
+          flex items-center gap-2
+          px-3 py-2 border-b
+          hover:bg-gray-100 cursor-pointer
+        "
+      >
+        <input
+          type="checkbox"
+          checked={
+            stores.length > 0 &&
+            form.storeid.length === stores.length
+          }
+          onChange={(e) => {
+            if (e.target.checked) {
+              setForm((prev) => ({
+                ...prev,
+                storeid: stores.map(
+                  (store) =>
+                    String(store.storeId)
+                ),
+              }));
+            } else {
+              setForm((prev) => ({
+                ...prev,
+                storeid: [],
+              }));
+            }
+          }}
+        />
+
+        <span>Select All</span>
+      </label>
+
+      {/* STORE LIST */}
+      {stores.map((store) => {
+        const storeId = String(
+          store.storeId
+        );
+
+        const checked =
+          form.storeid.includes(storeId);
+
+        return (
+          <label
+            key={store.storeId}
+            className="
+              flex items-center gap-2
+              px-3 py-2
+              hover:bg-gray-100
+              cursor-pointer
+            "
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  setForm((prev) => ({
+                    ...prev,
+                    storeid: [
+                      ...prev.storeid,
+                      storeId,
+                    ],
+                  }));
+                } else {
+                  setForm((prev) => ({
+                    ...prev,
+                    storeid:
+                      prev.storeid.filter(
+                        (id) =>
+                          id !== storeId
+                      ),
+                  }));
+                }
+              }}
+            />
+
+            <span>{store.storeName}</span>
+          </label>
+        );
+      })}
+    </div>
+  )}
+</div>
             {/* CATEGORY */}
 
             <div className="flex flex-col">
