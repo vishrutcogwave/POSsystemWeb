@@ -56,6 +56,7 @@ import InventoryStore from "./InventoryStore";
 import Miscellaneous from "./Miscellaneous";
 import InventoryItemStore from "./InventoryItemStore";
 import InventoryGRNMiscellaneous from "./InventoryGRNMiscellaneous";
+import InventoryItemStoreImport from "./InventoryItemStoreImport";
 
 function LandingPage() {
   const location = useLocation();
@@ -209,6 +210,11 @@ function LandingPage() {
             <Route
   path="/inventory/InventoryGRNMiscellaneous"
   element={<InventoryGRNMiscellaneous />}
+/>
+
+          <Route
+  path="/inventory-item-store-import"
+  element={<InventoryItemStoreImport/>}
 />
       </Routes>
     </>

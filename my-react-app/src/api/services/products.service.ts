@@ -5724,3 +5724,134 @@ export const deleteInventoryGRNMisc = async (
     throw error;
   }
 };
+
+export const downloadInventoryItemStoreExcel = async (
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/DownloadExcelInventoryItemMaster",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+
+        responseType: "blob",
+
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    // Create download URL
+    const url = window.URL.createObjectURL(
+      new Blob([response.data])
+    );
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    // File name from API response
+    link.setAttribute(
+      "download",
+      "InventoryItemImport.xlsx"
+    );
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error: any) {
+    console.error(
+      "Error downloading Inventory Item Store excel:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+export const uploadInventoryItemStoreExcel = async (
+  file: File,
+  BranchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    const response = await api.post(
+      `/api/InventoryMaster/UploadFromExcelInventoryItemMaster?BranchCode=${BranchCode}`,
+      formData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error uploading Inventory Item Store excel:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const importInventoryItemStoreExcel = async (
+  items: any[],
+  userCode: string,
+  branchCode: string,
+  storeids: number[],
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const payload = {
+      items,
+      userCode,
+      branchCode,
+      storeids,
+    };
+
+    const response = await api.post(
+      "/api/InventoryMaster/ImportFromExcelInventoryItemMaster",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error importing Inventory Item Store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

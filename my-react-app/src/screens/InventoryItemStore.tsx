@@ -13,10 +13,12 @@ import {
   getNextIdCode,
   getStoreMasterList,
   getTaxMasterList,
+  downloadInventoryItemStoreExcel,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
+import { useNavigate } from "react-router-dom";
 
 type InventoryItemStore = {
   id: number;
@@ -129,6 +131,7 @@ export default function InventoryItemStore() {
 
   const [taxes, setTaxes] =
     useState<TaxMasterModel[]>([]);
+   const navigate = useNavigate()
 
   const [form, setForm] = useState<InventoryItemStore>({
     id: 0,
@@ -1239,17 +1242,90 @@ if (form.storeid.length === 0) {
 
         {/* HEADER */}
 
-        <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-              Inventory Item Store
-            </h1>
+      {/* HEADER */}
 
-            <p className="text-sm text-gray-500">
-              Manage inventory item store details
-            </p>
-          </div>
-        </div>
+<div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+
+  {/* LEFT SIDE */}
+  <div>
+    <h1 className="text-xl md:text-2xl font-bold text-gray-800">
+      Inventory Item Store
+    </h1>
+
+    <p className="text-sm text-gray-500">
+      Manage inventory item store details
+    </p>
+  </div>
+
+  {/* RIGHT SIDE BUTTONS */}
+  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+
+    {/* DOWNLOAD BUTTON */}
+    <button
+      onClick={async () => {
+        try {
+          setLoading(true);
+
+          await downloadInventoryItemStoreExcel(
+            appData?.user?.branch_code
+          );
+
+          toast.success(
+            "Excel downloaded successfully ✅"
+          );
+        } catch (err) {
+          console.error(err);
+
+          toast.error(
+            "Failed to download excel ❌"
+          );
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="
+        w-full sm:w-auto
+        bg-purple-600 hover:bg-purple-700
+        text-white
+        px-4 md:px-5
+        py-2.5
+        rounded-xl
+        font-medium
+        transition-all
+        duration-200
+        shadow-sm
+        flex items-center justify-center gap-2
+      "
+    >
+      <span>⬇</span>
+      <span>Download Excel</span>
+    </button>
+
+    {/* IMPORT BUTTON */}
+    <button
+      onClick={() =>
+        navigate("/inventory-item-store-import")
+      }
+      className="
+        w-full sm:w-auto
+        bg-green-600 hover:bg-green-700
+        text-white
+        px-4 md:px-5
+        py-2.5
+        rounded-xl
+        font-medium
+        transition-all
+        duration-200
+        shadow-sm
+        flex items-center justify-center gap-2
+      "
+    >
+      <span>⬆</span>
+      <span>Import Excel</span>
+    </button>
+
+  </div>
+</div>
 
         {/* FORM */}
 
