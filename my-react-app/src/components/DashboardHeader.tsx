@@ -146,11 +146,11 @@ const DashboardHeader: React.FC = () => {
     permissionName: "Miscellaneous",
     
   },
-  {
-  name: "Inventory GRN Miscellaneous",
-  icon: Receipt,
-  permissionName: "InventoryGRNMiscellaneous",
-},
+//   {
+//   name: "Inventory GRN Miscellaneous",
+//   icon: Receipt,
+//   permissionName: "InventoryGRNMiscellaneous",
+// },
   ];
   // 🔥 POS dropdown items
   const posDropdownItems = [
