@@ -353,6 +353,13 @@ const DashboardHeader: React.FC = () => {
       permissionName: "Printer Settings",
     },
   ];
+
+  const purchaseItems = [
+  {
+    name: "Purchase Order",
+    icon: FilePen,
+    permissionName: "Purchase Order",
+  },]
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
     Dashboard: "/dashboard",
@@ -399,6 +406,7 @@ const DashboardHeader: React.FC = () => {
     "Miscellaneous":"/inventory/Miscellaneous",
     "Inventory GRN Miscellaneous":
   "/inventory/InventoryGRNMiscellaneous",
+  "Purchase Order": "/purchase/purchaseorder",
   };
 
   const handleLogout = () => {
@@ -694,6 +702,41 @@ const DashboardHeader: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* PURCHASE DROPDOWN */}
+{hasMainMenuAccess("Purchase") && (
+  <div className="relative">
+    <button
+      onClick={() => toggleMenu("PURCHASE")}
+      className="flex items-center gap-2 hover:text-green-600"
+    >
+      <Receipt size={16} className="text-green-600" />
+      Purchase
+      <ChevronDown size={14} />
+    </button>
+
+    {activeMenu === "PURCHASE" && (
+      <div className="absolute left-0 mt-2 w-56 bg-white border rounded shadow-md z-50">
+        {purchaseItems
+          .filter((item) => hasSubMenuAccess(item.permissionName))
+          .map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={index}
+                onClick={() => handleNavigation(item.name)}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-blue-50 cursor-pointer"
+              >
+                <Icon size={16} />
+                {item.name}
+              </div>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
             {/* 
             <button className="flex items-center gap-2 hover:text-indigo-600">
               <FileBarChart size={16} className="text-indigo-600" />
@@ -933,6 +976,44 @@ const DashboardHeader: React.FC = () => {
                     })}
                 </div>
               )}
+
+              {/* PURCHASE */}
+{hasMainMenuAccess("Purchase") && (
+  <div>
+    <button
+      onClick={() => toggleMenu("PURCHASE")}
+      className="flex justify-between w-full"
+    >
+      <span className="flex items-center gap-2">
+        <Receipt size={16} />
+        Purchase
+      </span>
+
+      <ChevronDown size={16} />
+    </button>
+
+    {activeMenu === "PURCHASE" && (
+      <div className="ml-4 mt-2 flex flex-col gap-2">
+        {purchaseItems
+          .filter((item) => hasSubMenuAccess(item.permissionName))
+          .map((item, i) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={i}
+                onClick={() => handleNavigation(item.name)}
+                className="flex items-center gap-2"
+              >
+                <Icon size={16} />
+                {item.name}
+              </button>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
             </div>
           )}
           {/* 

@@ -57,6 +57,7 @@ import Miscellaneous from "./Miscellaneous";
 import InventoryItemStore from "./InventoryItemStore";
 import InventoryGRNMiscellaneous from "./InventoryGRNMiscellaneous";
 import InventoryItemStoreImport from "./InventoryItemStoreImport";
+import PurchaseOrder from "./PurchaseOrder";
 
 function LandingPage() {
   const location = useLocation();
@@ -215,6 +216,10 @@ function LandingPage() {
           <Route
   path="/inventory-item-store-import"
   element={<InventoryItemStoreImport/>}
+/>
+        <Route
+  path="/purchase/purchaseorder"
+  element={<PurchaseOrder/>}
 />
       </Routes>
     </>
