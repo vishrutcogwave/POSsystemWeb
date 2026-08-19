@@ -5330,6 +5330,39 @@ export const getInventoryItemStoreList = async (branchcode: string) => {
   }
 };
 
+
+export const getItemStoreListByStoreId = async (
+  branchcode: string,
+  Storeid: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/ItemStoreGetListByStoreId",
+      {
+        params: {
+          branchcode,
+          Storeid,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item store list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
 export const createInventoryItemStore = async (payload: {
   itemCode: number;
   itemName: string;
@@ -5849,6 +5882,50 @@ export const importInventoryItemStoreExcel = async (
   } catch (error: any) {
     console.error(
       "Error importing Inventory Item Store:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const purchaseOrderCalculation = async (payload: {
+  poNo: number;
+  storeId: number;
+  branch: string;
+  poDetail: {
+    itemCode: number;
+    poItemQty: number;
+    poItemRate: number;
+    unit: string;
+    poItemSuplyQty: number;
+    cpoItemQty: number;
+  }[];
+  discount: number;
+  discountIn: string;
+  miscCharge: number;
+  miscChargeCode: number;
+  miscTaxCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/PurchaseOrderCalculation",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error calculating purchase order:",
       error.response?.data || error.message,
     );
 

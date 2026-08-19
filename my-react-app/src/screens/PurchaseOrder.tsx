@@ -1,6 +1,71 @@
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Header from "../components/Header";
+import Loader from "../components/Loader";
+import { getNextIdCode, getSupplierList, getStoreMasterList, purchaseOrderCalculation, getItemStoreListByStoreId } from "../api/services/products.service";
+import { useAppContext } from "../context/AppContext";
+
+type Supplier = {
+  supCode: number;
+  supName: string;
+  supCPerson: string;
+  supAdd1: string;
+  supAdd2: string;
+  supAdd3: string;
+  supPhone: string;
+  supFax: string;
+  supMobile: string;
+  supLSTNo: string;
+  supLSTDate: string | null;
+  supCSTNo: string;
+  supCSTDate: string | null;
+  acGroupCode: number;
+  acCode: number;
+  email: string;
+  branchCode: string;
+  suspPincode: string;
+  supCity: string;
+  gstNo: string;
+  tinNo: string;
+};
+
+type Store = {
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+};
+
+type InventoryItem = {
+  itemCode: number;
+  itemName: string;
+  catCode: number;
+  subCatCode: number;
+  storeid: string;
+  grpCode: string;
+  unitCode: number;
+  unitName: string;
+  purchaseRate: string;
+  noofUnits: number;
+  itemRate: number;
+  itemOpStock: number;
+  itemOpRate: number;
+  itemROQ: number;
+  itemROL: number;
+  barCode: string;
+  taxCode: number;
+  taxName: string;
+  picture: string;
+  userCode: string;
+  lastModify: string;
+  mostRunningItemSrNo: string;
+  branch_Code: string;
+  firstUnit: number;
+  firstUnitDesc: string;
+  finalUnit: number;
+  finalUnitDesc: string;
+};
 
 type PurchaseItem = {
   id: number;
@@ -19,15 +84,56 @@ type MiscRow = {
 };
 
 const PurchaseOrder: React.FC = () => {
-  /* ---------------- FORM STATE ---------------- */
+  const { appData } = useAppContext();
 
-  const [orderNo, setOrderNo] = useState(13);
+  /* =========================
+      FORM STATE
+  ========================= */
+
+  const [orderNo, setOrderNo] = useState("");
 
   const [date, setDate] = useState(
     new Date().toISOString().split("T")[0]
   );
 
-  const [supplier, setSupplier] = useState("");
+  /* =========================
+      SUPPLIER
+  ========================= */
+
+  const [supplier, setSupplier] =
+    useState<Supplier | null>(null);
+
+  const [suppliers, setSuppliers] =
+    useState<Supplier[]>([]);
+
+  const [loadingSuppliers, setLoadingSuppliers] =
+    useState(false);
+
+  /* =========================
+      STORE
+  ========================= */
+
+  const [store, setStore] =
+    useState<Store | null>(null);
+
+  const [stores, setStores] =
+    useState<Store[]>([]);
+
+  const [loadingStores, setLoadingStores] =
+    useState(false);
+
+  // Global loader for all API calls on this screen.
+  const [apiLoadingCount, setApiLoadingCount] =
+    useState(0);
+
+  const startApiLoading = () => {
+    setApiLoadingCount((count) => count + 1);
+  };
+
+  const stopApiLoading = () => {
+    setApiLoadingCount((count) => Math.max(0, count - 1));
+  };
+
   const [orderedBy, setOrderedBy] = useState("");
   const [instruction, setInstruction] = useState("");
 
@@ -41,7 +147,9 @@ const PurchaseOrder: React.FC = () => {
 
   const [remarks, setRemarks] = useState("");
 
-  /* ---------------- DETAIL INPUT ---------------- */
+  /* =========================
+      DETAIL INPUT
+  ========================= */
 
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
@@ -49,26 +157,313 @@ const PurchaseOrder: React.FC = () => {
   const [qty, setQty] = useState("");
   const [rate, setRate] = useState("");
 
-  /* ---------------- TABLE DATA ---------------- */
+  /* =========================
+      INVENTORY ITEM STATE
+  ========================= */
+
+  const [inventoryItems, setInventoryItems] =
+    useState<InventoryItem[]>([]);
+
+  const [loadingInventoryItems, setLoadingInventoryItems] =
+    useState(false);
+
+  const [itemSearch, setItemSearch] = useState("");
+
+  const [showItemDropdown, setShowItemDropdown] =
+    useState(false);
+
+  const [editingItemId, setEditingItemId] =
+    useState<number | null>(null);
+
+  /* =========================
+      TABLE DATA
+  ========================= */
 
   const [items, setItems] = useState<PurchaseItem[]>([]);
   const [miscRows, setMiscRows] = useState<MiscRow[]>([]);
 
+  const [calculationResponse, setCalculationResponse] =
+    useState<any>(null);
+
   const [activeTab] = useState<"misc">("misc");
 
-  /* ---------------- NEW ENTRY ---------------- */
+  /* =========================
+      FETCH SUPPLIERS
+  ========================= */
+  const fetchNextCode = async () => {
+  startApiLoading();
 
-  const handleNewEntry = () => {
-    setOrderNo((prev) => prev + 1);
+  try {
+    const res = await getNextIdCode({
+      tableName: "PurchaseOrderMaster",
+      columnName: "PONo",
+      conditionName: "Branch_Code",
+      branch: appData?.user?.branch_code,
+    });
 
-    const today = new Date().toISOString().split("T")[0];
+    console.log(
+      "Next Order No Response:",
+      res
+    );
+
+    if (res?.success) {
+      setOrderNo(
+        res.data.toString()
+      );
+    }
+  } catch (err) {
+    console.error(
+      "Error fetching order no",
+      err
+    );
+  } finally {
+    stopApiLoading();
+  }
+};
+
+  const fetchSuppliers = async () => {
+    startApiLoading();
+
+    try {
+      setLoadingSuppliers(true);
+
+      const res = await getSupplierList(
+        appData?.user?.branch_code
+      );
+
+      console.log(
+        "Supplier List Response:",
+        res
+      );
+
+      if (res?.success) {
+        setSuppliers(res?.data || []);
+      } else {
+        setSuppliers([]);
+
+        console.error(
+          res?.message ||
+            "Failed to fetch suppliers"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Error fetching suppliers:",
+        error
+      );
+
+      setSuppliers([]);
+    } finally {
+      setLoadingSuppliers(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
+      FETCH STORES
+  ========================= */
+
+  const fetchStores = async () => {
+    startApiLoading();
+
+    try {
+      setLoadingStores(true);
+
+      const res = await getStoreMasterList(
+        appData?.user?.branch_code
+      );
+
+      console.log(
+        "Store Master List Response:",
+        res
+      );
+
+      if (res?.success) {
+        setStores(res?.data || []);
+      } else {
+        setStores([]);
+
+        console.error(
+          res?.message ||
+            "Failed to fetch stores"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Error fetching store master list:",
+        error
+      );
+
+      setStores([]);
+    } finally {
+      setLoadingStores(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
+      FETCH INVENTORY ITEMS
+  ========================= */
+
+  const fetchInventoryItems = async () => {
+    startApiLoading();
+
+    try {
+      setLoadingInventoryItems(true);
+
+      const res = await getItemStoreListByStoreId(
+        appData?.user?.branch_code,
+       String(store?.storeId) 
+      );
+
+      console.log(
+        "Inventory Item Store List Response:",
+        res
+      );
+
+      if (res?.success) {
+        setInventoryItems(res?.data || []);
+      } else {
+        setInventoryItems([]);
+
+        console.error(
+          res?.message ||
+            "Failed to fetch inventory items"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Error fetching inventory item store list:",
+        error
+      );
+
+      setInventoryItems([]);
+    } finally {
+      setLoadingInventoryItems(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
+      FILTER INVENTORY ITEMS
+  ========================= */
+
+  const filteredInventoryItems =
+    inventoryItems.filter((item) => {
+      const search = itemSearch
+        .trim()
+        .toLowerCase();
+
+      if (!search) return true;
+
+      return (
+        item.itemCode
+          .toString()
+          .toLowerCase()
+          .includes(search) ||
+        item.itemName
+          .toLowerCase()
+          .includes(search)
+      );
+    });
+
+  /* =========================
+      SELECT INVENTORY ITEM
+  ========================= */
+
+  const handleInventoryItemSelect = (
+    item: InventoryItem
+  ) => {
+    // Do not allow selecting an item that already exists in the order.
+    // While editing, the current row itself is allowed.
+    const existingItem = items.find(
+      (orderItem, index) =>
+        orderItem.code === item.itemCode.toString() &&
+        index !== editingItemId
+    );
+
+    if (existingItem) {
+      toast.error(
+        `${item.itemName} is already added to the order`
+      );
+
+      setShowItemDropdown(false);
+      return;
+    }
+
+    const purchaseRate =
+      Number(item.purchaseRate) || 0;
+
+    setCode(item.itemCode.toString());
+    setName(item.itemName);
+    setUnit(item.unitName);
+    setRate(purchaseRate.toString());
+
+    setItemSearch(
+      `${item.itemCode} - ${item.itemName}`
+    );
+
+    setShowItemDropdown(false);
+  };
+
+  /* =========================
+      ITEM SEARCH CHANGE
+  ========================= */
+
+  const handleItemSearchChange = (
+    value: string
+  ) => {
+    setItemSearch(value);
+    setShowItemDropdown(true);
+
+    // Clear bound fields when user starts
+    // searching for another item.
+    if (!value.trim()) {
+      setCode("");
+      setName("");
+      setUnit("");
+      setRate("");
+    }
+  };
+
+  /* =========================
+      LOAD SUPPLIERS
+  ========================= */
+
+  useEffect(() => {
+    if (appData?.user?.branch_code) {
+      fetchSuppliers();
+      fetchStores();
+      fetchInventoryItems();
+      fetchNextCode();
+    }
+  }, [appData?.user?.branch_code]);
+
+  useEffect(() => {
+ void fetchInventoryItems()
+  }, [store])
+  
+
+  /* =========================
+      NEW ENTRY
+  ========================= */
+
+  const handleNewEntry = async () => {
+    const today = new Date()
+      .toISOString()
+      .split("T")[0];
 
     setDate(today);
-    setSupplier("");
+
+    setSupplier(null);
+    setStore(null);
+
     setOrderedBy("");
     setInstruction("");
+
     setEffectiveFrom(today);
     setEffectiveTo(today);
+
     setRemarks("");
 
     setCode("");
@@ -76,25 +471,114 @@ const PurchaseOrder: React.FC = () => {
     setUnit("");
     setQty("");
     setRate("");
+    setItemSearch("");
+    setShowItemDropdown(false);
 
     setItems([]);
     setMiscRows([]);
+    setEditingItemId(null);
+
+    await fetchNextCode();
   };
 
-  /* ---------------- ADD ITEM ---------------- */
+  /* =========================
+      SUPPLIER CHANGE
+  ========================= */
 
-  const handleAddItem = () => {
-    if (!code.trim()) return;
-    if (!name.trim()) return;
-    if (!unit.trim()) return;
-    if (!qty || Number(qty) <= 0) return;
-    if (!rate || Number(rate) <= 0) return;
+  const handleSupplierChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const supCode = Number(e.target.value);
+
+    if (!supCode) {
+      setSupplier(null);
+      return;
+    }
+
+    const selectedSupplier = suppliers.find(
+      (item) => item.supCode === supCode
+    );
+
+    setSupplier(
+      selectedSupplier || null
+    );
+  };
+
+  const handleStoreChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const storeId = Number(e.target.value);
+
+    if (!storeId) {
+      setStore(null);
+      return;
+    }
+
+    const selectedStore = stores.find(
+      (item) => item.storeId === storeId
+    );
+
+    setStore(selectedStore || null);
+  };
+
+  /* =========================
+      ADD ITEM
+  ========================= */
+
+  const handleAddItem = async () => {
+    if (!code.trim()) {
+      toast.error("Please select an item");
+      return;
+    }
+
+    if (!name.trim()) {
+      toast.error("Please select an item");
+      return;
+    }
+
+    if (!unit.trim()) {
+      toast.error("Please select an item");
+      return;
+    }
+
+    if (!qty || Number(qty) <= 0) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+
+    if (!rate || Number(rate) <= 0) {
+      toast.error(
+        "Selected item does not have a purchase rate"
+      );
+      return;
+    }
+
+    if (!store) {
+      toast.error("Please select a store");
+      return;
+    }
+
+    const duplicateItem = items.some(
+      (item, index) =>
+        item.code === code &&
+        index !== editingItemId
+    );
+
+    if (duplicateItem) {
+      toast.error(
+        `${name} is already added to the order`
+      );
+      return;
+    }
 
     const quantity = Number(qty);
     const itemRate = Number(rate);
 
     const newItem: PurchaseItem = {
-      id: Date.now(),
+      id:
+        editingItemId !== null
+          ? items[editingItemId].id
+          : Date.now(),
       code,
       name,
       unit,
@@ -103,36 +587,162 @@ const PurchaseOrder: React.FC = () => {
       total: quantity * itemRate,
     };
 
-    setItems((prev) => [...prev, newItem]);
+    // Build the exact item list that will exist after Add/Update.
+    const nextItems =
+      editingItemId !== null
+        ? items.map((item, index) =>
+            index === editingItemId
+              ? newItem
+              : item
+          )
+        : [...items, newItem];
 
+    // Calculate the Purchase Order using the fresh item list.
+    startApiLoading();
+
+    try {
+      const payload = {
+        poNo: Number(orderNo || 0),
+        storeId: Number(store.storeId),
+        branch: appData?.user?.branch_code || "",
+
+        poDetail: nextItems.map((item) => ({
+          itemCode: Number(item.code),
+          poItemQty: Number(item.qty),
+          poItemRate: Number(item.rate),
+          unit: item.unit,
+          poItemSuplyQty: Number(item.qty),
+          cpoItemQty: Number(item.qty),
+        })),
+
+        discount: 0,
+        discountIn: "",
+        miscCharge: Number(miscTotal || 0),
+        miscChargeCode: 0,
+        miscTaxCode: "",
+      };
+
+      console.log(
+        "Purchase Order Calculation Payload:",
+        payload
+      );
+
+      const calculationRes =
+        await purchaseOrderCalculation(payload);
+
+      console.log(
+        "Purchase Order Calculation Response:",
+        calculationRes
+      );
+
+      setCalculationResponse(calculationRes);
+      setItems(nextItems);
+
+      if (editingItemId !== null) {
+        toast.success("Item updated successfully");
+      } else {
+        toast.success("Item added successfully");
+      }
+
+      // Clear item entry area after successful calculation.
+      setCode("");
+      setName("");
+      setUnit("");
+      setQty("");
+      setRate("");
+      setItemSearch("");
+      setShowItemDropdown(false);
+      setEditingItemId(null);
+    } catch (error) {
+      console.error(
+        "Error calculating purchase order:",
+        error
+      );
+
+      toast.error(
+        "Unable to calculate purchase order"
+      );
+    } finally {
+      stopApiLoading();
+    }
+  };
+
+  const cancelEditItem = () => {
+    setEditingItemId(null);
     setCode("");
     setName("");
     setUnit("");
     setQty("");
     setRate("");
+    setItemSearch("");
+    setShowItemDropdown(false);
   };
 
-  /* ---------------- REMOVE ITEM ---------------- */
+  const handleEditItem = (index: number) => {
+    const item = items[index];
 
-  const handleRemoveItem = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    if (!item) return;
+
+    setEditingItemId(index);
+
+    setCode(item.code);
+    setName(item.name);
+    setUnit(item.unit);
+    setQty(item.qty.toString());
+    setRate(item.rate.toString());
+
+    setItemSearch(
+      `${item.code} - ${item.name}`
+    );
+
+    // Keep the current page position stable when editing.
+    // The fields are already in the Purchase Order Details section.
+
   };
 
-  /* ---------------- TOTALS ---------------- */
+  const handleRemoveItem = (index: number) => {
+    const item = items[index];
+
+    setItems((prev) =>
+      prev.filter(
+        (_, itemIndex) =>
+          itemIndex !== index
+      )
+    );
+
+    if (editingItemId === index) {
+      setEditingItemId(null);
+      setCode("");
+      setName("");
+      setUnit("");
+      setQty("");
+      setRate("");
+      setItemSearch("");
+    }
+
+    toast.success(
+      `${item?.name || "Item"} removed`
+    );
+  };
 
   const subTotal = items.reduce(
-    (sum, item) => sum + item.total,
+    (sum, item) =>
+      sum + item.total,
     0
   );
 
   const miscTotal = miscRows.reduce(
-    (sum, misc) => sum + Number(misc.amount || 0),
+    (sum, misc) =>
+      sum + Number(misc.amount || 0),
     0
   );
 
-  const grandTotal = subTotal + miscTotal;
+  const grandTotal =
+    subTotal + miscTotal;
 
-  /* ---------------- ADD MISC ---------------- */
+  /* =========================
+      ADD MISC
+  ========================= */
 
   const addMiscRow = () => {
     setMiscRows((prev) => [
@@ -145,7 +755,9 @@ const PurchaseOrder: React.FC = () => {
     ]);
   };
 
-  /* ---------------- UPDATE MISC ---------------- */
+  /* =========================
+      UPDATE MISC
+  ========================= */
 
   const updateMiscRow = (
     id: number,
@@ -167,47 +779,84 @@ const PurchaseOrder: React.FC = () => {
     );
   };
 
-  /* ---------------- REMOVE MISC ---------------- */
+  /* =========================
+      REMOVE MISC
+  ========================= */
 
   const removeMiscRow = (id: number) => {
     setMiscRows((prev) =>
-      prev.filter((row) => row.id !== id)
+      prev.filter(
+        (row) => row.id !== id
+      )
     );
   };
 
-  /* ---------------- SAVE ---------------- */
+  /* =========================
+      SAVE
+  ========================= */
 
   const handleSave = () => {
+    if (!supplier) {
+      alert(
+        "Please select a supplier"
+      );
+      return;
+    }
+
+    if (!store) {
+      toast.error("Please select a store");
+      return;
+    }
+
     const purchaseOrder = {
       orderNo,
       date,
-      supplier,
+
+      supplierCode:
+        supplier.supCode,
+
+      supplierName:
+        supplier.supName,
+
+      storeId:
+        store?.storeId ?? null,
+
+      storeName:
+        store?.storeName ?? "",
+
       orderedBy,
       instruction,
+
       effectiveFrom,
       effectiveTo,
+
       remarks,
+
       items,
-      miscellaneous: miscRows,
+
+      miscellaneous:
+        miscRows,
+
       subTotal,
       miscTotal,
       grandTotal,
     };
 
-    console.log("Purchase Order:", purchaseOrder);
+    console.log(
+      "Purchase Order:",
+      purchaseOrder
+    );
 
-    alert("Purchase Order saved successfully");
+    alert(
+      "Purchase Order saved successfully"
+    );
   };
 
-  /* ---------------- FORMAT DATE ---------------- */
+  /* =========================
+      FORMAT DATE
+  ========================= */
 
-  const formatDate = (value: string) => {
-    if (!value) return "";
 
-    const [year, month, day] = value.split("-");
-
-    return `${day}/${month}/${year}`;
-  };
 
   const inputClass =
     "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -217,8 +866,7 @@ const PurchaseOrder: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
-
-      {/* HEADER */}
+      {apiLoadingCount > 0 && <Loader />}
 
       <Header />
 
@@ -242,13 +890,16 @@ const PurchaseOrder: React.FC = () => {
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
 
-          {/* PURCHASE ORDER INFORMATION */}
+          {/* =========================
+              PURCHASE ORDER INFORMATION
+          ========================= */}
 
           <section className="mb-6 overflow-hidden rounded-xl border border-gray-200">
 
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
 
               <div>
+
                 <h2 className="text-base font-semibold text-gray-800">
                   Purchase Order
                 </h2>
@@ -256,11 +907,36 @@ const PurchaseOrder: React.FC = () => {
                 <p className="mt-0.5 text-xs text-gray-500">
                   Order information
                 </p>
+
               </div>
 
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                New Entry
-              </span>
+              <div className="flex items-center gap-2">
+
+                {editingItemId !== null ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleAddItem}
+                      className="h-9 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition hover:bg-green-700"
+                    >
+                      Update Item
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={cancelEditItem}
+                      className="h-9 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Cancel Edit
+                    </button>
+                  </>
+                ) : (
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                    New Entry
+                  </span>
+                )}
+
+              </div>
 
             </div>
 
@@ -270,116 +946,230 @@ const PurchaseOrder: React.FC = () => {
 
                 {/* ORDER NO */}
 
-                <div>
-                  <label className={labelClass}>
-                    Order No.
-                  </label>
+        <div>
+  <label className={`${labelClass} h-[18px]`}>
+    Order No.
+  </label>
 
-                  <input
-                    type="number"
-                    value={orderNo}
-                    disabled
-                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
-                  />
-                </div>
+  <input
+    type="text"
+    value={orderNo}
+    disabled
+    className={`${inputClass} cursor-not-allowed bg-gray-100`}
+  />
+</div>
 
                 {/* DATE */}
 
                 <div>
-                  <label className={labelClass}>
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Date
                   </label>
 
                   <input
                     type="date"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={(e) =>
+                      setDate(
+                        e.target.value
+                      )
+                    }
                     className={inputClass}
                   />
 
-                  <p className="mt-1 text-[11px] text-gray-400">
-                    {formatDate(date)}
-                  </p>
+              
+
                 </div>
 
-                {/* SUPPLIER */}
+                {/* =========================
+                    SUPPLIER DROPDOWN
+                ========================= */}
 
                 <div>
-                  <label className={labelClass}>
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Supplier
                   </label>
 
-                  <input
-                    type="text"
-                    value={supplier}
-                    onChange={(e) => setSupplier(e.target.value)}
-                    placeholder="Enter supplier"
-                    className={inputClass}
-                  />
+                  <select
+                    value={
+                      supplier?.supCode ??
+                      ""
+                    }
+                    onChange={
+                      handleSupplierChange
+                    }
+                    disabled={
+                      loadingSuppliers
+                    }
+                    className={`${inputClass} ${
+                      loadingSuppliers
+                        ? "cursor-not-allowed bg-gray-100"
+                        : ""
+                    }`}
+                  >
+
+                    <option value="">
+                      {loadingSuppliers
+                        ? "Loading suppliers..."
+                        : "Select Supplier"}
+                    </option>
+
+                    {suppliers.map(
+                      (item) => (
+                        <option
+                          key={
+                            item.supCode
+                          }
+                          value={
+                            item.supCode
+                          }
+                        >
+                          {item.supName}
+                        </option>
+                      )
+                    )}
+
+                  </select>
+
+                </div>
+                {/* =========================
+                    STORE DROPDOWN
+                ========================= */}
+
+                <div>
+
+                  <label className={`${labelClass} h-[18px]`}>
+                    Store
+                  </label>
+
+                  <select
+                    value={
+                      store?.storeId ?? ""
+                    }
+                    onChange={
+                      handleStoreChange
+                    }
+                    disabled={
+                      loadingStores
+                    }
+                    className={`${inputClass} ${
+                      loadingStores
+                        ? "cursor-not-allowed bg-gray-100"
+                        : ""
+                    }`}
+                  >
+
+                    <option value="">
+                      {loadingStores
+                        ? "Loading stores..."
+                        : "Select Store"}
+                    </option>
+
+                    {stores.map(
+                      (item) => (
+                        <option
+                          key={
+                            item.storeId
+                          }
+                          value={
+                            item.storeId
+                          }
+                        >
+                          {item.storeId} - {item.storeName}
+                        </option>
+                      )
+                    )}
+
+                  </select>
+
                 </div>
 
                 {/* ORDERED BY */}
 
                 <div>
-                  <label className={labelClass}>
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Ordered By
                   </label>
 
                   <input
                     type="text"
                     value={orderedBy}
-                    onChange={(e) => setOrderedBy(e.target.value)}
+                    onChange={(e) =>
+                      setOrderedBy(
+                        e.target.value
+                      )
+                    }
                     placeholder="Enter ordered by"
                     className={inputClass}
                   />
+
                 </div>
 
                 {/* EFFECTIVE FROM */}
 
                 <div>
-                  <label className={labelClass}>
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Effective From
                   </label>
 
                   <input
                     type="date"
-                    value={effectiveFrom}
+                    value={
+                      effectiveFrom
+                    }
                     onChange={(e) =>
-                      setEffectiveFrom(e.target.value)
+                      setEffectiveFrom(
+                        e.target.value
+                      )
                     }
                     className={inputClass}
                   />
+
                 </div>
 
                 {/* EFFECTIVE TO */}
 
                 <div>
-                  <label className={labelClass}>
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Effective To
                   </label>
 
                   <input
                     type="date"
-                    value={effectiveTo}
+                    value={
+                      effectiveTo
+                    }
                     onChange={(e) =>
-                      setEffectiveTo(e.target.value)
+                      setEffectiveTo(
+                        e.target.value
+                      )
                     }
                     className={inputClass}
                   />
+
                 </div>
 
                 {/* INSTRUCTION */}
 
                 <div className="sm:col-span-2">
 
-                  <label className={labelClass}>
+                  <label className={`${labelClass} h-[18px]`}>
                     Instruction
                   </label>
 
                   <textarea
-                    value={instruction}
+                    value={
+                      instruction
+                    }
                     onChange={(e) =>
-                      setInstruction(e.target.value)
+                      setInstruction(
+                        e.target.value
+                      )
                     }
                     rows={2}
                     placeholder="Enter instruction"
@@ -392,14 +1182,16 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="sm:col-span-2">
 
-                  <label className={labelClass}>
+                  <label className={`${labelClass} h-[18px]`}>
                     Remarks
                   </label>
 
                   <textarea
                     value={remarks}
                     onChange={(e) =>
-                      setRemarks(e.target.value)
+                      setRemarks(
+                        e.target.value
+                      )
                     }
                     rows={2}
                     placeholder="Enter remarks"
@@ -414,126 +1206,205 @@ const PurchaseOrder: React.FC = () => {
 
           </section>
 
-          {/* ITEM DETAILS */}
+          {/* =========================
+              ITEM DETAILS
+          ========================= */}
 
-          <section className="mb-6 overflow-hidden rounded-xl border border-gray-200">
+          <section className="relative z-50 mb-6 overflow-visible rounded-xl border border-gray-200">
 
-            <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
 
-              <h3 className="text-base font-semibold text-gray-800">
-                Purchase Order Details
-              </h3>
+              <div>
+                <h3 className="text-base font-semibold text-gray-800">
+                  Purchase Order Details
+                </h3>
+
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Select an item, enter quantity, and add it to the order
+                </p>
+              </div>
 
             </div>
 
-            {/* ITEM INPUT */}
-
             <div className="p-4 md:p-5">
 
-              <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-start">
+
+                {/* ITEM SEARCH */}
+
+                <div className="relative sm:col-span-2 lg:col-span-4">
+
+                  <label className={`${labelClass} h-[18px]`}>
+                    Item
+                  </label>
+
+                  <input
+                    value={itemSearch}
+                    onChange={(e) =>
+                      handleItemSearchChange(e.target.value)
+                    }
+                    onFocus={() =>
+                      setShowItemDropdown(true)
+                    }
+                    onBlur={() => {
+                      setTimeout(
+                        () => setShowItemDropdown(false),
+                        150
+                      );
+                    }}
+                    placeholder={
+                      loadingInventoryItems
+                        ? "Loading items..."
+                        : "Search code or item name"
+                    }
+                    disabled={loadingInventoryItems}
+                    className={`${inputClass} ${
+                      loadingInventoryItems
+                        ? "cursor-not-allowed bg-gray-100"
+                        : ""
+                    }`}
+                  />
+
+                  {showItemDropdown && (
+                    <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
+
+                      {filteredInventoryItems.length === 0 ? (
+                        <div className="px-3 py-4 text-center text-sm text-gray-500">
+                          No items found
+                        </div>
+                      ) : (
+                        filteredInventoryItems.map((item) => (
+                          <button
+                            type="button"
+                            key={item.itemCode}
+                            onMouseDown={(e) =>
+                              e.preventDefault()
+                            }
+                            onClick={() =>
+                              handleInventoryItemSelect(item)
+                            }
+                            className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
+                          >
+                            <span className="font-medium text-gray-800">
+                              {item.itemCode} - {item.itemName}
+                            </span>
+
+                            <span className="shrink-0 text-xs text-gray-500">
+                              {item.unitName}
+                            </span>
+                          </button>
+                        ))
+                      )}
+
+                    </div>
+                  )}
+
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Search by item code or name
+                  </p>
+
+                </div>
 
                 {/* CODE */}
 
-                <div>
-                  <label className={labelClass}>
+                <div className="lg:col-span-2">
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Code
                   </label>
 
                   <input
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    placeholder="Item Code"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddItem();
-                      }
-                    }}
-                    className={inputClass}
+                    disabled
+                    placeholder="Code"
+                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
                   />
+
                 </div>
 
                 {/* NAME */}
 
-                <div>
-                  <label className={labelClass}>
+                <div className="lg:col-span-2">
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Name
                   </label>
 
                   <input
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    disabled
                     placeholder="Item Name"
-                    className={inputClass}
+                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
                   />
+
                 </div>
 
                 {/* UNIT */}
 
-                <div>
-                  <label className={labelClass}>
+                <div className="lg:col-span-1">
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Unit
                   </label>
 
-                  <select
+                  <input
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">
-                      Select Unit
-                    </option>
-                    <option value="Nos">Nos</option>
-                    <option value="Kg">Kg</option>
-                    <option value="Ltr">Ltr</option>
-                    <option value="Box">Box</option>
-                    <option value="Pack">Pack</option>
-                  </select>
+                    disabled
+                    placeholder="Unit"
+                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
+                  />
+
                 </div>
 
                 {/* QTY */}
 
-                <div>
-                  <label className={labelClass}>
+                <div className="lg:col-span-1">
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Qty
                   </label>
 
                   <input
                     type="number"
-                    min="0"
+                    min="1"
                     value={qty}
-                    onChange={(e) => setQty(e.target.value)}
+                    onChange={(e) =>
+                      setQty(e.target.value)
+                    }
                     placeholder="Qty"
                     className={`${inputClass} text-right`}
                   />
+
                 </div>
 
                 {/* RATE */}
 
-                <div>
-                  <label className={labelClass}>
+                <div className="lg:col-span-1">
+
+                  <label className={`${labelClass} h-[18px]`}>
                     Rate
                   </label>
 
                   <input
                     type="number"
-                    min="0"
                     value={rate}
-                    onChange={(e) => setRate(e.target.value)}
+                    disabled
                     placeholder="Rate"
-                    className={`${inputClass} text-right`}
+                    className={`${inputClass} cursor-not-allowed bg-gray-100 text-right`}
                   />
+
                 </div>
 
                 {/* ADD */}
 
-                <div className="flex items-end">
+                <div className="sm:col-span-2 lg:col-span-1 lg:pt-[24px]">
 
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="h-10 w-full rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-200"
+                    className="h-10 w-full rounded-lg bg-green-600 px-3 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
-                    + Add Item
+                    {editingItemId !== null ? "Update" : "+ Add"}
                   </button>
 
                 </div>
@@ -544,11 +1415,12 @@ const PurchaseOrder: React.FC = () => {
 
             {/* ITEM TABLE */}
 
-            <div className="overflow-x-auto border-t border-gray-200">
+            <div className="relative z-0 overflow-x-auto border-t border-gray-200">
 
               <table className="w-full min-w-[850px] text-sm">
 
                 <thead>
+
                   <tr className="bg-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-600">
 
                     <th className="px-4 py-3 text-left">
@@ -580,6 +1452,7 @@ const PurchaseOrder: React.FC = () => {
                     </th>
 
                   </tr>
+
                 </thead>
 
                 <tbody>
@@ -606,15 +1479,15 @@ const PurchaseOrder: React.FC = () => {
                         className="border-t border-gray-200 hover:bg-gray-50"
                       >
 
-                        <td className="px-4 py-3 text-left">
+                        <td className="px-4 py-3">
                           {item.code}
                         </td>
 
-                        <td className="px-4 py-3 text-left font-medium text-gray-800">
+                        <td className="px-4 py-3 font-medium text-gray-800">
                           {item.name}
                         </td>
 
-                        <td className="px-4 py-3 text-left">
+                        <td className="px-4 py-3">
                           {item.unit}
                         </td>
 
@@ -623,24 +1496,44 @@ const PurchaseOrder: React.FC = () => {
                         </td>
 
                         <td className="px-4 py-3 text-right">
-                          ₹ {item.rate.toFixed(2)}
+                          ₹{" "}
+                          {item.rate.toFixed(2)}
                         </td>
 
                         <td className="px-4 py-3 text-right font-semibold">
-                          ₹ {item.total.toFixed(2)}
+                          ₹{" "}
+                          {item.total.toFixed(2)}
                         </td>
 
                         <td className="px-4 py-3 text-center">
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleRemoveItem(item.id)
-                            }
-                            className="rounded-md px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex items-center justify-center gap-3">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleEditItem(
+                                  items.indexOf(item)
+                                )
+                              }
+                              className="rounded-md px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRemoveItem(
+                                  items.indexOf(item)
+                                )
+                              }
+                              className="rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Remove
+                            </button>
+
+                          </div>
 
                         </td>
 
@@ -658,17 +1551,19 @@ const PurchaseOrder: React.FC = () => {
 
           </section>
 
-          {/* MISC */}
+          {/* =========================
+              MISC
+          ========================= */}
 
           <section className="overflow-hidden rounded-xl border border-gray-200">
-
-            {/* TAB HEADER */}
 
             <div className="border-b border-gray-200 bg-gray-50">
 
               <div
                 className={`inline-flex border-b-2 border-blue-600 bg-white px-5 py-3 text-sm font-semibold text-blue-600 ${
-                  activeTab === "misc" ? "" : "hidden"
+                  activeTab === "misc"
+                    ? ""
+                    : "hidden"
                 }`}
               >
                 Misc
@@ -681,6 +1576,7 @@ const PurchaseOrder: React.FC = () => {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                 <div>
+
                   <h3 className="text-base font-semibold text-gray-800">
                     Miscellaneous Charges
                   </h3>
@@ -688,12 +1584,15 @@ const PurchaseOrder: React.FC = () => {
                   <p className="mt-0.5 text-xs text-gray-500">
                     Add additional purchase charges
                   </p>
+
                 </div>
 
                 <button
                   type="button"
-                  onClick={addMiscRow}
-                  className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  onClick={
+                    addMiscRow
+                  }
+                  className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   + Add Misc
                 </button>
@@ -741,64 +1640,74 @@ const PurchaseOrder: React.FC = () => {
 
                     ) : (
 
-                      miscRows.map((misc) => (
+                      miscRows.map(
+                        (misc) => (
 
-                        <tr
-                          key={misc.id}
-                          className="border-t border-gray-200"
-                        >
+                          <tr
+                            key={misc.id}
+                            className="border-t border-gray-200"
+                          >
 
-                          <td className="px-4 py-3">
+                            <td className="px-4 py-3">
 
-                            <input
-                              value={misc.name}
-                              onChange={(e) =>
-                                updateMiscRow(
-                                  misc.id,
-                                  "name",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Particular"
-                              className={inputClass}
-                            />
+                              <input
+                                value={
+                                  misc.name
+                                }
+                                onChange={(e) =>
+                                  updateMiscRow(
+                                    misc.id,
+                                    "name",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Particular"
+                                className={
+                                  inputClass
+                                }
+                              />
 
-                          </td>
+                            </td>
 
-                          <td className="px-4 py-3">
+                            <td className="px-4 py-3">
 
-                            <input
-                              type="number"
-                              value={misc.amount}
-                              onChange={(e) =>
-                                updateMiscRow(
-                                  misc.id,
-                                  "amount",
-                                  e.target.value
-                                )
-                              }
-                              className={`${inputClass} text-right`}
-                            />
+                              <input
+                                type="number"
+                                value={
+                                  misc.amount
+                                }
+                                onChange={(e) =>
+                                  updateMiscRow(
+                                    misc.id,
+                                    "amount",
+                                    e.target.value
+                                  )
+                                }
+                                className={`${inputClass} text-right`}
+                              />
 
-                          </td>
+                            </td>
 
-                          <td className="px-4 py-3 text-center">
+                            <td className="px-4 py-3 text-center">
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeMiscRow(misc.id)
-                              }
-                              className="rounded-md px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-50"
-                            >
-                              Remove
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeMiscRow(
+                                    misc.id
+                                  )
+                                }
+                                className="rounded-md px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
 
-                          </td>
+                            </td>
 
-                        </tr>
+                          </tr>
 
-                      ))
+                        )
+                      )
 
                     )}
 
@@ -812,11 +1721,13 @@ const PurchaseOrder: React.FC = () => {
 
           </section>
 
-          {/* SUMMARY */}
+          {/* =========================
+              SUMMARY
+          ========================= */}
 
           <div className="mt-6 flex justify-end">
 
-            <div className="w-full max-w-[400px] rounded-xl border border-gray-200 bg-gray-50 p-5">
+            <div className="w-full max-w-[430px] rounded-xl border border-gray-200 bg-gray-50 p-5">
 
               <h3 className="mb-4 border-b border-gray-200 pb-3 text-base font-semibold text-gray-800">
                 Order Summary
@@ -824,26 +1735,91 @@ const PurchaseOrder: React.FC = () => {
 
               <div className="space-y-3 text-sm">
 
+                {/* Total Quantity */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-gray-600">
-                    Sub Total
+                    Total Quantity
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
-                    ₹ {subTotal.toFixed(2)}
+                    {Number(
+                      calculationResponse?.totalQty ??
+                      items.reduce(
+                        (sum, item) =>
+                          sum + Number(item.qty || 0),
+                        0
+                      )
+                    )}
                   </span>
                 </div>
 
+                {/* Total Amount */}
                 <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">
+                    Total Amount
+                  </span>
+
+                  <span className="min-w-[110px] text-right font-medium text-gray-800">
+                    ₹{" "}
+                    {Number(
+                      calculationResponse?.totalAmount ??
+                      subTotal ??
+                      0
+                    ).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* CGST */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">
+                    CGST ({Number(
+                      calculationResponse?.cgstPer ?? 0
+                    ).toFixed(2)}%)
+                  </span>
+
+                  <span className="min-w-[110px] text-right font-medium text-gray-800">
+                    ₹{" "}
+                    {Number(
+                      calculationResponse?.cgstAmt ?? 0
+                    ).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* SGST */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">
+                    SGST ({Number(
+                      calculationResponse?.sgstPer ?? 0
+                    ).toFixed(2)}%)
+                  </span>
+
+                  <span className="min-w-[110px] text-right font-medium text-gray-800">
+                    ₹{" "}
+                    {Number(
+                      calculationResponse?.sgstAmt ?? 0
+                    ).toFixed(2)}
+                  </span>
+                </div>
+
+             
+            
+          <div className="flex items-center justify-between gap-4">
                   <span className="text-gray-600">
                     Miscellaneous
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
-                    ₹ {miscTotal.toFixed(2)}
+                    ₹{" "}
+                    {Number(
+                      calculationResponse?.miscTotalAmount ??
+                      calculationResponse?.miscCharge ??
+                      miscTotal ??
+                      0
+                    ).toFixed(2)}
                   </span>
                 </div>
 
+                {/* Grand Total */}
                 <div className="border-t border-gray-200 pt-3">
 
                   <div className="flex items-center justify-between gap-4">
@@ -853,7 +1829,12 @@ const PurchaseOrder: React.FC = () => {
                     </span>
 
                     <span className="min-w-[110px] text-right text-lg font-bold text-blue-600">
-                      ₹ {grandTotal.toFixed(2)}
+                      ₹{" "}
+                      {Number(
+                        calculationResponse?.grandTotal ??
+                        grandTotal ??
+                        0
+                      ).toFixed(2)}
                     </span>
 
                   </div>
@@ -866,22 +1847,28 @@ const PurchaseOrder: React.FC = () => {
 
           </div>
 
-          {/* ACTION BUTTONS */}
+          {/* =========================
+              ACTION BUTTONS
+          ========================= */}
 
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
 
             <button
               type="button"
-              onClick={handleNewEntry}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              onClick={
+                handleNewEntry
+              }
+              className="h-10 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </button>
 
             <button
               type="button"
-              onClick={handleSave}
-              className="h-10 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              onClick={
+                handleSave
+              }
+              className="h-10 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Save Purchase Order
             </button>
@@ -896,4 +1883,5 @@ const PurchaseOrder: React.FC = () => {
   );
 };
 
-export default PurchaseOrder;
+export default PurchaseOrder
+
