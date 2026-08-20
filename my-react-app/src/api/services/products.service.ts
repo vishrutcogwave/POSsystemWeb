@@ -506,8 +506,8 @@ export const getFilteredBillDetails = async (params: {
       params: {
         fromDate: params.fromDate,
         toDate: params.toDate,
-        branchCode: params.branchCode,
-        outlet: params.outlet,
+        Branch_Code: params.branchCode,
+        OltCode: params.outlet,
       },
       headers: {
         Authorization: `Bearer ${token}`,
