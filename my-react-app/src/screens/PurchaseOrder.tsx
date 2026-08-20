@@ -82,6 +82,7 @@ type PurchaseItem = {
   qty: number;
   rate: number;
   total: number;
+  taxName:string;
 };
 
 type InventoryMisc = {
@@ -174,7 +175,7 @@ const PurchaseOrder: React.FC = () => {
   /* =========================
       DETAIL INPUT
   ========================= */
-
+const [taxName, setTaxName] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
@@ -499,6 +500,7 @@ const [miscAmount, setMiscAmount] = useState("");
     setName(item.itemName);
     setUnit(item.unitName);
     setRate(purchaseRate.toString());
+    setTaxName(item.taxName || "");
 
     setItemSearch(
       `${item.itemCode} - ${item.itemName}`
@@ -686,6 +688,7 @@ setMiscAmount("");
       qty: quantity,
       rate: itemRate,
       total: quantity * itemRate,
+      taxName
     };
 
     const nextItems =
@@ -700,25 +703,10 @@ setMiscAmount("");
     startApiLoading();
 
     try {
-      await calculatePurchaseOrder(
-        nextItems,
-        miscRows.reduce(
-          (sum, row) => sum + Number(row.amount || 0),
-          0
-        ),
-        miscRows.length === 1
-          ? miscRows[0].chargeId
-          : 0,
-        miscRows.length === 1
-          ? String(
-              miscList.find(
-                (charge) =>
-                  charge.chargeId === miscRows[0].chargeId
-              )?.taxCode ?? ""
-            )
-          : ""
-      );
-
+await calculatePurchaseOrder(
+  nextItems,
+  miscRows
+);
       setItems(nextItems);
 
       if (editingItemId !== null) {
@@ -832,60 +820,65 @@ setMiscAmount("");
       PURCHASE ORDER CALCULATION
   ========================= */
 
-  const calculatePurchaseOrder = async (
-    nextItems: PurchaseItem[],
-    miscCharge = 0,
-    miscChargeCode = 0,
-    miscTaxCode: string = ""
-  ) => {
-    if (!store) {
-      toast.error("Please select a store");
-      return;
-    }
+const calculatePurchaseOrder = async (
+  nextItems: PurchaseItem[],
+  nextMiscRows: MiscRow[] = miscRows
+) => {
+  if (!store) {
+    toast.error("Please select a store");
+    return;
+  }
 
-    const payload = {
-      poNo: Number(orderNo || 0),
+  const payload = {
+    poNo: Number(orderNo || 0),
 
-      storeId: Number(store.storeId),
+    storeId: Number(store.storeId),
 
-      branch:
-        appData?.user?.branch_code || "",
+    branch: appData?.user?.branch_code || "",
 
-      poDetail: nextItems.map((item) => ({
-        itemCode: Number(item.code),
-        poItemQty: Number(item.qty),
-        poItemRate: Number(item.rate),
-        unit: item.unit,
-        poItemSuplyQty: Number(item.qty),
-        cpoItemQty: Number(item.qty),
-      })),
+    discount: 0,
+    discountIn: "",
 
-      discount: 0,
-      discountIn: "",
+    poDetail: nextItems.map((item) => ({
+      itemCode: Number(item.code),
+      poItemQty: Number(item.qty),
+      poItemRate: Number(item.rate),
+      unit: item.unit,
+      poItemSuplyQty: Number(item.qty),
+      cpoItemQty: Number(item.qty),
+    })),
 
-      // Miscellaneous charge information
-      miscCharge: Number(miscCharge || 0),
-      miscChargeCode: Number(miscChargeCode || 0),
-      miscTaxCode: miscTaxCode ?? "",
-    };
+    // ✅ ALL miscellaneous charges
+    poMiscDetail: nextMiscRows.map((row) => {
+      const selectedCharge = miscList.find(
+        (charge) => charge.chargeId === row.chargeId
+      );
 
-    console.log(
-      "Purchase Order Calculation Payload:",
-      payload
-    );
-
-    const calculationRes =
-      await purchaseOrderCalculation(payload);
-
-    console.log(
-      "Purchase Order Calculation Response:",
-      calculationRes
-    );
-
-    setCalculationResponse(calculationRes);
-
-    return calculationRes;
+      return {
+        miscCharge: Number(row.amount || 0),
+        miscChargeCode: Number(row.chargeId || 0),
+        miscTaxCode: String(selectedCharge?.taxCode ?? ""),
+      };
+    }),
   };
+
+  console.log(
+    "Purchase Order Calculation Payload:",
+    payload
+  );
+
+  const calculationRes =
+    await purchaseOrderCalculation(payload);
+
+  console.log(
+    "Purchase Order Calculation Response:",
+    calculationRes
+  );
+
+  setCalculationResponse(calculationRes);
+
+  return calculationRes;
+};
 
   /* =========================
       ADD MISC
@@ -931,13 +924,10 @@ const addMiscRow = async () => {
   startApiLoading();
 
   try {
-    await calculatePurchaseOrder(
-      items,
-      newRow.amount,
-      newRow.chargeId,
-      String(selectedCharge.taxCode)
-    );
-
+await calculatePurchaseOrder(
+  items,
+  nextMiscRows
+);
     toast.success("Miscellaneous charge added");
   } catch (error) {
     console.error(
@@ -972,21 +962,13 @@ const addMiscRow = async () => {
     startApiLoading();
 
     try {
-      const lastMisc =
-        nextMiscRows[nextMiscRows.length - 1];
+      // const lastMisc =
+      //   nextMiscRows[nextMiscRows.length - 1];
 
-      await calculatePurchaseOrder(
-        items,
-        lastMisc?.amount ?? 0,
-        lastMisc?.chargeId ?? 0,
-        String(
-          miscList.find(
-            (charge) =>
-              charge.chargeId === lastMisc?.chargeId
-          )?.taxCode ?? ""
-        )
-      );
-
+  await calculatePurchaseOrder(
+  items,
+  nextMiscRows
+);
       toast.success("Miscellaneous charge removed");
     } catch (error) {
       console.error(
@@ -1760,6 +1742,12 @@ const addMiscRow = async () => {
                     <th className="px-4 py-3 text-right">
                       Qty
                     </th>
+                      <th className="px-4 py-3 text-right">
+                      Tax Name
+                    </th>
+
+              
+
 
                     <th className="px-4 py-3 text-right">
                       Rate
@@ -1831,6 +1819,13 @@ const addMiscRow = async () => {
                               item.qty
                             }
                           </td>
+
+                                <td className="px-4 py-3 text-right">
+                            {
+                              item.taxName
+                            }
+                          </td>
+                           
 
                           <td className="px-4 py-3 text-right">
                             ₹{" "}
@@ -2154,14 +2149,7 @@ const addMiscRow = async () => {
                 <div className="flex items-center justify-between gap-4">
 
                   <span className="text-gray-600">
-                    CGST (
-                    {Number(
-                      calculationResponse?.cgstPer ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
-                    %)
+                    CGST
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
@@ -2183,14 +2171,7 @@ const addMiscRow = async () => {
                 <div className="flex items-center justify-between gap-4">
 
                   <span className="text-gray-600">
-                    SGST (
-                    {Number(
-                      calculationResponse?.sgstPer ??
-                        0
-                    ).toFixed(
-                      2
-                    )}
-                    %)
+                    SGST 
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
@@ -2218,7 +2199,7 @@ const addMiscRow = async () => {
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
 
                     ₹{" "}
-                    {calculationResponse.miscTotalAmount}
+                    {calculationResponse?.miscTotalAmount}
 
                   </span>
 

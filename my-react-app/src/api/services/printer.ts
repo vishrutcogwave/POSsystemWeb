@@ -771,8 +771,9 @@ export const reprintBill = async (
   companyInfo: any,
   ipAddress?:string
 ) => {
+  debugger
 
-  console.log(apiData,"apidta");
+  console.log(formData,"formData");
   console.log("repppppppppppppppppppppp",apiData.tax);
   
   try {
@@ -924,16 +925,25 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   /* ===== BILL INFO ===== */
   let billBlock = "";
 
-  billBlock +=
-    line2Col(`Bill : ${formData.billNo}`, `Outlet : ${c.outlet}`) + "\n";
+billBlock +=
+  line2Col(
+    `Bill : ${formData.billNo}`,
+    `Outlet : ${c.outlet}`
+  ) + "\n";
 
-  billBlock +=
-    line2Col(`Table : ${c.table}-${c.subTable}`, `Waiter : ${c.waiter}`) +
-    "\n";
+billBlock +=
+  line2Col(
+    `Date : ${formData.billDate || formData.date || "-"}`,
+    `Table : ${c.table}-${c.subTable}`
+  ) + "\n";
 
-  billBlock += line2Col(`Pax : ${c.pax}`) + "\n";
+billBlock +=
+  line2Col(
+    `Waiter : ${c.waiter}`,
+    `Pax : ${c.pax}`
+  ) + "\n";
 
-  billBlock += line + "\n";
+billBlock += line + "\n";
 
   d += billBlock; // ❌ removed center
 

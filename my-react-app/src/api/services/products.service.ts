@@ -5893,6 +5893,9 @@ export const purchaseOrderCalculation = async (payload: {
   poNo: number;
   storeId: number;
   branch: string;
+  discount: number;
+  discountIn: string;
+
   poDetail: {
     itemCode: number;
     poItemQty: number;
@@ -5901,11 +5904,12 @@ export const purchaseOrderCalculation = async (payload: {
     poItemSuplyQty: number;
     cpoItemQty: number;
   }[];
-  discount: number;
-  discountIn: string;
-  miscCharge: number;
-  miscChargeCode: number;
-  miscTaxCode: string;
+
+  poMiscDetail: {
+    miscCharge: number;
+    miscChargeCode: number;
+    miscTaxCode: string;
+  }[];
 }) => {
   try {
     const token = localStorage.getItem("token");
