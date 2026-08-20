@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
-import { getNextIdCode, getSupplierList, getStoreMasterList, purchaseOrderCalculation, getItemStoreListByStoreId } from "../api/services/products.service";
+import {
+  getNextIdCode,
+  getSupplierList,
+  getStoreMasterList,
+  purchaseOrderCalculation,
+  getItemStoreListByStoreId,
+  getInventoryMiscList,
+} from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
 type Supplier = {
@@ -77,9 +84,17 @@ type PurchaseItem = {
   total: number;
 };
 
+type InventoryMisc = {
+  chargeId: number;
+  chargeName: string;
+  branch_Code: string;
+  taxCode: number;
+};
+
 type MiscRow = {
   id: number;
-  name: string;
+  chargeId: number;
+  chargeName: string;
   amount: number;
 };
 
@@ -100,11 +115,11 @@ const PurchaseOrder: React.FC = () => {
       SUPPLIER
   ========================= */
 
-  const [supplier, setSupplier] =
-    useState<Supplier | null>(null);
+  const [supplier, setSupplier] = useState<Supplier | null>(
+    null
+  );
 
-  const [suppliers, setSuppliers] =
-    useState<Supplier[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const [loadingSuppliers, setLoadingSuppliers] =
     useState(false);
@@ -113,16 +128,17 @@ const PurchaseOrder: React.FC = () => {
       STORE
   ========================= */
 
-  const [store, setStore] =
-    useState<Store | null>(null);
+  const [store, setStore] = useState<Store | null>(null);
 
-  const [stores, setStores] =
-    useState<Store[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
 
   const [loadingStores, setLoadingStores] =
     useState(false);
 
-  // Global loader for all API calls on this screen.
+  /* =========================
+      GLOBAL API LOADER
+  ========================= */
+
   const [apiLoadingCount, setApiLoadingCount] =
     useState(0);
 
@@ -131,19 +147,27 @@ const PurchaseOrder: React.FC = () => {
   };
 
   const stopApiLoading = () => {
-    setApiLoadingCount((count) => Math.max(0, count - 1));
+    setApiLoadingCount((count) =>
+      Math.max(0, count - 1)
+    );
   };
+
+  /* =========================
+      OTHER FORM FIELDS
+  ========================= */
 
   const [orderedBy, setOrderedBy] = useState("");
   const [instruction, setInstruction] = useState("");
 
-  const [effectiveFrom, setEffectiveFrom] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [effectiveFrom, setEffectiveFrom] =
+    useState(
+      new Date().toISOString().split("T")[0]
+    );
 
-  const [effectiveTo, setEffectiveTo] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [effectiveTo, setEffectiveTo] =
+    useState(
+      new Date().toISOString().split("T")[0]
+    );
 
   const [remarks, setRemarks] = useState("");
 
@@ -176,50 +200,64 @@ const PurchaseOrder: React.FC = () => {
     useState<number | null>(null);
 
   /* =========================
-      TABLE DATA
+      PURCHASE ITEMS
   ========================= */
 
   const [items, setItems] = useState<PurchaseItem[]>([]);
-  const [miscRows, setMiscRows] = useState<MiscRow[]>([]);
 
   const [calculationResponse, setCalculationResponse] =
     useState<any>(null);
 
-  const [activeTab] = useState<"misc">("misc");
+  /* =========================
+      MISCELLANEOUS
+  ========================= */
+
+  const [miscList, setMiscList] =
+    useState<InventoryMisc[]>([]);
+
+  const [loadingMiscList, setLoadingMiscList] =
+    useState(false);
+
+  const [miscRows, setMiscRows] =
+    useState<MiscRow[]>([]);
+const [miscChargeId, setMiscChargeId] = useState("");
+const [miscAmount, setMiscAmount] = useState("");
+  /* =========================
+      FETCH NEXT ORDER CODE
+  ========================= */
+
+  const fetchNextCode = async () => {
+    startApiLoading();
+
+    try {
+      const res = await getNextIdCode({
+        tableName: "PurchaseOrderMaster",
+        columnName: "PONo",
+        conditionName: "Branch_Code",
+        branch: appData?.user?.branch_code,
+      });
+
+      console.log(
+        "Next Order No Response:",
+        res
+      );
+
+      if (res?.success) {
+        setOrderNo(res.data.toString());
+      }
+    } catch (err) {
+      console.error(
+        "Error fetching order no",
+        err
+      );
+    } finally {
+      stopApiLoading();
+    }
+  };
 
   /* =========================
       FETCH SUPPLIERS
   ========================= */
-  const fetchNextCode = async () => {
-  startApiLoading();
-
-  try {
-    const res = await getNextIdCode({
-      tableName: "PurchaseOrderMaster",
-      columnName: "PONo",
-      conditionName: "Branch_Code",
-      branch: appData?.user?.branch_code,
-    });
-
-    console.log(
-      "Next Order No Response:",
-      res
-    );
-
-    if (res?.success) {
-      setOrderNo(
-        res.data.toString()
-      );
-    }
-  } catch (err) {
-    console.error(
-      "Error fetching order no",
-      err
-    );
-  } finally {
-    stopApiLoading();
-  }
-};
 
   const fetchSuppliers = async () => {
     startApiLoading();
@@ -229,11 +267,6 @@ const PurchaseOrder: React.FC = () => {
 
       const res = await getSupplierList(
         appData?.user?.branch_code
-      );
-
-      console.log(
-        "Supplier List Response:",
-        res
       );
 
       if (res?.success) {
@@ -273,11 +306,6 @@ const PurchaseOrder: React.FC = () => {
         appData?.user?.branch_code
       );
 
-      console.log(
-        "Store Master List Response:",
-        res
-      );
-
       if (res?.success) {
         setStores(res?.data || []);
       } else {
@@ -306,20 +334,21 @@ const PurchaseOrder: React.FC = () => {
   ========================= */
 
   const fetchInventoryItems = async () => {
+    if (!store?.storeId) {
+      setInventoryItems([]);
+      return;
+    }
+
     startApiLoading();
 
     try {
       setLoadingInventoryItems(true);
 
-      const res = await getItemStoreListByStoreId(
-        appData?.user?.branch_code,
-       String(store?.storeId) 
-      );
-
-      console.log(
-        "Inventory Item Store List Response:",
-        res
-      );
+      const res =
+        await getItemStoreListByStoreId(
+          appData?.user?.branch_code,
+          String(store.storeId)
+        );
 
       if (res?.success) {
         setInventoryItems(res?.data || []);
@@ -345,14 +374,87 @@ const PurchaseOrder: React.FC = () => {
   };
 
   /* =========================
+      FETCH MISC LIST
+  ========================= */
+
+  const fetchInventoryMiscList = async () => {
+    const branch =
+      appData?.user?.branch_code || "";
+
+    if (!branch) {
+      setMiscList([]);
+      return;
+    }
+
+    startApiLoading();
+
+    try {
+      setLoadingMiscList(true);
+
+      const res =
+        await getInventoryMiscList(branch);
+
+      console.log(
+        "Inventory Miscellaneous Response:",
+        res
+      );
+
+      if (res?.success) {
+        setMiscList(res?.data || []);
+      } else {
+        setMiscList([]);
+
+        console.error(
+          res?.message ||
+            "Failed to fetch miscellaneous charges"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Error fetching miscellaneous charges:",
+        error
+      );
+
+      setMiscList([]);
+    } finally {
+      setLoadingMiscList(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
+      INITIAL LOAD
+  ========================= */
+
+  useEffect(() => {
+    if (appData?.user?.branch_code) {
+      fetchSuppliers();
+      fetchStores();
+      fetchNextCode();
+      fetchInventoryMiscList();
+    }
+  }, [appData?.user?.branch_code]);
+
+  /* =========================
+      LOAD ITEMS WHEN STORE CHANGES
+  ========================= */
+
+  useEffect(() => {
+    if (store?.storeId) {
+      fetchInventoryItems();
+    } else {
+      setInventoryItems([]);
+    }
+  }, [store?.storeId]);
+
+  /* =========================
       FILTER INVENTORY ITEMS
   ========================= */
 
   const filteredInventoryItems =
     inventoryItems.filter((item) => {
-      const search = itemSearch
-        .trim()
-        .toLowerCase();
+      const search =
+        itemSearch.trim().toLowerCase();
 
       if (!search) return true;
 
@@ -374,11 +476,10 @@ const PurchaseOrder: React.FC = () => {
   const handleInventoryItemSelect = (
     item: InventoryItem
   ) => {
-    // Do not allow selecting an item that already exists in the order.
-    // While editing, the current row itself is allowed.
     const existingItem = items.find(
       (orderItem, index) =>
-        orderItem.code === item.itemCode.toString() &&
+        orderItem.code ===
+          item.itemCode.toString() &&
         index !== editingItemId
     );
 
@@ -416,8 +517,6 @@ const PurchaseOrder: React.FC = () => {
     setItemSearch(value);
     setShowItemDropdown(true);
 
-    // Clear bound fields when user starts
-    // searching for another item.
     if (!value.trim()) {
       setCode("");
       setName("");
@@ -425,24 +524,6 @@ const PurchaseOrder: React.FC = () => {
       setRate("");
     }
   };
-
-  /* =========================
-      LOAD SUPPLIERS
-  ========================= */
-
-  useEffect(() => {
-    if (appData?.user?.branch_code) {
-      fetchSuppliers();
-      fetchStores();
-      fetchInventoryItems();
-      fetchNextCode();
-    }
-  }, [appData?.user?.branch_code]);
-
-  useEffect(() => {
- void fetchInventoryItems()
-  }, [store])
-  
 
   /* =========================
       NEW ENTRY
@@ -471,11 +552,17 @@ const PurchaseOrder: React.FC = () => {
     setUnit("");
     setQty("");
     setRate("");
+    setMiscRows([]);
+setMiscChargeId("");
+setMiscAmount("");
+
     setItemSearch("");
     setShowItemDropdown(false);
 
     setItems([]);
     setMiscRows([]);
+    setCalculationResponse(null);
+
     setEditingItemId(null);
 
     await fetchNextCode();
@@ -495,19 +582,27 @@ const PurchaseOrder: React.FC = () => {
       return;
     }
 
-    const selectedSupplier = suppliers.find(
-      (item) => item.supCode === supCode
-    );
+    const selectedSupplier =
+      suppliers.find(
+        (item) =>
+          item.supCode === supCode
+      );
 
     setSupplier(
       selectedSupplier || null
     );
   };
 
+  /* =========================
+      STORE CHANGE
+  ========================= */
+
   const handleStoreChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const storeId = Number(e.target.value);
+    const storeId = Number(
+      e.target.value
+    );
 
     if (!storeId) {
       setStore(null);
@@ -515,14 +610,17 @@ const PurchaseOrder: React.FC = () => {
     }
 
     const selectedStore = stores.find(
-      (item) => item.storeId === storeId
+      (item) =>
+        item.storeId === storeId
     );
 
-    setStore(selectedStore || null);
+    setStore(
+      selectedStore || null
+    );
   };
 
   /* =========================
-      ADD ITEM
+      ADD / UPDATE ITEM
   ========================= */
 
   const handleAddItem = async () => {
@@ -542,7 +640,9 @@ const PurchaseOrder: React.FC = () => {
     }
 
     if (!qty || Number(qty) <= 0) {
-      toast.error("Please enter a valid quantity");
+      toast.error(
+        "Please enter a valid quantity"
+      );
       return;
     }
 
@@ -579,6 +679,7 @@ const PurchaseOrder: React.FC = () => {
         editingItemId !== null
           ? items[editingItemId].id
           : Date.now(),
+
       code,
       name,
       unit,
@@ -587,7 +688,6 @@ const PurchaseOrder: React.FC = () => {
       total: quantity * itemRate,
     };
 
-    // Build the exact item list that will exist after Add/Update.
     const nextItems =
       editingItemId !== null
         ? items.map((item, index) =>
@@ -597,61 +697,49 @@ const PurchaseOrder: React.FC = () => {
           )
         : [...items, newItem];
 
-    // Calculate the Purchase Order using the fresh item list.
     startApiLoading();
 
     try {
-      const payload = {
-        poNo: Number(orderNo || 0),
-        storeId: Number(store.storeId),
-        branch: appData?.user?.branch_code || "",
-
-        poDetail: nextItems.map((item) => ({
-          itemCode: Number(item.code),
-          poItemQty: Number(item.qty),
-          poItemRate: Number(item.rate),
-          unit: item.unit,
-          poItemSuplyQty: Number(item.qty),
-          cpoItemQty: Number(item.qty),
-        })),
-
-        discount: 0,
-        discountIn: "",
-        miscCharge: Number(miscTotal || 0),
-        miscChargeCode: 0,
-        miscTaxCode: "",
-      };
-
-      console.log(
-        "Purchase Order Calculation Payload:",
-        payload
+      await calculatePurchaseOrder(
+        nextItems,
+        miscRows.reduce(
+          (sum, row) => sum + Number(row.amount || 0),
+          0
+        ),
+        miscRows.length === 1
+          ? miscRows[0].chargeId
+          : 0,
+        miscRows.length === 1
+          ? String(
+              miscList.find(
+                (charge) =>
+                  charge.chargeId === miscRows[0].chargeId
+              )?.taxCode ?? ""
+            )
+          : ""
       );
 
-      const calculationRes =
-        await purchaseOrderCalculation(payload);
-
-      console.log(
-        "Purchase Order Calculation Response:",
-        calculationRes
-      );
-
-      setCalculationResponse(calculationRes);
       setItems(nextItems);
 
       if (editingItemId !== null) {
-        toast.success("Item updated successfully");
+        toast.success(
+          "Item updated successfully"
+        );
       } else {
-        toast.success("Item added successfully");
+        toast.success(
+          "Item added successfully"
+        );
       }
 
-      // Clear item entry area after successful calculation.
       setCode("");
       setName("");
       setUnit("");
       setQty("");
       setRate("");
+
       setItemSearch("");
       setShowItemDropdown(false);
+
       setEditingItemId(null);
     } catch (error) {
       console.error(
@@ -667,18 +755,30 @@ const PurchaseOrder: React.FC = () => {
     }
   };
 
+  /* =========================
+      CANCEL ITEM EDIT
+  ========================= */
+
   const cancelEditItem = () => {
     setEditingItemId(null);
+
     setCode("");
     setName("");
     setUnit("");
     setQty("");
     setRate("");
+
     setItemSearch("");
     setShowItemDropdown(false);
   };
 
-  const handleEditItem = (index: number) => {
+  /* =========================
+      EDIT ITEM
+  ========================= */
+
+  const handleEditItem = (
+    index: number
+  ) => {
     const item = items[index];
 
     if (!item) return;
@@ -688,36 +788,39 @@ const PurchaseOrder: React.FC = () => {
     setCode(item.code);
     setName(item.name);
     setUnit(item.unit);
-    setQty(item.qty.toString());
-    setRate(item.rate.toString());
+    setQty(
+      item.qty.toString()
+    );
+    setRate(
+      item.rate.toString()
+    );
 
     setItemSearch(
       `${item.code} - ${item.name}`
     );
-
-    // Keep the current page position stable when editing.
-    // The fields are already in the Purchase Order Details section.
-
   };
 
-  const handleRemoveItem = (index: number) => {
+  /* =========================
+      REMOVE ITEM
+  ========================= */
+
+  const handleRemoveItem = (
+    index: number
+  ) => {
     const item = items[index];
 
-    setItems((prev) =>
-      prev.filter(
+    const nextItems =
+      items.filter(
         (_, itemIndex) =>
           itemIndex !== index
-      )
-    );
+      );
 
-    if (editingItemId === index) {
-      setEditingItemId(null);
-      setCode("");
-      setName("");
-      setUnit("");
-      setQty("");
-      setRate("");
-      setItemSearch("");
+    setItems(nextItems);
+
+    if (
+      editingItemId === index
+    ) {
+      cancelEditItem();
     }
 
     toast.success(
@@ -725,71 +828,212 @@ const PurchaseOrder: React.FC = () => {
     );
   };
 
-  const subTotal = items.reduce(
-    (sum, item) =>
-      sum + item.total,
-    0
-  );
+  /* =========================
+      PURCHASE ORDER CALCULATION
+  ========================= */
 
-  const miscTotal = miscRows.reduce(
-    (sum, misc) =>
-      sum + Number(misc.amount || 0),
-    0
-  );
+  const calculatePurchaseOrder = async (
+    nextItems: PurchaseItem[],
+    miscCharge = 0,
+    miscChargeCode = 0,
+    miscTaxCode: string = ""
+  ) => {
+    if (!store) {
+      toast.error("Please select a store");
+      return;
+    }
 
-  const grandTotal =
-    subTotal + miscTotal;
+    const payload = {
+      poNo: Number(orderNo || 0),
+
+      storeId: Number(store.storeId),
+
+      branch:
+        appData?.user?.branch_code || "",
+
+      poDetail: nextItems.map((item) => ({
+        itemCode: Number(item.code),
+        poItemQty: Number(item.qty),
+        poItemRate: Number(item.rate),
+        unit: item.unit,
+        poItemSuplyQty: Number(item.qty),
+        cpoItemQty: Number(item.qty),
+      })),
+
+      discount: 0,
+      discountIn: "",
+
+      // Miscellaneous charge information
+      miscCharge: Number(miscCharge || 0),
+      miscChargeCode: Number(miscChargeCode || 0),
+      miscTaxCode: miscTaxCode ?? "",
+    };
+
+    console.log(
+      "Purchase Order Calculation Payload:",
+      payload
+    );
+
+    const calculationRes =
+      await purchaseOrderCalculation(payload);
+
+    console.log(
+      "Purchase Order Calculation Response:",
+      calculationRes
+    );
+
+    setCalculationResponse(calculationRes);
+
+    return calculationRes;
+  };
 
   /* =========================
       ADD MISC
   ========================= */
 
-  const addMiscRow = () => {
-    setMiscRows((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        name: "",
-        amount: 0,
-      },
-    ]);
+const addMiscRow = async () => {
+  if (!miscChargeId) {
+    toast.error("Please select a particular");
+    return;
+  }
+
+  if (!miscAmount || Number(miscAmount) <= 0) {
+    toast.error("Please enter a valid amount");
+    return;
+  }
+
+  const selectedCharge = miscList.find(
+    (charge) =>
+      charge.chargeId === Number(miscChargeId)
+  );
+
+  if (!selectedCharge) {
+    toast.error("Invalid particular selected");
+    return;
+  }
+
+  const newRow: MiscRow = {
+    id: Date.now(),
+    chargeId: selectedCharge.chargeId,
+    chargeName: selectedCharge.chargeName,
+    amount: Number(miscAmount),
   };
 
-  /* =========================
-      UPDATE MISC
-  ========================= */
+  const nextMiscRows = [
+    ...miscRows,
+    newRow,
+  ];
 
-  const updateMiscRow = (
-    id: number,
-    field: keyof MiscRow,
-    value: string
-  ) => {
-    setMiscRows((prev) =>
-      prev.map((row) =>
-        row.id === id
-          ? {
-              ...row,
-              [field]:
-                field === "amount"
-                  ? Number(value)
-                  : value,
-            }
-          : row
-      )
+  setMiscRows(nextMiscRows);
+
+  // Call purchaseOrderCalculation immediately when Misc is added.
+  // The API receives the selected Misc amount, charge code and tax code.
+  startApiLoading();
+
+  try {
+    await calculatePurchaseOrder(
+      items,
+      newRow.amount,
+      newRow.chargeId,
+      String(selectedCharge.taxCode)
     );
-  };
+
+    toast.success("Miscellaneous charge added");
+  } catch (error) {
+    console.error(
+      "Error calculating purchase order with miscellaneous charge:",
+      error
+    );
+
+    toast.error(
+      "Miscellaneous charge added, but calculation failed"
+    );
+  } finally {
+    stopApiLoading();
+  }
+
+  // Clear input fields after adding
+  setMiscChargeId("");
+  setMiscAmount("");
+};
 
   /* =========================
       REMOVE MISC
   ========================= */
 
-  const removeMiscRow = (id: number) => {
-    setMiscRows((prev) =>
-      prev.filter(
-        (row) => row.id !== id
-      )
+  const removeMiscRow = async (id: number) => {
+    const nextMiscRows = miscRows.filter(
+      (row) => row.id !== id
     );
+
+    setMiscRows(nextMiscRows);
+
+    // Recalculate after removing a Misc charge.
+    startApiLoading();
+
+    try {
+      const lastMisc =
+        nextMiscRows[nextMiscRows.length - 1];
+
+      await calculatePurchaseOrder(
+        items,
+        lastMisc?.amount ?? 0,
+        lastMisc?.chargeId ?? 0,
+        String(
+          miscList.find(
+            (charge) =>
+              charge.chargeId === lastMisc?.chargeId
+          )?.taxCode ?? ""
+        )
+      );
+
+      toast.success("Miscellaneous charge removed");
+    } catch (error) {
+      console.error(
+        "Error recalculating purchase order after removing miscellaneous charge:",
+        error
+      );
+
+      toast.error(
+        "Miscellaneous charge removed, but calculation failed"
+      );
+    } finally {
+      stopApiLoading();
+    }
   };
+
+  /* =========================
+      MISC TOTAL
+  ========================= */
+
+  const miscTotal =
+    miscRows.reduce(
+      (sum, row) =>
+        sum +
+        Number(row.amount || 0),
+      0
+    );
+
+  /* =========================
+      SUB TOTAL
+  ========================= */
+
+  const subTotal =
+    items.reduce(
+      (sum, item) =>
+        sum + item.total,
+      0
+    );
+
+  /* =========================
+      GRAND TOTAL
+  ========================= */
+
+  const calculatedGrandTotal =
+    Number(
+      calculationResponse?.grandTotal ??
+        subTotal
+    ) + miscTotal;
 
   /* =========================
       SAVE
@@ -797,14 +1041,38 @@ const PurchaseOrder: React.FC = () => {
 
   const handleSave = () => {
     if (!supplier) {
-      alert(
+      toast.error(
         "Please select a supplier"
       );
       return;
     }
 
     if (!store) {
-      toast.error("Please select a store");
+      toast.error(
+        "Please select a store"
+      );
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error(
+        "Please add at least one item"
+      );
+      return;
+    }
+
+    const invalidMisc =
+      miscRows.some(
+        (row) =>
+          !row.chargeId ||
+          !row.amount ||
+          row.amount <= 0
+      );
+
+    if (invalidMisc) {
+      toast.error(
+        "Please select particular and enter valid amount for all miscellaneous charges"
+      );
       return;
     }
 
@@ -819,10 +1087,10 @@ const PurchaseOrder: React.FC = () => {
         supplier.supName,
 
       storeId:
-        store?.storeId ?? null,
+        store.storeId,
 
       storeName:
-        store?.storeName ?? "",
+        store.storeName,
 
       orderedBy,
       instruction,
@@ -838,8 +1106,11 @@ const PurchaseOrder: React.FC = () => {
         miscRows,
 
       subTotal,
+
       miscTotal,
-      grandTotal,
+
+      grandTotal:
+        calculatedGrandTotal,
     };
 
     console.log(
@@ -853,10 +1124,8 @@ const PurchaseOrder: React.FC = () => {
   };
 
   /* =========================
-      FORMAT DATE
+      COMMON CLASSES
   ========================= */
-
-
 
   const inputClass =
     "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -866,7 +1135,10 @@ const PurchaseOrder: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
-      {apiLoadingCount > 0 && <Loader />}
+
+      {apiLoadingCount > 0 && (
+        <Loader />
+      )}
 
       <Header />
 
@@ -891,7 +1163,7 @@ const PurchaseOrder: React.FC = () => {
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
 
           {/* =========================
-              PURCHASE ORDER INFORMATION
+              PURCHASE ORDER
           ========================= */}
 
           <section className="mb-6 overflow-hidden rounded-xl border border-gray-200">
@@ -910,33 +1182,9 @@ const PurchaseOrder: React.FC = () => {
 
               </div>
 
-              <div className="flex items-center gap-2">
-
-                {editingItemId !== null ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="h-9 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition hover:bg-green-700"
-                    >
-                      Update Item
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={cancelEditItem}
-                      className="h-9 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                    >
-                      Cancel Edit
-                    </button>
-                  </>
-                ) : (
-                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                    New Entry
-                  </span>
-                )}
-
-              </div>
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                New Entry
+              </span>
 
             </div>
 
@@ -946,24 +1194,30 @@ const PurchaseOrder: React.FC = () => {
 
                 {/* ORDER NO */}
 
-        <div>
-  <label className={`${labelClass} h-[18px]`}>
-    Order No.
-  </label>
+                <div>
 
-  <input
-    type="text"
-    value={orderNo}
-    disabled
-    className={`${inputClass} cursor-not-allowed bg-gray-100`}
-  />
-</div>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
+                    Order No.
+                  </label>
+
+                  <input
+                    type="text"
+                    value={orderNo}
+                    disabled
+                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
+                  />
+
+                </div>
 
                 {/* DATE */}
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Date
                   </label>
 
@@ -975,20 +1229,20 @@ const PurchaseOrder: React.FC = () => {
                         e.target.value
                       )
                     }
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   />
-
-              
 
                 </div>
 
-                {/* =========================
-                    SUPPLIER DROPDOWN
-                ========================= */}
+                {/* SUPPLIER */}
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Supplier
                   </label>
 
@@ -1034,19 +1288,21 @@ const PurchaseOrder: React.FC = () => {
                   </select>
 
                 </div>
-                {/* =========================
-                    STORE DROPDOWN
-                ========================= */}
+
+                {/* STORE */}
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Store
                   </label>
 
                   <select
                     value={
-                      store?.storeId ?? ""
+                      store?.storeId ??
+                      ""
                     }
                     onChange={
                       handleStoreChange
@@ -1077,7 +1333,10 @@ const PurchaseOrder: React.FC = () => {
                             item.storeId
                           }
                         >
-                          {item.storeId} - {item.storeName}
+                          {item.storeId} -{" "}
+                          {
+                            item.storeName
+                          }
                         </option>
                       )
                     )}
@@ -1090,7 +1349,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Ordered By
                   </label>
 
@@ -1103,7 +1364,9 @@ const PurchaseOrder: React.FC = () => {
                       )
                     }
                     placeholder="Enter ordered by"
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   />
 
                 </div>
@@ -1112,7 +1375,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Effective From
                   </label>
 
@@ -1126,7 +1391,9 @@ const PurchaseOrder: React.FC = () => {
                         e.target.value
                       )
                     }
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   />
 
                 </div>
@@ -1135,7 +1402,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div>
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Effective To
                   </label>
 
@@ -1149,7 +1418,9 @@ const PurchaseOrder: React.FC = () => {
                         e.target.value
                       )
                     }
-                    className={inputClass}
+                    className={
+                      inputClass
+                    }
                   />
 
                 </div>
@@ -1158,14 +1429,14 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="sm:col-span-2">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Instruction
                   </label>
 
                   <textarea
-                    value={
-                      instruction
-                    }
+                    value={instruction}
                     onChange={(e) =>
                       setInstruction(
                         e.target.value
@@ -1182,7 +1453,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="sm:col-span-2">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Remarks
                   </label>
 
@@ -1207,22 +1480,20 @@ const PurchaseOrder: React.FC = () => {
           </section>
 
           {/* =========================
-              ITEM DETAILS
+              PURCHASE ORDER DETAILS
           ========================= */}
 
           <section className="relative z-50 mb-6 overflow-visible rounded-xl border border-gray-200">
 
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+            <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
 
-              <div>
-                <h3 className="text-base font-semibold text-gray-800">
-                  Purchase Order Details
-                </h3>
+              <h3 className="text-base font-semibold text-gray-800">
+                Purchase Order Details
+              </h3>
 
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Select an item, enter quantity, and add it to the order
-                </p>
-              </div>
+              <p className="mt-0.5 text-xs text-gray-500">
+                Select an item, enter quantity, and add it to the order
+              </p>
 
             </div>
 
@@ -1230,25 +1501,36 @@ const PurchaseOrder: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-start">
 
-                {/* ITEM SEARCH */}
+                {/* ITEM */}
 
                 <div className="relative sm:col-span-2 lg:col-span-4">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Item
                   </label>
 
                   <input
-                    value={itemSearch}
+                    value={
+                      itemSearch
+                    }
                     onChange={(e) =>
-                      handleItemSearchChange(e.target.value)
+                      handleItemSearchChange(
+                        e.target.value
+                      )
                     }
                     onFocus={() =>
-                      setShowItemDropdown(true)
+                      setShowItemDropdown(
+                        true
+                      )
                     }
                     onBlur={() => {
                       setTimeout(
-                        () => setShowItemDropdown(false),
+                        () =>
+                          setShowItemDropdown(
+                            false
+                          ),
                         150
                       );
                     }}
@@ -1257,7 +1539,9 @@ const PurchaseOrder: React.FC = () => {
                         ? "Loading items..."
                         : "Search code or item name"
                     }
-                    disabled={loadingInventoryItems}
+                    disabled={
+                      loadingInventoryItems
+                    }
                     className={`${inputClass} ${
                       loadingInventoryItems
                         ? "cursor-not-allowed bg-gray-100"
@@ -1268,40 +1552,61 @@ const PurchaseOrder: React.FC = () => {
                   {showItemDropdown && (
                     <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
 
-                      {filteredInventoryItems.length === 0 ? (
+                      {filteredInventoryItems.length ===
+                      0 ? (
+
                         <div className="px-3 py-4 text-center text-sm text-gray-500">
                           No items found
                         </div>
-                      ) : (
-                        filteredInventoryItems.map((item) => (
-                          <button
-                            type="button"
-                            key={item.itemCode}
-                            onMouseDown={(e) =>
-                              e.preventDefault()
-                            }
-                            onClick={() =>
-                              handleInventoryItemSelect(item)
-                            }
-                            className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
-                          >
-                            <span className="font-medium text-gray-800">
-                              {item.itemCode} - {item.itemName}
-                            </span>
 
-                            <span className="shrink-0 text-xs text-gray-500">
-                              {item.unitName}
-                            </span>
-                          </button>
-                        ))
+                      ) : (
+
+                        filteredInventoryItems.map(
+                          (item) => (
+
+                            <button
+                              type="button"
+                              key={
+                                item.itemCode
+                              }
+                              onMouseDown={(
+                                e
+                              ) =>
+                                e.preventDefault()
+                              }
+                              onClick={() =>
+                                handleInventoryItemSelect(
+                                  item
+                                )
+                              }
+                              className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
+                            >
+
+                              <span className="font-medium text-gray-800">
+                                {
+                                  item.itemCode
+                                }{" "}
+                                -{" "}
+                                {
+                                  item.itemName
+                                }
+                              </span>
+
+                              <span className="shrink-0 text-xs text-gray-500">
+                                {
+                                  item.unitName
+                                }
+                              </span>
+
+                            </button>
+
+                          )
+                        )
+
                       )}
 
                     </div>
                   )}
-
-                  <p className="mt-1 text-[11px] text-gray-400">
-                    Search by item code or name
-                  </p>
 
                 </div>
 
@@ -1309,7 +1614,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="lg:col-span-2">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Code
                   </label>
 
@@ -1326,7 +1633,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="lg:col-span-2">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Name
                   </label>
 
@@ -1343,7 +1652,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="lg:col-span-1">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Unit
                   </label>
 
@@ -1360,7 +1671,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="lg:col-span-1">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Qty
                   </label>
 
@@ -1369,7 +1682,9 @@ const PurchaseOrder: React.FC = () => {
                     min="1"
                     value={qty}
                     onChange={(e) =>
-                      setQty(e.target.value)
+                      setQty(
+                        e.target.value
+                      )
                     }
                     placeholder="Qty"
                     className={`${inputClass} text-right`}
@@ -1381,7 +1696,9 @@ const PurchaseOrder: React.FC = () => {
 
                 <div className="lg:col-span-1">
 
-                  <label className={`${labelClass} h-[18px]`}>
+                  <label
+                    className={`${labelClass} h-[18px]`}
+                  >
                     Rate
                   </label>
 
@@ -1401,10 +1718,15 @@ const PurchaseOrder: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={handleAddItem}
+                    onClick={
+                      handleAddItem
+                    }
                     className="h-10 w-full rounded-lg bg-green-600 px-3 text-sm font-semibold text-white transition hover:bg-green-700"
                   >
-                    {editingItemId !== null ? "Update" : "+ Add"}
+                    {editingItemId !==
+                    null
+                      ? "Update"
+                      : "+ Add"}
                   </button>
 
                 </div>
@@ -1457,7 +1779,8 @@ const PurchaseOrder: React.FC = () => {
 
                 <tbody>
 
-                  {items.length === 0 ? (
+                  {items.length ===
+                  0 ? (
 
                     <tr>
 
@@ -1472,74 +1795,93 @@ const PurchaseOrder: React.FC = () => {
 
                   ) : (
 
-                    items.map((item) => (
+                    items.map(
+                      (
+                        item,
+                        index
+                      ) => (
 
-                      <tr
-                        key={item.id}
-                        className="border-t border-gray-200 hover:bg-gray-50"
-                      >
+                        <tr
+                          key={
+                            item.id
+                          }
+                          className="border-t border-gray-200 hover:bg-gray-50"
+                        >
 
-                        <td className="px-4 py-3">
-                          {item.code}
-                        </td>
+                          <td className="px-4 py-3">
+                            {
+                              item.code
+                            }
+                          </td>
 
-                        <td className="px-4 py-3 font-medium text-gray-800">
-                          {item.name}
-                        </td>
+                          <td className="px-4 py-3 font-medium text-gray-800">
+                            {
+                              item.name
+                            }
+                          </td>
 
-                        <td className="px-4 py-3">
-                          {item.unit}
-                        </td>
+                          <td className="px-4 py-3">
+                            {
+                              item.unit
+                            }
+                          </td>
 
-                        <td className="px-4 py-3 text-right">
-                          {item.qty}
-                        </td>
+                          <td className="px-4 py-3 text-right">
+                            {
+                              item.qty
+                            }
+                          </td>
 
-                        <td className="px-4 py-3 text-right">
-                          ₹{" "}
-                          {item.rate.toFixed(2)}
-                        </td>
+                          <td className="px-4 py-3 text-right">
+                            ₹{" "}
+                            {item.rate.toFixed(
+                              2
+                            )}
+                          </td>
 
-                        <td className="px-4 py-3 text-right font-semibold">
-                          ₹{" "}
-                          {item.total.toFixed(2)}
-                        </td>
+                          <td className="px-4 py-3 text-right font-semibold">
+                            ₹{" "}
+                            {item.total.toFixed(
+                              2
+                            )}
+                          </td>
 
-                        <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3 text-center">
 
-                          <div className="flex items-center justify-center gap-3">
+                            <div className="flex items-center justify-center gap-3">
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleEditItem(
-                                  items.indexOf(item)
-                                )
-                              }
-                              className="rounded-md px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
-                            >
-                              Edit
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEditItem(
+                                    index
+                                  )
+                                }
+                                className="rounded-md px-2 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleRemoveItem(
-                                  items.indexOf(item)
-                                )
-                              }
-                              className="rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                            >
-                              Remove
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveItem(
+                                    index
+                                  )
+                                }
+                                className="rounded-md px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
 
-                          </div>
+                            </div>
 
-                        </td>
+                          </td>
 
-                      </tr>
+                        </tr>
 
-                    ))
+                      )
+                    )
 
                   )}
 
@@ -1552,177 +1894,196 @@ const PurchaseOrder: React.FC = () => {
           </section>
 
           {/* =========================
-              MISC
+              MISCELLANEOUS CHARGES
           ========================= */}
 
-          <section className="overflow-hidden rounded-xl border border-gray-200">
+       {/* =========================
+    MISCELLANEOUS CHARGES
+========================= */}
 
-            <div className="border-b border-gray-200 bg-gray-50">
+<section className="mb-6 overflow-hidden rounded-xl border border-gray-200">
 
-              <div
-                className={`inline-flex border-b-2 border-blue-600 bg-white px-5 py-3 text-sm font-semibold text-blue-600 ${
-                  activeTab === "misc"
-                    ? ""
-                    : "hidden"
-                }`}
-              >
-                Misc
-              </div>
+  <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
 
-            </div>
+    <h3 className="text-base font-semibold text-gray-800">
+      Miscellaneous Charges
+    </h3>
 
-            <div className="p-4 md:p-5">
+    <p className="mt-0.5 text-xs text-gray-500">
+      Add additional purchase order charges
+    </p>
 
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  </div>
 
-                <div>
+  {/* =========================
+      ADD MISC INPUT
+  ========================= */}
 
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Miscellaneous Charges
-                  </h3>
+  <div className="p-4 md:p-5">
 
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Add additional purchase charges
-                  </p>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
 
-                </div>
+      {/* PARTICULAR */}
+
+      <div className="sm:col-span-2 lg:col-span-6">
+
+        <label className={labelClass}>
+          Particular
+        </label>
+
+        <select
+          value={miscChargeId}
+          onChange={(e) =>
+            setMiscChargeId(e.target.value)
+          }
+          disabled={loadingMiscList}
+          className={`${inputClass} ${
+            loadingMiscList
+              ? "cursor-not-allowed bg-gray-100"
+              : ""
+          }`}
+        >
+
+          <option value="">
+            {loadingMiscList
+              ? "Loading charges..."
+              : "Select Particular"}
+          </option>
+
+          {miscList.map((charge) => (
+            <option
+              key={charge.chargeId}
+              value={charge.chargeId}
+            >
+              {charge.chargeName}
+            </option>
+          ))}
+
+        </select>
+
+      </div>
+
+      {/* AMOUNT */}
+
+      <div className="sm:col-span-1 lg:col-span-4">
+
+        <label className={labelClass}>
+          Amount
+        </label>
+
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={miscAmount}
+          onChange={(e) =>
+            setMiscAmount(e.target.value)
+          }
+          placeholder="Enter Amount"
+          className={`${inputClass} text-right`}
+        />
+
+      </div>
+
+      {/* ADD BUTTON */}
+
+      <div className="sm:col-span-1 lg:col-span-2">
+
+        <button
+          type="button"
+          onClick={addMiscRow}
+          className="h-10 w-full rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition hover:bg-green-700"
+        >
+          + Add Misc
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* =========================
+      ADDED MISC TABLE
+  ========================= */}
+
+  {miscRows.length > 0 && (
+    <div className="overflow-x-auto border-t border-gray-200">
+
+      <table className="w-full min-w-[700px] text-sm">
+
+        <thead>
+
+          <tr className="bg-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-600">
+
+            <th className="px-4 py-3 text-left">
+              Particular
+            </th>
+
+            <th className="w-[250px] px-4 py-3 text-right">
+              Amount
+            </th>
+
+            <th className="w-[130px] px-4 py-3 text-center">
+              Action
+            </th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {miscRows.map((row) => (
+
+            <tr
+              key={row.id}
+              className="border-t border-gray-200 hover:bg-gray-50"
+            >
+
+              {/* PARTICULAR */}
+
+              <td className="px-4 py-3 font-medium text-gray-800">
+                {row.chargeName}
+              </td>
+
+              {/* AMOUNT */}
+
+              <td className="px-4 py-3 text-right font-medium text-gray-800">
+                ₹ {row.amount.toFixed(2)}
+              </td>
+
+              {/* ACTION */}
+
+              <td className="px-4 py-3 text-center">
 
                 <button
                   type="button"
-                  onClick={
-                    addMiscRow
+                  onClick={() =>
+                    removeMiscRow(row.id)
                   }
-                  className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                  className="rounded-md px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
                 >
-                  + Add Misc
+                  Remove
                 </button>
 
-              </div>
+              </td>
 
-              <div className="overflow-x-auto">
+            </tr>
 
-                <table className="w-full min-w-[600px] text-sm">
+          ))}
 
-                  <thead>
+        </tbody>
 
-                    <tr className="bg-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-600">
+      </table>
 
-                      <th className="px-4 py-3 text-left">
-                        Particular
-                      </th>
+    </div>
+  )}
 
-                      <th className="w-[180px] px-4 py-3 text-right">
-                        Amount
-                      </th>
-
-                      <th className="w-[120px] px-4 py-3 text-center">
-                        Action
-                      </th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {miscRows.length === 0 ? (
-
-                      <tr>
-
-                        <td
-                          colSpan={3}
-                          className="px-4 py-10 text-center text-sm text-gray-400"
-                        >
-                          No miscellaneous charges added
-                        </td>
-
-                      </tr>
-
-                    ) : (
-
-                      miscRows.map(
-                        (misc) => (
-
-                          <tr
-                            key={misc.id}
-                            className="border-t border-gray-200"
-                          >
-
-                            <td className="px-4 py-3">
-
-                              <input
-                                value={
-                                  misc.name
-                                }
-                                onChange={(e) =>
-                                  updateMiscRow(
-                                    misc.id,
-                                    "name",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Particular"
-                                className={
-                                  inputClass
-                                }
-                              />
-
-                            </td>
-
-                            <td className="px-4 py-3">
-
-                              <input
-                                type="number"
-                                value={
-                                  misc.amount
-                                }
-                                onChange={(e) =>
-                                  updateMiscRow(
-                                    misc.id,
-                                    "amount",
-                                    e.target.value
-                                  )
-                                }
-                                className={`${inputClass} text-right`}
-                              />
-
-                            </td>
-
-                            <td className="px-4 py-3 text-center">
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeMiscRow(
-                                    misc.id
-                                  )
-                                }
-                                className="rounded-md px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                              >
-                                Remove
-                              </button>
-
-                            </td>
-
-                          </tr>
-
-                        )
-                      )
-
-                    )}
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-            </div>
-
-          </section>
+</section>
 
           {/* =========================
-              SUMMARY
+              ORDER SUMMARY
           ========================= */}
 
           <div className="mt-6 flex justify-end">
@@ -1735,91 +2096,136 @@ const PurchaseOrder: React.FC = () => {
 
               <div className="space-y-3 text-sm">
 
-                {/* Total Quantity */}
+                {/* TOTAL QUANTITY */}
+
                 <div className="flex items-center justify-between gap-4">
+
                   <span className="text-gray-600">
                     Total Quantity
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
+
                     {Number(
                       calculationResponse?.totalQty ??
-                      items.reduce(
-                        (sum, item) =>
-                          sum + Number(item.qty || 0),
-                        0
-                      )
+                        items.reduce(
+                          (
+                            sum,
+                            item
+                          ) =>
+                            sum +
+                            Number(
+                              item.qty ||
+                                0
+                            ),
+                          0
+                        )
                     )}
+
                   </span>
+
                 </div>
 
-                {/* Total Amount */}
+                {/* TOTAL AMOUNT */}
+
                 <div className="flex items-center justify-between gap-4">
+
                   <span className="text-gray-600">
                     Total Amount
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
+
                     ₹{" "}
                     {Number(
                       calculationResponse?.totalAmount ??
-                      subTotal ??
-                      0
-                    ).toFixed(2)}
+                        subTotal ??
+                        0
+                    ).toFixed(
+                      2
+                    )}
+
                   </span>
+
                 </div>
 
                 {/* CGST */}
+
                 <div className="flex items-center justify-between gap-4">
+
                   <span className="text-gray-600">
-                    CGST ({Number(
-                      calculationResponse?.cgstPer ?? 0
-                    ).toFixed(2)}%)
+                    CGST (
+                    {Number(
+                      calculationResponse?.cgstPer ??
+                        0
+                    ).toFixed(
+                      2
+                    )}
+                    %)
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
+
                     ₹{" "}
                     {Number(
-                      calculationResponse?.cgstAmt ?? 0
-                    ).toFixed(2)}
+                      calculationResponse?.cgstAmt ??
+                        0
+                    ).toFixed(
+                      2
+                    )}
+
                   </span>
+
                 </div>
 
                 {/* SGST */}
+
                 <div className="flex items-center justify-between gap-4">
+
                   <span className="text-gray-600">
-                    SGST ({Number(
-                      calculationResponse?.sgstPer ?? 0
-                    ).toFixed(2)}%)
+                    SGST (
+                    {Number(
+                      calculationResponse?.sgstPer ??
+                        0
+                    ).toFixed(
+                      2
+                    )}
+                    %)
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
+
                     ₹{" "}
                     {Number(
-                      calculationResponse?.sgstAmt ?? 0
-                    ).toFixed(2)}
+                      calculationResponse?.sgstAmt ??
+                        0
+                    ).toFixed(
+                      2
+                    )}
+
                   </span>
+
                 </div>
 
-             
-            
-          <div className="flex items-center justify-between gap-4">
+                {/* MISCELLANEOUS */}
+
+                <div className="flex items-center justify-between gap-4">
+
                   <span className="text-gray-600">
                     Miscellaneous
                   </span>
 
                   <span className="min-w-[110px] text-right font-medium text-gray-800">
+
                     ₹{" "}
-                    {Number(
-                      calculationResponse?.miscTotalAmount ??
-                      calculationResponse?.miscCharge ??
-                      miscTotal ??
-                      0
-                    ).toFixed(2)}
+                    {calculationResponse.miscTotalAmount}
+
                   </span>
+
                 </div>
 
-                {/* Grand Total */}
+                {/* GRAND TOTAL */}
+
                 <div className="border-t border-gray-200 pt-3">
 
                   <div className="flex items-center justify-between gap-4">
@@ -1829,12 +2235,12 @@ const PurchaseOrder: React.FC = () => {
                     </span>
 
                     <span className="min-w-[110px] text-right text-lg font-bold text-blue-600">
+
                       ₹{" "}
-                      {Number(
-                        calculationResponse?.grandTotal ??
-                        grandTotal ??
-                        0
-                      ).toFixed(2)}
+                      {calculatedGrandTotal.toFixed(
+                        2
+                      )}
+
                     </span>
 
                   </div>
@@ -1883,5 +2289,4 @@ const PurchaseOrder: React.FC = () => {
   );
 };
 
-export default PurchaseOrder
-
+export default PurchaseOrder;
