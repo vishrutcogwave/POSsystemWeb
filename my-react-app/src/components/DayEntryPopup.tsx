@@ -4,6 +4,7 @@ import { dayClose, dayOpen, getOpenDayDetails } from "../api/services/products.s
 import AlertPopup from "./AlertPopup";
 import Loader from "./Loader";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 interface Props {
   isOpen: boolean;
@@ -137,9 +138,11 @@ const handleDayClose = async () => {
     const res = await dayClose(payload);
 
     setAlertMsg(res?.message || "Success");
+    toast.success(res?.message )
     setAlertType("success");
 
     await fetchData();
+        onClose()
   } catch (err: any) {
     seterrorpopup(err?.response?.data?.popupStatus)
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
@@ -168,8 +171,10 @@ const handleDayOpen = async () => {
 
     setAlertMsg(res?.message || "Day Opened Successfully");
     setAlertType("success");
+     toast.success(res?.message )
 
     await fetchData();
+    onClose()
   } catch (err: any) {
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
     setAlertType("error");

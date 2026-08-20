@@ -105,6 +105,7 @@ toast(data.message, {
   icon: "⚠️",
   duration: 5000, // 10 seconds
 });
+localStorage.setItem("serialKey",data.data.serialKey);
 
       navigate("/dashboard", { replace: true });
     } catch (error) {

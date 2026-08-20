@@ -1,16 +1,15 @@
 import { useState } from "react";
 import {
   ShieldCheck,
-  ReceiptText,
   Menu,
   X,
   Lock,
 } from "lucide-react";
 
 import License from "../components/License";
-import BillAdjustment from "./BillAdjustment";
+// import BillAdjustment from "./BillAdjustment";
 
-type MenuType = "license" | "billadjustment";
+type MenuType = "license" ;
 
 const ADMIN_PASSWORD = "Cogwave@123"; // Change this
 
@@ -46,11 +45,7 @@ export default function AdminPanel() {
       name: "License",
       icon: ShieldCheck,
     },
-    {
-      id: "billadjustment",
-      name: "Bill Adjustment",
-      icon: ReceiptText,
-    },
+   
   ];
 
   return (
@@ -210,9 +205,9 @@ export default function AdminPanel() {
 
               {selectedMenu === "license" && <License />}
 
-              {selectedMenu === "billadjustment" && (
+              {/* {selectedMenu === "billadjustment" && (
                 <BillAdjustment />
-              )}
+              )} */}
 
             </main>
           </div>

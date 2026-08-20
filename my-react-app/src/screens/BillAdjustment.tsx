@@ -1,5 +1,6 @@
   import { useEffect, useState } from "react";
   import { useAppContext } from "../context/AppContext";
+  import { Lock } from "lucide-react";
   import {
     getAdjustmentLoadData,
     getCalculateRankAmount,
@@ -12,7 +13,21 @@
 
   export default function BillAdjustment() {
     const { appData } = useAppContext();
+const BILL_ADJUSTMENT_PASSWORD = "Cogwave@123";
 
+const [isUnlocked, setIsUnlocked] = useState(false);
+const [password, setPassword] = useState("");
+const [passwordError, setPasswordError] = useState("");
+const handleUnlock = () => {
+  if (password === BILL_ADJUSTMENT_PASSWORD) {
+    setIsUnlocked(true);
+    setPassword("");
+    setPasswordError("");
+  } else {
+    setPasswordError("Incorrect password");
+    setPassword("");
+  }
+};
     const [bills, setBills] = useState<any[]>([]);
     const [items, setItems] = useState<any[]>([]);
     const [groupDetails, setGroupDetails] = useState<any[]>([]);
@@ -34,28 +49,30 @@
     const [estAmount, setEstAmount] = useState(0);
     const [rankByType, setRankByType] = useState("kotno");
 
-    useEffect(() => {
-      const loadOutlets = async () => {
-        try {
-          const res = await getOutletList(appData.user.branch_code);
+ useEffect(() => {
+  const loadOutlets = async () => {
+    try {
+      const res = await getOutletList(appData.user.branch_code);
 
-          if (res.success) {
-            setOutlets(res.data);
+      if (res.success) {
+        setOutlets(res.data);
 
-            if (res.data.length > 0) {
-              setOutlet(String(res.data[0].oltCode));
-            }
-          }
-        } catch (err) {
-          console.error(err);
+        if (res.data.length > 0) {
+          setOutlet(String(res.data[0].oltCode));
         }
-      };
-
-      if (appData?.user?.branch_code) {
-        loadOutlets();
       }
-    }, [appData.user.branch_code]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
+  if (
+    isUnlocked &&
+    appData?.user?.branch_code
+  ) {
+    loadOutlets();
+  }
+}, [isUnlocked, appData?.user?.branch_code]);
     const handleShowBills = async () => {
       setLoading(true);
 
@@ -155,9 +172,70 @@
     setLoading(false);
   }
 };
-    return (
+ return (
+  <>
+    {/* PASSWORD POPUP */}
+    {!isUnlocked && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+
+        <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+
+          <div className="mb-4 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0576B2]/10">
+              <Lock
+                size={32}
+                className="text-[#0576B2]"
+              />
+            </div>
+          </div>
+
+          <h2 className="text-center text-2xl font-bold text-gray-800">
+            Bill Adjustment
+          </h2>
+
+          <p className="mt-2 text-center text-gray-500">
+            Enter password to continue
+          </p>
+
+          <input
+            type="password"
+            placeholder="Enter Password"
+            value={password}
+            autoFocus
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setPasswordError("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleUnlock();
+              }
+            }}
+            className="mt-6 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20"
+          />
+
+          {passwordError && (
+            <p className="mt-3 text-center text-sm text-red-500">
+              {passwordError}
+            </p>
+          )}
+
+          <button
+            onClick={handleUnlock}
+            className="mt-6 w-full rounded-lg bg-[#0576B2] py-3 font-semibold text-white hover:bg-[#046191]"
+          >
+            Unlock
+          </button>
+
+        </div>
+      </div>
+    )}
+
+    {/* BILL ADJUSTMENT CONTENT */}
+    {isUnlocked && (
       <>
-        {loading && <Loader />} 
+        {loading && <Loader />}
+
         <div className="min-h-[calc(100vh-100px)] bg-gray-50 p-4 md:p-6 space-y-6">
           <div className="bg-white rounded-xl shadow p-4 md:p-6">
             {/* Header */}
@@ -326,19 +404,19 @@
                     className="h-10 w-full rounded-md border bg-gray-100 px-3 text-sm"
                   />
                 </div>
-
+              <button
+                  onClick={handleAdjust}
+                  className="h-10 px-5 rounded-md bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap"
+                >
+                  Refresh
+                </button>
                 {/* Save */}
                 <button onClick={handleSave} className="h-10 px-5 rounded-md bg-green-600 text-white hover:bg-green-700 whitespace-nowrap">
                   Save
                 </button>
 
                 {/* Refresh */}
-                <button
-                  onClick={handleAdjust}
-                  className="h-10 px-5 rounded-md bg-orange-500 text-white hover:bg-orange-600 whitespace-nowrap"
-                >
-                  Refresh
-                </button>
+               
               </div>
             </div>
             {/* Tables */}
@@ -505,6 +583,15 @@
             ))}
           </div>
         </div>
+           {/* Footer */}
+        <div className="sticky bottom-0 z-20 mt-4 flex items-center justify-between border-t bg-white px-5 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+
+          {/* your existing footer */}
+
+        </div>
+
       </>
-    );
+    )}
+  </>
+);
   }

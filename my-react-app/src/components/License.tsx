@@ -28,6 +28,7 @@ const License = () => {
 
 const fetchLicence = async () => {
   setLoading(true);
+  debugger
 
   try {
     const res = await getProductLicenceKey(branchCode);
@@ -47,21 +48,17 @@ const fetchLicence = async () => {
     }
 
     const licence = res.data;
-
+const serialkey =localStorage.getItem("serialKey")
     setForm({
-      serialKey: licence.serialKey ?? "",
-      productKey: licence.productKey ?? "",
-      trDate: licence.trDate
-        ? licence.trDate.split("T")[0]
-        : "",
-      validDate: licence.validDate
-        ? licence.validDate.split("T")[0]
-        : "",
+      serialKey: serialkey?? "",
+      productKey:"",
+      trDate: "",
+      validDate:  "",
       clientName: licence.clientName ?? "",
     });
 
     // Show success only after data is loaded
-    toast.success(res.message || "Licence loaded successfully");
+    // toast.success(res.message || "Licence loaded successfully");
   } catch (err) {
     console.error(err);
     toast.error("Failed to load licence");
