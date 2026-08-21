@@ -33,6 +33,7 @@ onUpdateQty: (id: number, qty: number) => void;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
      directbill:boolean
      totalAmount:number
+     isBillButton:boolean
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   openNcModal,
@@ -50,6 +51,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   kotStatus,
   cart,
   pastItems,
+  isBillButton,
   ncReasons,
   increaseQty,
   decreaseQty,
@@ -94,6 +96,7 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              isBillButton={isBillButton}
               onUpdateQty={onUpdateQty}
               totalAmount={totalAmount}
                  directbill={directbill}

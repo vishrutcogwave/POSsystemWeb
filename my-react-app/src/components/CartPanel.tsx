@@ -33,6 +33,8 @@ onUpdateQty: (id: number, qty: number) => void;
   setOpenNcModal: React.Dispatch<React.SetStateAction<boolean>>;
      directbill:boolean;
      totalAmount:number
+
+     isBillButton:boolean
 };
 
 export default function CartPanel({
@@ -65,8 +67,9 @@ export default function CartPanel({
   setNcRemarks,
   instructions,
   isFastfood,
+  isBillButton
 }: CartPanelProps) {
-  console.log("isFastfood", isFastfood);
+  console.log("isBillButtonincart", isBillButton);
   const { userRights } = useAppContext();
   console.log("userRightslllllllllllll", userRights);
   useEffect(() => {
@@ -394,7 +397,7 @@ export default function CartPanel({
                   Void
                 </button>
               )}
-              {hasBillPermission && !directbill&& (
+              {hasBillPermission && !directbill&& isBillButton&& (
                 <button
                   onClick={isFastfood ===undefined ?handleGetBill:onKOT}
                   className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm"

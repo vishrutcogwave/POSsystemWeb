@@ -146,6 +146,7 @@ function OrderingBoard() {
       fastFood?: boolean;
       waiter?: string;
       waiterName?: string;
+      isBillButton?:boolean;
       pax?: number;
       isDirectBill?: boolean;
       isDirectKOTandBill?: boolean;
@@ -159,7 +160,8 @@ function OrderingBoard() {
   const directbill = tableData.isDirectKOTandBill ?? false;
   const dontopenkotmodel = tableData.isDirectPaxandStw ?? false;
   const IsDirectBill = tableData.isDirectBill ?? false;
-  console.log("IsDirectBill", IsDirectBill);
+  console.log("isBillButton", tableData.isBillButton);
+  const isBillButton = tableData.isBillButton || false;
 
   console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {
@@ -179,6 +181,7 @@ function OrderingBoard() {
   }, [tableData]);
 
   /* ---------------- CATEGORY STATE ---------------- */
+  const [hasNewCartItem, setHasNewCartItem] = useState(false);
   const [showPast, setShowPast] = useState(false);
   const [openNcModal, setOpenNcModal] = useState(false);
   const [selectedNcCode, setSelectedNcCode] = useState<number | null>(null);
@@ -605,32 +608,40 @@ function OrderingBoard() {
     );
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-  const addItemToCart = (food: any, selectedCategory: any) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === food.itemCode && !i.isAddon);
+const addItemToCart = (food: any, selectedCategory: any) => {
+  setCart((prev) => {
+    const existing = prev.find(
+      (i) => i.id === food.itemCode && !i.isAddon
+    );
 
-      if (existing) {
-        return prev.map((i) =>
-          i.id === food.itemCode ? { ...i, qty: i.qty + 1 } : i,
-        );
-      }
+    // Item already exists in NEW cart
+    if (existing) {
+      return prev.map((i) =>
+        i.id === food.itemCode
+          ? { ...i, qty: i.qty + 1 }
+          : i
+      );
+    }
 
-      return [
-        ...prev,
-        {
-          id: food.itemCode,
-          name: food.itemName.trim(),
-          price: food.oidRate,
-          qty: 1,
-          category: selectedCategory.catCode,
-          grpCode: Number(selectedCategory.grpCode),
-          spcodes: "",
-          note: "",
-          itemDiscountAllowed: food.itemDiscountAllowed,
-        },
-      ];
-    });
-  };
+    // NEW item added to NEW cart
+    setHasNewCartItem(true);
+
+    return [
+      ...prev,
+      {
+        id: food.itemCode,
+        name: food.itemName.trim(),
+        price: food.oidRate,
+        qty: 1,
+        category: selectedCategory.catCode,
+        grpCode: Number(selectedCategory.grpCode),
+        spcodes: "",
+        note: "",
+        itemDiscountAllowed: food.itemDiscountAllowed,
+      },
+    ];
+  });
+};
   const updateQty = (id: number, qty: number) => {
     if (qty <= 0) {
       setCart((prev) => prev.filter((i) => i.id !== id));
@@ -712,13 +723,21 @@ function OrderingBoard() {
     );
   };
 
-  const decreaseQty = (id: number) => {
-    setCart((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-        .filter((i) => i.qty > 0),
-    );
-  };
+const decreaseQty = (id: number) => {
+  setCart((prev) => {
+    const updatedCart = prev
+      .map((i) =>
+        i.id === id
+          ? { ...i, qty: i.qty - 1 }
+          : i
+      )
+      .filter((i) => i.qty > 0);
+
+    setHasNewCartItem(updatedCart.length > 0);
+
+    return updatedCart;
+  });
+};
   const updateCartNote = (id: number, spcodes: string, note: string) => {
     setCart((prev) => {
       const item = prev.find((i) => i.id === id);
@@ -1965,6 +1984,7 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+        isBillButton={isBillButton && !hasNewCartItem}
           onUpdateQty={updateQty}
           totalAmount={totalAmount}
           directbill={directbill}
@@ -2014,6 +2034,7 @@ function OrderingBoard() {
 
       {/* MOBILE CART */}
       <MobileCartButton
+        isBillButton={isBillButton && !hasNewCartItem}
         totalAmount={totalAmount}
         onUpdateQty={updateQty}
         directbill={directbill}

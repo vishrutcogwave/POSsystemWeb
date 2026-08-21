@@ -289,6 +289,8 @@ if (roomServiceOutlet) {
   /* ---------------- TABLE CLICK ---------------- */
   const handleTableClick = async (table: Table) => {
     setSelectedTable(table);
+    console.log("tablesssss",table);
+    
 
     const selectedOutlet = outlets.find(
       (o) => o.oltCode.toString() === activeTab,
@@ -303,6 +305,7 @@ if (roomServiceOutlet) {
         isDirectKOTandBill: selectedOutlet?.isDirectKOTandBill ?? false,
         isDirectPaxandStw: selectedOutlet?.isDirectPaxandStw ?? false,
         isDirectBill: selectedOutlet?.isDirectBill ?? false,
+        isBillButton: table?.status === "Occupied" ? true : false
       },
     });
   };
