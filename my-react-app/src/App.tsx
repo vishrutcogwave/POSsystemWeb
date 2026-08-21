@@ -1,116 +1,4 @@
-// import { useEffect } from "react";
-// import * as JSPM from "jsprintmanager";
-// import { Toaster } from "react-hot-toast";
-
-// import LandingPage from "./screens/LandingPage";
-// import { ItemProvider } from "./context/ItemContext";
-// import { ActiveOLTProvider } from "./context/ActiveOLTContext";
-// import { AppProvider } from "./context/AppContext";
-// import CursorEffect from "./components/CursorEffect";
-
-// export default function App() {
-// useEffect(() => {
-// const initJSPM = async () => {
-//   try {
-//     const baseURL = localStorage.getItem("baseUrl") || "";
-
-//     console.log("Base URL:", baseURL);
-
-//     JSPM.JSPrintManager.license_url = `${baseURL}api/POS/jspm`;
-
-//     console.log("License URL:", JSPM.JSPrintManager.license_url);
-
-//     // Verify license endpoint
-//     try {
-//       const res = await fetch(JSPM.JSPrintManager.license_url);
-//       const txt = await res.text();
-
-//       console.log("========== LICENSE API ==========");
-//       console.log("Status:", res.status);
-//       console.log("Response:", txt);
-//       console.log("=================================");
-//     } catch (e: any) {
-//       console.error("License API ERROR:", e);
-//     }
-
-//     console.log("Starting JSPrintManager...");
-
-//     console.log("JSPM.JSPrintManager:", JSPM.JSPrintManager);
-
-//     try {
-//       console.log(
-//         "JSPM.JSPrintManager JSON:",
-//         JSON.stringify(JSPM.JSPrintManager, null, 2)
-//       );
-//     } catch {
-//       console.log(
-//         "JSPM.JSPrintManager Keys:",
-//         Object.keys(JSPM.JSPrintManager)
-//       );
-//     }
-
-//     JSPM.JSPrintManager.start();
-
-//     console.log("After start:", JSPM.JSPrintManager);
-
-//     try {
-//       console.log(
-//         "After start JSON:",
-//         JSON.stringify(JSPM.JSPrintManager, null, 2)
-//       );
-//     } catch {
-//       console.log("WebSocket Status:", JSPM.JSPrintManager.websocket_status);
-//       console.log("WS Open:", JSPM.WSStatus.Open);
-//       console.log("WS Closed:", JSPM.WSStatus.Closed);
-//     }
-
-//     let count = 0;
-
-//     const timer = setInterval(() => {
-//       count++;
-
-//       const status = JSPM.JSPrintManager.websocket_status;
-
-//       console.log(
-//         `Check #${count} | WS Status = ${status}`
-//       );
-
-//       if (status === JSPM.WSStatus.Open) {
-//         console.log("✅ JSPrintManager Connected");
-//         clearInterval(timer);
-//       }
-
-//       if (count >= 15) {
-//         console.warn("❌ Timed out waiting for JSPrintManager");
-//         clearInterval(timer);
-//       }
-//     }, 1000);
-//   } catch (err: any) {
-//     console.error("App Init Error:", err);
-//   }
-// };
-//   initJSPM();
-// }, []);
-
-//   return (
-//     <>
-//       <CursorEffect />
-
-//       <AppProvider>
-//         <ActiveOLTProvider>
-//           <ItemProvider>
-//             <Toaster position="top-right" />
-//             <LandingPage />
-//           </ItemProvider>
-//         </ActiveOLTProvider>
-//       </AppProvider>
-//     </>
-//   );
-// }
-
-
-
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import * as JSPM from "jsprintmanager";
 import { Toaster } from "react-hot-toast";
 
@@ -121,221 +9,396 @@ import { AppProvider } from "./context/AppContext";
 import CursorEffect from "./components/CursorEffect";
 
 export default function App() {
-useEffect(() => {
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let checkTimer: ReturnType<typeof setInterval> | null = null;
-  let isReconnecting = false;
+  const [printerReady, setPrinterReady] = useState(false);
+  const [printerSkipped, setPrinterSkipped] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
-  const startJSPM = () => {
-    try {
-      const status = JSPM.JSPrintManager.websocket_status;
+  useEffect(() => {
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let checkTimer: ReturnType<typeof setInterval> | null = null;
+    let startupTimer: ReturnType<typeof setInterval> | null = null;
 
-      console.log("JSPM Status:", status);
+    let isReconnecting = false;
+    let isMounted = true;
 
-      if (status === JSPM.WSStatus.Open) {
-        console.log("✅ JSPM already connected");
+    // ---------------------------------------
+    // START JSPM
+    // ---------------------------------------
+
+    const startJSPM = () => {
+      try {
+        const status =
+          JSPM.JSPrintManager.websocket_status;
+
+        console.log("JSPM Status:", status);
+
+        if (status === JSPM.WSStatus.Open) {
+          console.log("✅ JSPM already connected");
+
+          if (isMounted) {
+            setPrinterReady(true);
+            setConnecting(false);
+          }
+
+          return true;
+        }
+
+        console.log("🔄 Starting JSPrintManager...");
+
+        JSPM.JSPrintManager.start();
+
+        return false;
+      } catch (error) {
+        console.error("JSPM start error:", error);
+
+        if (isMounted) {
+          setPrinterReady(false);
+          setConnecting(false);
+        }
+
+        return false;
+      }
+    };
+
+    // ---------------------------------------
+    // RECONNECT JSPM
+    // ---------------------------------------
+
+    const reconnectJSPM = () => {
+      // User selected Skip Printer
+      if (printerSkipped) {
         return;
       }
 
-      console.log("🔄 Starting JSPrintManager...");
+      if (isReconnecting) {
+        return;
+      }
 
-      JSPM.JSPrintManager.start();
+      isReconnecting = true;
 
-    } catch (error) {
-      console.error("JSPM start error:", error);
-    }
-  };
+      console.log("🔄 JSPM reconnecting...");
 
-  const reconnectJSPM = () => {
-    if (isReconnecting) {
-      return;
-    }
+      try {
+        const status =
+          JSPM.JSPrintManager.websocket_status;
 
-    isReconnecting = true;
+        if (status === JSPM.WSStatus.Open) {
+          console.log("✅ JSPM already connected");
 
-    console.log("🔄 JSPM reconnecting...");
+          if (isMounted) {
+            setPrinterReady(true);
+            setConnecting(false);
+          }
 
-    try {
+          isReconnecting = false;
+          return;
+        }
+
+        JSPM.JSPrintManager.start();
+
+        reconnectTimer = setTimeout(() => {
+          if (!isMounted) {
+            isReconnecting = false;
+            return;
+          }
+
+          const newStatus =
+            JSPM.JSPrintManager.websocket_status;
+
+          if (newStatus === JSPM.WSStatus.Open) {
+            console.log("✅ JSPM reconnected");
+
+            setPrinterReady(true);
+          } else {
+            console.warn(
+              "⚠️ JSPM still disconnected"
+            );
+
+            // Don't hide LandingPage if it is
+            // already open.
+            setPrinterReady((current) => current);
+          }
+
+          setConnecting(false);
+          isReconnecting = false;
+        }, 2000);
+      } catch (error) {
+        console.error(
+          "JSPM reconnect error:",
+          error
+        );
+
+        isReconnecting = false;
+      }
+    };
+
+    // ---------------------------------------
+    // INITIAL JSPM SETUP
+    // ---------------------------------------
+
+    const initJSPM = () => {
+      try {
+        const baseURL =
+          localStorage.getItem("baseUrl") || "";
+
+        console.log("Base URL:", baseURL);
+
+        JSPM.JSPrintManager.license_url =
+          `${baseURL}api/POS/jspm`;
+
+        console.log(
+          "License URL:",
+          JSPM.JSPrintManager.license_url
+        );
+
+        startJSPM();
+      } catch (error) {
+        console.error(
+          "JSPM initialization error:",
+          error
+        );
+      }
+    };
+
+    initJSPM();
+
+    // ---------------------------------------
+    // INITIAL CONNECTION CHECK
+    // ---------------------------------------
+
+    let startupCount = 0;
+
+    startupTimer = setInterval(() => {
+      startupCount++;
+
       const status =
         JSPM.JSPrintManager.websocket_status;
 
+      console.log(
+        `JSPM startup check ${startupCount}:`,
+        status
+      );
+
       if (status === JSPM.WSStatus.Open) {
-        console.log("✅ JSPM already connected");
-        isReconnecting = false;
+        console.log("✅ JSPM Connected");
+
+        if (isMounted) {
+          setPrinterReady(true);
+          setConnecting(false);
+        }
+
+        if (startupTimer) {
+          clearInterval(startupTimer);
+          startupTimer = null;
+        }
+
         return;
       }
 
-      JSPM.JSPrintManager.start();
+      // After 10 seconds, the user can choose
+      // Connect Printer or Skip Printer.
+      if (startupCount >= 10) {
+        console.warn(
+          "⚠️ JSPM not connected"
+        );
 
-      reconnectTimer = setTimeout(() => {
-        const newStatus =
-          JSPM.JSPrintManager.websocket_status;
-
-        if (newStatus === JSPM.WSStatus.Open) {
-          console.log("✅ JSPM reconnected");
-        } else {
-          console.warn(
-            "⚠️ JSPM still disconnected"
-          );
+        if (isMounted) {
+          setPrinterReady(false);
+          setConnecting(false);
         }
 
-        isReconnecting = false;
-      }, 2000);
-
-    } catch (error) {
-      console.error(
-        "JSPM reconnect error:",
-        error
-      );
-
-      isReconnecting = false;
-    }
-  };
-
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      console.log(
-        "📱 Mobile browser returned to foreground"
-      );
-
-      setTimeout(() => {
-        reconnectJSPM();
-      }, 500);
-    }
-  };
-
-  const handleFocus = () => {
-    console.log("📱 Browser focused");
-
-    setTimeout(() => {
-      reconnectJSPM();
-    }, 500);
-  };
-
-  const handleOnline = () => {
-    console.log("🌐 Network connection restored");
-
-    setTimeout(() => {
-      reconnectJSPM();
+        if (startupTimer) {
+          clearInterval(startupTimer);
+          startupTimer = null;
+        }
+      }
     }, 1000);
-  };
 
-  const handleOffline = () => {
-    console.warn("❌ Network disconnected");
-  };
+    // ---------------------------------------
+    // BACKGROUND CONNECTION CHECK
+    // ---------------------------------------
 
-  // -----------------------------
-  // INITIAL START
-  // -----------------------------
+    checkTimer = setInterval(() => {
+      if (printerSkipped) {
+        return;
+      }
 
-  const initJSPM = () => {
-    try {
-      const baseURL =
-        localStorage.getItem("baseUrl") || "";
-
-      console.log("Base URL:", baseURL);
-
-      JSPM.JSPrintManager.license_url =
-        `${baseURL}api/POS/jspm`;
+      const status =
+        JSPM.JSPrintManager.websocket_status;
 
       console.log(
-        "License URL:",
-        JSPM.JSPrintManager.license_url
+        "JSPM background check:",
+        status
       );
 
-      startJSPM();
+      if (status === JSPM.WSStatus.Open) {
+        if (isMounted) {
+          setPrinterReady(true);
+        }
 
-    } catch (error) {
-      console.error(
-        "JSPM initialization error:",
-        error
-      );
-    }
-  };
+        return;
+      }
 
-  initJSPM();
-
-  // -----------------------------
-  // CHECK EVERY 5 SECONDS
-  // -----------------------------
-
-  checkTimer = setInterval(() => {
-    const status =
-      JSPM.JSPrintManager.websocket_status;
-
-    console.log(
-      "JSPM background check:",
-      status
-    );
-
-    if (status !== JSPM.WSStatus.Open) {
+      // If POS is already open, DON'T hide it.
+      // Just reconnect silently.
       console.warn(
         "⚠️ JSPM disconnected → reconnecting"
       );
 
       reconnectJSPM();
-    }
-  }, 5000);
+    }, 5000);
 
-  // -----------------------------
-  // MOBILE EVENTS
-  // -----------------------------
+    // ---------------------------------------
+    // MOBILE RETURN FROM BACKGROUND
+    // ---------------------------------------
 
-  document.addEventListener(
-    "visibilitychange",
-    handleVisibilityChange
-  );
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState === "visible"
+      ) {
+        console.log(
+          "📱 Mobile browser returned"
+        );
 
-  window.addEventListener(
-    "focus",
-    handleFocus
-  );
+        if (!printerSkipped) {
+          setTimeout(() => {
+            reconnectJSPM();
+          }, 500);
+        }
+      }
+    };
 
-  window.addEventListener(
-    "online",
-    handleOnline
-  );
+    // ---------------------------------------
+    // NETWORK ONLINE
+    // ---------------------------------------
 
-  window.addEventListener(
-    "offline",
-    handleOffline
-  );
+    const handleOnline = () => {
+      console.log(
+        "🌐 Network connection restored"
+      );
 
-  // -----------------------------
-  // CLEANUP
-  // -----------------------------
+      if (!printerSkipped) {
+        setTimeout(() => {
+          reconnectJSPM();
+        }, 1000);
+      }
+    };
 
-  return () => {
-    if (checkTimer) {
-      clearInterval(checkTimer);
-    }
+    // ---------------------------------------
+    // EVENTS
+    // ---------------------------------------
 
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-    }
-
-    document.removeEventListener(
+    document.addEventListener(
       "visibilitychange",
       handleVisibilityChange
     );
 
-    window.removeEventListener(
-      "focus",
-      handleFocus
-    );
-
-    window.removeEventListener(
+    window.addEventListener(
       "online",
       handleOnline
     );
 
-    window.removeEventListener(
-      "offline",
-      handleOffline
+    // ---------------------------------------
+    // CLEANUP
+    // ---------------------------------------
+
+    return () => {
+      isMounted = false;
+
+      if (checkTimer) {
+        clearInterval(checkTimer);
+      }
+
+      if (startupTimer) {
+        clearInterval(startupTimer);
+      }
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
+
+      window.removeEventListener(
+        "online",
+        handleOnline
+      );
+    };
+  }, [printerSkipped]);
+
+  // ---------------------------------------
+  // CONNECT PRINTER BUTTON
+  // ---------------------------------------
+
+  const handleConnectPrinter = () => {
+    if (connecting) {
+      return;
+    }
+
+    setConnecting(true);
+
+    console.log(
+      "🔌 Manual printer connection..."
     );
+
+    try {
+      JSPM.JSPrintManager.start();
+
+      setTimeout(() => {
+        const status =
+          JSPM.JSPrintManager.websocket_status;
+
+        if (status === JSPM.WSStatus.Open) {
+          console.log(
+            "✅ Printer connected"
+          );
+
+          setPrinterReady(true);
+        } else {
+          console.warn(
+            "❌ Printer connection failed"
+          );
+
+          setPrinterReady(false);
+        }
+
+        setConnecting(false);
+      }, 2000);
+    } catch (error) {
+      console.error(
+        "Manual printer connection error:",
+        error
+      );
+
+      setConnecting(false);
+      setPrinterReady(false);
+    }
   };
 
-}, []);
+  // ---------------------------------------
+  // SKIP PRINTER
+  // ---------------------------------------
+
+  const handleSkipPrinter = () => {
+    console.log(
+      "⏭️ Printer setup skipped"
+    );
+
+    setPrinterSkipped(true);
+    setPrinterReady(true);
+    setConnecting(false);
+  };
+
+  // ---------------------------------------
+  // SHOW LANDING PAGE
+  // ---------------------------------------
+
+  const showApp =
+    printerReady || printerSkipped;
+
   return (
     <>
       <CursorEffect />
@@ -344,7 +407,38 @@ useEffect(() => {
         <ActiveOLTProvider>
           <ItemProvider>
             <Toaster position="top-right" />
-            <LandingPage />
+
+            {!showApp ? (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white">
+                <div className="flex items-center gap-3">
+
+                  {/* CONNECT */}
+                  <button
+                    type="button"
+                    onClick={handleConnectPrinter}
+                    disabled={connecting}
+                    className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {connecting
+                      ? "Connecting..."
+                      : "Connect Printer"}
+                  </button>
+
+                  {/* SKIP */}
+                  <button
+                    type="button"
+                    onClick={handleSkipPrinter}
+                    disabled={connecting}
+                    className="rounded-lg border border-gray-300 bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Skip Printer
+                  </button>
+
+                </div>
+              </div>
+            ) : (
+              <LandingPage />
+            )}
           </ItemProvider>
         </ActiveOLTProvider>
       </AppProvider>

@@ -829,10 +829,10 @@ function OrderingBoard() {
       });
 
       if (!validateRes?.success) {
-        toast.error(
-          validateRes?.message ||
-            "Clear all pending bills from Settlement Window"
-        );
+        // toast.error(
+        //   validateRes?.message ||
+        //     ""
+        // );
         return; // 🚨 Don't allow KOT
       }
     } catch (err:any) {
