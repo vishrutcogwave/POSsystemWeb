@@ -5999,3 +5999,32 @@ export const updateSecoundUserAccessDetail = async (payload: {
     throw error;
   }
 };
+
+
+export const getAdminAccessMaster = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetAdminAccessMaster",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching admin access master:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
