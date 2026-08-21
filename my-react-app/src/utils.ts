@@ -38,4 +38,5 @@ export type SubTable = {
   billNo?: number | null;
   billAmount?: number | null;
   kotStatus?: "KOT" | "NCKOT" | string;
+  kotTime?:string
 };
