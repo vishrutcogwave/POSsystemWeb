@@ -460,9 +460,15 @@ const DashboardHeader: React.FC = () => {
   return (
     <div ref={wrapperRef} className="w-full bg-gray-100 border-b shadow-sm">
       {/* Top Title */}
-      <div className="px-4 sm:px-6 py-2 bg-gray-200 text-xs sm:text-sm font-semibold text-gray-800 border-b">
-        POINT OF SALE : COGWAVE SOFTWARE TECHNOLOGIES BANGALORE INDIA
-      </div>
+   <div className="px-3 sm:px-6 py-2 bg-gray-200 border-b flex items-center gap-2 whitespace-nowrap">
+  <span className="text-[10px] sm:text-sm font-semibold text-gray-800 truncate flex-1">
+    POINT OF SALE : COGWAVE SOFTWARE TECHNOLOGIES BANGALORE INDIA
+  </span>
+
+  <span className="text-[9px] sm:text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md shrink-0 tracking-wide">
+    Version 1.0
+  </span>
+</div>
 
       {/* Main Menu */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-2 bg-gray-100 text-sm font-medium text-gray-800">
