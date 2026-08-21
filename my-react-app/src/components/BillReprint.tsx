@@ -7,6 +7,7 @@ type Props = {
   formData: {
     outlet: string;
     billDate: string;
+    billTime:string
     billNo: string;
     discount: number;
     guestName: string;
@@ -31,6 +32,8 @@ const BillReprint: React.FC<Props> = ({
   outlets,
 }) => {
   if (!isOpen) return null;
+  console.log(formData,"formDataformData");
+  
 
   const handleChange = (key: string, value: any) => {
     setFormData((prev: any) => ({

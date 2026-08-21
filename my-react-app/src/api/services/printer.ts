@@ -925,24 +925,24 @@ gstBlock += `GSTIN : ${formData.gstNo || "-"}\n`;
   /* ===== BILL INFO ===== */
   let billBlock = "";
 
-billBlock +=
-  line2Col(
-    `Bill : ${formData.billNo}`,
-    `Outlet : ${c.outlet}`
-  ) + "\n";
-
-billBlock +=
-  line2Col(
-    `Date : ${formData.billDate || formData.date || "-"}`,
-    `Table : ${c.table}-${c.subTable}`
-  ) + "\n";
-
-billBlock +=
-  line2Col(
-    `Waiter : ${c.waiter}`,
-    `Pax : ${c.pax}`
-  ) + "\n";
-
+billBlock += 
+  line2Col( 
+    `Bill : ${formData.billNo}`, 
+    `Outlet : ${c.outlet}` 
+  ) + "\n"; 
+ 
+billBlock += 
+  line2Col( 
+    `Date : ${formData.billDate || formData.date || "-"}`, 
+    `Time : ${formData.billTime || "-"}` 
+  ) + "\n"; 
+ 
+billBlock += 
+  line2Col( 
+    `Waiter : ${c.waiter}`, 
+    `Pax : ${c.pax}` 
+  ) + "\n"; 
+ 
 billBlock += line + "\n";
 
   d += billBlock; // ❌ removed center

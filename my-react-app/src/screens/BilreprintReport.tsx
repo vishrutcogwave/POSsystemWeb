@@ -28,6 +28,7 @@ import { reprintBill } from "../api/services/printer";
     const [formData, setFormData] = useState({
       outlet: "",
       billDate: "",
+      billTime:"",
       billNo: "",
       discount: 0,
       guestName: "",
@@ -115,6 +116,8 @@ if (!outletId) return;
         ...prev,
         billNo: row.ksmBillNo,
         billDate: row.kbsValidDate?.split("T")[0],
+        billTime:row.kbsValidDate?.split("T")[1],
+
         discount: row.kbsDiscount || 0,
         outlet: row.oltCode?.toString(), // ✅ FIXED (important)
       }));
@@ -186,6 +189,7 @@ if (!outletId) return;
             setFormData({
       outlet: "",
       billDate: "",
+      billTime:"",
       billNo: "",
       discount: 0,
       guestName: "",
