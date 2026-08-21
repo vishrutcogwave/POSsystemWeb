@@ -5936,3 +5936,66 @@ export const purchaseOrderCalculation = async (payload: {
     throw error;
   }
 };
+
+
+
+// ================= SECOND USER ACCESS MASTER =================
+
+export const getSecoundUserAccessMaster = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/UserAccess/GetSecoundUserAccessMaster",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching second user access master:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const updateSecoundUserAccessDetail = async (payload: {
+  secoundUserId: number;
+  secondUserPassword: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/UserAccess/UpdateSecoundUserAccessDetail",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating second user access detail:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

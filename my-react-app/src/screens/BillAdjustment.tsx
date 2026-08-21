@@ -5,21 +5,156 @@
     getAdjustmentLoadData,
     getCalculateRankAmount,
     getOutletList,
+    getSecoundUserAccessMaster,
     newBiddingCheck,
     saveBidChanges,
+    updateSecoundUserAccessDetail,
   } from "../api/services/products.service";
   import toast from "react-hot-toast";
   import Loader from "../components/Loader";
 
   export default function BillAdjustment() {
     const { appData } = useAppContext();
-const BILL_ADJUSTMENT_PASSWORD = "Cogwave@123";
 
 const [isUnlocked, setIsUnlocked] = useState(false);
 const [password, setPassword] = useState("");
 const [passwordError, setPasswordError] = useState("");
+const [secondUserId, setSecondUserId] = useState(0);
+const [secondUserPassword, setSecondUserPassword] = useState("");
+const [passwordLoading, setPasswordLoading] = useState(false);
+
+const [showChangePin, setShowChangePin] = useState(false);
+
+const [oldPin, setOldPin] = useState("");
+const [newPin, setNewPin] = useState("");
+const [confirmPin, setConfirmPin] = useState("");
+
+const [changePinError, setChangePinError] = useState("");
+const [changingPin, setChangingPin] = useState(false);
+
+useEffect(() => {
+  const loadSecondUserAccess = async () => {
+    if (!appData?.user?.branch_code) return;
+
+    try {
+      setPasswordLoading(true);
+
+      const res = await getSecoundUserAccessMaster(
+        appData.user.branch_code
+      );
+
+      if (res.success && res.data) {
+        setSecondUserId(res.data.secoundUserId);
+        setSecondUserPassword(res.data.secondUserPassword);
+      } else {
+        setSecondUserId(0);
+        setSecondUserPassword("");
+        setPasswordError(
+          res.message || "Second user access details not found"
+        );
+      }
+    } catch (error: any) {
+      console.error("Error loading second user access:", error);
+
+      setPasswordError(
+        error?.response?.data?.message ||
+          "Failed to load access details"
+      );
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  loadSecondUserAccess();
+}, [appData?.user?.branch_code]);
+const handleChangePin = async () => {
+  setChangePinError("");
+
+  // Old PIN validation
+  if (!oldPin) {
+    setChangePinError("Please enter old PIN");
+    return;
+  }
+
+  if (oldPin !== secondUserPassword) {
+    setChangePinError("Old PIN is incorrect");
+    return;
+  }
+
+  // New PIN validation
+  if (!newPin) {
+    setChangePinError("Please enter new PIN");
+    return;
+  }
+
+  if (newPin.length < 4) {
+    setChangePinError("PIN must be at least 4 characters");
+    return;
+  }
+
+  // Confirm PIN
+  if (newPin !== confirmPin) {
+    setChangePinError("New PIN and confirm PIN do not match");
+    return;
+  }
+
+  if (newPin === oldPin) {
+    setChangePinError("New PIN must be different from old PIN");
+    return;
+  }
+
+  try {
+    setChangingPin(true);
+
+    const res = await updateSecoundUserAccessDetail({
+      secoundUserId: secondUserId,
+      secondUserPassword: newPin,
+      branchCode: appData.user.branch_code,
+    });
+
+    if (!res.success) {
+      setChangePinError(
+        res.message || "Failed to update PIN"
+      );
+      return;
+    }
+
+    // Update local password after successful API call
+    setSecondUserPassword(newPin);
+
+    toast.success(
+      res.message || "PIN changed successfully"
+    );
+
+    // Clear fields
+    setOldPin("");
+    setNewPin("");
+    setConfirmPin("");
+    setChangePinError("");
+
+    // Go back to login popup
+    setShowChangePin(false);
+
+  } catch (error: any) {
+    setChangePinError(
+      error?.response?.data?.message ||
+        "Failed to update PIN"
+    );
+  } finally {
+    setChangingPin(false);
+  }
+};
 const handleUnlock = () => {
-  if (password === BILL_ADJUSTMENT_PASSWORD) {
+  if (passwordLoading) {
+    return;
+  }
+
+  if (!secondUserPassword) {
+    setPasswordError("Second user password is not configured");
+    return;
+  }
+
+  if (password === secondUserPassword) {
     setIsUnlocked(true);
     setPassword("");
     setPasswordError("");
@@ -175,61 +310,215 @@ const handleUnlock = () => {
  return (
   <>
     {/* PASSWORD POPUP */}
-    {!isUnlocked && (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+{!isUnlocked && (
+  <>
+    {/* MAIN PIN POPUP */}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+
+        {/* Icon */}
+        <div className="mb-4 flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0576B2]/10">
+            <Lock
+              size={32}
+              className="text-[#0576B2]"
+            />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-center text-2xl font-bold text-gray-800">
+          Bill Adjustment
+        </h2>
+
+        <p className="mt-2 text-center text-gray-500">
+          Enter PIN to continue
+        </p>
+
+        {/* PIN */}
+        <input
+          type="password"
+          placeholder={
+            passwordLoading
+              ? "Loading..."
+              : "Enter PIN"
+          }
+          value={password}
+          disabled={passwordLoading}
+          autoFocus
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setPasswordError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleUnlock();
+            }
+          }}
+          className="mt-6 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20 disabled:bg-gray-100"
+        />
+
+        {/* Error */}
+        {passwordError && (
+          <p className="mt-3 text-center text-sm text-red-500">
+            {passwordError}
+          </p>
+        )}
+
+        {/* Unlock */}
+        <button
+          onClick={handleUnlock}
+          disabled={passwordLoading || !password}
+          className="mt-6 w-full rounded-lg bg-[#0576B2] py-3 font-semibold text-white hover:bg-[#046191] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {passwordLoading ? "Loading..." : "Unlock"}
+        </button>
+
+        {/* Change PIN */}
+        <button
+          type="button"
+          onClick={() => {
+            setShowChangePin(true);
+
+            setPassword("");
+            setPasswordError("");
+
+            setOldPin("");
+            setNewPin("");
+            setConfirmPin("");
+            setChangePinError("");
+          }}
+          disabled={passwordLoading}
+          className="mt-4 w-full text-sm font-semibold text-[#0576B2] hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Change PIN
+        </button>
+
+      </div>
+    </div>
+
+    {/* CHANGE PIN POPUP */}
+    {showChangePin && (
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
 
         <div className="w-[90%] max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
 
+          {/* Icon */}
           <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0576B2]/10">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0576B2]/10">
               <Lock
-                size={32}
+                size={28}
                 className="text-[#0576B2]"
               />
             </div>
           </div>
 
-          <h2 className="text-center text-2xl font-bold text-gray-800">
-            Bill Adjustment
+          {/* Title */}
+          <h2 className="text-center text-xl font-bold text-gray-800">
+            Change PIN
           </h2>
 
-          <p className="mt-2 text-center text-gray-500">
-            Enter password to continue
+          <p className="mt-1 text-center text-sm text-gray-500">
+            Update your Bill Adjustment PIN
           </p>
 
-          <input
-            type="password"
-            placeholder="Enter Password"
-            value={password}
-            autoFocus
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setPasswordError("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleUnlock();
-              }
-            }}
-            className="mt-6 w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20"
-          />
+          {/* Old PIN */}
+          <div className="mt-5">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Old PIN
+            </label>
 
-          {passwordError && (
+            <input
+              type="password"
+              value={oldPin}
+              placeholder="Enter old PIN"
+              onChange={(e) => {
+                setOldPin(e.target.value);
+                setChangePinError("");
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20"
+            />
+          </div>
+
+          {/* New PIN */}
+          <div className="mt-4">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              New PIN
+            </label>
+
+            <input
+              type="password"
+              value={newPin}
+              placeholder="Enter new PIN"
+              onChange={(e) => {
+                setNewPin(e.target.value);
+                setChangePinError("");
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20"
+            />
+          </div>
+
+          {/* Confirm PIN */}
+          <div className="mt-4">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Confirm New PIN
+            </label>
+
+            <input
+              type="password"
+              value={confirmPin}
+              placeholder="Confirm new PIN"
+              onChange={(e) => {
+                setConfirmPin(e.target.value);
+                setChangePinError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleChangePin();
+                }
+              }}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-[#0576B2] focus:ring-2 focus:ring-[#0576B2]/20"
+            />
+          </div>
+
+          {/* Error */}
+          {changePinError && (
             <p className="mt-3 text-center text-sm text-red-500">
-              {passwordError}
+              {changePinError}
             </p>
           )}
 
+          {/* Update PIN */}
           <button
-            onClick={handleUnlock}
-            className="mt-6 w-full rounded-lg bg-[#0576B2] py-3 font-semibold text-white hover:bg-[#046191]"
+            onClick={handleChangePin}
+            disabled={changingPin}
+            className="mt-5 w-full rounded-lg bg-[#0576B2] py-3 font-semibold text-white hover:bg-[#046191] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Unlock
+            {changingPin ? "Updating..." : "Update PIN"}
+          </button>
+
+          {/* Cancel */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowChangePin(false);
+
+              setOldPin("");
+              setNewPin("");
+              setConfirmPin("");
+              setChangePinError("");
+            }}
+            disabled={changingPin}
+            className="mt-3 w-full py-2 text-sm font-medium text-gray-500 hover:text-gray-700"
+          >
+            Cancel
           </button>
 
         </div>
       </div>
     )}
+  </>
+)}
 
     {/* BILL ADJUSTMENT CONTENT */}
     {isUnlocked && (
