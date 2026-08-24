@@ -4316,7 +4316,7 @@ const formatPrintDate = (date?: string) => {
 
                 if (selected) {
                   setSelectedUnitQty(Number(selected.qty));
-                  setQty(String(selected.qty))
+                  // setQty(String(selected.qty))
                 } else {
                   setSelectedUnitQty(0);
                 }
