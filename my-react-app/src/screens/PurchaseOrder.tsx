@@ -256,7 +256,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 const [unitConversions, setUnitConversions] =
   useState<InventoryUnitConversion[]>([]);
 
-const [loadingUnitConversions, setLoadingUnitConversions] =
+const [_loadingUnitConversions, setLoadingUnitConversions] =
   useState(false);
   const fetchNextCode = async () => {
     startApiLoading();
@@ -1194,7 +1194,7 @@ const handleSave = async () => {
       branch_Code:
         appData?.user?.branch_code || "",
 
-      unit: item.unit,
+      unit: `${item.unit}-${item.unitQty}`,
 
       poItemSuplyQty: 0,
 
