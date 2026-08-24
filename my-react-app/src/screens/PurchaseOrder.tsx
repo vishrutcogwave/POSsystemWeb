@@ -11,6 +11,7 @@ import {
   getInventoryMiscList,
   createPurchaseOrder,
   printPurchaseOrder,
+  getInventoryUnitConversionList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -75,18 +76,38 @@ type InventoryItem = {
   finalUnit: number;
   finalUnitDesc: string;
 };
-
 type PurchaseItem = {
   id: number;
   code: string;
   name: string;
   unit: string;
+
+  // Unit conversion quantity
+  // Example: 1 box = 30
+  unitQty: number;
+
+  // Quantity entered by user
+  // Example: user enters 2
+  enteredQty: number;
+
+  // Actual quantity used for calculation
+  // Example: 2 × 30 = 60
   qty: number;
+
   rate: number;
   total: number;
-  taxName:string;
+  taxName: string;
 };
 
+type InventoryUnitConversion = {
+  unitCode: number;
+  unitName: string;
+  qty: number;
+  isActive: boolean;
+  branch_Code: string;
+  createdBy: string;
+  createdDate: string;
+};
 type InventoryMisc = {
   chargeId: number;
   chargeName: string;
@@ -121,7 +142,7 @@ const PurchaseOrder: React.FC = () => {
   const [supplier, setSupplier] = useState<Supplier | null>(
     null
   );
-
+const [selectedUnitQty, setSelectedUnitQty] = useState(0);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const [loadingSuppliers, setLoadingSuppliers] =
@@ -230,6 +251,13 @@ const [miscAmount, setMiscAmount] = useState("");
   ========================= */
 const [printData, setPrintData] = useState<any>(null);
 const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+
+const [unitConversions, setUnitConversions] =
+  useState<InventoryUnitConversion[]>([]);
+
+const [loadingUnitConversions, setLoadingUnitConversions] =
+  useState(false);
   const fetchNextCode = async () => {
     startApiLoading();
 
@@ -262,7 +290,55 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
   /* =========================
       FETCH SUPPLIERS
   ========================= */
+const fetchInventoryUnitConversions = async () => {
+  const branch =
+    appData?.user?.branch_code || "";
 
+  if (!branch) {
+    setUnitConversions([]);
+    return;
+  }
+
+  startApiLoading();
+
+  try {
+    setLoadingUnitConversions(true);
+
+    const res =
+      await getInventoryUnitConversionList(branch);
+
+    console.log(
+      "Inventory Unit Conversion Response:",
+      res
+    );
+
+    if (res?.success) {
+      setUnitConversions(
+        (res?.data || []).filter(
+          (unit: InventoryUnitConversion) =>
+            unit.isActive
+        )
+      );
+    } else {
+      setUnitConversions([]);
+
+      console.error(
+        res?.message ||
+          "Failed to fetch unit conversions"
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Error fetching unit conversions:",
+      error
+    );
+
+    setUnitConversions([]);
+  } finally {
+    setLoadingUnitConversions(false);
+    stopApiLoading();
+  }
+};
   const fetchSuppliers = async () => {
     startApiLoading();
 
@@ -436,6 +512,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
       fetchStores();
       fetchNextCode();
       fetchInventoryMiscList();
+      fetchInventoryUnitConversions();
     }
   }, [appData?.user?.branch_code]);
 
@@ -477,40 +554,42 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
       SELECT INVENTORY ITEM
   ========================= */
 
-  const handleInventoryItemSelect = (
-    item: InventoryItem
-  ) => {
-    const existingItem = items.find(
-      (orderItem, index) =>
-        orderItem.code ===
-          item.itemCode.toString() &&
-        index !== editingItemId
-    );
+const handleInventoryItemSelect = (
+  item: InventoryItem
+) => {
+  const existingItem = items.find(
+    (orderItem, index) =>
+      orderItem.code ===
+        item.itemCode.toString() &&
+      index !== editingItemId
+  );
 
-    if (existingItem) {
-      toast.error(
-        `${item.itemName} is already added to the order`
-      );
-
-      setShowItemDropdown(false);
-      return;
-    }
-
-    const purchaseRate =
-      Number(item.purchaseRate) || 0;
-
-    setCode(item.itemCode.toString());
-    setName(item.itemName);
-    setUnit(item.unitName);
-    setRate(purchaseRate.toString());
-    setTaxName(item.taxName || "");
-
-    setItemSearch(
-      `${item.itemCode} - ${item.itemName}`
+  if (existingItem) {
+    toast.error(
+      `${item.itemName} is already added to the order`
     );
 
     setShowItemDropdown(false);
-  };
+    return;
+  }
+
+  setCode(item.itemCode.toString());
+  setName(item.itemName);
+
+  // ✅ User will manually select Unit
+  setUnit("");
+
+  // ✅ User will manually enter Rate
+  setRate("");
+
+  setTaxName(item.taxName || "");
+
+  setItemSearch(
+    `${item.itemCode} - ${item.itemName}`
+  );
+
+  setShowItemDropdown(false);
+};
 
   /* =========================
       ITEM SEARCH CHANGE
@@ -627,125 +706,96 @@ setMiscAmount("");
   /* =========================
       ADD / UPDATE ITEM
   ========================= */
+const handleAddItem = async () => {
+  if (!code || !name) {
+    toast.error("Please select an item");
+    return;
+  }
 
-  const handleAddItem = async () => {
-    if (!code.trim()) {
-      toast.error("Please select an item");
-      return;
-    }
+  if (!unit) {
+    toast.error("Please select a unit");
+    return;
+  }
 
-    if (!name.trim()) {
-      toast.error("Please select an item");
-      return;
-    }
+  const enteredQty = Number(qty);
+  const conversionQty = Number(selectedUnitQty);
+  const itemRate = Number(rate);
 
-    if (!unit.trim()) {
-      toast.error("Please select an item");
-      return;
-    }
+  if (!enteredQty || enteredQty <= 0) {
+    toast.error("Please enter a valid quantity");
+    return;
+  }
 
-    if (!qty || Number(qty) <= 0) {
-      toast.error(
-        "Please enter a valid quantity"
-      );
-      return;
-    }
+  if (!conversionQty || conversionQty <= 0) {
+    toast.error("Please select a valid unit");
+    return;
+  }
 
-    if (!rate || Number(rate) <= 0) {
-      toast.error(
-        "Selected item does not have a purchase rate"
-      );
-      return;
-    }
+  if (!itemRate || itemRate <= 0) {
+    toast.error("Please enter a valid rate");
+    return;
+  }
 
-    if (!store) {
-      toast.error("Please select a store");
-      return;
-    }
+  // Example:
+  // Quantity entered = 2
+  // 1 box = 30
+  // Actual quantity = 2 × 30 = 60
+  const actualQty = enteredQty * conversionQty;
 
-    const duplicateItem = items.some(
-      (item, index) =>
-        item.code === code &&
-        index !== editingItemId
-    );
-
-    if (duplicateItem) {
-      toast.error(
-        `${name} is already added to the order`
-      );
-      return;
-    }
-
-    const quantity = Number(qty);
-    const itemRate = Number(rate);
-
-    const newItem: PurchaseItem = {
-      id:
-        editingItemId !== null
-          ? items[editingItemId].id
-          : Date.now(),
-
-      code,
-      name,
-      unit,
-      qty: quantity,
-      rate: itemRate,
-      total: quantity * itemRate,
-      taxName
-    };
-
-    const nextItems =
+  const newItem: PurchaseItem = {
+    id:
       editingItemId !== null
-        ? items.map((item, index) =>
-            index === editingItemId
-              ? newItem
-              : item
-          )
-        : [...items, newItem];
+        ? items[editingItemId].id
+        : Date.now(),
 
-    startApiLoading();
+    code,
+    name,
+    unit,
 
-    try {
-await calculatePurchaseOrder(
-  nextItems,
-  miscRows
-);
-      setItems(nextItems);
+    // Unit conversion
+    unitQty: conversionQty,
 
-      if (editingItemId !== null) {
-        toast.success(
-          "Item updated successfully"
-        );
-      } else {
-        toast.success(
-          "Item added successfully"
-        );
-      }
+    // Quantity entered by user
+    enteredQty: enteredQty,
 
-      setCode("");
-      setName("");
-      setUnit("");
-      setQty("");
-      setRate("");
+    // Actual quantity used for calculation
+    qty: actualQty,
 
-      setItemSearch("");
-      setShowItemDropdown(false);
+    // Manually entered rate
+    rate: itemRate,
 
-      setEditingItemId(null);
-    } catch (error) {
-      console.error(
-        "Error calculating purchase order:",
-        error
-      );
+    // Actual quantity × rate
+    total: actualQty * itemRate,
 
-      toast.error(
-        "Unable to calculate purchase order"
-      );
-    } finally {
-      stopApiLoading();
-    }
+    taxName,
   };
 
+  let nextItems: PurchaseItem[];
+
+  if (editingItemId !== null) {
+    nextItems = items.map((item, index) =>
+      index === editingItemId ? newItem : item
+    );
+  } else {
+    nextItems = [...items, newItem];
+  }
+
+  setItems(nextItems);
+
+  // Recalculate using actual quantity
+  await calculatePurchaseOrder(nextItems);
+
+  // Clear form after add/update
+  setEditingItemId(null);
+  setCode("");
+  setName("");
+  setUnit("");
+  setSelectedUnitQty(0);
+  setQty("");
+  setRate("");
+  setTaxName("");
+  setItemSearch("");
+};
   /* =========================
       CANCEL ITEM EDIT
   ========================= */
@@ -767,29 +817,40 @@ await calculatePurchaseOrder(
       EDIT ITEM
   ========================= */
 
-  const handleEditItem = (
-    index: number
-  ) => {
-    const item = items[index];
+const handleEditItem = (index: number) => {
+  const item = items[index];
 
-    if (!item) return;
+  if (!item) return;
 
-    setEditingItemId(index);
+  setEditingItemId(index);
 
-    setCode(item.code);
-    setName(item.name);
-    setUnit(item.unit);
-    setQty(
-      item.qty.toString()
-    );
-    setRate(
-      item.rate.toString()
-    );
+  // Restore item
+  setCode(item.code);
+  setName(item.name);
 
-    setItemSearch(
-      `${item.code} - ${item.name}`
-    );
-  };
+  // Restore selected unit
+  setUnit(item.unit);
+
+  // IMPORTANT:
+  // Show the quantity user originally entered,
+  // NOT the converted/actual quantity.
+  setQty(item.enteredQty.toString());
+
+  // Restore unit conversion
+  setSelectedUnitQty(Number(item.unitQty));
+
+  // Restore manually entered rate
+  setRate(item.rate.toString());
+
+  // Restore tax
+  setTaxName(item.taxName);
+
+  // Restore item search display
+  setItemSearch(`${item.code} - ${item.name}`);
+
+  // Optional: scroll back to item entry section
+
+};
 
   /* =========================
       REMOVE ITEM
@@ -2068,239 +2129,214 @@ const formatPrintDate = (date?: string) => {
 
             <div className="p-4 md:p-5">
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-start">
+          <div className="grid grid-cols-12 gap-3 items-end">
 
-                {/* ITEM */}
+  {/* ITEM - KEEP THIS LOGIC EXACTLY */}
+  <div className="relative col-span-4">
+    <label className={`${labelClass} h-[18px]`}>
+      Item
+    </label>
 
-                <div className="relative sm:col-span-2 lg:col-span-4">
+    <input
+      value={itemSearch}
+      onChange={(e) =>
+        handleItemSearchChange(e.target.value)
+      }
+      onFocus={() =>
+        setShowItemDropdown(true)
+      }
+      onBlur={() => {
+        setTimeout(
+          () =>
+            setShowItemDropdown(false),
+          150
+        );
+      }}
+      placeholder={
+        loadingInventoryItems
+          ? "Loading items..."
+          : "Search code or item name"
+      }
+      disabled={loadingInventoryItems}
+      className={`${inputClass} ${
+        loadingInventoryItems
+          ? "cursor-not-allowed bg-gray-100"
+          : ""
+      }`}
+    />
 
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Item
-                  </label>
+    {showItemDropdown && (
+      <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
 
-                  <input
-                    value={
-                      itemSearch
-                    }
-                    onChange={(e) =>
-                      handleItemSearchChange(
-                        e.target.value
-                      )
-                    }
-                    onFocus={() =>
-                      setShowItemDropdown(
-                        true
-                      )
-                    }
-                    onBlur={() => {
-                      setTimeout(
-                        () =>
-                          setShowItemDropdown(
-                            false
-                          ),
-                        150
-                      );
-                    }}
-                    placeholder={
-                      loadingInventoryItems
-                        ? "Loading items..."
-                        : "Search code or item name"
-                    }
-                    disabled={
-                      loadingInventoryItems
-                    }
-                    className={`${inputClass} ${
-                      loadingInventoryItems
-                        ? "cursor-not-allowed bg-gray-100"
-                        : ""
-                    }`}
-                  />
+        {filteredInventoryItems.length === 0 ? (
 
-                  {showItemDropdown && (
-                    <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
+          <div className="px-3 py-4 text-center text-sm text-gray-500">
+            No items found
+          </div>
 
-                      {filteredInventoryItems.length ===
-                      0 ? (
+        ) : (
 
-                        <div className="px-3 py-4 text-center text-sm text-gray-500">
-                          No items found
-                        </div>
+          filteredInventoryItems.map(
+            (item) => (
 
-                      ) : (
+              <button
+                type="button"
+                key={item.itemCode}
+                onMouseDown={(e) =>
+                  e.preventDefault()
+                }
+                onClick={() =>
+                  handleInventoryItemSelect(item)
+                }
+                className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
+              >
 
-                        filteredInventoryItems.map(
-                          (item) => (
+                <span className="font-medium text-gray-800">
+                  {item.itemCode} - {item.itemName}
+                </span>
 
-                            <button
-                              type="button"
-                              key={
-                                item.itemCode
-                              }
-                              onMouseDown={(
-                                e
-                              ) =>
-                                e.preventDefault()
-                              }
-                              onClick={() =>
-                                handleInventoryItemSelect(
-                                  item
-                                )
-                              }
-                              className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
-                            >
+                <span className="shrink-0 text-xs text-gray-500">
+                  {item.unitName}
+                </span>
 
-                              <span className="font-medium text-gray-800">
-                                {
-                                  item.itemCode
-                                }{" "}
-                                -{" "}
-                                {
-                                  item.itemName
-                                }
-                              </span>
+              </button>
 
-                              <span className="shrink-0 text-xs text-gray-500">
-                                {
-                                  item.unitName
-                                }
-                              </span>
+            )
+          )
 
-                            </button>
+        )}
 
-                          )
-                        )
+      </div>
+    )}
+  </div>
 
-                      )}
+  {/* CODE */}
+  <div className="col-span-2">
+    <label className={`${labelClass} h-[18px]`}>
+      Code
+    </label>
 
-                    </div>
-                  )}
+    <input
+      value={code}
+      disabled
+      placeholder="Code"
+      className={`${inputClass} w-full cursor-not-allowed bg-gray-100`}
+    />
+  </div>
 
-                </div>
+  {/* NAME */}
+  <div className="col-span-2">
+    <label className={`${labelClass} h-[18px]`}>
+      Name
+    </label>
 
-                {/* CODE */}
+    <input
+      value={name}
+      disabled
+      placeholder="Item Name"
+      className={`${inputClass} w-full cursor-not-allowed bg-gray-100`}
+    />
+  </div>
 
-                <div className="lg:col-span-2">
+  {/* UNIT */}
+  <div className="col-span-1">
+    <label className={`${labelClass} h-[18px]`}>
+      Unit
+    </label>
 
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Code
-                  </label>
+<select
+  value={
+    unitConversions.find(
+      (conversion) =>
+        conversion.unitName === unit &&
+        Number(conversion.qty) ===
+          Number(selectedUnitQty)
+    )?.unitCode || ""
+  }
+  onChange={(e) => {
+    const selected = unitConversions.find(
+      (conversion) =>
+        conversion.unitCode ===
+        Number(e.target.value)
+    );
 
-                  <input
-                    value={code}
-                    disabled
-                    placeholder="Code"
-                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
-                  />
+    if (selected) {
+      setUnit(selected.unitName);
+      setSelectedUnitQty(Number(selected.qty));
+    } else {
+      setUnit("");
+      setSelectedUnitQty(0);
+    }
+  }}
+  className={`${inputClass} w-full`}
+>
+  <option value="">
+    Select
+  </option>
 
-                </div>
+  {unitConversions.map((conversion) => (
+    <option
+      key={conversion.unitCode}
+      value={conversion.unitCode}
+    >
+      {conversion.unitName} ({conversion.qty})
+    </option>
+  ))}
+</select>
+  </div>
 
-                {/* NAME */}
+  {/* QTY */}
+  <div className="col-span-1">
+    <label className={`${labelClass} h-[18px]`}>
+      Qty
+    </label>
 
-                <div className="lg:col-span-2">
+    <input
+      type="number"
+      min="1"
+      value={qty}
+      onChange={(e) =>
+        setQty(e.target.value)
+      }
+      placeholder="Qty"
+      className={`${inputClass} w-full text-right`}
+    />
+  </div>
 
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Name
-                  </label>
+  {/* RATE */}
+  <div className="col-span-1">
+    <label className={`${labelClass} h-[18px]`}>
+      Rate
+    </label>
 
-                  <input
-                    value={name}
-                    disabled
-                    placeholder="Item Name"
-                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
-                  />
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      value={rate}
+      onChange={(e) =>
+        setRate(e.target.value)
+      }
+      placeholder="Rate"
+      className={`${inputClass} w-full text-right`}
+    />
+  </div>
 
-                </div>
+  {/* ADD */}
+  <div className="col-span-1">
+    <button
+      type="button"
+      onClick={handleAddItem}
+      className="h-10 w-full whitespace-nowrap rounded-lg bg-green-600 px-2 text-sm font-semibold text-white transition hover:bg-green-700"
+    >
+      {editingItemId !== null
+        ? "Update"
+        : "+ Add"}
+    </button>
+  </div>
 
-                {/* UNIT */}
-
-                <div className="lg:col-span-1">
-
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Unit
-                  </label>
-
-                  <input
-                    value={unit}
-                    disabled
-                    placeholder="Unit"
-                    className={`${inputClass} cursor-not-allowed bg-gray-100`}
-                  />
-
-                </div>
-
-                {/* QTY */}
-
-                <div className="lg:col-span-1">
-
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Qty
-                  </label>
-
-                  <input
-                    type="number"
-                    min="1"
-                    value={qty}
-                    onChange={(e) =>
-                      setQty(
-                        e.target.value
-                      )
-                    }
-                    placeholder="Qty"
-                    className={`${inputClass} text-right`}
-                  />
-
-                </div>
-
-                {/* RATE */}
-
-                <div className="lg:col-span-1">
-
-                  <label
-                    className={`${labelClass} h-[18px]`}
-                  >
-                    Rate
-                  </label>
-
-                  <input
-                    type="number"
-                    value={rate}
-                    disabled
-                    placeholder="Rate"
-                    className={`${inputClass} cursor-not-allowed bg-gray-100 text-right`}
-                  />
-
-                </div>
-
-                {/* ADD */}
-
-                <div className="sm:col-span-2 lg:col-span-1 lg:pt-[24px]">
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleAddItem
-                    }
-                    className="h-10 w-full rounded-lg bg-green-600 px-3 text-sm font-semibold text-white transition hover:bg-green-700"
-                  >
-                    {editingItemId !==
-                    null
-                      ? "Update"
-                      : "+ Add"}
-                  </button>
-
-                </div>
-
-              </div>
+</div>
+              
 
             </div>
 
