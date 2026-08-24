@@ -9,6 +9,8 @@ import {
   purchaseOrderCalculation,
   getItemStoreListByStoreId,
   getInventoryMiscList,
+  createPurchaseOrder,
+  printPurchaseOrder,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -226,7 +228,8 @@ const [miscAmount, setMiscAmount] = useState("");
   /* =========================
       FETCH NEXT ORDER CODE
   ========================= */
-
+const [printData, setPrintData] = useState<any>(null);
+const [showPrintPreview, setShowPrintPreview] = useState(false);
   const fetchNextCode = async () => {
     startApiLoading();
 
@@ -988,13 +991,6 @@ await calculatePurchaseOrder(
       MISC TOTAL
   ========================= */
 
-  const miscTotal =
-    miscRows.reduce(
-      (sum, row) =>
-        sum +
-        Number(row.amount || 0),
-      0
-    );
 
   /* =========================
       SUB TOTAL
@@ -1015,95 +1011,264 @@ await calculatePurchaseOrder(
     Number(
       calculationResponse?.grandTotal ??
         subTotal
-    ) + miscTotal;
+    ) 
 
   /* =========================
       SAVE
   ========================= */
 
-  const handleSave = () => {
-    if (!supplier) {
-      toast.error(
-        "Please select a supplier"
-      );
-      return;
-    }
+const handleSave = async () => {
+  if (!supplier) {
+    toast.error("Please select a supplier");
+    return;
+  }
 
-    if (!store) {
-      toast.error(
-        "Please select a store"
-      );
-      return;
-    }
+  if (!store) {
+    toast.error("Please select a store");
+    return;
+  }
 
-    if (items.length === 0) {
-      toast.error(
-        "Please add at least one item"
-      );
-      return;
-    }
+  if (items.length === 0) {
+    toast.error("Please add at least one item");
+    return;
+  }
 
-    const invalidMisc =
-      miscRows.some(
-        (row) =>
-          !row.chargeId ||
-          !row.amount ||
-          row.amount <= 0
-      );
+  const invalidMisc = miscRows.some(
+    (row) =>
+      !row.chargeId ||
+      !row.amount ||
+      row.amount <= 0
+  );
 
-    if (invalidMisc) {
-      toast.error(
-        "Please select particular and enter valid amount for all miscellaneous charges"
-      );
-      return;
-    }
+  if (invalidMisc) {
+    toast.error(
+      "Please select particular and enter valid amount for all miscellaneous charges"
+    );
+    return;
+  }
 
-    const purchaseOrder = {
-      orderNo,
-      date,
+  // Make sure calculation has been completed
+  if (!calculationResponse) {
+    toast.error(
+      "Please calculate the purchase order before saving"
+    );
+    return;
+  }
 
-      supplierCode:
-        supplier.supCode,
+  startApiLoading();
 
-      supplierName:
-        supplier.supName,
+  try {
+    /*
+     * =========================
+     * MASTER
+     * =========================
+     */
 
-      storeId:
-        store.storeId,
+    const master = {
+      poNo: Number(orderNo || 0),
 
-      storeName:
-        store.storeName,
+      poDate: new Date(date).toISOString(),
 
-      orderedBy,
+      supCode: Number(supplier.supCode),
+
+      billed: "N",
+
+      branch_Code:
+        appData?.user?.branch_code || "",
+
+      orderBy: orderedBy,
+
+      effectiveFrom:
+        new Date(effectiveFrom).toISOString(),
+
+      effectiveTo:
+        new Date(effectiveTo).toISOString(),
+
       instruction,
-
-      effectiveFrom,
-      effectiveTo,
 
       remarks,
 
-      items,
+      totalAmount: Number(
+        calculationResponse.totalAmount || 0
+      ),
 
-      miscellaneous:
-        miscRows,
+      taxAmount: Number(
+        calculationResponse.taxAmount || 0
+      ),
 
-      subTotal,
+      missChargeAmount: Number(
+        calculationResponse.miscTotalAmount || 0
+      ),
 
-      miscTotal,
+      grossAmount: Number(
+        calculationResponse.grandTotal || 0
+      ),
 
-      grandTotal:
-        calculatedGrandTotal,
+      storeId: Number(store.storeId),
+
+      status: "O",
+
+      poValidDate:
+        new Date(effectiveTo).toISOString(),
+
+      deliverydate:
+        new Date(effectiveTo).toISOString(),
+    };
+
+    /*
+     * =========================
+     * DETAILS
+     * =========================
+     */
+
+    const details = items.map((item) => ({
+      poNo: Number(orderNo || 0),
+
+      itemCode: Number(item.code),
+
+      poItemQty: Number(item.qty),
+
+      poItemRate: Number(item.rate),
+
+      branch_Code:
+        appData?.user?.branch_code || "",
+
+      unit: item.unit,
+
+      poItemSuplyQty: 0,
+
+      cpoItemQty: 0,
+
+      aproovedBy: orderedBy || "",
+
+      aproovedDate:
+        new Date().toISOString(),
+    }));
+
+    /*
+     * =========================
+     * FINAL PAYLOAD
+     *
+     * calculationResponse contains:
+     * totalAmount
+     * totalQty
+     * cgstPer
+     * cgstAmt
+     * sgstPer
+     * sgstAmt
+     * serviceChargePer
+     * serviceCharge
+     * taxAmount
+     * grandTotal
+     * discountPer
+     * discount
+     * discountIn
+     * discountRemarks
+     * roundOff
+     * miscCharge
+     * miscChargeCode
+     * miscTaxCode
+     * miscCGSTPer
+     * miscCGSTAmt
+     * miscSGSTPer
+     * miscSGSTAmt
+     * miscTaxAmount
+     * miscTotalAmount
+     * taxList
+     * miscTaxList
+     * =========================
+     */
+const taxes = calculationResponse?.taxList || []
+const miscellaneous = calculationResponse?.miscTaxList || []
+    const payload = {
+      master,
+
+      details,
+
+      taxes,
+
+      miscellaneous
     };
 
     console.log(
-      "Purchase Order:",
-      purchaseOrder
+      "Create Purchase Order Payload:",
+      payload
     );
 
-    alert(
-      "Purchase Order saved successfully"
+    /*
+     * =========================
+     * SAVE API
+     * =========================
+     */
+
+  const response =
+  await createPurchaseOrder(payload);
+
+console.log(
+  "Create Purchase Order Response:",
+  response
+);
+if (response?.success === false) {
+  toast.error(
+    response?.message || "Failed to save purchase order"
+  );
+  return;
+}
+
+const createdPONo = Number(response?.data);
+
+console.log("Created PO No:", createdPONo);
+
+if (createdPONo) {
+  try {
+    const printResponse = await printPurchaseOrder(
+      createdPONo,
+      appData?.user?.branch_code || ""
     );
-  };
+
+    console.log(
+      "Print Purchase Order Response:",
+      printResponse
+    );
+
+    if (printResponse?.success) {
+      setPrintData(printResponse.data);
+      setShowPrintPreview(true);
+    } else {
+      toast.error(
+        printResponse?.message ||
+          "Unable to get purchase order print data"
+      );
+    }
+  } catch (printError) {
+    console.error(
+      "Error getting purchase order print data:",
+      printError
+    );
+
+    toast.error(
+      "Purchase order saved, but print preview could not be loaded"
+    );
+  }
+}
+
+toast.success("Purchase Order saved successfully");
+
+  } catch (error: any) {
+    console.error(
+      "Error saving purchase order:",
+      error
+    );
+
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Failed to save purchase order"
+    );
+  } finally {
+    stopApiLoading();
+  }
+};
 
   /* =========================
       COMMON CLASSES
@@ -1114,8 +1279,430 @@ await calculatePurchaseOrder(
 
   const labelClass =
     "mb-1.5 block text-xs font-semibold text-gray-600";
+const formatPrintDate = (date?: string) => {
+  if (!date) return "-";
 
-  return (
+  const d = new Date(date);
+
+  if (isNaN(d.getTime())) return "-";
+
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+  return (<>{showPrintPreview && printData && (
+  <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+
+    <div className="mx-auto my-6 w-full max-w-[900px]">
+
+      {/* =========================
+          PREVIEW HEADER
+      ========================= */}
+
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">
+            Purchase Order Preview
+          </h2>
+
+          <p className="text-xs text-gray-500">
+            PO No: {printData.master?.poNo}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            🖨 Print
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowPrintPreview(false);
+              setPrintData(null);
+              handleNewEntry();
+            }}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Close
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* =========================
+          PRINT AREA
+      ========================= */}
+
+      <div
+        id="purchase-order-print"
+        className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+      >
+
+        {/* COMPANY HEADER */}
+
+        <div className="mb-5 text-center">
+
+          <h1 className="text-xl font-bold tracking-wide">
+            COGWAVE POS
+          </h1>
+
+          <div className="mt-1 text-xs leading-5 text-gray-600">
+            Basavanagudi<br />
+            Bangalore - 560004<br />
+            PH : 7338818178<br />
+            Email : 0<br />
+            GST : -
+          </div>
+
+        </div>
+
+        {/* TITLE */}
+
+        <div className="mb-4 text-center">
+
+          <h2 className="text-lg font-semibold text-red-600">
+            Purchase Order
+          </h2>
+
+        </div>
+
+        {/* MASTER DETAILS */}
+
+        <div className="grid grid-cols-2 border border-gray-800">
+
+          {/* LEFT */}
+
+          <div className="border-r border-gray-800 p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Vendor:
+              </span>{" "}
+              {printData.master?.vendorName || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Address:
+              </span>{" "}
+              {printData.master?.vendorAddress || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Phone No:
+              </span>{" "}
+              {printData.master?.phoneNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Mobile No:
+              </span>{" "}
+              {printData.master?.mobileNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                GST No:
+              </span>{" "}
+              {printData.master?.gstNo || "-"}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                State Code:
+              </span>{" "}
+              {printData.master?.stateCode || "-"}
+            </div>
+
+          </div>
+
+          {/* RIGHT */}
+
+          <div className="p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                PO No:
+              </span>{" "}
+              {printData.master?.poNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                PO Date:
+              </span>{" "}
+              {formatPrintDate(
+                printData.master?.poDate
+              )}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Order By:
+              </span>{" "}
+              {printData.master?.orderBy || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Effective From:
+              </span>{" "}
+              {formatPrintDate(
+                printData.master?.effectiveFrom
+              )}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                Effective To:
+              </span>{" "}
+              {formatPrintDate(
+                printData.master?.effectiveTo
+              )}
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ITEMS */}
+
+        <div className="mt-3 overflow-hidden border border-gray-800">
+
+          <table className="w-full border-collapse">
+
+            <thead>
+
+              <tr className="bg-gray-200 text-xs font-bold">
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Code
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Description
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-center">
+                  Unit
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Rate
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Qty
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Total
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {printData.details?.map(
+                (item: any, index: number) => (
+
+                  <tr key={index}>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item.itemCode}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item.itemName}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-center">
+                      {item.unit}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      ₹ {Number(item.itemRate || 0).toFixed(2)}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      {item.itemQty}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                      ₹ {Number(item.total || 0).toFixed(2)}
+                    </td>
+
+                  </tr>
+
+                )
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+        {/* SUMMARY */}
+
+        <div className="mt-6 flex justify-end">
+
+          <div className="w-[330px]">
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Amount Before Tax</span>
+              <span>
+                ₹ {Number(
+                  printData.master?.totalAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Additional Tax</span>
+              <span>
+                ₹ {Number(
+                  printData.master?.tax || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Misc Charges</span>
+              <span>
+                ₹ {Number(
+                  printData.master?.missChargeAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b-2 border-gray-800 py-3 text-base font-bold">
+              <span>Final Amount</span>
+              <span>
+                ₹ {Number(
+                  printData.master?.grossAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* TAX DETAILS */}
+
+        {/* {printData.taxDetails?.length > 0 && (
+
+          <div className="mt-5">
+
+            <h3 className="mb-2 font-semibold">
+              Tax Details
+            </h3>
+
+            <table className="w-full border-collapse border border-gray-800 text-xs">
+
+              <thead>
+
+                <tr className="bg-gray-100">
+
+                  <th className="border border-gray-800 px-2 py-1 text-left">
+                    Tax
+                  </th>
+
+                  <th className="border border-gray-800 px-2 py-1 text-right">
+                    %
+                  </th>
+
+                  <th className="border border-gray-800 px-2 py-1 text-right">
+                    Amount
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {printData.taxDetails.map(
+                  (tax: any, index: number) => (
+
+                    <tr key={index}>
+
+                      <td className="border border-gray-800 px-2 py-1">
+                        {tax.taxDescription}
+                      </td>
+
+                      <td className="border border-gray-800 px-2 py-1 text-right">
+                        {tax.taxPercentage}%
+                      </td>
+
+                      <td className="border border-gray-800 px-2 py-1 text-right">
+                        ₹ {Number(
+                          tax.taxAmount || 0
+                        ).toFixed(2)}
+                      </td>
+
+                    </tr>
+
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )} */}
+
+        {/* INSTRUCTION */}
+
+        <div className="mt-5 border-t border-gray-800 pt-2">
+
+          <div className="font-semibold">
+            Instruction
+          </div>
+
+          <div className="mt-1 min-h-[35px]">
+            {printData.master?.instruction || "-"}
+          </div>
+
+        </div>
+
+        {/* REMARKS */}
+
+        <div className="mt-3 border-t border-gray-300 pt-2">
+
+          <div className="font-semibold">
+            Remarks
+          </div>
+
+          <div className="mt-1 min-h-[35px]">
+            {printData.master?.remarks || "-"}
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
 
       {apiLoadingCount > 0 && (
@@ -2266,7 +2853,7 @@ await calculatePurchaseOrder(
 
       </div>
 
-    </div>
+    </div></>
   );
 };
 

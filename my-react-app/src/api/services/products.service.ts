@@ -6028,3 +6028,65 @@ export const getAdminAccessMaster = async (branchCode: string) => {
     throw error;
   }
 };
+
+
+// ================= PURCHASE ORDER =================
+
+export const createPurchaseOrder = async (payload: any) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/CreatePurchaseOrder",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating purchase order:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+export const printPurchaseOrder = async (
+  poNo: number,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/PrintPurchaseOrder",
+      {
+        params: {
+          poNo,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error printing purchase order:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
