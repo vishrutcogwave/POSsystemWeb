@@ -6134,8 +6134,8 @@ export const getInventoryUnitConversionList = async (
 };
 
 export const createInventoryUnitConversion = async (payload: {
-  id: number;
-  unitCode: string;
+  
+  unitCode: number;
   unitName: string;
   qty: number;
   isActive: boolean;
@@ -6170,8 +6170,8 @@ export const createInventoryUnitConversion = async (payload: {
 };
 
 export const updateInventoryUnitConversion = async (payload: {
-  id: number;
-  unitCode: string;
+  
+  unitCode: number;
   unitName: string;
   qty: number;
   isActive: boolean;
@@ -6206,7 +6206,7 @@ export const updateInventoryUnitConversion = async (payload: {
 };
 
 export const deleteInventoryUnitConversion = async (
-  id: number,
+  UnitCode: number,
   branch: string,
 ) => {
   try {
@@ -6216,7 +6216,7 @@ export const deleteInventoryUnitConversion = async (
       "/api/InventoryMaster/DeleteInventoryUnitConversion",
       {
         params: {
-          id,
+          UnitCode,
           branch,
         },
         headers: {

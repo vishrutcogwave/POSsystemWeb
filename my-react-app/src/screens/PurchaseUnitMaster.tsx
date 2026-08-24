@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
-import { DataTable, type Column } from "../components/DataTableForMasters";
+import {
+  DataTable,
+  type Column,
+} from "../components/DataTableForMasters";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
@@ -14,7 +17,10 @@ import {
 } from "../api/services/products.service";
 
 type PurchaseUnit = {
+  // Required by DataTableForMasters
   id: number;
+
+  // Actual API fields
   unitCode: string;
   unitName: string;
   qty: number;
@@ -38,7 +44,8 @@ export default function PurchaseUnitMaster() {
   });
 
   const [data, setData] = useState<PurchaseUnit[]>([]);
-  const [deleteRow, setDeleteRow] = useState<PurchaseUnit | null>(null);
+  const [deleteRow, setDeleteRow] =
+    useState<PurchaseUnit | null>(null);
 
   /* ================= CHANGE ================= */
 
@@ -63,41 +70,67 @@ export default function PurchaseUnitMaster() {
 
       if (!branch) return;
 
-      const res = await getInventoryUnitConversionList(branch);
+      const res =
+        await getInventoryUnitConversionList(branch);
 
       if (res?.success) {
-        const formatted = res.data.map((item: any) => ({
-          id: item.id,
-          unitCode: item.unitCode?.toString() || "",
-          unitName: item.unitName || "",
-          qty: Number(item.qty) || 0,
-          isActive: item.isActive,
-          branch_Code: item.branch_Code || "",
-          createdBy: item.createdBy || "",
-          createdDate: item.createdDate
-            ? item.createdDate.split("T")[0]
-            : "",
-        }));
+        const formatted: PurchaseUnit[] =
+          (res.data || []).map((item: any) => ({
+            // DataTable requires id
+            // API does not return id
+            id: Number(item.unitCode),
+
+            unitCode:
+              item.unitCode?.toString() || "",
+
+            unitName:
+              item.unitName || "",
+
+            qty:
+              Number(item.qty) || 0,
+
+            isActive:
+              item.isActive ?? true,
+
+            branch_Code:
+              item.branch_Code || "",
+
+            createdBy:
+              item.createdBy || "",
+
+            createdDate:
+              item.createdDate
+                ? item.createdDate.split("T")[0]
+                : "",
+          }));
 
         setData(formatted);
       } else {
         toast.error(
-          res?.message || "Failed to fetch purchase units ❌",
+          res?.message ||
+            "Failed to fetch purchase units ❌",
         );
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Error fetching purchase units ❌");
+      console.error(
+        "Error fetching purchase units:",
+        error,
+      );
+
+      toast.error(
+        "Error fetching purchase units ❌",
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= NEXT ID ================= */
+  /* ================= NEXT UNIT CODE ================= */
 
   const fetchNextId = async () => {
     try {
-      const branch = appData?.user?.branch_code;
+      const branch =
+        appData?.user?.branch_code;
 
       if (!branch) return;
 
@@ -111,11 +144,15 @@ export default function PurchaseUnitMaster() {
       if (res?.success) {
         setForm((prev) => ({
           ...prev,
-          unitCode: res.data.toString(),
+          unitCode:
+            res.data?.toString() || "",
         }));
       }
     } catch (error) {
-      console.error("Error fetching next ID:", error);
+      console.error(
+        "Error fetching next Unit Code:",
+        error,
+      );
     }
   };
 
@@ -142,39 +179,61 @@ export default function PurchaseUnitMaster() {
         return;
       }
 
-      if (!form.qty || Number(form.qty) <= 0) {
-        toast.error("Please enter valid Quantity");
+      if (
+        !form.qty ||
+        Number(form.qty) <= 0
+      ) {
+        toast.error(
+          "Please enter valid Quantity",
+        );
         return;
       }
 
       setLoading(true);
 
       const payload = {
-        id: 0,
-        unitCode: form.unitCode,
+        unitCode: Number(form.unitCode),
         unitName: form.unitName,
         qty: Number(form.qty),
         isActive: form.isActive,
-        branch_Code: appData?.user?.branch_code,
-        createdBy: appData?.user?.userCode?.toString(),
-        createdDate: new Date().toISOString(),
+        branch_Code:
+          appData?.user?.branch_code || "",
+        createdBy:
+          appData?.user?.userCode?.toString() ||
+          "",
+        createdDate:
+          new Date().toISOString(),
       };
 
-      const res = await createInventoryUnitConversion(payload);
+      const res =
+        await createInventoryUnitConversion(
+          payload,
+        );
 
       if (res?.success) {
-        toast.success("Purchase Unit Created ✅");
+        toast.success(
+          "Purchase Unit Created ✅",
+        );
 
         resetForm();
 
         await fetchNextId();
         await fetchPurchaseUnits();
       } else {
-        toast.error(res?.message || "Create failed ❌");
+        toast.error(
+          res?.message ||
+            "Create failed ❌",
+        );
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Error saving purchase unit ❌");
+      console.error(
+        "Error saving purchase unit:",
+        error,
+      );
+
+      toast.error(
+        "Error saving purchase unit ❌",
+      );
     } finally {
       setLoading(false);
     }
@@ -194,28 +253,41 @@ export default function PurchaseUnitMaster() {
         return;
       }
 
-      if (!form.qty || Number(form.qty) <= 0) {
-        toast.error("Please enter valid Quantity");
+      if (
+        !form.qty ||
+        Number(form.qty) <= 0
+      ) {
+        toast.error(
+          "Please enter valid Quantity",
+        );
         return;
       }
 
       setLoading(true);
 
       const payload = {
-        id: 0,
-        unitCode: form.unitCode,
+        unitCode:Number(form.unitCode),
         unitName: form.unitName,
         qty: Number(form.qty),
         isActive: form.isActive,
-        branch_Code: appData?.user?.branch_code,
-        createdBy: appData?.user?.userCode?.toString(),
-        createdDate: new Date().toISOString(),
+        branch_Code:
+          appData?.user?.branch_code || "",
+        createdBy:
+          appData?.user?.userCode?.toString() ||
+          "",
+        createdDate:
+          new Date().toISOString(),
       };
 
-      const res = await updateInventoryUnitConversion(payload);
+      const res =
+        await updateInventoryUnitConversion(
+          payload,
+        );
 
       if (res?.success) {
-        toast.success("Purchase Unit Updated ✅");
+        toast.success(
+          "Purchase Unit Updated ✅",
+        );
 
         setIsEdit(false);
 
@@ -224,11 +296,20 @@ export default function PurchaseUnitMaster() {
         await fetchNextId();
         await fetchPurchaseUnits();
       } else {
-        toast.error(res?.message || "Update failed ❌");
+        toast.error(
+          res?.message ||
+            "Update failed ❌",
+        );
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Error updating purchase unit ❌");
+      console.error(
+        "Error updating purchase unit:",
+        error,
+      );
+
+      toast.error(
+        "Error updating purchase unit ❌",
+      );
     } finally {
       setLoading(false);
     }
@@ -236,7 +317,9 @@ export default function PurchaseUnitMaster() {
 
   /* ================= EDIT ================= */
 
-  const handleEdit = (row: PurchaseUnit) => {
+  const handleEdit = (
+    row: PurchaseUnit,
+  ) => {
     setIsEdit(true);
 
     setForm({
@@ -249,7 +332,9 @@ export default function PurchaseUnitMaster() {
 
   /* ================= DELETE ================= */
 
-  const handleDeleteRow = (row: PurchaseUnit) => {
+  const handleDeleteRow = (
+    row: PurchaseUnit,
+  ) => {
     setDeleteRow(row);
   };
 
@@ -259,24 +344,43 @@ export default function PurchaseUnitMaster() {
     try {
       setLoading(true);
 
-      const branch = appData?.user?.branch_code;
+      const branch =
+        appData?.user?.branch_code;
 
-      const res = await deleteInventoryUnitConversion(
-        deleteRow.id,
-        branch,
-      );
+      if (!branch) {
+        toast.error("Branch not found");
+        return;
+      }
+
+      // API DELETE uses unitCode as id
+      const res =
+        await deleteInventoryUnitConversion(
+          Number(deleteRow.unitCode),
+          branch,
+        );
 
       if (res?.success) {
-        toast.success("Deleted successfully ✅");
+        toast.success(
+          "Deleted successfully ✅",
+        );
 
         await fetchNextId();
         await fetchPurchaseUnits();
       } else {
-        toast.error(res?.message || "Delete failed ❌");
+        toast.error(
+          res?.message ||
+            "Delete failed ❌",
+        );
       }
     } catch (error) {
-      console.error(error);
-      toast.error("Error deleting ❌");
+      console.error(
+        "Error deleting purchase unit:",
+        error,
+      );
+
+      toast.error(
+        "Error deleting purchase unit ❌",
+      );
     } finally {
       setLoading(false);
       setDeleteRow(null);
@@ -308,10 +412,6 @@ export default function PurchaseUnitMaster() {
 
   const columns: Column<PurchaseUnit>[] = [
     {
-      header: "ID",
-      accessor: "id",
-    },
-    {
       header: "Unit Code",
       accessor: "unitCode",
     },
@@ -339,7 +439,9 @@ export default function PurchaseUnitMaster() {
 
   return (
     <>
-      <Header showNeworderButton={false} />
+      <Header
+        showNeworderButton={false}
+      />
 
       <div className="h-screen overflow-y-auto p-4 md:p-6 space-y-6 bg-gray-50">
 
@@ -355,16 +457,13 @@ export default function PurchaseUnitMaster() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
-            {/* ID */}
-
-           
+            {/* UNIT CODE */}
 
             <input
               name="unitCode"
               disabled
               value={form.unitCode}
-              onChange={handleChange}
-              className="border p-2 rounded"
+              className="border p-2 rounded bg-gray-100"
               placeholder="Unit Code"
             />
 
@@ -400,7 +499,9 @@ export default function PurchaseUnitMaster() {
                 onChange={handleChange}
               />
 
-              <span>Is Active</span>
+              <span>
+                Is Active
+              </span>
             </label>
 
           </div>
@@ -437,7 +538,6 @@ export default function PurchaseUnitMaster() {
             )}
 
           </div>
-
         </div>
 
         {/* ================= TABLE ================= */}
@@ -467,7 +567,9 @@ export default function PurchaseUnitMaster() {
               <div className="flex gap-3 mt-4">
 
                 <button
-                  onClick={() => setDeleteRow(null)}
+                  onClick={() =>
+                    setDeleteRow(null)
+                  }
                   className="px-3 py-1"
                 >
                   Cancel
