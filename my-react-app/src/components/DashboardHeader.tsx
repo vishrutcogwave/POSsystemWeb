@@ -359,6 +359,11 @@ const DashboardHeader: React.FC = () => {
     name: "Purchase Order",
     icon: FilePen,
     permissionName: "Purchase Order",
+  },
+ {
+    name: "Purchase Unit Master",
+    icon: Package,
+    permissionName: "Purchase Unit Master",
   },]
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -407,6 +412,7 @@ const DashboardHeader: React.FC = () => {
     "Inventory GRN Miscellaneous":
   "/inventory/InventoryGRNMiscellaneous",
   "Purchase Order": "/purchase/purchaseorder",
+  "Purchase Unit Master": "/purchase/purchaseunitmaster",
   };
 
   const handleLogout = () => {

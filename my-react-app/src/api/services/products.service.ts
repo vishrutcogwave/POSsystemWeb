@@ -6090,3 +6090,149 @@ export const printPurchaseOrder = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ================= INVENTORY UNIT CONVERSION =================
+
+export const getInventoryUnitConversionList = async (
+  branch: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryMaster/GetInventoryUnitConversionList",
+      {
+        params: { branch },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching inventory unit conversion list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const createInventoryUnitConversion = async (payload: {
+  id: number;
+  unitCode: string;
+  unitName: string;
+  qty: number;
+  isActive: boolean;
+  branch_Code: string;
+  createdBy: string;
+  createdDate: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryMaster/CreateInventoryUnitConversion",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating inventory unit conversion:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const updateInventoryUnitConversion = async (payload: {
+  id: number;
+  unitCode: string;
+  unitName: string;
+  qty: number;
+  isActive: boolean;
+  branch_Code: string;
+  createdBy: string;
+  createdDate: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryMaster/UpdateInventoryUnitConversion",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating inventory unit conversion:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const deleteInventoryUnitConversion = async (
+  id: number,
+  branch: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryMaster/DeleteInventoryUnitConversion",
+      {
+        params: {
+          id,
+          branch,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting inventory unit conversion:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
