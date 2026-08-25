@@ -1233,13 +1233,18 @@ const PurchaseOrder: React.FC = () => {
     }
   }, [editPurchaseOrder, suppliers, stores]);
 
-
 useEffect(() => {
   if (!editPurchaseOrder) return;
 
   const details = editPurchaseOrder.details || [];
+  const miscellaneous =
+    editPurchaseOrder.miscellaneous || [];
 
-  if (!details.length || !inventoryItems.length) return;
+  if (!inventoryItems.length) return;
+
+  // =========================
+  // ITEMS
+  // =========================
 
   const mappedItems: PurchaseItem[] = details
     .map((detail: any, index: number) => {
@@ -1257,30 +1262,32 @@ useEffect(() => {
         return null;
       }
 
-      const qty = Number(detail.poItemQty || 0);
+      const qty = Number(
+        detail.poItemQty || 0
+      );
+
+      const rate = Number(
+        selectedItem.itemRate || 0
+      );
 
       return {
         id: Date.now() + index,
 
-        // Item from inventory
         code: String(selectedItem.itemCode),
         name: selectedItem.itemName,
 
-        // Unit directly from PO details
         unit: detail.unit,
-        unitCode: Number(detail.unitCode || 0),
+        unitCode: Number(
+          detail.unitCode || 0
+        ),
 
-        // Quantity directly from PO details
         unitQty: 0,
         enteredQty: qty,
         qty: qty,
 
-        // Rate from inventory
-        rate: Number(selectedItem.itemRate || 0),
+        rate: rate,
 
-        total:
-          qty *
-          Number(selectedItem.itemRate || 0),
+        total: qty * rate,
 
         taxName:
           selectedItem.taxName ||
@@ -1301,18 +1308,47 @@ useEffect(() => {
         item !== null
     );
 
+  // =========================
+  // MISCELLANEOUS CHARGES
+  // =========================
+
+  const mappedMiscRows: MiscRow[] =
+    miscellaneous.map(
+      (charge: any, index: number) => ({
+        id: Date.now() + 1000 + index,
+
+        chargeId: Number(
+          charge.chargeId || 0
+        ),
+
+        chargeName:
+          charge.chargeName || "",
+
+        amount: Number(
+          charge.chargeAmt || 0
+        ),
+      })
+    );
+
   console.log(
     "Edit PO Items:",
     mappedItems
   );
 
-  // Bind directly to table
+  console.log(
+    "Edit PO Miscellaneous:",
+    mappedMiscRows
+  );
+
+  // Bind both directly to tables
   setItems(mappedItems);
 
-  // Calculate using the same items
+  setMiscRows(mappedMiscRows);
+
+  // Calculate using both
   calculatePurchaseOrder(
     mappedItems,
-    miscRows
+    mappedMiscRows
   );
 
 }, [
