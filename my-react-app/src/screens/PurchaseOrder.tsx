@@ -444,16 +444,20 @@ const PurchaseOrder: React.FC = () => {
       INITIAL LOAD
   ========================= */
 
-  useEffect(() => {
-    if (appData?.user?.branch_code) {
-      fetchSuppliers();
-      fetchStores();
-      fetchNextCode();
-      fetchInventoryMiscList();
-      fetchInventoryUnitConversions();
-    }
-  }, [appData?.user?.branch_code]);
+useEffect(() => {
+  if (!appData?.user?.branch_code) return;
 
+  fetchSuppliers();
+  fetchStores();
+  fetchInventoryMiscList();
+  fetchInventoryUnitConversions();
+
+  // Only generate a new PO number for CREATE mode.
+  // In EDIT mode, use the existing PO number from editPurchaseOrder.master.poNo.
+  if (!editPurchaseOrder) {
+    fetchNextCode();
+  }
+}, [appData?.user?.branch_code, editPurchaseOrder]);
   /* =========================
       LOAD ITEMS WHEN STORE CHANGES
   ========================= */
@@ -540,43 +544,7 @@ const PurchaseOrder: React.FC = () => {
       NEW ENTRY
   ========================= */
 
-  const handleNewEntry = async () => {
-    const today = new Date().toISOString().split("T")[0];
 
-    setDate(today);
-
-    setSupplier(null);
-    setStore(null);
-
-    setOrderedBy("");
-    setInstruction("");
-
-    setEffectiveFrom(today);
-    setEffectiveTo(today);
-
-    setRemarks("");
-
-    setCode("");
-    setName("");
-    setUnit("");
-    setSelectedUnitQty(0);
-    setQty("");
-    setRate("");
-    setMiscRows([]);
-    setMiscChargeId("");
-    setMiscAmount("");
-
-    setItemSearch("");
-    setShowItemDropdown(false);
-
-    setItems([]);
-    setMiscRows([]);
-    setCalculationResponse(null);
-
-    setEditingItemId(null);
-
-    await fetchNextCode();
-  };
 
   /* =========================
       SUPPLIER CHANGE
@@ -1184,51 +1152,61 @@ const PurchaseOrder: React.FC = () => {
     });
   };
 
-  useEffect(() => {
-    if (!editPurchaseOrder) return;
+ useEffect(() => {
+  if (!editPurchaseOrder) return;
 
-    const master = editPurchaseOrder?.master;
+  const master = editPurchaseOrder?.master;
 
-    if (master?.poNo) {
-      setOrderNo(master?.poNo);
-    }
-    if (master?.poDate) {
-      setDate(master.poDate.split("T")[0]);
-    }
+  if (master?.poNo !== undefined && master?.poNo !== null) {
+    setOrderNo(String(master.poNo));
+  }
 
-    if (master?.supCode && suppliers.length > 0) {
-      const selectedSupplier = suppliers.find(
-        (supplier) => Number(supplier.supCode) === Number(master.supCode),
-      );
-      if (selectedSupplier) {
-        setSupplier(selectedSupplier);
-      }
-    }
-    if (master?.storeId && stores.length > 0) {
-      const selectedStore = stores.find(
-        (store) => Number(store.storeId) === Number(master.storeId),
-      );
+  if (master?.poDate) {
+    setDate(master.poDate.split("T")[0]);
+  }
 
-      if (selectedStore) {
-        setStore(selectedStore);
-      }
+  if (master?.supCode && suppliers.length > 0) {
+    const selectedSupplier = suppliers.find(
+      (supplier) =>
+        Number(supplier.supCode) === Number(master.supCode)
+    );
+
+    if (selectedSupplier) {
+      setSupplier(selectedSupplier);
     }
-    if (master?.orderBy) {
-      setOrderedBy(master?.orderBy);
+  }
+
+  if (master?.storeId && stores.length > 0) {
+    const selectedStore = stores.find(
+      (store) =>
+        Number(store.storeId) === Number(master.storeId)
+    );
+
+    if (selectedStore) {
+      setStore(selectedStore);
     }
-    if (master?.effectiveFrom) {
-      setEffectiveFrom(master?.effectiveFrom.split("T")[0]);
-    }
-    if (master?.effectiveTo) {
-      setEffectiveFrom(master?.effectiveTo.split("T")[0]);
-    }
-    if (master?.instruction) {
-      setInstruction(master?.instruction);
-    }
-    if (master?.instruction) {
-      setRemarks(master?.remarks);
-    }
-  }, [editPurchaseOrder, suppliers, stores]);
+  }
+
+  if (master?.orderBy !== undefined) {
+    setOrderedBy(master.orderBy || "");
+  }
+
+  if (master?.effectiveFrom) {
+    setEffectiveFrom(master.effectiveFrom.split("T")[0]);
+  }
+
+  if (master?.effectiveTo) {
+    setEffectiveTo(master.effectiveTo.split("T")[0]);
+  }
+
+  if (master?.instruction !== undefined) {
+    setInstruction(master.instruction || "");
+  }
+
+  if (master?.remarks !== undefined) {
+    setRemarks(master.remarks || "");
+  }
+}, [editPurchaseOrder, suppliers, stores]);
 
   useEffect(() => {
     if (!editPurchaseOrder) return;
@@ -1701,38 +1679,8 @@ const PurchaseOrder: React.FC = () => {
         return;
       }
 
-      const createdPONo = Number(response?.data);
-
-      console.log("Created PO No:", createdPONo);
-
-      if (createdPONo) {
-        try {
-          const printResponse = await printPurchaseOrder(
-            createdPONo,
-            appData?.user?.branch_code || "",
-          );
-
-          console.log("Print Purchase Order Response:", printResponse);
-
-          if (printResponse?.success) {
-            setPrintData(printResponse.data);
-            setShowPrintPreview(true);
-          } else {
-            toast.error(
-              printResponse?.message ||
-                "Unable to get purchase order print data",
-            );
-          }
-        } catch (printError) {
-          console.error("Error getting purchase order print data:", printError);
-
-          toast.error(
-            "Purchase order saved, but print preview could not be loaded",
-          );
-        }
-      }
-
       toast.success("Purchase Order saved successfully");
+      navigate(-1)
     } catch (error: any) {
       console.error("Error saving purchase order:", error);
 
@@ -1887,11 +1835,7 @@ const PurchaseOrder: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowPrintPreview(false);
-                    setPrintData(null);
-                    handleNewEntry();
-                  }}
+                  onClick={()=>navigate(-1)}
                   className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Close
