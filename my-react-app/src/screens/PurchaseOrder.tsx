@@ -1410,7 +1410,7 @@ const PurchaseOrder: React.FC = () => {
         poItemRate: Number(item.rate),
         approvedBy: appData?.user?.userName || "",
         branch_Code: appData?.user?.branch_code || "",
-        approvedQty: Number(item.rate),
+        poOrderQty: Number(item.rate),
         unit: `${item.unit}`,
         unitCode: Number(item.unitCode || 0),
 
@@ -1632,7 +1632,7 @@ const PurchaseOrder: React.FC = () => {
         unitCode: Number(item.unitCode || 0),
 
         poItemSuplyQty: 0,
-        approvedQty: Number(item.rate),
+        poOrderQty: Number(item.rate),
         cpoItemQty: 0,
 
         aproovedBy: orderedBy || "",
