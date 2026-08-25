@@ -6295,3 +6295,36 @@ export const createPurchaseOrderApproval = async (
     throw error;
   }
 };
+
+
+export const getPurchaseOrderApprovalPrint = async (
+  poNo: number,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseOrderApprovalPrint",
+      {
+        params: {
+          poNo,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase order approval print:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

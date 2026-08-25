@@ -13,6 +13,7 @@ import {
   printPurchaseOrder,
   getInventoryUnitConversionList,
   createPurchaseOrderApproval,
+  getPurchaseOrderApprovalPrint,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -235,11 +236,14 @@ const PurchaseOrder: React.FC = () => {
   const [miscRows, setMiscRows] = useState<MiscRow[]>([]);
   const [miscChargeId, setMiscChargeId] = useState("");
   const [miscAmount, setMiscAmount] = useState("");
+  const [isApprovalPrint, setIsApprovalPrint] = useState(false)
   /* =========================
       FETCH NEXT ORDER CODE
   ========================= */
   const [printData, setPrintData] = useState<any>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+  
 
   const [unitConversions, setUnitConversions] = useState<
     InventoryUnitConversion[]
@@ -1100,6 +1104,7 @@ useEffect(() => {
 
           if (printResponse?.success) {
             setPrintData(printResponse.data);
+            setIsApprovalPrint(false);
             setShowPrintPreview(true);
           } else {
             toast.error(
@@ -1468,7 +1473,7 @@ useEffect(() => {
 
       if (createdPONo) {
         try {
-          const printResponse = await printPurchaseOrder(
+          const printResponse = await getPurchaseOrderApprovalPrint(
             createdPONo,
             appData?.user?.branch_code || "",
           );
@@ -1478,6 +1483,8 @@ useEffect(() => {
           if (printResponse?.success) {
             setPrintData(printResponse.data);
             setShowPrintPreview(true);
+              setIsApprovalPrint(true);
+
           } else {
             toast.error(
               printResponse?.message ||
@@ -1815,9 +1822,11 @@ useEffect(() => {
 
             <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
               <div>
-                <h2 className="text-lg font-bold text-gray-800">
-                  Purchase Order Preview
-                </h2>
+             <h2 className="text-lg font-bold text-gray-800">
+  {isApprovalPrint
+    ? "Purchase Order Approval Preview"
+    : "Purchase Order Preview"}
+</h2>
 
                 <p className="text-xs text-gray-500">
                   PO No: {printData.master?.poNo}
@@ -1943,70 +1952,101 @@ useEffect(() => {
                 </div>
               </div>
 
+
+{isApprovalPrint && (
+  <div className="mt-5 border border-gray-800">
+    <div className="bg-gray-200 px-3 py-2 font-semibold">
+      Approval Details
+    </div>
+
+    <div className="grid grid-cols-2">
+      <div className="border-r border-gray-800 p-3">
+        <span className="font-semibold">Approved By:</span>{" "}
+        {printData.details?.[0]?.approvedBy || "-"}
+      </div>
+
+      <div className="p-3">
+        <span className="font-semibold">Approved Date:</span>{" "}
+        {formatPrintDate(printData.details?.[0]?.approvedDate)}
+      </div>
+    </div>
+  </div>
+)}
               {/* ITEMS */}
 
-              <div className="mt-3 overflow-hidden border border-gray-800">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-200 text-xs font-bold">
-                      <th className="border border-gray-800 px-2 py-2 text-left">
-                        Code
-                      </th>
+       <div className="mt-3 overflow-hidden border border-gray-800">
+  <table className="w-full border-collapse">
+    <thead>
+      <tr className="bg-gray-200 text-xs font-bold">
+        <th className="border border-gray-800 px-2 py-2 text-left">
+          Code
+        </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-left">
-                        Description
-                      </th>
+        <th className="border border-gray-800 px-2 py-2 text-left">
+          Description
+        </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-center">
-                        Unit
-                      </th>
+        <th className="border border-gray-800 px-2 py-2 text-center">
+          Unit
+        </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-right">
-                        Rate
-                      </th>
+        <th className="border border-gray-800 px-2 py-2 text-right">
+          Rate
+        </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-right">
-                        Qty
-                      </th>
+        <th className="border border-gray-800 px-2 py-2 text-right">
+          Qty
+        </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-right">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
+        {isApprovalPrint && (
+          <th className="border border-gray-800 px-2 py-2 text-right">
+            Approved Qty
+          </th>
+        )}
 
-                  <tbody>
-                    {printData.details?.map((item: any, index: number) => (
-                      <tr key={index}>
-                        <td className="border border-gray-800 px-2 py-2">
-                          {item.itemCode}
-                        </td>
+        <th className="border border-gray-800 px-2 py-2 text-right">
+          Total
+        </th>
+      </tr>
+    </thead>
 
-                        <td className="border border-gray-800 px-2 py-2">
-                          {item.itemName}
-                        </td>
+    <tbody>
+      {printData.details?.map((item: any, index: number) => (
+        <tr key={index}>
+          <td className="border border-gray-800 px-2 py-2">
+            {item.itemCode}
+          </td>
 
-                        <td className="border border-gray-800 px-2 py-2 text-center">
-                          {item.unit}
-                        </td>
+          <td className="border border-gray-800 px-2 py-2">
+            {item.itemName}
+          </td>
 
-                        <td className="border border-gray-800 px-2 py-2 text-right">
-                          ₹ {Number(item.itemRate || 0).toFixed(2)}
-                        </td>
+          <td className="border border-gray-800 px-2 py-2 text-center">
+            {item.unit}
+          </td>
 
-                        <td className="border border-gray-800 px-2 py-2 text-right">
-                          {item.itemQty}
-                        </td>
+          <td className="border border-gray-800 px-2 py-2 text-right">
+            ₹ {Number(item.itemRate || 0).toFixed(2)}
+          </td>
 
-                        <td className="border border-gray-800 px-2 py-2 text-right font-medium">
-                          ₹ {Number(item.total || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+          <td className="border border-gray-800 px-2 py-2 text-right">
+            {item.itemQty}
+          </td>
 
+          {isApprovalPrint && (
+            <td className="border border-gray-800 px-2 py-2 text-right font-semibold">
+              {item.poOrderQty ?? 0}
+            </td>
+          )}
+
+          <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+            ₹ {Number(item.total || 0).toFixed(2)}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
               {/* SUMMARY */}
 
               <div className="mt-6 flex justify-end">
@@ -2044,71 +2084,27 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* TAX DETAILS */}
+         
 
-              {/* {printData.taxDetails?.length > 0 && (
+        {printData.termsMaster?.length > 0 && (
+  <div className="mt-5 border-t border-gray-800 pt-3">
+    <h3 className="mb-2 font-semibold">
+      Terms & Conditions
+    </h3>
 
-          <div className="mt-5">
+    {printData.termsMaster.map((term: any, index: number) => (
+      <div key={index} className="mb-3">
+        <div className="font-semibold">
+          {term.termsTitle}
+        </div>
 
-            <h3 className="mb-2 font-semibold">
-              Tax Details
-            </h3>
-
-            <table className="w-full border-collapse border border-gray-800 text-xs">
-
-              <thead>
-
-                <tr className="bg-gray-100">
-
-                  <th className="border border-gray-800 px-2 py-1 text-left">
-                    Tax
-                  </th>
-
-                  <th className="border border-gray-800 px-2 py-1 text-right">
-                    %
-                  </th>
-
-                  <th className="border border-gray-800 px-2 py-1 text-right">
-                    Amount
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {printData.taxDetails.map(
-                  (tax: any, index: number) => (
-
-                    <tr key={index}>
-
-                      <td className="border border-gray-800 px-2 py-1">
-                        {tax.taxDescription}
-                      </td>
-
-                      <td className="border border-gray-800 px-2 py-1 text-right">
-                        {tax.taxPercentage}%
-                      </td>
-
-                      <td className="border border-gray-800 px-2 py-1 text-right">
-                        ₹ {Number(
-                          tax.taxAmount || 0
-                        ).toFixed(2)}
-                      </td>
-
-                    </tr>
-
-                  )
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        )} */}
+        <div className="mt-1 whitespace-pre-line text-xs leading-5">
+          {term.termsDescription}
+        </div>
+      </div>
+    ))}
+  </div>
+)}
 
               {/* INSTRUCTION */}
 
@@ -2129,6 +2125,59 @@ useEffect(() => {
                   {printData.master?.remarks || "-"}
                 </div>
               </div>
+
+
+              {/* SIGNATURE SECTION */}
+
+<div className="mt-12 border-t border-gray-800 pt-6">
+  <div className="grid grid-cols-4 gap-6 text-center">
+
+    {/* Prepared By */}
+    <div className="flex flex-col items-center">
+      <div className="h-12 w-full border-b border-gray-800"></div>
+      <div className="mt-2 font-semibold text-sm">
+        Prepared By
+      </div>
+      <div className="mt-1 text-xs text-gray-500">
+        Signature
+      </div>
+    </div>
+
+    {/* Head of Department */}
+    <div className="flex flex-col items-center">
+      <div className="h-12 w-full border-b border-gray-800"></div>
+      <div className="mt-2 font-semibold text-sm">
+        Head of Dept.
+      </div>
+      <div className="mt-1 text-xs text-gray-500">
+        Signature
+      </div>
+    </div>
+
+    {/* Finance */}
+    <div className="flex flex-col items-center">
+      <div className="h-12 w-full border-b border-gray-800"></div>
+      <div className="mt-2 font-semibold text-sm">
+        Finance
+      </div>
+      <div className="mt-1 text-xs text-gray-500">
+        Signature
+      </div>
+    </div>
+
+    {/* AGM */}
+    <div className="flex flex-col items-center">
+      <div className="h-12 w-full border-b border-gray-800"></div>
+      <div className="mt-2 font-semibold text-sm">
+        AGM
+      </div>
+      <div className="mt-1 text-xs text-gray-500">
+        Signature
+      </div>
+    </div>
+
+  </div>
+</div>
             </div>
           </div>
         </div>
