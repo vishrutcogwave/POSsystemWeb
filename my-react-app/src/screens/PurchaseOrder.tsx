@@ -1148,6 +1148,9 @@ const handleSave = async () => {
      */
 
     const master = {
+
+        cgstAmount: calculationResponse?.cgstAmt,
+    sgstAmount: calculationResponse?.sgstAmt,
       poNo: Number(orderNo || 0),
 
       poDate: new Date(date).toISOString(),
