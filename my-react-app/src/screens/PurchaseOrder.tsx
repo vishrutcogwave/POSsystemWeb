@@ -1189,7 +1189,7 @@ const PurchaseOrder: React.FC = () => {
     const master = editPurchaseOrder?.master;
 
     if (master?.poNo) {
-      setOrderNo(String(master?.poNo));
+      setOrderNo(master?.poNo);
     }
     if (master?.poDate) {
       setDate(master.poDate.split("T")[0]);
@@ -1267,7 +1267,7 @@ useEffect(() => {
       );
 
       const rate = Number(
-        selectedItem.itemRate || 0
+        detail.poItemRate || 0
       );
 
       return {
