@@ -1241,96 +1241,79 @@ useEffect(() => {
 
   if (!details.length || !inventoryItems.length) return;
 
-  let index = 0;
-
-  const addNextItem = () => {
-    if (index >= details.length) return;
-
-    const detail = details[index];
-
-    // Find the actual inventory item using itemCode
-    const selectedItem = inventoryItems.find(
-      (item) =>
-        Number(item.itemCode) ===
-        Number(detail.itemCode)
-    );
-
-    if (!selectedItem) {
-      console.warn(
-        "Item not found:",
-        detail.itemCode
+  const mappedItems: PurchaseItem[] = details
+    .map((detail: any, index: number) => {
+      const selectedItem = inventoryItems.find(
+        (item) =>
+          Number(item.itemCode) ===
+          Number(detail.itemCode)
       );
 
-      index++;
+      if (!selectedItem) {
+        console.warn(
+          "Item not found:",
+          detail.itemCode
+        );
+        return null;
+      }
 
-      setTimeout(() => {
-        addNextItem();
-      }, 100);
+      const qty = Number(detail.poItemQty || 0);
 
-      return;
-    }
+      return {
+        id: Date.now() + index,
 
-    /*
-     * Bind exactly like normal item selection
-     */
-    setCode(
-      selectedItem.itemCode.toString()
+        // Item from inventory
+        code: String(selectedItem.itemCode),
+        name: selectedItem.itemName,
+
+        // Unit directly from PO details
+        unit: detail.unit,
+        unitCode: Number(detail.unitCode || 0),
+
+        // Quantity directly from PO details
+        unitQty: 0,
+        enteredQty: qty,
+        qty: qty,
+
+        // Rate from inventory
+        rate: Number(selectedItem.itemRate || 0),
+
+        total:
+          qty *
+          Number(selectedItem.itemRate || 0),
+
+        taxName:
+          selectedItem.taxName ||
+          detail.taxName ||
+          "",
+
+        taxPercent: 0,
+
+        taxCode: Number(
+          detail.taxCode ||
+          selectedItem.taxCode ||
+          0
+        ),
+      };
+    })
+    .filter(
+      (item:any): item is PurchaseItem =>
+        item !== null
     );
 
-    setName(
-      selectedItem.itemName
-    );
+  console.log(
+    "Edit PO Items:",
+    mappedItems
+  );
 
-    // IMPORTANT:
-    // This is what displays the item in the Item field
-    setItemSearch(
-      `${selectedItem.itemCode} - ${selectedItem.itemName}`
-    );
+  // Bind directly to table
+  setItems(mappedItems);
 
-    // Unit comes directly from PO details
-    setUnit(
-      detail.unit
-    );
-
-    setUnitCode(
-      Number(detail.unitCode)
-    );
-
-    // No conversion
-    setSelectedUnitQty(0);
-    setShowUnitConversion(false);
-
-    // Rate comes from inventory item,
-    // same as normal item selection
-    setRate(
-      String(selectedItem.itemRate)
-    );
-
-    setTaxName(
-      selectedItem.taxName || ""
-    );
-
-    // Quantity comes from PO details
-    setQty(
-      String(detail.poItemQty)
-    );
-
-    /*
-     * Wait for states to update,
-     * then call the EXISTING handleAddItem()
-     */
-    setTimeout(() => {
-      handleAddItem();
-
-      index++;
-
-      setTimeout(() => {
-        addNextItem();
-      }, 200);
-    }, 200);
-  };
-
-  addNextItem();
+  // Calculate using the same items
+  calculatePurchaseOrder(
+    mappedItems,
+    miscRows
+  );
 
 }, [
   editPurchaseOrder,
