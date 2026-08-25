@@ -6265,3 +6265,33 @@ export const getPurchaseOrderList = async (branchCode: string) => {
     throw error;
   }
 };
+
+
+export const createPurchaseOrderApproval = async (
+  payload: any
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/CreatePurchaseOrderApproval",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating purchase order approval:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};

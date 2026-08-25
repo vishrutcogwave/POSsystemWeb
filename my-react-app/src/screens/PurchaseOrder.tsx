@@ -12,9 +12,10 @@ import {
   createPurchaseOrder,
   printPurchaseOrder,
   getInventoryUnitConversionList,
+  createPurchaseOrderApproval,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type Supplier = {
   supCode: number;
@@ -125,7 +126,7 @@ type MiscRow = {
 
 const PurchaseOrder: React.FC = () => {
   const { appData } = useAppContext();
-
+  const navigate = useNavigate();
   const location = useLocation();
 
   const editPurchaseOrder = location.state?.editPurchaseOrder;
@@ -1212,149 +1213,538 @@ const PurchaseOrder: React.FC = () => {
         setStore(selectedStore);
       }
     }
-    if(master?.orderBy){
-      setOrderedBy(master?.orderBy)
+    if (master?.orderBy) {
+      setOrderedBy(master?.orderBy);
     }
-    if(master?.effectiveFrom){
-
-      setEffectiveFrom(master?.effectiveFrom.split("T")[0])
+    if (master?.effectiveFrom) {
+      setEffectiveFrom(master?.effectiveFrom.split("T")[0]);
     }
-      if(master?.effectiveTo){
-
-      setEffectiveFrom(master?.effectiveTo.split("T")[0])
+    if (master?.effectiveTo) {
+      setEffectiveFrom(master?.effectiveTo.split("T")[0]);
     }
-         if(master?.instruction){
-
-      setInstruction(master?.instruction)
+    if (master?.instruction) {
+      setInstruction(master?.instruction);
     }
-       if(master?.instruction){
-
-      setRemarks(master?.remarks)
+    if (master?.instruction) {
+      setRemarks(master?.remarks);
     }
   }, [editPurchaseOrder, suppliers, stores]);
 
-useEffect(() => {
-  if (!editPurchaseOrder) return;
+  useEffect(() => {
+    if (!editPurchaseOrder) return;
 
-  const details = editPurchaseOrder.details || [];
-  const miscellaneous =
-    editPurchaseOrder.miscellaneous || [];
+    const details = editPurchaseOrder.details || [];
+    const miscellaneous = editPurchaseOrder.miscellaneous || [];
 
-  if (!inventoryItems.length) return;
+    if (!inventoryItems.length) return;
 
-  // =========================
-  // ITEMS
-  // =========================
+    // =========================
+    // ITEMS
+    // =========================
 
-  const mappedItems: PurchaseItem[] = details
-    .map((detail: any, index: number) => {
-      const selectedItem = inventoryItems.find(
-        (item) =>
-          Number(item.itemCode) ===
-          Number(detail.itemCode)
-      );
-
-      if (!selectedItem) {
-        console.warn(
-          "Item not found:",
-          detail.itemCode
+    const mappedItems: PurchaseItem[] = details
+      .map((detail: any, index: number) => {
+        const selectedItem = inventoryItems.find(
+          (item) => Number(item.itemCode) === Number(detail.itemCode),
         );
-        return null;
-      }
 
-      const qty = Number(
-        detail.poItemQty || 0
-      );
+        if (!selectedItem) {
+          console.warn("Item not found:", detail.itemCode);
+          return null;
+        }
 
-      const rate = Number(
-        detail.poItemRate || 0
-      );
+        const qty = Number(detail.poItemQty || 0);
 
-      return {
-        id: Date.now() + index,
+        const rate = Number(detail.poItemRate || 0);
 
-        code: String(selectedItem.itemCode),
-        name: selectedItem.itemName,
+        return {
+          id: Date.now() + index,
 
-        unit: detail.unit,
-        unitCode: Number(
-          detail.unitCode || 0
-        ),
+          code: String(selectedItem.itemCode),
+          name: selectedItem.itemName,
 
-        unitQty: 0,
-        enteredQty: qty,
-        qty: qty,
+          unit: detail.unit,
+          unitCode: Number(detail.unitCode || 0),
 
-        rate: rate,
+          unitQty: 0,
+          enteredQty: qty,
+          qty: qty,
 
-        total: qty * rate,
+          rate: rate,
 
-        taxName:
-          selectedItem.taxName ||
-          detail.taxName ||
-          "",
+          total: qty * rate,
 
-        taxPercent: 0,
+          taxName: selectedItem.taxName || detail.taxName || "",
 
-        taxCode: Number(
-          detail.taxCode ||
-          selectedItem.taxCode ||
-          0
-        ),
-      };
-    })
-    .filter(
-      (item:any): item is PurchaseItem =>
-        item !== null
-    );
+          taxPercent: 0,
 
-  // =========================
-  // MISCELLANEOUS CHARGES
-  // =========================
+          taxCode: Number(detail.taxCode || selectedItem.taxCode || 0),
+        };
+      })
+      .filter((item: any): item is PurchaseItem => item !== null);
 
-  const mappedMiscRows: MiscRow[] =
-    miscellaneous.map(
+    // =========================
+    // MISCELLANEOUS CHARGES
+    // =========================
+
+    const mappedMiscRows: MiscRow[] = miscellaneous.map(
       (charge: any, index: number) => ({
         id: Date.now() + 1000 + index,
 
-        chargeId: Number(
-          charge.chargeId || 0
-        ),
+        chargeId: Number(charge.chargeId || 0),
 
-        chargeName:
-          charge.chargeName || "",
+        chargeName: charge.chargeName || "",
 
-        amount: Number(
-          charge.chargeAmt || 0
-        ),
-      })
+        amount: Number(charge.chargeAmt || 0),
+      }),
     );
 
-  console.log(
-    "Edit PO Items:",
-    mappedItems
-  );
+    console.log("Edit PO Items:", mappedItems);
 
-  console.log(
-    "Edit PO Miscellaneous:",
-    mappedMiscRows
-  );
+    console.log("Edit PO Miscellaneous:", mappedMiscRows);
 
-  // Bind both directly to tables
-  setItems(mappedItems);
+    // Bind both directly to tables
+    setItems(mappedItems);
 
-  setMiscRows(mappedMiscRows);
+    setMiscRows(mappedMiscRows);
 
-  // Calculate using both
-  calculatePurchaseOrder(
-    mappedItems,
-    mappedMiscRows
-  );
+    // Calculate using both
+    calculatePurchaseOrder(mappedItems, mappedMiscRows);
+  }, [editPurchaseOrder, inventoryItems]);
 
-}, [
-  editPurchaseOrder,
-  inventoryItems,
-]);
+  const handleApprove = async () => {
+    if (!supplier) {
+      toast.error("Please select a supplier");
+      return;
+    }
+
+    if (!store) {
+      toast.error("Please select a store");
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error("Please add at least one item");
+      return;
+    }
+
+    const invalidMisc = miscRows.some(
+      (row) => !row.chargeId || !row.amount || row.amount <= 0,
+    );
+
+    if (invalidMisc) {
+      toast.error(
+        "Please select particular and enter valid amount for all miscellaneous charges",
+      );
+      return;
+    }
+
+    // Make sure calculation has been completed
+    if (!calculationResponse) {
+      toast.error("Please calculate the purchase order before saving");
+      return;
+    }
+
+    startApiLoading();
+
+    try {
+      /*
+       * =========================
+       * MASTER
+       * =========================
+       */
+
+      const master = {
+        cgstAmount: calculationResponse?.cgstAmt,
+        sgstAmount: calculationResponse?.sgstAmt,
+        poNo: Number(orderNo || 0),
+
+        poDate: new Date(date).toISOString(),
+
+        supCode: Number(supplier.supCode),
+
+        billed: "N",
+
+        branch_Code: appData?.user?.branch_code || "",
+
+        orderBy: orderedBy,
+
+        effectiveFrom: new Date(effectiveFrom).toISOString(),
+
+        effectiveTo: new Date(effectiveTo).toISOString(),
+
+        instruction,
+
+        remarks,
+
+        totalAmount: Number(calculationResponse.totalAmount || 0),
+
+        taxAmount: Number(calculationResponse.taxAmount || 0),
+
+        missChargeAmount: Number(calculationResponse.miscTotalAmount || 0),
+
+        grossAmount: Number(calculationResponse.grandTotal || 0),
+
+        storeId: Number(store.storeId),
+
+        status: "A",
+
+        poValidDate: new Date(effectiveTo).toISOString(),
+
+        deliverydate: new Date(effectiveTo).toISOString(),
+      };
+
+      /*
+       * =========================
+       * DETAILS
+       * =========================
+       */
+
+      const details = items.map((item) => ({
+        poNo: Number(orderNo || 0),
+
+        itemCode: Number(item.code),
+
+        poItemQty: Number(item.qty),
+
+        poItemRate: Number(item.rate),
+        approvedBy: appData?.user?.userName || "",
+        branch_Code: appData?.user?.branch_code || "",
+        approvedQty: Number(item.rate),
+        unit: `${item.unit}`,
+        unitCode: Number(item.unitCode || 0),
+
+        poItemSuplyQty: 0,
+
+        cpoItemQty: 0,
+
+        aproovedBy: orderedBy || "",
+
+        aproovedDate: new Date().toISOString(),
+      }));
+
+      /*
+       * =========================
+       * FINAL PAYLOAD
+       *
+       * calculationResponse contains:
+       * totalAmount
+       * totalQty
+       * cgstPer
+       * cgstAmt
+       * sgstPer
+       * sgstAmt
+       * serviceChargePer
+       * serviceCharge
+       * taxAmount
+       * grandTotal
+       * discountPer
+       * discount
+       * discountIn
+       * discountRemarks
+       * roundOff
+       * miscCharge
+       * miscChargeCode
+       * miscTaxCode
+       * miscCGSTPer
+       * miscCGSTAmt
+       * miscSGSTPer
+       * miscSGSTAmt
+       * miscTaxAmount
+       * miscTotalAmount
+       * taxList
+       * miscTaxList
+       * =========================
+       */
+      const taxes = calculationResponse?.taxList || [];
+      const miscellaneous = calculationResponse?.miscTaxList || [];
+      const payload = {
+        master,
+
+        details,
+
+        taxes,
+
+        miscellaneous,
+      };
+
+      console.log("Create Purchase Order Payload:", payload);
+
+      /*
+       * =========================
+       * SAVE API
+       * =========================
+       */
+
+      const response = await createPurchaseOrderApproval(payload);
+
+      console.log("Create Purchase Order Response:", response);
+      if (response?.success === false) {
+        toast.error(response?.message || "Failed to save purchase order");
+        return;
+      }
+
+      const createdPONo = Number(response?.data);
+
+      console.log("Created PO No:", createdPONo);
+
+      if (createdPONo) {
+        try {
+          const printResponse = await printPurchaseOrder(
+            createdPONo,
+            appData?.user?.branch_code || "",
+          );
+
+          console.log("Print Purchase Order Response:", printResponse);
+
+          if (printResponse?.success) {
+            setPrintData(printResponse.data);
+            setShowPrintPreview(true);
+          } else {
+            toast.error(
+              printResponse?.message ||
+                "Unable to get purchase order print data",
+            );
+          }
+        } catch (printError) {
+          console.error("Error getting purchase order print data:", printError);
+
+          toast.error(
+            "Purchase order saved, but print preview could not be loaded",
+          );
+        }
+      }
+
+      toast.success("Purchase Order saved successfully");
+    } catch (error: any) {
+      console.error("Error saving purchase order:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save purchase order",
+      );
+    } finally {
+      stopApiLoading();
+    }
+  };
+
+  const handleReject = async () => {
+    if (!supplier) {
+      toast.error("Please select a supplier");
+      return;
+    }
+
+    if (!store) {
+      toast.error("Please select a store");
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error("Please add at least one item");
+      return;
+    }
+
+    const invalidMisc = miscRows.some(
+      (row) => !row.chargeId || !row.amount || row.amount <= 0,
+    );
+
+    if (invalidMisc) {
+      toast.error(
+        "Please select particular and enter valid amount for all miscellaneous charges",
+      );
+      return;
+    }
+
+    // Make sure calculation has been completed
+    if (!calculationResponse) {
+      toast.error("Please calculate the purchase order before saving");
+      return;
+    }
+
+    startApiLoading();
+
+    try {
+      /*
+       * =========================
+       * MASTER
+       * =========================
+       */
+
+      const master = {
+        cgstAmount: calculationResponse?.cgstAmt,
+        sgstAmount: calculationResponse?.sgstAmt,
+        poNo: Number(orderNo || 0),
+
+        poDate: new Date(date).toISOString(),
+
+        supCode: Number(supplier.supCode),
+
+        billed: "N",
+
+        branch_Code: appData?.user?.branch_code || "",
+
+        orderBy: orderedBy,
+
+        effectiveFrom: new Date(effectiveFrom).toISOString(),
+
+        effectiveTo: new Date(effectiveTo).toISOString(),
+
+        instruction,
+
+        remarks,
+
+        totalAmount: Number(calculationResponse.totalAmount || 0),
+
+        taxAmount: Number(calculationResponse.taxAmount || 0),
+
+        missChargeAmount: Number(calculationResponse.miscTotalAmount || 0),
+
+        grossAmount: Number(calculationResponse.grandTotal || 0),
+
+        storeId: Number(store.storeId),
+
+        status: "R",
+
+        poValidDate: new Date(effectiveTo).toISOString(),
+
+        deliverydate: new Date(effectiveTo).toISOString(),
+      };
+
+      /*
+       * =========================
+       * DETAILS
+       * =========================
+       */
+
+      const details = items.map((item) => ({
+        poNo: Number(orderNo || 0),
+
+        itemCode: Number(item.code),
+
+        poItemQty: Number(item.qty),
+
+        poItemRate: Number(item.rate),
+        approvedBy: appData?.user?.userName || "",
+        branch_Code: appData?.user?.branch_code || "",
+
+        unit: `${item.unit}`,
+        unitCode: Number(item.unitCode || 0),
+
+        poItemSuplyQty: 0,
+        approvedQty: Number(item.rate),
+        cpoItemQty: 0,
+
+        aproovedBy: orderedBy || "",
+
+        aproovedDate: new Date().toISOString(),
+      }));
+
+      /*
+       * =========================
+       * FINAL PAYLOAD
+       *
+       * calculationResponse contains:
+       * totalAmount
+       * totalQty
+       * cgstPer
+       * cgstAmt
+       * sgstPer
+       * sgstAmt
+       * serviceChargePer
+       * serviceCharge
+       * taxAmount
+       * grandTotal
+       * discountPer
+       * discount
+       * discountIn
+       * discountRemarks
+       * roundOff
+       * miscCharge
+       * miscChargeCode
+       * miscTaxCode
+       * miscCGSTPer
+       * miscCGSTAmt
+       * miscSGSTPer
+       * miscSGSTAmt
+       * miscTaxAmount
+       * miscTotalAmount
+       * taxList
+       * miscTaxList
+       * =========================
+       */
+      const taxes = calculationResponse?.taxList || [];
+      const miscellaneous = calculationResponse?.miscTaxList || [];
+      const payload = {
+        master,
+
+        details,
+
+        taxes,
+
+        miscellaneous,
+      };
+
+      console.log("Create Purchase Order Payload:", payload);
+
+      /*
+       * =========================
+       * SAVE API
+       * =========================
+       */
+
+      const response = await createPurchaseOrderApproval(payload);
+
+      console.log("Create Purchase Order Response:", response);
+      if (response?.success === false) {
+        toast.error(response?.message || "Failed to save purchase order");
+        return;
+      }
+
+      const createdPONo = Number(response?.data);
+
+      console.log("Created PO No:", createdPONo);
+
+      if (createdPONo) {
+        try {
+          const printResponse = await printPurchaseOrder(
+            createdPONo,
+            appData?.user?.branch_code || "",
+          );
+
+          console.log("Print Purchase Order Response:", printResponse);
+
+          if (printResponse?.success) {
+            setPrintData(printResponse.data);
+            setShowPrintPreview(true);
+          } else {
+            toast.error(
+              printResponse?.message ||
+                "Unable to get purchase order print data",
+            );
+          }
+        } catch (printError) {
+          console.error("Error getting purchase order print data:", printError);
+
+          toast.error(
+            "Purchase order saved, but print preview could not be loaded",
+          );
+        }
+      }
+
+      toast.success("Purchase Order saved successfully");
+    } catch (error: any) {
+      console.error("Error saving purchase order:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save purchase order",
+      );
+    } finally {
+      stopApiLoading();
+    }
+  };
 
   return (
     <>
@@ -1835,10 +2225,6 @@ useEffect(() => {
                     Order information
                   </p>
                 </div>
-
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                  New Entry
-                </span>
               </div>
 
               <div className="p-4 md:p-5">
@@ -2485,19 +2871,39 @@ useEffect(() => {
             <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={handleNewEntry}
+                onClick={() => navigate(-1)}
                 className="h-10 rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
 
-              <button
-                type="button"
-                onClick={handleSave}
-                className="h-10 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Save Purchase Order
-              </button>
+              {editPurchaseOrder ? (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    className="h-10 rounded-lg bg-green-600 px-6 text-sm font-semibold text-white transition hover:bg-green-700"
+                  >
+                    Approve
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleReject}
+                    className="h-10 rounded-lg bg-red-600 px-6 text-sm font-semibold text-white transition hover:bg-red-700"
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="h-10 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Save Purchase Order
+                </button>
+              )}
             </div>
           </div>
         </div>
