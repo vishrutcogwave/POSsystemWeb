@@ -667,8 +667,15 @@ const handleEdit = (
                             <td className="px-4 py-3 text-center">
 <button
   type="button"
+  disabled={
+    String(master.status).toUpperCase() !== "O"
+  }
   onClick={() => handleEdit(purchaseOrder)}
-  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition ${
+    String(master.status).toUpperCase() === "O"
+      ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+      : "cursor-not-allowed bg-gray-200 text-gray-400"
+  }`}
 >
   Edit
 </button>
