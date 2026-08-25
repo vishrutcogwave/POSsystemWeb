@@ -59,6 +59,7 @@ import InventoryGRNMiscellaneous from "./InventoryGRNMiscellaneous";
 import InventoryItemStoreImport from "./InventoryItemStoreImport";
 import PurchaseOrder from "./PurchaseOrder";
 import PurchaseUnitMaster from "./PurchaseUnitMaster";
+import PurchaseOrderApproval from "./PurchaseOrderApproval";
 
 function LandingPage() {
   const location = useLocation();
@@ -226,6 +227,12 @@ function LandingPage() {
   path="/purchase/purchaseunitmaster"
   element={<PurchaseUnitMaster/>}
 />
+
+<Route
+  path="/purchase/purchaseorderapproval"
+  element={<PurchaseOrderApproval />}
+/>
+
       </Routes>
     </>
   );

@@ -359,7 +359,11 @@ const DashboardHeader: React.FC = () => {
     name: "Purchase Order",
     icon: FilePen,
     permissionName: "Purchase Order",
-  },
+  },   {
+      name: "Purchase Order Approval",
+      icon: ShieldCheck,
+      permissionName: "Purchase Order Approval",
+    },
  {
     name: "Purchase Unit Master",
     icon: Package,
@@ -413,6 +417,7 @@ const DashboardHeader: React.FC = () => {
   "/inventory/InventoryGRNMiscellaneous",
   "Purchase Order": "/purchase/purchaseorder",
   "Purchase Unit Master": "/purchase/purchaseunitmaster",
+   "Purchase Order Approval": "/purchase/purchaseorderapproval",
   };
 
   const handleLogout = () => {

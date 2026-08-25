@@ -6236,3 +6236,32 @@ export const deleteInventoryUnitConversion = async (
     throw error;
   }
 };
+
+
+export const getPurchaseOrderList = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseOrderList",
+      {
+        params: {
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase order list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
