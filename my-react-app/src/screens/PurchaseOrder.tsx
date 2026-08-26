@@ -1997,7 +1997,7 @@ const PurchaseOrder: React.FC = () => {
                       </th>
 
                       <th className="border border-gray-800 px-2 py-2 text-right">
-                        Qty
+                        Order Qty
                       </th>
 
                       {isApprovalPrint && (
