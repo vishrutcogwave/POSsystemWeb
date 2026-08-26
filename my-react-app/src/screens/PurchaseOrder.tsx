@@ -180,6 +180,7 @@ const PurchaseOrder: React.FC = () => {
   ========================= */
 
   const [orderedBy, setOrderedBy] = useState("");
+  const [approved, setapproved] = useState("");
   const [instruction, setInstruction] = useState("");
 
   const [effectiveFrom, setEffectiveFrom] = useState(
@@ -236,14 +237,12 @@ const PurchaseOrder: React.FC = () => {
   const [miscRows, setMiscRows] = useState<MiscRow[]>([]);
   const [miscChargeId, setMiscChargeId] = useState("");
   const [miscAmount, setMiscAmount] = useState("");
-  const [isApprovalPrint, setIsApprovalPrint] = useState(false)
+  const [isApprovalPrint, setIsApprovalPrint] = useState(false);
   /* =========================
       FETCH NEXT ORDER CODE
   ========================= */
   const [printData, setPrintData] = useState<any>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-
-  
 
   const [unitConversions, setUnitConversions] = useState<
     InventoryUnitConversion[]
@@ -448,20 +447,20 @@ const PurchaseOrder: React.FC = () => {
       INITIAL LOAD
   ========================= */
 
-useEffect(() => {
-  if (!appData?.user?.branch_code) return;
+  useEffect(() => {
+    if (!appData?.user?.branch_code) return;
 
-  fetchSuppliers();
-  fetchStores();
-  fetchInventoryMiscList();
-  fetchInventoryUnitConversions();
+    fetchSuppliers();
+    fetchStores();
+    fetchInventoryMiscList();
+    fetchInventoryUnitConversions();
 
-  // Only generate a new PO number for CREATE mode.
-  // In EDIT mode, use the existing PO number from editPurchaseOrder.master.poNo.
-  if (!editPurchaseOrder) {
-    fetchNextCode();
-  }
-}, [appData?.user?.branch_code, editPurchaseOrder]);
+    // Only generate a new PO number for CREATE mode.
+    // In EDIT mode, use the existing PO number from editPurchaseOrder.master.poNo.
+    if (!editPurchaseOrder) {
+      fetchNextCode();
+    }
+  }, [appData?.user?.branch_code, editPurchaseOrder]);
   /* =========================
       LOAD ITEMS WHEN STORE CHANGES
   ========================= */
@@ -547,8 +546,6 @@ useEffect(() => {
   /* =========================
       NEW ENTRY
   ========================= */
-
-
 
   /* =========================
       SUPPLIER CHANGE
@@ -1157,61 +1154,59 @@ useEffect(() => {
     });
   };
 
- useEffect(() => {
-  if (!editPurchaseOrder) return;
+  useEffect(() => {
+    if (!editPurchaseOrder) return;
 
-  const master = editPurchaseOrder?.master;
+    const master = editPurchaseOrder?.master;
 
-  if (master?.poNo !== undefined && master?.poNo !== null) {
-    setOrderNo(String(master.poNo));
-  }
-
-  if (master?.poDate) {
-    setDate(master.poDate.split("T")[0]);
-  }
-
-  if (master?.supCode && suppliers.length > 0) {
-    const selectedSupplier = suppliers.find(
-      (supplier) =>
-        Number(supplier.supCode) === Number(master.supCode)
-    );
-
-    if (selectedSupplier) {
-      setSupplier(selectedSupplier);
+    if (master?.poNo !== undefined && master?.poNo !== null) {
+      setOrderNo(String(master.poNo));
     }
-  }
 
-  if (master?.storeId && stores.length > 0) {
-    const selectedStore = stores.find(
-      (store) =>
-        Number(store.storeId) === Number(master.storeId)
-    );
-
-    if (selectedStore) {
-      setStore(selectedStore);
+    if (master?.poDate) {
+      setDate(master.poDate.split("T")[0]);
     }
-  }
 
-  if (master?.orderBy !== undefined) {
-    setOrderedBy(master.orderBy || "");
-  }
+    if (master?.supCode && suppliers.length > 0) {
+      const selectedSupplier = suppliers.find(
+        (supplier) => Number(supplier.supCode) === Number(master.supCode),
+      );
 
-  if (master?.effectiveFrom) {
-    setEffectiveFrom(master.effectiveFrom.split("T")[0]);
-  }
+      if (selectedSupplier) {
+        setSupplier(selectedSupplier);
+      }
+    }
 
-  if (master?.effectiveTo) {
-    setEffectiveTo(master.effectiveTo.split("T")[0]);
-  }
+    if (master?.storeId && stores.length > 0) {
+      const selectedStore = stores.find(
+        (store) => Number(store.storeId) === Number(master.storeId),
+      );
 
-  if (master?.instruction !== undefined) {
-    setInstruction(master.instruction || "");
-  }
+      if (selectedStore) {
+        setStore(selectedStore);
+      }
+    }
 
-  if (master?.remarks !== undefined) {
-    setRemarks(master.remarks || "");
-  }
-}, [editPurchaseOrder, suppliers, stores]);
+    if (master?.orderBy !== undefined) {
+      setOrderedBy(master.orderBy || "");
+    }
+
+    if (master?.effectiveFrom) {
+      setEffectiveFrom(master.effectiveFrom.split("T")[0]);
+    }
+
+    if (master?.effectiveTo) {
+      setEffectiveTo(master.effectiveTo.split("T")[0]);
+    }
+
+    if (master?.instruction !== undefined) {
+      setInstruction(master.instruction || "");
+    }
+
+    if (master?.remarks !== undefined) {
+      setRemarks(master.remarks || "");
+    }
+  }, [editPurchaseOrder, suppliers, stores]);
 
   useEffect(() => {
     if (!editPurchaseOrder) return;
@@ -1391,7 +1386,7 @@ useEffect(() => {
         poItemQty: Number(item.qty),
 
         poItemRate: Number(item.rate),
-        approvedBy: appData?.user?.userName || "",
+        approvedBy: approved || "",
         branch_Code: appData?.user?.branch_code || "",
         poOrderQty: Number(item.rate),
         unit: `${item.unit}`,
@@ -1467,7 +1462,7 @@ useEffect(() => {
         return;
       }
 
-      const createdPONo = Number(response?.data);
+      const createdPONo = Number(editPurchaseOrder?.master?.poNo);
 
       console.log("Created PO No:", createdPONo);
 
@@ -1483,8 +1478,7 @@ useEffect(() => {
           if (printResponse?.success) {
             setPrintData(printResponse.data);
             setShowPrintPreview(true);
-              setIsApprovalPrint(true);
-
+            setIsApprovalPrint(true);
           } else {
             toast.error(
               printResponse?.message ||
@@ -1687,7 +1681,7 @@ useEffect(() => {
       }
 
       toast.success("Purchase Order saved successfully");
-      navigate(-1)
+      navigate(-1);
     } catch (error: any) {
       console.error("Error saving purchase order:", error);
 
@@ -1822,11 +1816,11 @@ useEffect(() => {
 
             <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
               <div>
-             <h2 className="text-lg font-bold text-gray-800">
-  {isApprovalPrint
-    ? "Purchase Order Approval Preview"
-    : "Purchase Order Preview"}
-</h2>
+                <h2 className="text-lg font-bold text-gray-800">
+                  {isApprovalPrint
+                    ? "Purchase Order Approval Preview"
+                    : "Purchase Order Preview"}
+                </h2>
 
                 <p className="text-xs text-gray-500">
                   PO No: {printData.master?.poNo}
@@ -1844,7 +1838,7 @@ useEffect(() => {
 
                 <button
                   type="button"
-                  onClick={()=>navigate(-1)}
+                  onClick={() => navigate(-1)}
                   className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Close
@@ -1952,101 +1946,100 @@ useEffect(() => {
                 </div>
               </div>
 
+              {isApprovalPrint && (
+                <div className="mt-5 border border-gray-800">
+                  <div className="bg-gray-200 px-3 py-2 font-semibold">
+                    Approval Details
+                  </div>
 
-{isApprovalPrint && (
-  <div className="mt-5 border border-gray-800">
-    <div className="bg-gray-200 px-3 py-2 font-semibold">
-      Approval Details
-    </div>
+                  <div className="grid grid-cols-2">
+                    <div className="border-r border-gray-800 p-3">
+                      <span className="font-semibold">Approved By:</span>{" "}
+                      {printData.details?.[0]?.approvedBy || "-"}
+                    </div>
 
-    <div className="grid grid-cols-2">
-      <div className="border-r border-gray-800 p-3">
-        <span className="font-semibold">Approved By:</span>{" "}
-        {printData.details?.[0]?.approvedBy || "-"}
-      </div>
-
-      <div className="p-3">
-        <span className="font-semibold">Approved Date:</span>{" "}
-        {formatPrintDate(printData.details?.[0]?.approvedDate)}
-      </div>
-    </div>
-  </div>
-)}
+                    <div className="p-3">
+                      <span className="font-semibold">Approved Date:</span>{" "}
+                      {formatPrintDate(printData.details?.[0]?.approvedDate)}
+                    </div>
+                  </div>
+                </div>
+              )}
               {/* ITEMS */}
 
-       <div className="mt-3 overflow-hidden border border-gray-800">
-  <table className="w-full border-collapse">
-    <thead>
-      <tr className="bg-gray-200 text-xs font-bold">
-        <th className="border border-gray-800 px-2 py-2 text-left">
-          Code
-        </th>
+              <div className="mt-3 overflow-hidden border border-gray-800">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 text-xs font-bold">
+                      <th className="border border-gray-800 px-2 py-2 text-left">
+                        Code
+                      </th>
 
-        <th className="border border-gray-800 px-2 py-2 text-left">
-          Description
-        </th>
+                      <th className="border border-gray-800 px-2 py-2 text-left">
+                        Description
+                      </th>
 
-        <th className="border border-gray-800 px-2 py-2 text-center">
-          Unit
-        </th>
+                      <th className="border border-gray-800 px-2 py-2 text-center">
+                        Unit
+                      </th>
 
-        <th className="border border-gray-800 px-2 py-2 text-right">
-          Rate
-        </th>
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Rate
+                      </th>
 
-        <th className="border border-gray-800 px-2 py-2 text-right">
-          Qty
-        </th>
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Qty
+                      </th>
 
-        {isApprovalPrint && (
-          <th className="border border-gray-800 px-2 py-2 text-right">
-            Approved Qty
-          </th>
-        )}
+                      {isApprovalPrint && (
+                        <th className="border border-gray-800 px-2 py-2 text-right">
+                          Approved Qty
+                        </th>
+                      )}
 
-        <th className="border border-gray-800 px-2 py-2 text-right">
-          Total
-        </th>
-      </tr>
-    </thead>
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
 
-    <tbody>
-      {printData.details?.map((item: any, index: number) => (
-        <tr key={index}>
-          <td className="border border-gray-800 px-2 py-2">
-            {item.itemCode}
-          </td>
+                  <tbody>
+                    {printData.details?.map((item: any, index: number) => (
+                      <tr key={index}>
+                        <td className="border border-gray-800 px-2 py-2">
+                          {item.itemCode}
+                        </td>
 
-          <td className="border border-gray-800 px-2 py-2">
-            {item.itemName}
-          </td>
+                        <td className="border border-gray-800 px-2 py-2">
+                          {item.itemName}
+                        </td>
 
-          <td className="border border-gray-800 px-2 py-2 text-center">
-            {item.unit}
-          </td>
+                        <td className="border border-gray-800 px-2 py-2 text-center">
+                          {item.unit}
+                        </td>
 
-          <td className="border border-gray-800 px-2 py-2 text-right">
-            ₹ {Number(item.itemRate || 0).toFixed(2)}
-          </td>
+                        <td className="border border-gray-800 px-2 py-2 text-right">
+                          ₹ {Number(item.itemRate || 0).toFixed(2)}
+                        </td>
 
-          <td className="border border-gray-800 px-2 py-2 text-right">
-            {item.itemQty}
-          </td>
+                        <td className="border border-gray-800 px-2 py-2 text-right">
+                          {item.itemQty}
+                        </td>
 
-          {isApprovalPrint && (
-            <td className="border border-gray-800 px-2 py-2 text-right font-semibold">
-              {item.poOrderQty ?? 0}
-            </td>
-          )}
+                        {isApprovalPrint && (
+                          <td className="border border-gray-800 px-2 py-2 text-right font-semibold">
+                            {item.poOrderQty ?? 0}
+                          </td>
+                        )}
 
-          <td className="border border-gray-800 px-2 py-2 text-right font-medium">
-            ₹ {Number(item.total || 0).toFixed(2)}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+                        <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                          ₹ {Number(item.total || 0).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {/* SUMMARY */}
 
               <div className="mt-6 flex justify-end">
@@ -2084,27 +2077,21 @@ useEffect(() => {
                 </div>
               </div>
 
-         
+              {printData.termsMaster?.length > 0 && (
+                <div className="mt-5 border-t border-gray-800 pt-3">
+                  <h3 className="mb-2 font-semibold">Terms & Conditions</h3>
 
-        {printData.termsMaster?.length > 0 && (
-  <div className="mt-5 border-t border-gray-800 pt-3">
-    <h3 className="mb-2 font-semibold">
-      Terms & Conditions
-    </h3>
+                  {printData.termsMaster.map((term: any, index: number) => (
+                    <div key={index} className="mb-3">
+                      <div className="font-semibold">{term.termsTitle}</div>
 
-    {printData.termsMaster.map((term: any, index: number) => (
-      <div key={index} className="mb-3">
-        <div className="font-semibold">
-          {term.termsTitle}
-        </div>
-
-        <div className="mt-1 whitespace-pre-line text-xs leading-5">
-          {term.termsDescription}
-        </div>
-      </div>
-    ))}
-  </div>
-)}
+                      <div className="mt-1 whitespace-pre-line text-xs leading-5">
+                        {term.termsDescription}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* INSTRUCTION */}
 
@@ -2126,58 +2113,43 @@ useEffect(() => {
                 </div>
               </div>
 
-
               {/* SIGNATURE SECTION */}
 
-<div className="mt-12 border-t border-gray-800 pt-6">
-  <div className="grid grid-cols-4 gap-6 text-center">
+              <div className="mt-12 border-t border-gray-800 pt-6">
+                <div className="grid grid-cols-4 gap-6 text-center">
+                  {/* Prepared By */}
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-full border-b border-gray-800"></div>
+                    <div className="mt-2 font-semibold text-sm">
+                      Prepared By
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">Signature</div>
+                  </div>
 
-    {/* Prepared By */}
-    <div className="flex flex-col items-center">
-      <div className="h-12 w-full border-b border-gray-800"></div>
-      <div className="mt-2 font-semibold text-sm">
-        Prepared By
-      </div>
-      <div className="mt-1 text-xs text-gray-500">
-        Signature
-      </div>
-    </div>
+                  {/* Head of Department */}
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-full border-b border-gray-800"></div>
+                    <div className="mt-2 font-semibold text-sm">
+                      Head of Dept.
+                    </div>
+                    <div className="mt-1 text-xs text-gray-500">Signature</div>
+                  </div>
 
-    {/* Head of Department */}
-    <div className="flex flex-col items-center">
-      <div className="h-12 w-full border-b border-gray-800"></div>
-      <div className="mt-2 font-semibold text-sm">
-        Head of Dept.
-      </div>
-      <div className="mt-1 text-xs text-gray-500">
-        Signature
-      </div>
-    </div>
+                  {/* Finance */}
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-full border-b border-gray-800"></div>
+                    <div className="mt-2 font-semibold text-sm">Finance</div>
+                    <div className="mt-1 text-xs text-gray-500">Signature</div>
+                  </div>
 
-    {/* Finance */}
-    <div className="flex flex-col items-center">
-      <div className="h-12 w-full border-b border-gray-800"></div>
-      <div className="mt-2 font-semibold text-sm">
-        Finance
-      </div>
-      <div className="mt-1 text-xs text-gray-500">
-        Signature
-      </div>
-    </div>
-
-    {/* AGM */}
-    <div className="flex flex-col items-center">
-      <div className="h-12 w-full border-b border-gray-800"></div>
-      <div className="mt-2 font-semibold text-sm">
-        AGM
-      </div>
-      <div className="mt-1 text-xs text-gray-500">
-        Signature
-      </div>
-    </div>
-
-  </div>
-</div>
+                  {/* AGM */}
+                  <div className="flex flex-col items-center">
+                    <div className="h-12 w-full border-b border-gray-800"></div>
+                    <div className="mt-2 font-semibold text-sm">AGM</div>
+                    <div className="mt-1 text-xs text-gray-500">Signature</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2317,6 +2289,22 @@ useEffect(() => {
                       className={inputClass}
                     />
                   </div>
+
+                  {editPurchaseOrder && (
+                    <div>
+                      <label className={`${labelClass} h-[18px]`}>
+                        Approved By
+                      </label>
+
+                      <input
+                        type="text"
+                        value={approved}
+                        onChange={(e) => setapproved(e.target.value)}
+                        placeholder="Enter Approved by"
+                        className={inputClass}
+                      />
+                    </div>
+                  )}
 
                   {/* EFFECTIVE FROM */}
 
