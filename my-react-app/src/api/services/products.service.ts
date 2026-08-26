@@ -6339,6 +6339,7 @@ export const getPurchaseOrderApprovalPrint = async (
 export const deletePurchaseOrder = async (
   poNo: number,
   branchCode: string,
+  reasonDelete: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -6349,6 +6350,7 @@ export const deletePurchaseOrder = async (
         params: {
           poNo,
           branchCode,
+          reasonDelete,
         },
         headers: {
           Authorization: `Bearer ${token}`,

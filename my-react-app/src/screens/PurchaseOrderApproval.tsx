@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
 import {
+  deletePurchaseOrder,
   getPurchaseOrderList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
@@ -56,16 +57,27 @@ type PurchaseOrder = {
 const PurchaseOrderApproval: React.FC = () => {
   const { appData } = useAppContext();
   const navigate = useNavigate();
+
   const [purchaseOrders, setPurchaseOrders] = useState<
     PurchaseOrder[]
   >([]);
 
   const [loading, setLoading] = useState(false);
-
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const [statusFilter, setStatusFilter] =
-    useState("ALL");
+  // =========================
+  // DELETE MODAL STATE
+  // =========================
+
+  const [deleteModalOpen, setDeleteModalOpen] =
+    useState(false);
+
+  const [deleteReason, setDeleteReason] =
+    useState("");
+
+  const [selectedPurchaseOrder, setSelectedPurchaseOrder] =
+    useState<PurchaseOrder | null>(null);
 
   /*
    * =========================
@@ -221,32 +233,23 @@ const PurchaseOrderApproval: React.FC = () => {
 
       return purchaseOrders.filter(
         (po) => {
-          const master =
-            po.master;
+          const master = po.master;
 
           const matchesSearch =
             !searchText ||
-            String(
-              master.poNo
-            )
+            String(master.poNo)
               .toLowerCase()
               .includes(searchText) ||
-            String(
-              master.supCode
-            )
+            String(master.supCode)
               .toLowerCase()
               .includes(searchText) ||
-            String(
-              master.orderBy
-            )
+            String(master.orderBy)
               .toLowerCase()
               .includes(searchText);
 
           const matchesStatus =
             statusFilter === "ALL" ||
-            String(
-              master.status
-            ).toUpperCase() ===
+            String(master.status).toUpperCase() ===
               statusFilter;
 
           return (
@@ -267,20 +270,147 @@ const PurchaseOrderApproval: React.FC = () => {
    * =========================
    */
 
-const handleEdit = (
-  purchaseOrder: PurchaseOrder
-) => {
-  console.log(
-    "Edit Purchase Order:",
-    purchaseOrder
-  );
+  const handleEdit = (
+    purchaseOrder: PurchaseOrder
+  ) => {
+    console.log(
+      "Edit Purchase Order:",
+      purchaseOrder
+    );
 
-  navigate("/purchase/purchaseorder", {
-    state: {
-      editPurchaseOrder: purchaseOrder,
-    },
-  });
-};
+    navigate("/purchase/purchaseorder", {
+      state: {
+        editPurchaseOrder: purchaseOrder,
+      },
+    });
+  };
+
+  /*
+   * =========================
+   * OPEN DELETE MODAL
+   * =========================
+   */
+
+  const handleDelete = (
+    purchaseOrder: PurchaseOrder
+  ) => {
+    const master = purchaseOrder.master;
+
+    // Delete only Pending orders
+    if (
+      String(master.status).toUpperCase() !== "O"
+    ) {
+      toast.error(
+        "Only pending purchase orders can be deleted"
+      );
+      return;
+    }
+
+    setSelectedPurchaseOrder(
+      purchaseOrder
+    );
+
+    setDeleteReason("");
+
+    setDeleteModalOpen(true);
+  };
+
+  /*
+   * =========================
+   * CONFIRM DELETE
+   * =========================
+   */
+
+  const confirmDelete = async () => {
+    if (!selectedPurchaseOrder) {
+      return;
+    }
+
+    // Get ONLY the text entered by user
+    const reason = deleteReason.trim();
+
+    // Do not call API without reason
+    if (!reason) {
+      toast.error(
+        "Please enter delete reason"
+      );
+      return;
+    }
+
+    const branchCode =
+      appData?.user?.branch_code || "";
+
+    if (!branchCode) {
+      toast.error(
+        "Branch code not found"
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response =
+        await deletePurchaseOrder(
+          selectedPurchaseOrder.master.poNo,
+          branchCode,
+          reason
+        );
+
+      if (response?.success) {
+        toast.success(
+          response?.message ||
+            "Purchase order deleted successfully"
+        );
+
+        // Close modal
+        setDeleteModalOpen(false);
+
+        // Clear reason
+        setDeleteReason("");
+
+        // Clear selected PO
+        setSelectedPurchaseOrder(null);
+
+        // Refresh list
+        await fetchPurchaseOrders();
+      } else {
+        toast.error(
+          response?.message ||
+            "Failed to delete purchase order"
+        );
+      }
+    } catch (error: any) {
+      console.error(
+        "Delete purchase order error:",
+        error
+      );
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to delete purchase order"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * =========================
+   * CLOSE DELETE MODAL
+   * =========================
+   */
+
+  const closeDeleteModal = () => {
+    if (loading) {
+      return;
+    }
+
+    setDeleteModalOpen(false);
+    setDeleteReason("");
+    setSelectedPurchaseOrder(null);
+  };
 
   /*
    * =========================
@@ -306,9 +436,7 @@ const handleEdit = (
 
       <div className="mx-auto w-full max-w-[1600px]">
 
-        {/* =========================
-            PAGE TITLE
-        ========================= */}
+        {/* PAGE TITLE */}
 
         <div className="mb-5 mt-2">
 
@@ -322,17 +450,13 @@ const handleEdit = (
 
         </div>
 
-        {/* =========================
-            MAIN CARD
-        ========================= */}
+        {/* MAIN CARD */}
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
 
-          {/* =========================
-              HEADER
-          ========================= */}
-
           <section className="overflow-hidden rounded-xl border border-gray-200">
+
+            {/* HEADER */}
 
             <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
 
@@ -358,9 +482,7 @@ const handleEdit = (
 
             </div>
 
-            {/* =========================
-                FILTERS
-            ========================= */}
+            {/* FILTERS */}
 
             <div className="grid grid-cols-1 gap-4 border-b border-gray-200 p-4 sm:grid-cols-2">
 
@@ -426,9 +548,7 @@ const handleEdit = (
 
             </div>
 
-            {/* =========================
-                SUMMARY
-            ========================= */}
+            {/* SUMMARY */}
 
             <div className="grid grid-cols-2 gap-3 border-b border-gray-200 bg-white p-4 sm:grid-cols-4">
 
@@ -454,8 +574,9 @@ const handleEdit = (
                   {
                     purchaseOrders.filter(
                       (po) =>
-                        po.master.status ===
-                        "O"
+                        String(
+                          po.master.status
+                        ).toUpperCase() === "O"
                     ).length
                   }
                 </p>
@@ -472,8 +593,9 @@ const handleEdit = (
                   {
                     purchaseOrders.filter(
                       (po) =>
-                        po.master.status ===
-                        "A"
+                        String(
+                          po.master.status
+                        ).toUpperCase() === "A"
                     ).length
                   }
                 </p>
@@ -490,8 +612,9 @@ const handleEdit = (
                   {
                     purchaseOrders.filter(
                       (po) =>
-                        po.master.status ===
-                        "R"
+                        String(
+                          po.master.status
+                        ).toUpperCase() === "R"
                     ).length
                   }
                 </p>
@@ -500,9 +623,7 @@ const handleEdit = (
 
             </div>
 
-            {/* =========================
-                TABLE
-            ========================= */}
+            {/* TABLE */}
 
             <div className="overflow-x-auto">
 
@@ -554,8 +675,7 @@ const handleEdit = (
 
                 <tbody>
 
-                  {filteredPurchaseOrders.length ===
-                  0 ? (
+                  {filteredPurchaseOrders.length === 0 ? (
 
                     <tr>
 
@@ -576,12 +696,15 @@ const handleEdit = (
                         const master =
                           purchaseOrder.master;
 
+                        const status =
+                          String(
+                            master.status
+                          ).toUpperCase();
+
                         return (
 
                           <tr
-                            key={
-                              master.poNo
-                            }
+                            key={master.poNo}
                             className="border-t border-gray-200 transition hover:bg-gray-50"
                           >
 
@@ -616,8 +739,7 @@ const handleEdit = (
                             {/* ORDERED BY */}
 
                             <td className="px-4 py-3 text-gray-600">
-                              {master.orderBy ||
-                                "-"}
+                              {master.orderBy || "-"}
                             </td>
 
                             {/* TOTAL */}
@@ -625,8 +747,7 @@ const handleEdit = (
                             <td className="px-4 py-3 text-right font-semibold text-gray-800">
                               ₹{" "}
                               {Number(
-                                master.grossAmount ||
-                                  0
+                                master.grossAmount || 0
                               ).toLocaleString(
                                 "en-IN",
                                 {
@@ -640,8 +761,7 @@ const handleEdit = (
 
                             <td className="px-4 py-3 text-center text-gray-600">
                               {
-                                purchaseOrder
-                                  .details
+                                purchaseOrder.details
                                   ?.length
                               }
                             </td>
@@ -665,20 +785,42 @@ const handleEdit = (
                             {/* ACTION */}
 
                             <td className="px-4 py-3 text-center">
-<button
-  type="button"
-  disabled={
-    String(master.status).toUpperCase() == "R"
-  }
-  onClick={() => handleEdit(purchaseOrder)}
-  className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition ${
-    String(master.status).toUpperCase() !== "R"
-      ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
-      : "cursor-not-allowed bg-gray-200 text-gray-400"
-  }`}
->
-  Edit
-</button>
+
+                              <div className="flex items-center justify-center gap-2">
+
+                                {/* EDIT */}
+
+                                {status !== "R" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleEdit(
+                                        purchaseOrder
+                                      )
+                                    }
+                                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+
+                                {/* DELETE - PENDING ONLY */}
+
+                                {status === "O" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDelete(
+                                        purchaseOrder
+                                      )
+                                    }
+                                    className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-95"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+
+                              </div>
 
                             </td>
 
@@ -701,6 +843,120 @@ const handleEdit = (
         </div>
 
       </div>
+
+      {/* =========================
+          DELETE REASON MODAL
+          ========================= */}
+
+      {deleteModalOpen &&
+        selectedPurchaseOrder && (
+
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+
+            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
+
+              {/* MODAL HEADER */}
+
+              <div className="flex items-start justify-between">
+
+                <div>
+
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Delete Purchase Order
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    PO No.{" "}
+                    <span className="font-semibold text-gray-700">
+                      {selectedPurchaseOrder.master.poNo}
+                    </span>
+                  </p>
+
+                </div>
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={closeDeleteModal}
+                  className="text-xl font-bold text-gray-400 transition hover:text-gray-700 disabled:cursor-not-allowed"
+                >
+                  ×
+                </button>
+
+              </div>
+
+              {/* REASON */}
+
+              <div className="mt-5">
+
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+
+                  Delete Reason
+
+                  <span className="ml-1 text-red-500">
+                    *
+                  </span>
+
+                </label>
+
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) =>
+                    setDeleteReason(
+                      e.target.value
+                    )
+                  }
+                  placeholder="Enter reason for deletion..."
+                  rows={4}
+                  autoFocus
+                  disabled={loading}
+                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 disabled:bg-gray-100"
+                />
+
+                <p className="mt-1 text-xs text-gray-400">
+                  Please enter a reason before deleting.
+                </p>
+
+              </div>
+
+              {/* BUTTONS */}
+
+              <div className="mt-5 flex justify-end gap-3">
+
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={closeDeleteModal}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={
+                    !deleteReason.trim() ||
+                    loading
+                  }
+                  onClick={confirmDelete}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${
+                    deleteReason.trim() &&
+                    !loading
+                      ? "bg-red-600 hover:bg-red-700 active:scale-95"
+                      : "cursor-not-allowed bg-gray-300"
+                  }`}
+                >
+                  {loading
+                    ? "Deleting..."
+                    : "Delete"}
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
 
     </div>
   );
