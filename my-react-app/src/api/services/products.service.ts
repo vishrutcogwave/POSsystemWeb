@@ -6369,3 +6369,62 @@ export const deletePurchaseOrder = async (
     throw error;
   }
 };
+export const getPurchaseOrderNumber = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseOrderNumber",
+      {
+        params: {
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase order number:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};  
+
+export const getPurchaseOrderGRNList = async (
+  poNo: number,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseOrderGRNList",
+      {
+        params: {
+          poNo,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase order GRN list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

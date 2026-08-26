@@ -60,6 +60,7 @@ import InventoryItemStoreImport from "./InventoryItemStoreImport";
 import PurchaseOrder from "./PurchaseOrder";
 import PurchaseUnitMaster from "./PurchaseUnitMaster";
 import PurchaseOrderApproval from "./PurchaseOrderApproval";
+import GoodsReceivedNote from "./GoodsReceivedNote";
 
 function LandingPage() {
   const location = useLocation();
@@ -231,6 +232,10 @@ function LandingPage() {
 <Route
   path="/purchase/purchaseorderapproval"
   element={<PurchaseOrderApproval />}
+/>
+<Route
+  path="/purchase/goodsreceivednote"
+  element={<GoodsReceivedNote />}
 />
 
       </Routes>

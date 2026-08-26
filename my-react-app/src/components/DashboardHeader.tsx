@@ -364,6 +364,11 @@ const DashboardHeader: React.FC = () => {
       icon: ShieldCheck,
       permissionName: "Purchase Order Approval",
     },
+    {
+    name: "Goods Received Note",
+    icon: Package,
+    permissionName: "Goods Received Note",
+  },
  {
     name: "Purchase Unit Master",
     icon: Package,
@@ -418,6 +423,7 @@ const DashboardHeader: React.FC = () => {
   "Purchase Order": "/purchase/purchaseorder",
   "Purchase Unit Master": "/purchase/purchaseunitmaster",
    "Purchase Order Approval": "/purchase/purchaseorderapproval",
+   "Goods Received Note" : "/purchase/goodsreceivednote"
   };
 
   const handleLogout = () => {
