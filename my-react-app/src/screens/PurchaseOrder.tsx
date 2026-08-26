@@ -501,7 +501,6 @@ const PurchaseOrder: React.FC = () => {
     if (existingItem) {
       toast.error(`${item.itemName} is already added to the order`);
 
-      setShowItemDropdown(false);
       return;
     }
 
@@ -1190,6 +1189,10 @@ const PurchaseOrder: React.FC = () => {
     if (master?.orderBy !== undefined) {
       setOrderedBy(master.orderBy || "");
     }
+     if (master?.approvedBy !== undefined) {
+      setapproved(master.approvedBy || "");
+    }
+
 
     if (master?.effectiveFrom) {
       setEffectiveFrom(master.effectiveFrom.split("T")[0]);
@@ -1295,6 +1298,10 @@ const PurchaseOrder: React.FC = () => {
       toast.error("Please select a supplier");
       return;
     }
+    if(!approved){
+       toast.error("Please select approved By");
+       return
+    }
 
     if (!store) {
       toast.error("Please select a store");
@@ -1370,6 +1377,8 @@ const PurchaseOrder: React.FC = () => {
         poValidDate: new Date(effectiveTo).toISOString(),
 
         deliverydate: new Date(effectiveTo).toISOString(),
+           approvedBy: approved || "",
+            aproovedDate: new Date().toISOString(),
       };
 
       /*
