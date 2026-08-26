@@ -668,11 +668,11 @@ const handleEdit = (
 <button
   type="button"
   disabled={
-    String(master.status).toUpperCase() !== "O"
+    String(master.status).toUpperCase() == "R"
   }
   onClick={() => handleEdit(purchaseOrder)}
   className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold shadow-sm transition ${
-    String(master.status).toUpperCase() === "O"
+    String(master.status).toUpperCase() !== "R"
       ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
       : "cursor-not-allowed bg-gray-200 text-gray-400"
   }`}

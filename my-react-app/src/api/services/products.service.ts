@@ -6328,3 +6328,42 @@ export const getPurchaseOrderApprovalPrint = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+export const deletePurchaseOrder = async (
+  poNo: number,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.delete(
+      "/api/InventoryPurchase/DeletePurchaseOrder",
+      {
+        params: {
+          poNo,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error deleting purchase order:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
