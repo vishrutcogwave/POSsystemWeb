@@ -994,35 +994,35 @@ useEffect(() => {
                 <div>
                   <label className={labelClass}>Order No.</label>
 
-                  <Select
-                    value={
-                      poNumbers
-                        .map((po) => ({
-                          value: String(po.poNo),
-                          label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
-                        }))
-                        .find((option) => option.value === selectedPoNo) || null
-                    }
-                    onChange={handlePurchaseOrderChange}
-                    options={poNumbers.map((po) => ({
-                      value: String(po.poNo),
-                      label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
-                    }))}
-                    isDisabled={loading}
-                    isSearchable
-                    isClearable
-                    placeholder={loading ? "Loading..." : "Search Order No."}
-                    noOptionsMessage={() => "No Order No. found"}
-                    className="text-sm"
-                    classNamePrefix="order-no"
-                    styles={{
-                      control: (base) => ({
-                        ...base,
-                        minHeight: "40px",
-                        height: "40px",
-                      }),
-                    }}
-                  />
+                 <Select
+  value={
+    poNumbers
+      .map((po) => ({
+        value: String(po.poNo),
+        label: String(po.poNo),
+      }))
+      .find((option) => option.value === selectedPoNo) || null
+  }
+  onChange={handlePurchaseOrderChange}
+  options={poNumbers.map((po) => ({
+    value: String(po.poNo),
+    label: String(po.poNo),
+  }))}
+  isDisabled={loading}
+  isSearchable
+  isClearable
+  placeholder={loading ? "Loading..." : "Search Order No."}
+  noOptionsMessage={() => "No Order No. found"}
+  className="text-sm"
+  classNamePrefix="order-no"
+  styles={{
+    control: (base) => ({
+      ...base,
+      minHeight: "40px",
+      height: "40px",
+    }),
+  }}
+/>
                 </div>
 
                 {/* PO Date */}
