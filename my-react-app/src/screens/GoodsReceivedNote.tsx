@@ -9,6 +9,8 @@ import {
   //   getItemStoreListByStoreId,
   getInventoryMiscList,
   purchaseOrderCalculation,
+  createPurchaseGoodsReceivedNote,
+  getNextIdCode,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -126,9 +128,9 @@ const GoodsReceivedNote: React.FC = () => {
   const [inspectedBy, setInspectedBy] = useState("");
 
   const [loading, setLoading] = useState(false);
-const receivedQtyDebounceRef = useRef<
-  Record<number, ReturnType<typeof setTimeout>>
->({});
+  const receivedQtyDebounceRef = useRef<
+    Record<number, ReturnType<typeof setTimeout>>
+  >({});
 
   const inputClass =
     "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -137,7 +139,38 @@ const receivedQtyDebounceRef = useRef<
     "h-10 w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm text-gray-700 outline-none";
 
   const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
+const fetchNextGRNNo = async () => {
+  if (!branchCode) return;
 
+  try {
+    setLoading(true);
+
+    const res = await getNextIdCode({
+      tableName: "GRNMASTER",
+      columnName: "GRNNo",
+      conditionName: "Branch_Code",
+      branch: branchCode,
+    });
+
+    console.log("Next GRN No Response:", res);
+
+    if (res?.success) {
+      setGrnNo(res.data.toString());
+    } else {
+      toast.error(res?.message || "Failed to generate GRN No.");
+    }
+  } catch (error: any) {
+    console.error("Error fetching GRN no:", error);
+
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Failed to generate GRN No.",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   const formatNumber = (value: number | string | undefined) =>
     Number(value || 0).toLocaleString("en-IN", {
       maximumFractionDigits: 2,
@@ -410,188 +443,148 @@ const receivedQtyDebounceRef = useRef<
 
     await fetchGRNDetails(Number(value));
   };
-const handleReceivedQtyChange = (
-  itemCode: number,
-  value: string
-) => {
-  if (!grnData) return;
+  const handleReceivedQtyChange = (itemCode: number, value: string) => {
+    if (!grnData) return;
 
-  const item = grnData.details.find(
-    (x) => Number(x.itemCode) === Number(itemCode)
-  );
-
-  if (!item) return;
-
-  const orderedQty = Number(item.poItemQty || 0);
-
-  /*
-   * Clear previous debounce timer
-   * for this particular item
-   */
-  if (receivedQtyDebounceRef.current[itemCode]) {
-    clearTimeout(
-      receivedQtyDebounceRef.current[itemCode]
+    const item = grnData.details.find(
+      (x) => Number(x.itemCode) === Number(itemCode),
     );
-  }
 
-  /*
-   * Empty input
-   */
-  if (value === "") {
-    const nextReceivedQuantities = {
-      ...receivedQuantities,
-      [itemCode]: 0,
-    };
+    if (!item) return;
 
-    setReceivedQuantities(
-      nextReceivedQuantities
-    );
+    const orderedQty = Number(item.poItemQty || 0);
 
     /*
-     * Wait 500ms before API call
+     * Clear previous debounce timer
+     * for this particular item
      */
-    receivedQtyDebounceRef.current[itemCode] =
-      setTimeout(async () => {
+    if (receivedQtyDebounceRef.current[itemCode]) {
+      clearTimeout(receivedQtyDebounceRef.current[itemCode]);
+    }
+
+    /*
+     * Empty input
+     */
+    if (value === "") {
+      const nextReceivedQuantities = {
+        ...receivedQuantities,
+        [itemCode]: 0,
+      };
+
+      setReceivedQuantities(nextReceivedQuantities);
+
+      /*
+       * Wait 500ms before API call
+       */
+      receivedQtyDebounceRef.current[itemCode] = setTimeout(async () => {
         try {
           setLoading(true);
 
-          await calculateGRN(
-            grnData,
-            nextReceivedQuantities,
-            miscRows
-          );
+          await calculateGRN(grnData, nextReceivedQuantities, miscRows);
         } catch (error) {
-          console.error(
-            "Error recalculating GRN:",
-            error
-          );
+          console.error("Error recalculating GRN:", error);
 
-          toast.error(
-            "Quantity changed, but calculation failed"
-          );
+          toast.error("Quantity changed, but calculation failed");
         } finally {
           setLoading(false);
         }
       }, 500);
 
-    return;
-  }
+      return;
+    }
 
-  const receivedQty = Number(value);
-
-  /*
-   * Invalid number
-   */
-  if (Number.isNaN(receivedQty)) {
-    return;
-  }
-
-  /*
-   * Negative quantity
-   */
-  if (receivedQty < 0) {
-    toast.error(
-      "Received quantity cannot be negative"
-    );
-
-    return;
-  }
-
-  /*
-   * More than ordered quantity
-   */
-  if (receivedQty > orderedQty) {
-    toast.error(
-      `Received quantity cannot be more than ${orderedQty}`
-    );
-
-    const nextReceivedQuantities = {
-      ...receivedQuantities,
-      [itemCode]: orderedQty,
-    };
-
-    setReceivedQuantities(
-      nextReceivedQuantities
-    );
+    const receivedQty = Number(value);
 
     /*
-     * Recalculate corrected quantity
-     * after debounce
+     * Invalid number
      */
-    receivedQtyDebounceRef.current[itemCode] =
-      setTimeout(async () => {
+    if (Number.isNaN(receivedQty)) {
+      return;
+    }
+
+    /*
+     * Negative quantity
+     */
+    if (receivedQty < 0) {
+      toast.error("Received quantity cannot be negative");
+
+      return;
+    }
+
+    /*
+     * More than ordered quantity
+     */
+    if (receivedQty > orderedQty) {
+      toast.error(`Received quantity cannot be more than ${orderedQty}`);
+
+      const nextReceivedQuantities = {
+        ...receivedQuantities,
+        [itemCode]: orderedQty,
+      };
+
+      setReceivedQuantities(nextReceivedQuantities);
+
+      /*
+       * Recalculate corrected quantity
+       * after debounce
+       */
+      receivedQtyDebounceRef.current[itemCode] = setTimeout(async () => {
         try {
           setLoading(true);
 
-          await calculateGRN(
-            grnData,
-            nextReceivedQuantities,
-            miscRows
-          );
+          await calculateGRN(grnData, nextReceivedQuantities, miscRows);
         } catch (error) {
-          console.error(
-            "Error recalculating GRN:",
-            error
-          );
+          console.error("Error recalculating GRN:", error);
         } finally {
           setLoading(false);
         }
       }, 500);
 
-    return;
-  }
+      return;
+    }
 
-  /*
-   * =========================
-   * NORMAL QUANTITY CHANGE
-   * =========================
-   */
+    /*
+     * =========================
+     * NORMAL QUANTITY CHANGE
+     * =========================
+     */
 
-  const nextReceivedQuantities = {
-    ...receivedQuantities,
-    [itemCode]: receivedQty,
-  };
+    const nextReceivedQuantities = {
+      ...receivedQuantities,
+      [itemCode]: receivedQty,
+    };
 
-  /*
-   * Update input immediately
-   */
-  setReceivedQuantities(
-    nextReceivedQuantities
-  );
+    /*
+     * Update input immediately
+     */
+    setReceivedQuantities(nextReceivedQuantities);
 
-  /*
-   * =========================
-   * DEBOUNCED API CALL
-   * =========================
-   *
-   * API will be called only
-   * after user stops typing
-   * for 500ms.
-   */
-  receivedQtyDebounceRef.current[itemCode] =
-    setTimeout(async () => {
+    /*
+     * =========================
+     * DEBOUNCED API CALL
+     * =========================
+     *
+     * API will be called only
+     * after user stops typing
+     * for 500ms.
+     */
+    receivedQtyDebounceRef.current[itemCode] = setTimeout(async () => {
       try {
         setLoading(true);
 
-        await calculateGRN(
-          grnData,
-          nextReceivedQuantities,
-          miscRows
-        );
+        await calculateGRN(grnData, nextReceivedQuantities, miscRows);
       } catch (error) {
         console.error(
           "Error recalculating GRN after received quantity change:",
-          error
+          error,
         );
 
-        toast.error(
-          "Received quantity changed, but calculation failed"
-        );
+        toast.error("Received quantity changed, but calculation failed");
       } finally {
         setLoading(false);
       }
     }, 500);
-};
+  };
   const addMiscRow = async () => {
     if (!miscChargeId) {
       toast.error("Please select a particular");
@@ -673,25 +666,27 @@ const handleReceivedQtyChange = (
     }
   };
 
-  useEffect(() => {
-    if (!branchCode) return;
+useEffect(() => {
+  if (!branchCode) return;
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([
-          fetchPurchaseOrderNumbers(),
-          fetchSuppliers(),
-          fetchStores(),
-          fetchInventoryMiscList(),
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const load = async () => {
+    setLoading(true);
 
-    load();
-  }, [branchCode]);
+    try {
+      await Promise.all([
+        fetchPurchaseOrderNumbers(),
+        fetchSuppliers(),
+        fetchStores(),
+        fetchInventoryMiscList(),
+        fetchNextGRNNo(),
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [branchCode]);
 
   const details = grnData?.details || [];
 
@@ -722,6 +717,248 @@ const handleReceivedQtyChange = (
   const summaryGrandTotal = Number(
     calculationResponse?.grandTotal ?? grnData?.master?.grossAmount ?? "",
   );
+
+  const handleSaveGRN = async () => {
+    if (!grnData) {
+      toast.error("Please select a purchase order");
+      return;
+    }
+
+    if (!grnNo.trim()) {
+      toast.error("Please enter GRN No.");
+      return;
+    }
+
+    if (!billNo.trim()) {
+      toast.error("Please enter Bill No.");
+      return;
+    }
+
+    if (!confirmedBy.trim()) {
+      toast.error("Please enter Confirmed By");
+      return;
+    }
+
+    if (!inspectedBy.trim()) {
+      toast.error("Please enter Inspected By");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const now = new Date();
+
+      /*
+       * =========================
+       * SAVE GRN PAYLOAD
+       * =========================
+       */
+
+      const payload = {
+        poNo: Number(grnData.master?.poNo || 0),
+
+        poDate: grnData.master?.poDate || now.toISOString(),
+
+        supCode: Number(grnData.master?.supCode || 0),
+
+        branch_Code: branchCode,
+
+        orderBy: grnData.master?.orderBy || "",
+
+        grnNo: grnNo.trim(),
+
+        grnDate: new Date(`${grnDate}T00:00:00`).toISOString(),
+
+        grnTime: now.toTimeString().split(" ")[0],
+
+        receivedBy: confirmedBy.trim(),
+
+        userId: appData?.user?.userId || "",
+
+        ipAddress: "",
+
+        billNo: billNo.trim(),
+
+        inspectedBy: inspectedBy.trim(),
+
+        storeId: Number(grnData.master?.storeId || 0),
+
+        storeName: getStoreName(grnData.master?.storeId),
+
+        totalAmount: Number(
+          calculationResponse?.totalAmount ?? grnData.master?.totalAmount ?? 0,
+        ),
+
+        totalTax: Number(
+          calculationResponse?.totalTax ??
+            calculationResponse?.taxAmount ??
+            grnData.master?.taxAmount ??
+            0,
+        ),
+
+        roundOff: Number(calculationResponse?.roundOff ?? 0),
+
+        netAmount: Number(
+          calculationResponse?.netAmount ??
+            calculationResponse?.grandTotal ??
+            grnData.master?.grossAmount ??
+            0,
+        ),
+
+        otherCharges: Number(calculationResponse?.otherCharges ?? 0),
+
+        missChargeAmount: Number(
+          calculationResponse?.miscTotalAmount ?? summaryMisc ?? 0,
+        ),
+
+        cgstAmount: Number(
+          calculationResponse?.cgstAmt ?? grnData.master?.cgstAmount ?? 0,
+        ),
+
+        sgstAmount: Number(
+          calculationResponse?.sgstAmt ?? grnData.master?.sgstAmount ?? 0,
+        ),
+
+        /*
+         * =========================
+         * DETAILS
+         * =========================
+         */
+
+        details: (grnData.details || []).map((item) => {
+          const receivedQty = Number(receivedQuantities[item.itemCode] ?? 0);
+
+          const orderedQty = Number(item.poItemQty || 0);
+
+          return {
+            poNo: Number(item.poNo || grnData.master?.poNo || 0),
+
+            itemCode: Number(item.itemCode || 0),
+
+            poItemQty: Number(item.poItemQty || 0),
+
+            poOrderQty: Number(item.poOrderQty || 0),
+
+            poItemRate: Number(item.poItemRate || 0),
+
+            branch_Code: branchCode,
+
+            unit: item.unit || "",
+
+            unitCode: Number(item.unitCode || 0),
+
+            poItemSuplyQty: Number(item.poItemSuplyQty || 0),
+
+            cpoItemQty: Number(item.cpoItemQty || 0),
+
+            receivedQty,
+
+            balanceQty: Math.max(0, orderedQty - receivedQty),
+
+            approvedBy: grnData.master?.approvedBy || "",
+
+            approvedDate: grnData.master?.approvedDate || now.toISOString(),
+          };
+        }),
+
+        /*
+         * =========================
+         * TAXES
+         * =========================
+         */
+
+        taxes: calculationResponse?.taxList || [],
+
+        /*
+         * =========================
+         * MISCELLANEOUS
+         * =========================
+         */
+
+        miscellaneous: calculationResponse?.miscTaxList || [],
+      };
+      console.log("Create GRN Payload:", payload);
+
+      const response = await createPurchaseGoodsReceivedNote(payload);
+
+      console.log("Create GRN Response:", response);
+
+   if (response?.success) {
+  toast.success(response?.message || "GRN saved successfully");
+
+  // ==========================================
+  // CLEAR CURRENT GRN DATA
+  // ==========================================
+
+  setSelectedPoNo("");
+  setGrnData(null);
+  setReceivedQuantities({});
+  setMiscRows([]);
+  setCalculationResponse(null);
+
+  // Clear user-entered fields
+  setBillNo("");
+  setConfirmedBy("");
+  setInspectedBy("");
+
+  // Reset GRN date
+  setGrnDate(new Date().toISOString().split("T")[0]);
+
+  // ==========================================
+  // FETCH FRESH PURCHASE ORDER NUMBERS
+  // ==========================================
+
+  try {
+    const poRes = await getPurchaseOrderNumber(branchCode);
+
+    console.log("Fresh Purchase Order Numbers:", poRes);
+
+    if (poRes?.success) {
+      setPoNumbers(poRes.data || []);
+    } else {
+      setPoNumbers([]);
+
+      toast.error(
+        poRes?.message || "Failed to refresh purchase orders",
+      );
+    }
+  } catch (error: any) {
+    console.error(
+      "Error refreshing purchase order numbers:",
+      error,
+    );
+
+    setPoNumbers([]);
+
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Failed to refresh purchase orders",
+    );
+  }
+
+  // ==========================================
+  // GENERATE NEW GRN NUMBER
+  // ==========================================
+
+  await fetchNextGRNNo();
+
+} else {
+        toast.error(response?.message || "Failed to save GRN");
+      }
+    } catch (error: any) {
+      console.error("Create GRN Error:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to save GRN",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -819,6 +1056,7 @@ const handleReceivedQtyChange = (
                     value={grnNo}
                     onChange={(e) => setGrnNo(e.target.value)}
                     placeholder="GRN No."
+                    disabled
                     className={inputClass}
                   />
                 </div>
@@ -1216,6 +1454,7 @@ const handleReceivedQtyChange = (
           </div>
 
           {/* ACTIONS */}
+          {/* ACTIONS */}
           <div className="mb-8 flex justify-end gap-3">
             <button
               type="button"
@@ -1223,6 +1462,15 @@ const handleReceivedQtyChange = (
               className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Clear
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveGRN}
+              disabled={loading || !grnData}
+              className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+            >
+              Save GRN
             </button>
           </div>
         </div>

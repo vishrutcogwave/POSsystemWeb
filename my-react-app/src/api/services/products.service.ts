@@ -6428,3 +6428,90 @@ export const getPurchaseOrderGRNList = async (
     throw error;
   }
 };
+
+
+
+export const createPurchaseGoodsReceivedNote = async (payload: {
+  poNo: number;
+  poDate: string;
+  supCode: number;
+  branch_Code: string;
+  orderBy: string;
+  grnNo: string;
+  grnDate: string;
+  grnTime: string;
+  receivedBy: string;
+  userId: string;
+  ipAddress: string;
+  billNo: string;
+  inspectedBy: string;
+  storeId: number;
+  storeName: string;
+  totalAmount: number;
+  totalTax: number;
+  roundOff: number;
+  netAmount: number;
+  otherCharges: number;
+  missChargeAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+
+  details: {
+    poNo: number;
+    itemCode: number;
+    poItemQty: number;
+    poOrderQty: number;
+    poItemRate: number;
+    branch_Code: string;
+    unit: string;
+    unitCode: number;
+    poItemSuplyQty: number;
+    cpoItemQty: number;
+    receivedQty: number;
+    balanceQty: number;
+    approvedBy: string;
+    approvedDate: string;
+  }[];
+
+  taxes: {
+    pno: number;
+    itemCode: number;
+    taxCode: number;
+    taxPer: number;
+    taxAmount: number;
+    branch_Code: string;
+  }[];
+
+  miscellaneous: {
+    chargeId: number;
+    chargeAmt: number;
+    branch_Code: string;
+    pno: number;
+    taxCode: number;
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/CreatePurchaseGoodsReceivedNote",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating Purchase Goods Received Note:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
