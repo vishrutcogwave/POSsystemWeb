@@ -126,8 +126,7 @@ const GoodsReceivedNote: React.FC = () => {
   const [inspectedBy, setInspectedBy] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [loadingGRN, setLoadingGRN] = useState(false);
-  const [loadingPO, setLoadingPO] = useState(false);
+
 
   const inputClass =
     "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -164,7 +163,7 @@ const GoodsReceivedNote: React.FC = () => {
     if (!branchCode) return;
 
     try {
-      setLoadingPO(true);
+      setLoading(true);
       const res = await getPurchaseOrderNumber(branchCode);
       if (res?.success) {
         setPoNumbers(res.data || []);
@@ -181,7 +180,7 @@ const GoodsReceivedNote: React.FC = () => {
           "Failed to fetch purchase orders",
       );
     } finally {
-      setLoadingPO(false);
+      setLoading(false);
     }
   };
 
@@ -296,7 +295,7 @@ const GoodsReceivedNote: React.FC = () => {
     if (!poNo) return;
 
     try {
-      setLoadingGRN(true);
+      setLoading(true);
 
       setCalculationResponse(null);
       setMiscRows([]);
@@ -384,7 +383,7 @@ const GoodsReceivedNote: React.FC = () => {
           "Failed to fetch GRN details",
       );
     } finally {
-      setLoadingGRN(false);
+      setLoading(false);
     }
   };
   const handlePurchaseOrderChange = async (
@@ -708,10 +707,10 @@ const GoodsReceivedNote: React.FC = () => {
                       value: String(po.poNo),
                       label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
                     }))}
-                    isDisabled={loadingPO}
+                    isDisabled={loading}
                     isSearchable
                     isClearable
-                    placeholder={loadingPO ? "Loading..." : "Search Order No."}
+                    placeholder={loading ? "Loading..." : "Search Order No."}
                     noOptionsMessage={() => "No Order No. found"}
                     className="text-sm"
                     classNamePrefix="order-no"
@@ -897,7 +896,7 @@ const GoodsReceivedNote: React.FC = () => {
                 </thead>
 
                 <tbody>
-                  {loadingGRN ? (
+                  {loading ? (
                     <tr>
                       <td
                         colSpan={9}
