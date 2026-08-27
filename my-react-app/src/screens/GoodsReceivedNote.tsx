@@ -13,7 +13,7 @@ import {
 import { useAppContext } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import Select from "react-select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Supplier = {
   supCode: number;
@@ -126,7 +126,9 @@ const GoodsReceivedNote: React.FC = () => {
   const [inspectedBy, setInspectedBy] = useState("");
 
   const [loading, setLoading] = useState(false);
-
+const receivedQtyDebounceRef = useRef<
+  Record<number, ReturnType<typeof setTimeout>>
+>({});
 
   const inputClass =
     "h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -408,126 +410,188 @@ const GoodsReceivedNote: React.FC = () => {
 
     await fetchGRNDetails(Number(value));
   };
-  const handleReceivedQtyChange = async (itemCode: number, value: string) => {
-    if (!grnData) return;
+const handleReceivedQtyChange = (
+  itemCode: number,
+  value: string
+) => {
+  if (!grnData) return;
 
-    const item = grnData.details.find(
-      (x) => Number(x.itemCode) === Number(itemCode),
+  const item = grnData.details.find(
+    (x) => Number(x.itemCode) === Number(itemCode)
+  );
+
+  if (!item) return;
+
+  const orderedQty = Number(item.poItemQty || 0);
+
+  /*
+   * Clear previous debounce timer
+   * for this particular item
+   */
+  if (receivedQtyDebounceRef.current[itemCode]) {
+    clearTimeout(
+      receivedQtyDebounceRef.current[itemCode]
+    );
+  }
+
+  /*
+   * Empty input
+   */
+  if (value === "") {
+    const nextReceivedQuantities = {
+      ...receivedQuantities,
+      [itemCode]: 0,
+    };
+
+    setReceivedQuantities(
+      nextReceivedQuantities
     );
 
-    if (!item) return;
-
     /*
-     * Empty input
+     * Wait 500ms before API call
      */
-    if (value === "") {
-      const nextReceivedQuantities = {
-        ...receivedQuantities,
-        [itemCode]: 0,
-      };
+    receivedQtyDebounceRef.current[itemCode] =
+      setTimeout(async () => {
+        try {
+          setLoading(true);
 
-      setReceivedQuantities(nextReceivedQuantities);
+          await calculateGRN(
+            grnData,
+            nextReceivedQuantities,
+            miscRows
+          );
+        } catch (error) {
+          console.error(
+            "Error recalculating GRN:",
+            error
+          );
 
-      try {
-        setLoading(true);
+          toast.error(
+            "Quantity changed, but calculation failed"
+          );
+        } finally {
+          setLoading(false);
+        }
+      }, 500);
 
-        await calculateGRN(grnData, nextReceivedQuantities, miscRows);
-      } catch (error) {
-        console.error("Error recalculating GRN:", error);
+    return;
+  }
 
-        toast.error("Quantity changed, but calculation failed");
-      } finally {
-        setLoading(false);
-      }
+  const receivedQty = Number(value);
 
-      return;
-    }
+  /*
+   * Invalid number
+   */
+  if (Number.isNaN(receivedQty)) {
+    return;
+  }
 
-    const receivedQty = Number(value);
+  /*
+   * Negative quantity
+   */
+  if (receivedQty < 0) {
+    toast.error(
+      "Received quantity cannot be negative"
+    );
 
-    const orderedQty = Number(item.poItemQty || 0);
+    return;
+  }
 
-    /*
-     * Invalid number
-     */
-    if (Number.isNaN(receivedQty)) {
-      return;
-    }
-
-    /*
-     * Negative quantity
-     */
-    if (receivedQty < 0) {
-      toast.error("Received quantity cannot be negative");
-
-      return;
-    }
-
-    /*
-     * More than ordered quantity
-     */
-    if (receivedQty > orderedQty) {
-      toast.error(`Received quantity cannot be more than ${orderedQty}`);
-
-      const nextReceivedQuantities = {
-        ...receivedQuantities,
-        [itemCode]: orderedQty,
-      };
-
-      setReceivedQuantities(nextReceivedQuantities);
-
-      /*
-       * Recalculate using corrected quantity
-       */
-      try {
-        setLoading(true);
-
-        await calculateGRN(grnData, nextReceivedQuantities, miscRows);
-      } catch (error) {
-        console.error("Error recalculating GRN:", error);
-      } finally {
-        setLoading(false);
-      }
-
-      return;
-    }
-
-    /*
-     * =========================
-     * NORMAL QUANTITY CHANGE
-     * =========================
-     */
+  /*
+   * More than ordered quantity
+   */
+  if (receivedQty > orderedQty) {
+    toast.error(
+      `Received quantity cannot be more than ${orderedQty}`
+    );
 
     const nextReceivedQuantities = {
       ...receivedQuantities,
-      [itemCode]: receivedQty,
+      [itemCode]: orderedQty,
     };
 
-    /*
-     * Update UI
-     */
-    setReceivedQuantities(nextReceivedQuantities);
+    setReceivedQuantities(
+      nextReceivedQuantities
+    );
 
     /*
-     * Recalculate immediately
-     * using latest quantity
-     * + existing miscellaneous
+     * Recalculate corrected quantity
+     * after debounce
      */
-    try {
-      setLoading(true);
+    receivedQtyDebounceRef.current[itemCode] =
+      setTimeout(async () => {
+        try {
+          setLoading(true);
 
-      await calculateGRN(grnData, nextReceivedQuantities, miscRows);
-    } catch (error) {
-      console.error(
-        "Error recalculating GRN after received quantity change:",
-        error,
-      );
+          await calculateGRN(
+            grnData,
+            nextReceivedQuantities,
+            miscRows
+          );
+        } catch (error) {
+          console.error(
+            "Error recalculating GRN:",
+            error
+          );
+        } finally {
+          setLoading(false);
+        }
+      }, 500);
 
-      toast.error("Received quantity changed, but calculation failed");
-    } finally {
-      setLoading(false);
-    }
+    return;
+  }
+
+  /*
+   * =========================
+   * NORMAL QUANTITY CHANGE
+   * =========================
+   */
+
+  const nextReceivedQuantities = {
+    ...receivedQuantities,
+    [itemCode]: receivedQty,
   };
+
+  /*
+   * Update input immediately
+   */
+  setReceivedQuantities(
+    nextReceivedQuantities
+  );
+
+  /*
+   * =========================
+   * DEBOUNCED API CALL
+   * =========================
+   *
+   * API will be called only
+   * after user stops typing
+   * for 500ms.
+   */
+  receivedQtyDebounceRef.current[itemCode] =
+    setTimeout(async () => {
+      try {
+        setLoading(true);
+
+        await calculateGRN(
+          grnData,
+          nextReceivedQuantities,
+          miscRows
+        );
+      } catch (error) {
+        console.error(
+          "Error recalculating GRN after received quantity change:",
+          error
+        );
+
+        toast.error(
+          "Received quantity changed, but calculation failed"
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+};
   const addMiscRow = async () => {
     if (!miscChargeId) {
       toast.error("Please select a particular");
