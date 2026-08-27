@@ -1,4 +1,3 @@
-
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
@@ -7,7 +6,7 @@ import {
   getPurchaseOrderGRNList,
   getSupplierList,
   getStoreMasterList,
-//   getItemStoreListByStoreId,
+  //   getItemStoreListByStoreId,
   getInventoryMiscList,
   purchaseOrderCalculation,
 } from "../api/services/products.service";
@@ -107,8 +106,9 @@ const GoodsReceivedNote: React.FC = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
-  const [receivedQuantities, setReceivedQuantities] =
-    useState<Record<number, number>>({});
+  const [receivedQuantities, setReceivedQuantities] = useState<
+    Record<number, number>
+  >({});
 
   const [miscList, setMiscList] = useState<InventoryMisc[]>([]);
   const [miscRows, setMiscRows] = useState<MiscRow[]>([]);
@@ -120,7 +120,7 @@ const GoodsReceivedNote: React.FC = () => {
   const [grnNo, setGrnNo] = useState("");
   const [billNo, setBillNo] = useState("");
   const [grnDate, setGrnDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [confirmedBy, setConfirmedBy] = useState("");
   const [inspectedBy, setInspectedBy] = useState("");
@@ -135,8 +135,7 @@ const GoodsReceivedNote: React.FC = () => {
   const disabledInputClass =
     "h-10 w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 text-sm text-gray-700 outline-none";
 
-  const labelClass =
-    "mb-1.5 block text-xs font-semibold text-gray-600";
+  const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
 
   const formatNumber = (value: number | string | undefined) =>
     Number(value || 0).toLocaleString("en-IN", {
@@ -146,9 +145,7 @@ const GoodsReceivedNote: React.FC = () => {
   const formatDate = (value?: string) => {
     if (!value) return "";
     const date = new Date(value);
-    return Number.isNaN(date.getTime())
-      ? ""
-      : date.toISOString().split("T")[0];
+    return Number.isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
   };
 
   const getSupplierName = (supCode?: number) =>
@@ -160,9 +157,8 @@ const GoodsReceivedNote: React.FC = () => {
     `Store ${storeId || ""}`;
 
   const getItemName = (itemCode?: number) =>
-    inventoryItems.find(
-      (x) => Number(x.itemCode) === Number(itemCode)
-    )?.itemName || `Item ${itemCode || ""}`;
+    inventoryItems.find((x) => Number(x.itemCode) === Number(itemCode))
+      ?.itemName || `Item ${itemCode || ""}`;
 
   const fetchPurchaseOrderNumbers = async () => {
     if (!branchCode) return;
@@ -182,7 +178,7 @@ const GoodsReceivedNote: React.FC = () => {
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to fetch purchase orders"
+          "Failed to fetch purchase orders",
       );
     } finally {
       setLoadingPO(false);
@@ -209,20 +205,20 @@ const GoodsReceivedNote: React.FC = () => {
     }
   };
 
-//   const fetchInventoryItems = async (storeId: number) => {
-//     if (!storeId) return;
+  //   const fetchInventoryItems = async (storeId: number) => {
+  //     if (!storeId) return;
 
-//     try {
-//       const res = await getItemStoreListByStoreId(
-//         branchCode,
-//         String(storeId)
-//       );
-//       setInventoryItems(res?.success ? res.data || [] : []);
-//     } catch (error) {
-//       console.error("Inventory API error:", error);
-//       setInventoryItems([]);
-//     }
-//   };
+  //     try {
+  //       const res = await getItemStoreListByStoreId(
+  //         branchCode,
+  //         String(storeId)
+  //       );
+  //       setInventoryItems(res?.success ? res.data || [] : []);
+  //     } catch (error) {
+  //       console.error("Inventory API error:", error);
+  //       setInventoryItems([]);
+  //     }
+  //   };
 
   const fetchInventoryMiscList = async () => {
     try {
@@ -234,216 +230,172 @@ const GoodsReceivedNote: React.FC = () => {
     }
   };
 
-const calculateGRN = async (
-  data: GRNResponse,
-  nextReceivedQuantities: Record<number, number>,
-  nextMiscRows: MiscRow[] = []
-) => {
-  if (!data) return null;
+  const calculateGRN = async (
+    data: GRNResponse,
+    nextReceivedQuantities: Record<number, number>,
+    nextMiscRows: MiscRow[] = [],
+  ) => {
+    if (!data) return null;
 
-  const payload = {
-    poNo: Number(data.master?.poNo || 0),
+    const payload = {
+      poNo: Number(data.master?.poNo || 0),
 
-    storeId: Number(data.master?.storeId || 0),
+      storeId: Number(data.master?.storeId || 0),
 
-    branch: branchCode,
+      branch: branchCode,
 
-    discount: 0,
+      discount: 0,
 
-    discountIn: "",
+      discountIn: "",
 
-    poDetail: (data.details || []).map((item) => ({
-      itemCode: Number(item.itemCode),
+      poDetail: (data.details || []).map((item) => ({
+        itemCode: Number(item.itemCode),
 
-      // IMPORTANT:
-      // Send current RECEIVED quantity
-      poItemQty: Number(
-        nextReceivedQuantities[item.itemCode] ?? 0
-      ),
+        // IMPORTANT:
+        // Send current RECEIVED quantity
+        poItemQty: Number(nextReceivedQuantities[item.itemCode] ?? 0),
 
-      poItemRate: Number(
-        item.poItemRate || 0
-      ),
+        poItemRate: Number(item.poItemRate || 0),
 
-      unit: item.unit || "",
+        unit: item.unit || "",
 
-      unitCode: Number(
-        item.unitCode || 0
-      ),
+        unitCode: Number(item.unitCode || 0),
 
-      poItemSuplyQty: Number(
-        nextReceivedQuantities[item.itemCode] ?? 0
-      ),
+        poItemSuplyQty: Number(nextReceivedQuantities[item.itemCode] ?? 0),
 
-      cpoItemQty: Number(
-        nextReceivedQuantities[item.itemCode] ?? 0
-      ),
-    })),
+        cpoItemQty: Number(nextReceivedQuantities[item.itemCode] ?? 0),
+      })),
 
-    poMiscDetail: nextMiscRows.map((row) => {
-      const selectedCharge = miscList.find(
-        (charge) =>
-          Number(charge.chargeId) ===
-          Number(row.chargeId)
-      );
+      poMiscDetail: nextMiscRows.map((row) => {
+        const selectedCharge = miscList.find(
+          (charge) => Number(charge.chargeId) === Number(row.chargeId),
+        );
 
-      return {
-        miscCharge: Number(
-          row.amount || 0
-        ),
+        return {
+          miscCharge: Number(row.amount || 0),
 
-        miscChargeCode: Number(
-          row.chargeId || 0
-        ),
+          miscChargeCode: Number(row.chargeId || 0),
 
-        miscTaxCode: String(
-          selectedCharge?.taxCode ?? ""
-        ),
-      };
-    }),
+          miscTaxCode: String(selectedCharge?.taxCode ?? ""),
+        };
+      }),
+    };
+
+    console.log("GRN Calculation Payload:", payload);
+
+    const calculationRes = await purchaseOrderCalculation(payload);
+
+    console.log("GRN Calculation Response:", calculationRes);
+
+    setCalculationResponse(calculationRes);
+
+    return calculationRes;
   };
 
-  console.log(
-    "GRN Calculation Payload:",
-    payload
-  );
+  const fetchGRNDetails = async (poNo: number) => {
+    if (!poNo) return;
 
-  const calculationRes =
-    await purchaseOrderCalculation(payload);
+    try {
+      setLoadingGRN(true);
 
-  console.log(
-    "GRN Calculation Response:",
-    calculationRes
-  );
+      setCalculationResponse(null);
+      setMiscRows([]);
+      setInventoryItems([]);
 
-  setCalculationResponse(
-    calculationRes
-  );
+      const res = await getPurchaseOrderGRNList(poNo, branchCode);
 
-  return calculationRes;
-};
+      console.log("getPurchaseOrderGRNList Response:", res);
 
- const fetchGRNDetails = async (poNo: number) => {
-  if (!poNo) return;
+      if (!res?.success || !res?.data || !res.data.length) {
+        setGrnData(null);
+        setReceivedQuantities({});
 
-  try {
-    setLoadingGRN(true);
+        toast.error(res?.message || "No GRN details found");
 
-    setCalculationResponse(null);
-    setMiscRows([]);
-    setInventoryItems([]);
+        return;
+      }
 
-    const res = await getPurchaseOrderGRNList(
-      poNo,
-      branchCode
-    );
+      /*
+       * =========================
+       * COMPLETE API OBJECT
+       * =========================
+       */
 
-    console.log(
-      "getPurchaseOrderGRNList Response:",
-      res
-    );
+      const selectedGRN: GRNResponse = res.data[0];
 
-    if (
-      !res?.success ||
-      !res?.data ||
-      !res.data.length
-    ) {
-      setGrnData(null);
-      setReceivedQuantities({});
+      console.log("Selected GRN:", selectedGRN);
 
-      toast.error(
-        res?.message ||
-          "No GRN details found"
+      /*
+       * =========================
+       * MASTER
+       * =========================
+       */
+
+      setGrnData(selectedGRN);
+
+      /*
+       * =========================
+       * RECEIVED QUANTITY
+       * =========================
+       */
+
+      const initialReceivedQty: Record<number, number> = {};
+
+      (selectedGRN.details || []).forEach((item) => {
+        initialReceivedQty[item.itemCode] = Number(item.receivedQty || 0);
+      });
+
+      setReceivedQuantities(initialReceivedQty);
+
+      const miscellaneous = selectedGRN.miscellaneous || [];
+
+      const mappedMiscRows: MiscRow[] = miscellaneous.map(
+        (charge: any, index: number) => ({
+          id: Date.now() + 1000 + index,
+
+          chargeId: Number(charge.chargeId || 0),
+
+          chargeName: charge.chargeName || "",
+
+          amount: Number(charge.chargeAmt || 0),
+        }),
       );
 
-      return;
+      setMiscRows(mappedMiscRows);
+
+      /*
+       * Initial calculation
+       */
+      await calculateGRN(selectedGRN, initialReceivedQty, mappedMiscRows);
+    } catch (error: any) {
+      console.error("GRN API error:", error);
+
+      setGrnData(null);
+
+      setReceivedQuantities({});
+
+      setMiscRows([]);
+
+      setCalculationResponse(null);
+
+      toast.error(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Failed to fetch GRN details",
+      );
+    } finally {
+      setLoadingGRN(false);
     }
+  };
+  const handlePurchaseOrderChange = async (
+    selectedOption: {
+      value: string;
+      label: string;
+    } | null,
+  ) => {
+    const value = selectedOption?.value || "";
 
-    /*
-     * =========================
-     * COMPLETE API OBJECT
-     * =========================
-     */
-
-    const selectedGRN: GRNResponse =
-      res.data[0];
-
-    console.log(
-      "Selected GRN:",
-      selectedGRN
-    );
-
-    /*
-     * =========================
-     * MASTER
-     * =========================
-     */
-
-    setGrnData(selectedGRN);
-
-    /*
-     * =========================
-     * RECEIVED QUANTITY
-     * =========================
-     */
-
-  const initialReceivedQty: Record<
-  number,
-  number
-> = {};
-
-(selectedGRN.details || []).forEach(
-  (item) => {
-    initialReceivedQty[item.itemCode] =
-      Number(item.receivedQty || 0);
-  }
-);
-
-setReceivedQuantities(
-  initialReceivedQty
-);
-
-const miscellaneous =
-  selectedGRN.miscellaneous || [];
-
-const mappedMiscRows: MiscRow[] =
-  miscellaneous.map(
-    (charge: any, index: number) => ({
-      id:
-        Date.now() +
-        1000 +
-        index,
-
-      chargeId: Number(
-        charge.chargeId || 0
-      ),
-
-      chargeName:
-        charge.chargeName || "",
-
-      amount: Number(
-        charge.chargeAmt || 0
-      ),
-    })
-  );
-
-setMiscRows(
-  mappedMiscRows
-);
-
-/*
- * Initial calculation
- */
-await calculateGRN(
-  selectedGRN,
-  initialReceivedQty,
-  mappedMiscRows
-);
-  } catch (error: any) {
-    console.error(
-      "GRN API error:",
-      error
-    );
+    setSelectedPoNo(value);
 
     setGrnData(null);
 
@@ -453,321 +405,210 @@ await calculateGRN(
 
     setCalculationResponse(null);
 
-    toast.error(
-      error?.response?.data?.message ||
-        error?.message ||
-        "Failed to fetch GRN details"
-    );
-  } finally {
-    setLoadingGRN(false);
-  }
-};
-const handlePurchaseOrderChange = async (
-  selectedOption: {
-    value: string;
-    label: string;
-  } | null
-) => {
-  const value = selectedOption?.value || "";
+    if (!value) return;
 
-  setSelectedPoNo(value);
+    await fetchGRNDetails(Number(value));
+  };
+  const handleReceivedQtyChange = async (itemCode: number, value: string) => {
+    if (!grnData) return;
 
-  setGrnData(null);
-
-  setReceivedQuantities({});
-
-  setMiscRows([]);
-
-  setCalculationResponse(null);
-
-  if (!value) return;
-
-  await fetchGRNDetails(Number(value));
-};
- const handleReceivedQtyChange = async (
-  itemCode: number,
-  value: string
-) => {
-  if (!grnData) return;
-
-  const item = grnData.details.find(
-    (x) =>
-      Number(x.itemCode) ===
-      Number(itemCode)
-  );
-
-  if (!item) return;
-
-  /*
-   * Empty input
-   */
-  if (value === "") {
-    const nextReceivedQuantities = {
-      ...receivedQuantities,
-      [itemCode]: 0,
-    };
-
-    setReceivedQuantities(
-      nextReceivedQuantities
+    const item = grnData.details.find(
+      (x) => Number(x.itemCode) === Number(itemCode),
     );
 
-    try {
-      setLoading(true);
-
-      await calculateGRN(
-        grnData,
-        nextReceivedQuantities,
-        miscRows
-      );
-    } catch (error) {
-      console.error(
-        "Error recalculating GRN:",
-        error
-      );
-
-      toast.error(
-        "Quantity changed, but calculation failed"
-      );
-    } finally {
-      setLoading(false);
-    }
-
-    return;
-  }
-
-  const receivedQty = Number(value);
-
-  const orderedQty = Number(
-    item.poItemQty || 0
-  );
-
-  /*
-   * Invalid number
-   */
-  if (Number.isNaN(receivedQty)) {
-    return;
-  }
-
-  /*
-   * Negative quantity
-   */
-  if (receivedQty < 0) {
-    toast.error(
-      "Received quantity cannot be negative"
-    );
-
-    return;
-  }
-
-  /*
-   * More than ordered quantity
-   */
-  if (receivedQty > orderedQty) {
-    toast.error(
-      `Received quantity cannot be more than ${orderedQty}`
-    );
-
-    const nextReceivedQuantities = {
-      ...receivedQuantities,
-      [itemCode]: orderedQty,
-    };
-
-    setReceivedQuantities(
-      nextReceivedQuantities
-    );
+    if (!item) return;
 
     /*
-     * Recalculate using corrected quantity
+     * Empty input
+     */
+    if (value === "") {
+      const nextReceivedQuantities = {
+        ...receivedQuantities,
+        [itemCode]: 0,
+      };
+
+      setReceivedQuantities(nextReceivedQuantities);
+
+      try {
+        setLoading(true);
+
+        await calculateGRN(grnData, nextReceivedQuantities, miscRows);
+      } catch (error) {
+        console.error("Error recalculating GRN:", error);
+
+        toast.error("Quantity changed, but calculation failed");
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
+    const receivedQty = Number(value);
+
+    const orderedQty = Number(item.poItemQty || 0);
+
+    /*
+     * Invalid number
+     */
+    if (Number.isNaN(receivedQty)) {
+      return;
+    }
+
+    /*
+     * Negative quantity
+     */
+    if (receivedQty < 0) {
+      toast.error("Received quantity cannot be negative");
+
+      return;
+    }
+
+    /*
+     * More than ordered quantity
+     */
+    if (receivedQty > orderedQty) {
+      toast.error(`Received quantity cannot be more than ${orderedQty}`);
+
+      const nextReceivedQuantities = {
+        ...receivedQuantities,
+        [itemCode]: orderedQty,
+      };
+
+      setReceivedQuantities(nextReceivedQuantities);
+
+      /*
+       * Recalculate using corrected quantity
+       */
+      try {
+        setLoading(true);
+
+        await calculateGRN(grnData, nextReceivedQuantities, miscRows);
+      } catch (error) {
+        console.error("Error recalculating GRN:", error);
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
+    /*
+     * =========================
+     * NORMAL QUANTITY CHANGE
+     * =========================
+     */
+
+    const nextReceivedQuantities = {
+      ...receivedQuantities,
+      [itemCode]: receivedQty,
+    };
+
+    /*
+     * Update UI
+     */
+    setReceivedQuantities(nextReceivedQuantities);
+
+    /*
+     * Recalculate immediately
+     * using latest quantity
+     * + existing miscellaneous
      */
     try {
       setLoading(true);
 
-      await calculateGRN(
-        grnData,
-        nextReceivedQuantities,
-        miscRows
-      );
+      await calculateGRN(grnData, nextReceivedQuantities, miscRows);
     } catch (error) {
       console.error(
-        "Error recalculating GRN:",
-        error
+        "Error recalculating GRN after received quantity change:",
+        error,
       );
+
+      toast.error("Received quantity changed, but calculation failed");
     } finally {
       setLoading(false);
     }
-
-    return;
-  }
-
-  /*
-   * =========================
-   * NORMAL QUANTITY CHANGE
-   * =========================
-   */
-
-  const nextReceivedQuantities = {
-    ...receivedQuantities,
-    [itemCode]: receivedQty,
   };
+  const addMiscRow = async () => {
+    if (!miscChargeId) {
+      toast.error("Please select a particular");
+      return;
+    }
 
-  /*
-   * Update UI
-   */
-  setReceivedQuantities(
-    nextReceivedQuantities
-  );
+    if (!miscAmount || Number(miscAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
 
-  /*
-   * Recalculate immediately
-   * using latest quantity
-   * + existing miscellaneous
-   */
-  try {
-    setLoading(true);
+    if (!grnData) {
+      toast.error("Please select a purchase order");
+      return;
+    }
 
-    await calculateGRN(
-      grnData,
-      nextReceivedQuantities,
-      miscRows
-    );
-  } catch (error) {
-    console.error(
-      "Error recalculating GRN after received quantity change:",
-      error
+    const selectedCharge = miscList.find(
+      (charge) => Number(charge.chargeId) === Number(miscChargeId),
     );
 
-    toast.error(
-      "Received quantity changed, but calculation failed"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-const addMiscRow = async () => {
-  if (!miscChargeId) {
-    toast.error(
-      "Please select a particular"
-    );
-    return;
-  }
+    if (!selectedCharge) {
+      toast.error("Invalid particular selected");
+      return;
+    }
 
-  if (
-    !miscAmount ||
-    Number(miscAmount) <= 0
-  ) {
-    toast.error(
-      "Please enter a valid amount"
-    );
-    return;
-  }
+    const newRow: MiscRow = {
+      id: Date.now(),
 
-  if (!grnData) {
-    toast.error(
-      "Please select a purchase order"
-    );
-    return;
-  }
+      chargeId: selectedCharge.chargeId,
 
-  const selectedCharge =
-    miscList.find(
-      (charge) =>
-        Number(charge.chargeId) ===
-        Number(miscChargeId)
-    );
+      chargeName: selectedCharge.chargeName,
 
-  if (!selectedCharge) {
-    toast.error(
-      "Invalid particular selected"
-    );
-    return;
-  }
+      amount: Number(miscAmount),
+    };
 
-  const newRow: MiscRow = {
-    id: Date.now(),
+    const nextMiscRows = [...miscRows, newRow];
 
-    chargeId:
-      selectedCharge.chargeId,
+    setMiscRows(nextMiscRows);
 
-    chargeName:
-      selectedCharge.chargeName,
+    setMiscChargeId("");
+    setMiscAmount("");
 
-    amount: Number(miscAmount),
+    try {
+      setLoading(true);
+
+      await calculateGRN(grnData, receivedQuantities, nextMiscRows);
+
+      toast.success("Miscellaneous charge added");
+    } catch (error) {
+      console.error("Error calculating GRN with miscellaneous charge:", error);
+
+      toast.error("Miscellaneous charge added, but calculation failed");
+    } finally {
+      setLoading(false);
+    }
   };
+  const removeMiscRow = async (id: number) => {
+    if (!grnData) return;
 
-  const nextMiscRows = [
-    ...miscRows,
-    newRow,
-  ];
+    const nextMiscRows = miscRows.filter((row) => row.id !== id);
 
-  setMiscRows(nextMiscRows);
+    setMiscRows(nextMiscRows);
 
-  setMiscChargeId("");
-  setMiscAmount("");
+    try {
+      setLoading(true);
 
-try {
-  setLoading(true);
+      await calculateGRN(grnData, receivedQuantities, nextMiscRows);
 
-  await calculateGRN(
-    grnData,
-    receivedQuantities,
-    nextMiscRows
-  );
+      toast.success("Miscellaneous charge removed");
+    } catch (error) {
+      console.error(
+        "Error recalculating GRN after removing miscellaneous charge:",
+        error,
+      );
 
-  toast.success(
-    "Miscellaneous charge added"
-  );
-} catch (error) {
-  console.error(
-    "Error calculating GRN with miscellaneous charge:",
-    error
-  );
-
-  toast.error(
-    "Miscellaneous charge added, but calculation failed"
-  );
-} finally {
-  setLoading(false);
-}
-};
-  const removeMiscRow = async (
-  id: number
-) => {
-  if (!grnData) return;
-
-  const nextMiscRows =
-    miscRows.filter(
-      (row) => row.id !== id
-    );
-
-  setMiscRows(nextMiscRows);
-
-try {
-  setLoading(true);
-
-  await calculateGRN(
-    grnData,
-    receivedQuantities,
-    nextMiscRows
-  );
-
-  toast.success(
-    "Miscellaneous charge removed"
-  );
-} catch (error) {
-  console.error(
-    "Error recalculating GRN after removing miscellaneous charge:",
-    error
-  );
-
-  toast.error(
-    "Miscellaneous charge removed, but calculation failed"
-  );
-} finally {
-  setLoading(false);
-}
-};
-
-
+      toast.error("Miscellaneous charge removed, but calculation failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!branchCode) return;
@@ -793,40 +634,30 @@ try {
 
   const totalOrderedQty = details.reduce(
     (sum, item) => sum + Number(item.poItemQty || 0),
-    0
+    0,
   );
-
-
 
   const summaryTotalQty = Number(
-    calculationResponse?.totalQty ?? totalOrderedQty
+    calculationResponse?.totalQty ?? totalOrderedQty,
   );
 
-  const summaryTotalAmount = Number(
-    calculationResponse?.totalAmount ?? ""
-  );
+  const summaryTotalAmount = Number(calculationResponse?.totalAmount ?? "");
 
   const summaryCgst = Number(
-    calculationResponse?.cgstAmt ??
-      grnData?.master?.cgstAmount ??
-      0
+    calculationResponse?.cgstAmt ?? grnData?.master?.cgstAmount ?? 0,
   );
 
   const summarySgst = Number(
-    calculationResponse?.sgstAmt ??
-      grnData?.master?.sgstAmount ??
-      0
+    calculationResponse?.sgstAmt ?? grnData?.master?.sgstAmount ?? 0,
   );
 
   const summaryMisc = Number(
     calculationResponse?.miscTotalAmount ??
-      miscRows.reduce((sum, row) => sum + Number(row.amount || 0), 0)
+      miscRows.reduce((sum, row) => sum + Number(row.amount || 0), 0),
   );
 
   const summaryGrandTotal = Number(
-    calculationResponse?.grandTotal ??
-      grnData?.master?.grossAmount ??
-      ""
+    calculationResponse?.grandTotal ?? grnData?.master?.grossAmount ?? "",
   );
 
   return (
@@ -847,8 +678,6 @@ try {
                 Select a purchase order and enter received quantities.
               </p>
             </div>
-
-       
           </div>
 
           {/* GRN HEADER */}
@@ -860,8 +689,9 @@ try {
             </div>
 
             <div className="p-4 md:p-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
-                <div className="lg:col-span-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {/* Order No */}
+                <div>
                   <label className={labelClass}>Order No.</label>
 
                   <Select
@@ -871,10 +701,7 @@ try {
                           value: String(po.poNo),
                           label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
                         }))
-                        .find(
-                          (option) =>
-                            option.value === selectedPoNo
-                        ) || null
+                        .find((option) => option.value === selectedPoNo) || null
                     }
                     onChange={handlePurchaseOrderChange}
                     options={poNumbers.map((po) => ({
@@ -884,21 +711,24 @@ try {
                     isDisabled={loadingPO}
                     isSearchable
                     isClearable
-                    placeholder={
-                      loadingPO
-                        ? "Loading..."
-                        : "Search Order No."
-                    }
-                    noOptionsMessage={() =>
-                      "No Order No. found"
-                    }
+                    placeholder={loadingPO ? "Loading..." : "Search Order No."}
+                    noOptionsMessage={() => "No Order No. found"}
                     className="text-sm"
                     classNamePrefix="order-no"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: "40px",
+                        height: "40px",
+                      }),
+                    }}
                   />
                 </div>
 
-                <div className="lg:col-span-2">
+                {/* PO Date */}
+                <div>
                   <label className={labelClass}>PO Date</label>
+
                   <input
                     type="date"
                     disabled
@@ -907,8 +737,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Supplier */}
+                <div>
                   <label className={labelClass}>Supplier</label>
+
                   <input
                     disabled
                     value={getSupplierName(grnData?.master?.supCode)}
@@ -916,8 +748,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-2">
+                {/* GRN No */}
+                <div>
                   <label className={labelClass}>GRN No.</label>
+
                   <input
                     value={grnNo}
                     onChange={(e) => setGrnNo(e.target.value)}
@@ -926,8 +760,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-2">
+                {/* Bill No */}
+                <div>
                   <label className={labelClass}>Bill No.</label>
+
                   <input
                     value={billNo}
                     onChange={(e) => setBillNo(e.target.value)}
@@ -936,8 +772,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* GRN Date */}
+                <div>
                   <label className={labelClass}>GRN Date</label>
+
                   <input
                     type="date"
                     value={grnDate}
@@ -946,8 +784,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Ordered By */}
+                <div>
                   <label className={labelClass}>Ordered By</label>
+
                   <input
                     disabled
                     value={grnData?.master?.orderBy || ""}
@@ -955,26 +795,34 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Confirmed By */}
+                <div>
                   <label className={labelClass}>Confirmed By</label>
+
                   <input
                     value={confirmedBy}
                     onChange={(e) => setConfirmedBy(e.target.value)}
+                    placeholder="Confirmed By"
                     className={inputClass}
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Inspected By */}
+                <div>
                   <label className={labelClass}>Inspected By</label>
+
                   <input
                     value={inspectedBy}
                     onChange={(e) => setInspectedBy(e.target.value)}
+                    placeholder="Inspected By"
                     className={inputClass}
                   />
                 </div>
 
-                <div className="lg:col-span-4">
+                {/* Store */}
+                <div>
                   <label className={labelClass}>Store</label>
+
                   <input
                     disabled
                     value={getStoreName(grnData?.master?.storeId)}
@@ -982,8 +830,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-2">
+                {/* PO Status */}
+                <div>
                   <label className={labelClass}>PO Status</label>
+
                   <input
                     disabled
                     value={grnData?.master?.status || ""}
@@ -991,8 +841,10 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Approved By */}
+                <div>
                   <label className={labelClass}>Approved By</label>
+
                   <input
                     disabled
                     value={grnData?.master?.approvedBy || ""}
@@ -1000,15 +852,17 @@ try {
                   />
                 </div>
 
-                <div className="lg:col-span-3">
+                {/* Approved Date */}
+                <div>
                   <label className={labelClass}>Approved Date</label>
+
                   <input
                     disabled
                     value={
                       grnData?.master?.approvedDate
-                        ? new Date(
-                            grnData.master.approvedDate
-                          ).toLocaleString("en-IN")
+                        ? new Date(grnData.master.approvedDate).toLocaleString(
+                            "en-IN",
+                          )
                         : ""
                     }
                     className={disabledInputClass}
@@ -1074,21 +928,16 @@ try {
                     details.map((item, index) => {
                       const orderedQty = Number(item.poItemQty || 0);
                       const receivedQty = Number(
-                        receivedQuantities[item.itemCode] ?? 0
+                        receivedQuantities[item.itemCode] ?? 0,
                       );
-                      const balanceQty = Math.max(
-                        0,
-                        orderedQty - receivedQty
-                      );
+                      const balanceQty = Math.max(0, orderedQty - receivedQty);
 
                       return (
                         <tr
                           key={`${item.poNo}-${item.itemCode}-${index}`}
                           className="border-t border-gray-200 hover:bg-gray-50"
                         >
-                          <td className="px-4 py-3 text-center">
-                            {index + 1}
-                          </td>
+                          <td className="px-4 py-3 text-center">{index + 1}</td>
 
                           <td className="px-4 py-3 font-medium">
                             {item.itemCode}
@@ -1110,13 +959,11 @@ try {
                               min="0"
                               max={orderedQty}
                               step="any"
-                              value={
-                                receivedQuantities[item.itemCode] ?? 0
-                              }
+                              value={receivedQuantities[item.itemCode] ?? 0}
                               onChange={(e) =>
                                 handleReceivedQtyChange(
                                   item.itemCode,
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               className="h-9 w-28 rounded-md border border-blue-300 bg-white px-2 text-right text-sm font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1142,7 +989,7 @@ try {
                           <td className="px-4 py-3 text-right font-semibold">
                             ₹{" "}
                             {formatNumber(
-                              orderedQty * Number(item.poItemRate || 0)
+                              orderedQty * Number(item.poItemRate || 0),
                             )}
                           </td>
                         </tr>
@@ -1150,8 +997,6 @@ try {
                     })
                   )}
                 </tbody>
-
-            
               </table>
             </div>
           </section>
@@ -1177,10 +1022,7 @@ try {
                     <option value="">Select Particular</option>
 
                     {miscList.map((charge) => (
-                      <option
-                        key={charge.chargeId}
-                        value={charge.chargeId}
-                      >
+                      <option key={charge.chargeId} value={charge.chargeId}>
                         {charge.chargeName}
                       </option>
                     ))}
@@ -1226,10 +1068,7 @@ try {
 
                   <tbody>
                     {miscRows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="border-t border-gray-200"
-                      >
+                      <tr key={row.id} className="border-t border-gray-200">
                         <td className="px-4 py-3 font-medium">
                           {row.chargeName}
                         </td>
@@ -1317,13 +1156,11 @@ try {
           <div className="mb-8 flex justify-end gap-3">
             <button
               type="button"
-               onClick={() => navigate(-1)}
+              onClick={() => navigate(-1)}
               className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               Clear
             </button>
-
-           
           </div>
         </div>
       </div>
