@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
@@ -13,6 +13,8 @@ import {
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
+import Select from "react-select";
+import { useEffect, useState } from "react";
 
 type Supplier = {
   supCode: number;
@@ -461,9 +463,12 @@ await calculateGRN(
   }
 };
 const handlePurchaseOrderChange = async (
-  e: React.ChangeEvent<HTMLSelectElement>
+  selectedOption: {
+    value: string;
+    label: string;
+  } | null
 ) => {
-  const value = e.target.value;
+  const value = selectedOption?.value || "";
 
   setSelectedPoNo(value);
 
@@ -477,9 +482,7 @@ const handlePurchaseOrderChange = async (
 
   if (!value) return;
 
-  await fetchGRNDetails(
-    Number(value)
-  );
+  await fetchGRNDetails(Number(value));
 };
  const handleReceivedQtyChange = async (
   itemCode: number,
@@ -860,23 +863,38 @@ try {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-12">
                 <div className="lg:col-span-3">
                   <label className={labelClass}>Order No.</label>
-                  <select
-                    value={selectedPoNo}
-                    onChange={handlePurchaseOrderChange}
-                    disabled={loadingPO}
-                    className={inputClass}
-                  >
-                    <option value="">
-                      {loadingPO ? "Loading..." : "Select Order No."}
-                    </option>
 
-                    {poNumbers.map((po) => (
-                      <option key={po.poNo} value={po.poNo}>
-                        {po.poNo}
-                        {po.status ? ` - ${po.status}` : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={
+                      poNumbers
+                        .map((po) => ({
+                          value: String(po.poNo),
+                          label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
+                        }))
+                        .find(
+                          (option) =>
+                            option.value === selectedPoNo
+                        ) || null
+                    }
+                    onChange={handlePurchaseOrderChange}
+                    options={poNumbers.map((po) => ({
+                      value: String(po.poNo),
+                      label: `${po.poNo}${po.status ? ` - ${po.status}` : ""}`,
+                    }))}
+                    isDisabled={loadingPO}
+                    isSearchable
+                    isClearable
+                    placeholder={
+                      loadingPO
+                        ? "Loading..."
+                        : "Search Order No."
+                    }
+                    noOptionsMessage={() =>
+                      "No Order No. found"
+                    }
+                    className="text-sm"
+                    classNamePrefix="order-no"
+                  />
                 </div>
 
                 <div className="lg:col-span-2">
