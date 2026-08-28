@@ -379,7 +379,7 @@ export default function CartPanel({
             )}
             {/* OTHER BUTTONS */}
             <div className="grid grid-cols-2 gap-3">
-              {hasKotPermission &&  isFastfood === undefined &&(
+              {hasKotPermission  &&(
                 <button
                   disabled={kotLoading}
                   onClick={onKOT}
