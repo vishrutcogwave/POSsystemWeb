@@ -71,6 +71,7 @@ type GRNDetail = {
   taxName: string;
   receivedQty: number;
   balanceQty: number;
+  itemName:string
 };
 
 type GRNResponse = {
@@ -189,10 +190,6 @@ const fetchNextGRNNo = async () => {
   const getStoreName = (storeId?: number) =>
     stores.find((x) => Number(x.storeId) === Number(storeId))?.storeName ||
     `Store ${storeId || ""}`;
-
-  const getItemName = (itemCode?: number) =>
-    inventoryItems.find((x) => Number(x.itemCode) === Number(itemCode))
-      ?.itemName || `Item ${itemCode || ""}`;
 
   const fetchPurchaseOrderNumbers = async () => {
     if (!branchCode) return;
@@ -1245,7 +1242,7 @@ useEffect(() => {
                           </td>
 
                           <td className="px-4 py-3 font-medium">
-                            {getItemName(item.itemCode)}
+                           {item.itemName}
                           </td>
 
                           <td className="px-4 py-3">{item.unit}</td>
