@@ -168,30 +168,31 @@ const PurchaseOrderApproval: React.FC = () => {
       case "R":
         return "Rejected";
 
+         case "G":
+        return "GRN";
+
       default:
         return "Unknown";
     }
   };
+const getStatusClass = (status?: string) => {
+  switch (String(status || "").toUpperCase()) {
+    case "O":
+      return "bg-yellow-100 text-yellow-700";
 
-  const getStatusClass = (
-    status?: string
-  ) => {
-    switch (
-      String(status || "").toUpperCase()
-    ) {
-      case "O":
-        return "bg-yellow-100 text-yellow-700";
+    case "A":
+      return "bg-green-100 text-green-700";
 
-      case "A":
-        return "bg-green-100 text-green-700";
+    case "R":
+      return "bg-red-100 text-red-700";
 
-      case "R":
-        return "bg-red-100 text-red-700";
+    case "G":
+      return "bg-blue-100 text-blue-700";
 
-      default:
-        return "bg-gray-100 text-gray-600";
-    }
-  };
+    default:
+      return "bg-gray-100 text-gray-600";
+  }
+};
 
   /*
    * =========================
@@ -541,6 +542,9 @@ const PurchaseOrderApproval: React.FC = () => {
                   <option value="R">
                     Rejected
                   </option>
+  <option value="G">
+    GRN
+  </option>
 
                 </select>
 
@@ -790,20 +794,15 @@ const PurchaseOrderApproval: React.FC = () => {
 
                                 {/* EDIT */}
 
-                                {status !== "R" && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleEdit(
-                                        purchaseOrder
-                                      )
-                                    }
-                                    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
-
+                               {(status !== "R" && status !== "G") && (
+  <button
+    type="button"
+    onClick={() => handleEdit(purchaseOrder)}
+    className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95"
+  >
+    Edit
+  </button>
+)}
                                 {/* DELETE - PENDING ONLY */}
 
                                 {status === "O" && (

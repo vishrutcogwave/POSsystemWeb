@@ -624,7 +624,10 @@ const PurchaseOrder: React.FC = () => {
       code,
       name,
       unit,
-      unitCode: Number(unitCode || 0),
+     unitCode:
+  editingItemId !== null
+    ? Number(items[editingItemId].unitCode || 0)
+    : Number(unitCode || 0),
       // Unit conversion
       unitQty: conversionQty,
 
