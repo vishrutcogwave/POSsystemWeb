@@ -107,7 +107,7 @@ const GoodsReceivedNote: React.FC = () => {
   const [grnData, setGrnData] = useState<GRNResponse | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [_inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
   const [receivedQuantities, setReceivedQuantities] = useState<
     Record<number, number>
