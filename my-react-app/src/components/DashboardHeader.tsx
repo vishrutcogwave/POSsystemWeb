@@ -804,6 +804,21 @@ const DashboardHeader: React.FC = () => {
       {mobileOpen && (
         <div className="sm:hidden flex flex-col gap-3 px-4 py-3 bg-white border-t shadow-md text-sm">
           {/* MASTER MOBILE */}
+
+          {/* DASHBOARD MOBILE */}
+{hasMainMenuAccess("Dashboard") && (
+  <button
+    onClick={() => {
+      navigate("/RealDashboard");
+      setMobileOpen(false);
+      setActiveMenu(null);
+    }}
+    className="flex items-center gap-2 w-full text-left py-2"
+  >
+    <Home size={18} className="text-green-600" />
+    Dashboard
+  </button>
+)}
           {hasMainMenuAccess("Master") && (
             <div>
               <button
