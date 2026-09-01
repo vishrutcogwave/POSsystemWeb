@@ -206,7 +206,7 @@ export default function InventoryStore() {
   ========================= */
  
   const handleUpdate = async () => {
-    debugger
+    
     if (!validateForm()) return;
  
     try {

@@ -28,7 +28,7 @@ const License = () => {
 
 const fetchLicence = async () => {
   setLoading(true);
-  debugger
+  
 
   try {
     const res = await getProductLicenceKey(branchCode);
