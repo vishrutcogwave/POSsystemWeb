@@ -606,7 +606,7 @@ const ItemPurchase: React.FC = () => {
               PURCHASE DETAILS TABLE
           ========================= */}
 
-          {selectedGrnDetails.length > 0 && (
+      
             <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
                 <h2 className="text-base font-semibold text-gray-800">
@@ -696,13 +696,13 @@ const ItemPurchase: React.FC = () => {
                 </table>
               </div>
             </section>
-          )}
+          
 
           {/* =========================
               ORDER SUMMARY
           ========================= */}
 
-          {selectedGrnData && (
+  
             <div className="mt-6 flex justify-end">
               <div className="w-full max-w-[430px] rounded-xl border border-gray-200 bg-gray-50 p-5">
                 <h3 className="mb-4 border-b border-gray-200 pb-3 text-base font-semibold text-gray-800">
@@ -776,7 +776,7 @@ const ItemPurchase: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
+          
 
           {/* =========================
               BACK + SAVE BUTTONS
