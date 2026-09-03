@@ -7,6 +7,7 @@ import {
   getStoreMasterList,
   getGoodsReceivedList,
   getPurchaseGoodsReceivedList,
+  getDepartmentList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -32,6 +33,7 @@ const ItemPurchase: React.FC = () => {
     orderNo: "",
     supplier: "",
     departmentCode: "",
+    departmentName: "",
     directPurchase: false,
     directIssue: false,
     store: null as Store | null,
@@ -43,6 +45,7 @@ const ItemPurchase: React.FC = () => {
 
   const [stores, setStores] = useState<Store[]>([]);
   const [grnList, setGrnList] = useState<string[]>([]);
+  const [departmentList, setDepartmentList] = useState<any[]>([]);
 
   /* =========================
       PURCHASE GRN RESPONSE
@@ -53,6 +56,7 @@ const ItemPurchase: React.FC = () => {
 
   const [loadingStores, setLoadingStores] = useState(false);
   const [loadingGrnList, setLoadingGrnList] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
 
   /* =========================
       API LOADER
@@ -171,6 +175,7 @@ const ItemPurchase: React.FC = () => {
           .sort((a: string, b: string) => Number(a) - Number(b));
 
         setGrnList(grnNumbers);
+      
       } else {
         setGrnList([]);
       }
@@ -213,6 +218,7 @@ const ItemPurchase: React.FC = () => {
         setFormData((prev) => ({
           ...prev,
           supplier: supplierValue,
+            billNo: String(master?.billed ?? ""),
         }));
       }
     } catch (error) {
@@ -232,6 +238,44 @@ const ItemPurchase: React.FC = () => {
   };
 
   /* =========================
+      FETCH DEPARTMENT LIST
+  ========================= */
+
+  const fetchDepartmentList = async () => {
+    const branch = appData?.user?.branch_code;
+
+    if (!branch) return;
+
+    startApiLoading();
+
+    try {
+      setLoadingDepartments(true);
+
+      const res = await getDepartmentList(branch);
+
+      console.log("Department List Response:", res);
+
+      if (res?.success && Array.isArray(res?.data)) {
+        // Ignore departments where depName is empty
+        const departmentData = res.data.filter(
+          (item: any) => String(item?.depName ?? "").trim() !== ""
+        );
+
+        setDepartmentList(departmentData);
+      } else {
+        setDepartmentList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching department list:", error);
+      setDepartmentList([]);
+      toast.error("Failed to load departments");
+    } finally {
+      setLoadingDepartments(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
       INITIAL LOAD
   ========================= */
 
@@ -241,6 +285,7 @@ const ItemPurchase: React.FC = () => {
     fetchTransactionNo();
     fetchStores();
     fetchGoodsReceivedList();
+    fetchDepartmentList();
   }, [appData?.user?.branch_code]);
 
   /* =========================
@@ -271,22 +316,33 @@ const ItemPurchase: React.FC = () => {
       GRN CHANGE
   ========================= */
 
-  const handleGrnChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const grnNo = e.target.value;
+const handleGrnChange = async (
+  e: React.ChangeEvent<HTMLSelectElement>
+) => {
+  const grnNo = e.target.value;
 
+  setFormData((prev) => ({
+    ...prev,
+    orderNo: grnNo,
+    // Reset Bill No when no Order No is selected
+    billNo: grnNo ? prev.billNo : "",
+  }));
+
+  if (!grnNo) {
+    setPurchaseGoodsReceivedData(null);
+
+    // Reset supplier also
     setFormData((prev) => ({
       ...prev,
-      orderNo: grnNo,
+      billNo: "",
+      supplier: "",
     }));
 
-    if (!grnNo) {
-      setPurchaseGoodsReceivedData(null);
-      return;
-    }
+    return;
+  }
 
-    await fetchPurchaseGoodsReceived(grnNo);
-  };
-
+  await fetchPurchaseGoodsReceived(grnNo);
+};
   /* =========================
       SELECTED GRN DATA
   ========================= */
@@ -351,7 +407,11 @@ const ItemPurchase: React.FC = () => {
       return;
     }
 
-    console.log("Item Purchase Header:", formData);
+    console.log("Item Purchase Header:", {
+      ...formData,
+      departmentCode: formData.departmentCode,
+      departmentName: formData.departmentName,
+    });
 
     console.log("Selected GRN Data:", purchaseGoodsReceivedData);
 
@@ -543,18 +603,45 @@ const ItemPurchase: React.FC = () => {
                   <div className="min-w-0">
                     <label className={labelClass}>Department</label>
 
-                    <input
-                      type="text"
+                    <select
                       value={formData.departmentCode}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const selectedCode = e.target.value;
+
+                        const selectedDepartment = departmentList.find(
+                          (dept: any) =>
+                            String(dept?.depCode) === selectedCode
+                        );
+
                         setFormData((prev) => ({
                           ...prev,
-                          departmentCode: e.target.value,
-                        }))
-                      }
-                      placeholder="Department"
-                      className={inputClass}
-                    />
+                          departmentCode: selectedCode,
+                          departmentName:
+                            selectedDepartment?.depName ?? "",
+                        }));
+                      }}
+                      disabled={loadingDepartments}
+                      className={`${inputClass} ${
+                        loadingDepartments
+                          ? "cursor-not-allowed bg-gray-100"
+                          : ""
+                      }`}
+                    >
+                      <option value="">
+                        {loadingDepartments
+                          ? "Loading Departments..."
+                          : "Select Department"}
+                      </option>
+
+                      {departmentList.map((dept: any) => (
+                        <option
+                          key={dept.depCode}
+                          value={dept.depCode}
+                        >
+                          {dept.depName}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 )}
               </div>
@@ -566,12 +653,13 @@ const ItemPurchase: React.FC = () => {
                     onChange={(e) => {
                       const checked = e.target.checked;
 
-                      setFormData((prev) => ({
-                        ...prev,
-                        directPurchase: checked,
-                        orderNo: checked ? "" : prev.orderNo,
-                        supplier: checked ? "Direct Purchase" : "",
-                      }));
+                setFormData((prev) => ({
+  ...prev,
+  directPurchase: checked,
+  orderNo: checked ? "" : prev.orderNo,
+  billNo: checked ? "" : prev.billNo,
+  supplier: checked ? "Direct Purchase" : "",
+}));
 
                       // Clear GRN data when switching to Direct Purchase
                       if (checked) {
@@ -587,12 +675,20 @@ const ItemPurchase: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={formData.directIssue}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+
                       setFormData((prev) => ({
                         ...prev,
-                        directIssue: e.target.checked,
-                      }))
-                    }
+                        directIssue: checked,
+                        departmentCode: checked
+                          ? prev.departmentCode
+                          : "",
+                        departmentName: checked
+                          ? prev.departmentName
+                          : "",
+                      }));
+                    }}
                     className="h-4 w-4 rounded border-gray-300"
                   />
 
