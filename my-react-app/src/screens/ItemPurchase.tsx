@@ -1417,7 +1417,7 @@ onChange={(e) => {
 
                   
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                        Received Qty
+                      Qty  
                       </th>
 
                 
