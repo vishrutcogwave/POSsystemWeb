@@ -5,21 +5,22 @@ import Loader from "../components/Loader";
 import {
   getNextIdCode,
   getStoreMasterList,
-  getGoodsReceivedList,
   getPurchaseGoodsReceivedList,
   getDepartmentList,
   purchaseOrderCalculation,
   getItemStoreListByStoreId,
   getInventoryUnitConversionList,
+  getPurchaseOrderGRNNumber,
+  createDirectPurchase,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
 type Store = {
   storeId: number;
   storeName: string;
-  storeLocation: string;
-  storeIncharge: string;
-  branch_Code: string;
+  storeLocation?: string;
+  storeIncharge?: string;
+  branch_Code?: string;
 };
 
 
@@ -203,15 +204,46 @@ const ItemPurchase: React.FC = () => {
       const res = await getStoreMasterList(branch);
 
       if (res?.success) {
-        const storeData = res.data || [];
+        const rawStoreData = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.data?.supplies)
+            ? res.data.supplies
+            : Array.isArray(res?.supplies)
+              ? res.supplies
+              : [];
+
+        const storeData: Store[] = rawStoreData
+          .map((item: any) => ({
+            storeId: Number(item?.storeId ?? item?.storeID ?? item?.id ?? 0),
+            storeName: String(
+              item?.storeName ?? item?.store_name ?? item?.name ?? "",
+            ),
+            storeLocation: String(
+              item?.storeLocation ?? item?.storelocation ?? "",
+            ),
+            storeIncharge: String(
+              item?.storeIncharge ?? item?.storeInCharge ?? "",
+            ),
+            branch_Code: String(
+              item?.branch_Code ?? item?.branchCode ?? "",
+            ),
+          }))
+          .filter((item: Store) => item.storeId > 0 && item.storeName);
 
         setStores(storeData);
 
         if (storeData.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            store: prev.store || storeData[0],
-          }));
+          setFormData((prev) => {
+            const currentStoreId = prev.store?.storeId;
+
+            return {
+              ...prev,
+              store:
+                storeData.find(
+                  (store) => store.storeId === currentStoreId,
+                ) || storeData[0],
+            };
+          });
         }
       } else {
         setStores([]);
@@ -229,38 +261,37 @@ const ItemPurchase: React.FC = () => {
       FETCH GRN LIST
   ========================= */
 
-  const fetchGoodsReceivedList = async () => {
-    const branch = appData?.user?.branch_code;
+const fetchGoodsReceivedList = async () => {
+  const branch = appData?.user?.branch_code;
 
-    if (!branch) return;
+  if (!branch) return;
 
-    startApiLoading();
+  startApiLoading();
 
-    try {
-      setLoadingGrnList(true);
+  try {
+    setLoadingGrnList(true);
 
-      const res = await getGoodsReceivedList(branch);
+    const res = await getPurchaseOrderGRNNumber(branch);
 
-      if (res?.success && Array.isArray(res.data)) {
-        const grnNumbers = res.data
-          .map((item: any) => String(item?.master?.grnNo ?? ""))
-          .filter((grnNo: string) => grnNo !== "")
-          .sort((a: string, b: string) => Number(a) - Number(b));
+    if (res?.success && Array.isArray(res.data)) {
+      const grnNumbers = res.data
+        .map((item: any) => String(item?.grnNumber ?? ""))
+        .filter((grnNo: string) => grnNo !== "")
+        .sort((a: string, b: string) => Number(a) - Number(b));
 
-        setGrnList(grnNumbers);
-      
-      } else {
-        setGrnList([]);
-      }
-    } catch (error) {
-      console.error("Error fetching Goods Received List:", error);
-
+      setGrnList(grnNumbers);
+    } else {
       setGrnList([]);
-    } finally {
-      setLoadingGrnList(false);
-      stopApiLoading();
     }
-  };
+  } catch (error) {
+    console.error("Error fetching Purchase Order GRN Number List:", error);
+
+    setGrnList([]);
+  } finally {
+    setLoadingGrnList(false);
+    stopApiLoading();
+  }
+};
 
   /* =========================
       FETCH SELECTED GRN
@@ -284,14 +315,30 @@ const ItemPurchase: React.FC = () => {
       const master = res?.data?.[0]?.master;
 
       if (master) {
+
         const supplierValue = `${master?.supCode ?? ""}-${
           master?.vendorName ?? ""
         }`;
 
+          const selectedStoreId = Number(master?.storeID ?? 0);
+
+        const selectedStore =
+          stores.find((store) => store.storeId === selectedStoreId) ||
+          (selectedStoreId > 0
+            ? {
+                storeId: selectedStoreId,
+                storeName: String(master?.storeName ?? ""),
+                storeLocation: "",
+                storeIncharge: "",
+                branch_Code: String(master?.branch_Code ?? ""),
+              }
+            : null);
+
         setFormData((prev) => ({
           ...prev,
           supplier: supplierValue,
-            billNo: String(master?.billed ?? ""),
+          billNo: String(master?.billed ?? ""),
+          store: selectedStore,
         }));
       }
     } catch (error) {
@@ -813,55 +860,461 @@ const handleGrnChange = async (
       SAVE
   ========================= */
 
-  const handleSave = () => {
-    if (!formData.store) {
-      toast.error("Please select store");
+const handleSave = async () => {
+  if (!formData.store) {
+    toast.error("Please select store");
+    return;
+  }
+
+  if (!formData.billNo.trim()) {
+    toast.error("Please enter bill number");
+    return;
+  }
+
+  if (!formData.supplier.trim()) {
+    toast.error("Please enter supplier");
+    return;
+  }
+
+  if (formData.directIssue && !formData.departmentCode.trim()) {
+    toast.error("Please select department");
+    return;
+  }
+
+  if (!formData.directPurchase && !formData.orderNo) {
+    toast.error("Please select Order No.");
+    return;
+  }
+
+  if (formData.directPurchase && directPurchaseItems.length === 0) {
+    toast.error("Please add at least one item");
+    return;
+  }
+
+  if (!formData.directPurchase && !selectedGrnData) {
+    toast.error("Please load GRN details");
+    return;
+  }
+
+  const user = (appData?.user || {}) as any;
+
+  const branchCode = String(user?.branch_code ?? "");
+
+  const userCode = String(
+    user?.user_code ??
+      user?.userCode ??
+      user?.username ??
+      user?.code ??
+      ""
+  );
+
+  const storeName = String(formData.store?.storeName ?? "");
+  const storedId = String(formData.store?.storeId ?? "");
+
+  // ============================================================
+  // DETAILS
+  // ============================================================
+
+  let details: any[] = [];
+  let taxes: any[] = [];
+  let miscDetails: any[] = [];
+
+  // ============================================================
+  // DIRECT PURCHASE
+  // ============================================================
+
+  if (formData.directPurchase) {
+    details = directPurchaseItems.map((item) => ({
+      itemCode: Number(item.code || 0),
+
+      pItemQty: Number(item.enteredQty || 0),
+
+      pItemRate: Number(item.rate || 0),
+
+      unit: item.unit || "",
+
+      qtyPer: Number(item.unitQty || 0),
+
+      noOfQty: Number(item.enteredQty || 0),
+
+      totalQty: Number(item.qty || 0),
+
+      storeName,
+
+      storedId,
+
+      noOfDays: Number(item.noOfDays || 0),
+
+      unitCode: Number(item.unitCode || 0),
+
+      expiryDate: item.expiryDate
+        ? new Date(
+            `${item.expiryDate}T00:00:00`
+          ).toISOString()
+        : new Date(
+            `${formData.date}T00:00:00`
+          ).toISOString(),
+
+      trowQty: Number(item.qty || 0),
+    }));
+
+    // Taxes from PurchaseOrderCalculation
+    const taxList = Array.isArray(
+      directPurchaseCalculation?.taxList
+    )
+      ? directPurchaseCalculation.taxList
+      : [];
+
+    taxes = taxList.map((tax: any) => ({
+      itemCode: Number(tax?.itemCode ?? 0),
+      taxCode: Number(tax?.taxCode ?? 0),
+      taxAmount: Number(tax?.taxAmount ?? 0),
+      taxPer: Number(
+        tax?.taxper ??
+          tax?.taxPer ??
+          0
+      ),
+    }));
+
+    // Misc taxes from PurchaseOrderCalculation
+    const miscTaxList = Array.isArray(
+      directPurchaseCalculation?.miscTaxList
+    )
+      ? directPurchaseCalculation.miscTaxList
+      : [];
+
+    miscDetails = miscTaxList.map((misc: any) => ({
+      taxCode: Number(misc?.taxCode ?? 0),
+
+      chargeCode: String(
+        misc?.chargeCode ??
+          misc?.chargeName ??
+          ""
+      ),
+
+      chargeAmount: String(
+        misc?.chargeAmount ??
+          misc?.chargeAmt ??
+          "0"
+      ),
+    }));
+  }
+
+  // ============================================================
+  // NORMAL PURCHASE / GRN
+  // ============================================================
+
+  else {
+    const master = selectedGrnMaster;
+    const grnDetails = selectedGrnDetails || [];
+
+    if (!master) {
+      toast.error("GRN master details not found");
       return;
     }
 
-    if (!formData.billNo.trim()) {
-      toast.error("Please enter bill number");
-      return;
-    }
+    // ----------------------------------------------------------
+    // GRN DETAILS
+    // ----------------------------------------------------------
 
-    if (!formData.supplier.trim()) {
-      toast.error("Please enter supplier");
-      return;
-    }
+    details = grnDetails.map((item: any) => ({
+      itemCode: Number(item?.itemCode ?? 0),
 
-    if (formData.directIssue && !formData.departmentCode.trim()) {
-      toast.error("Please enter department");
-      return;
-    }
+      pItemQty: Number(
+        item?.poItemQty ?? 0
+      ),
 
-    if (!formData.directPurchase && !formData.orderNo) {
-      toast.error("Please select Order No.");
-      return;
-    }
+      pItemRate: Number(
+        item?.poItemRate ?? 0
+      ),
 
-    if (formData.directPurchase && directPurchaseItems.length === 0) {
-      toast.error("Please add at least one item");
-      return;
-    }
+      unit: item?.unit || "",
 
-    if (!formData.directPurchase && !selectedGrnData) {
-      toast.error("Please load GRN details");
-      return;
-    }
+      qtyPer: Number(
+        item?.poItemQty ?? 0
+      ),
 
-    console.log("Item Purchase Header:", {
-      ...formData,
-      departmentCode: formData.departmentCode,
-      departmentName: formData.departmentName,
-    });
+      noOfQty: Number(
+        item?.poItemSuplyQty ?? item?.receivedQty ?? 0
+      ),
 
-    console.log("Selected GRN Data:", purchaseGoodsReceivedData);
-    console.log("Direct Purchase Items:", directPurchaseItems);
-    console.log("Direct Purchase Calculation:", directPurchaseCalculation);
+      totalQty: Number(
+        item?.receivedQty ?? item?.poItemSuplyQty ?? 0
+      ),
 
-    toast.success("Item Purchase details saved");
+      storeName: String(
+        master?.storeName ?? storeName
+      ),
+
+      storedId: String(
+        master?.storeID ?? storedId
+      ),
+
+      noOfDays: 0,
+
+      unitCode: Number(
+        item?.unitCode ?? 0
+      ),
+
+      expiryDate: new Date(
+        `${formData.date}T00:00:00`
+      ).toISOString(),
+
+      trowQty: Number(
+        item?.receivedQty ??
+          item?.poItemSuplyQty ??
+          0
+      ),
+    }));
+
+    // ----------------------------------------------------------
+    // GRN TAX DETAILS
+    // ----------------------------------------------------------
+
+    const grnTaxDetails = Array.isArray(
+      selectedGrnData?.taxDetails
+    )
+      ? selectedGrnData.taxDetails
+      : [];
+
+    taxes = grnTaxDetails.map(
+      (tax: any) => ({
+        itemCode: Number(
+          tax?.itemCode ?? 0
+        ),
+
+        taxCode: Number(
+          tax?.taxCode ?? 0
+        ),
+
+        taxAmount: Number(
+          tax?.taxAmount ?? 0
+        ),
+
+        taxPer: Number(
+          tax?.taxPer ??
+            tax?.taxper ??
+            tax?.taxPercentage ??
+            0
+        ),
+      })
+    );
+
+    // ----------------------------------------------------------
+    // GRN MISC DETAILS
+    // ----------------------------------------------------------
+
+    const grnMiscDetails = Array.isArray(
+      selectedGrnData?.miscDetails
+    )
+      ? selectedGrnData.miscDetails
+      : [];
+
+    miscDetails = grnMiscDetails.map(
+      (misc: any) => ({
+        taxCode: Number(
+          misc?.taxCode ?? 0
+        ),
+
+        chargeCode: String(
+          misc?.chargeName ??
+            misc?.chargeCode ??
+            ""
+        ),
+
+        chargeAmount: String(
+          misc?.chargeAmt ??
+            misc?.chargeAmount ??
+            "0"
+        ),
+      })
+    );
+  }
+
+  // ============================================================
+  // COMMON PAYLOAD
+  // ============================================================
+
+  const directPurchasePayload = {
+    pNo: Number(
+      formData.transactionNo || 0
+    ),
+
+    poNo: Number(
+      formData.transactionNo || 0
+    ),
+
+
+    pDate: new Date(
+      `${formData.date}T00:00:00`
+    ).toISOString(),
+
+    supCode: formData.directPurchase
+      ? 0
+      : Number(
+          selectedGrnMaster?.supCode ?? 0
+        ),
+
+    pTotalAmount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.totalAmount ??
+            directPurchaseSubTotal ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.totalAmount ??
+            0
+        ),
+
+    billNo: formData.billNo.trim(),
+
+    taxAmount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.taxAmount ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.totTax ??
+            0
+        ),
+
+    roundOff: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.roundOff ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.roundoff ??
+            0
+        ),
+
+    misc: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.miscTotalAmount ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.otherCharges ??
+            0
+        ),
+
+    discount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.discount ??
+            0
+        )
+      : 0,
+
+    depCode: Number(
+      formData.departmentCode || 0
+    ),
+
+    pType: formData.directPurchase
+      ? "Direct Purchase"
+      : "Purchase",
+
+    directIssue: Boolean(
+      formData.directIssue
+    ),
+
+    storeName,
+
+    branchCode,
+
+    userCode,
+
+    storedId,
+
+    missChargeAmount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.miscCharge ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.missChargeAmount ??
+            0
+        ),
+
+    cgstAmount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.cgstAmt ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.cgstAmount ??
+            0
+        ),
+
+    sgstAmount: formData.directPurchase
+      ? Number(
+          directPurchaseCalculation?.sgstAmt ??
+            0
+        )
+      : Number(
+          selectedGrnMaster?.sgstAmount ??
+            0
+        ),
+
+    grnNo: formData.directPurchase
+      ? ""
+      : String(
+          selectedGrnMaster?.grnNo ??
+            formData.orderNo ??
+            ""
+        ),
+
+    details,
+
+    taxes,
+
+    miscDetails,
   };
 
+  console.log(
+    "CreateDirectPurchase Payload:",
+    directPurchasePayload
+  );
+
+  // ============================================================
+  // SAME API FOR BOTH FLOWS
+  // ============================================================
+
+  startApiLoading();
+
+  try {
+    const response = await createDirectPurchase(
+      directPurchasePayload
+    );
+
+    console.log(
+      "CreateDirectPurchase Response:",
+      response
+    );
+
+    if (response?.success) {
+      toast.success(
+        response?.message ||
+          "Purchase saved successfully"
+      );
+    } else {
+      toast.error(
+        response?.message ||
+          "Failed to save purchase"
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Error creating purchase:",
+      error
+    );
+
+    toast.error(
+      "Failed to save purchase"
+    );
+  } finally {
+    stopApiLoading();
+  }
+};
   /* =========================
       BACK
   ========================= */

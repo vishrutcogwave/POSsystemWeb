@@ -6614,3 +6614,109 @@ export const getPurchaseGoodsReceivedList = async (
     throw error;
   }
 };
+
+
+
+
+
+
+
+export const getPurchaseOrderGRNNumber = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      `/api/InventoryPurchase/GetPurchaseOrderGRNNumber?branchCode=${branchCode}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching Purchase Order GRN Number:", error);
+    throw error;
+  }
+};
+
+
+export interface CreateDirectPurchasePayload {
+  pNo: number;
+  poNo: number;
+  pDate: string;
+  supCode: number;
+  pTotalAmount: number;
+  billNo: string;
+  taxAmount: number;
+  roundOff: number;
+  misc: number;
+  discount: number;
+  depCode: number;
+  pType: string;
+  directIssue: boolean;
+  storeName: string;
+  branchCode: string;
+  userCode: string;
+  storedId: string;
+  missChargeAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  grnNo: string;
+
+  details: {
+    itemCode: number;
+    pItemQty: number;
+    pItemRate: number;
+    unit: string;
+    qtyPer: number;
+    noOfQty: number;
+    totalQty: number;
+    storeName: string;
+    storedId: string;
+    noOfDays: number;
+    unitCode: number;
+    expiryDate: string;
+    trowQty: number;
+  }[];
+
+  taxes: {
+    itemCode: number;
+    taxCode: number;
+    taxAmount: number;
+    taxPer: number;
+  }[];
+
+  miscDetails: {
+    taxCode: number;
+    chargeCode: string;
+    chargeAmount: string;
+  }[];
+}
+
+export const createDirectPurchase = async (
+  payload: CreateDirectPurchasePayload
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/CreateDirectPurchase",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating direct purchase:", error);
+    throw error;
+  }
+};
