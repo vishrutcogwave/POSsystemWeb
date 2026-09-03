@@ -11,6 +11,7 @@ import {
   purchaseOrderCalculation,
   createPurchaseGoodsReceivedNote,
   getNextIdCode,
+  getGoodsReceivedNotePrint,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -129,6 +130,10 @@ const GoodsReceivedNote: React.FC = () => {
   const [inspectedBy, setInspectedBy] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
+const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+
   const receivedQtyDebounceRef = useRef<
     Record<number, ReturnType<typeof setTimeout>>
   >({});
@@ -190,7 +195,36 @@ const fetchNextGRNNo = async () => {
   const getStoreName = (storeId?: number) =>
     stores.find((x) => Number(x.storeId) === Number(storeId))?.storeName ||
     `Store ${storeId || ""}`;
+const resetGRNForm = () => {
+  // Reset selected PO
+  setSelectedPoNo("");
 
+  // Reset GRN data
+  setGrnData(null);
+
+  // Reset form fields
+  setBillNo("");
+  setConfirmedBy("");
+  setInspectedBy("");
+
+  // Reset GRN date to today
+  setGrnDate(new Date().toISOString().split("T")[0]);
+
+  // Reset received quantities
+  setReceivedQuantities({});
+
+  // Reset miscellaneous charges
+  setMiscRows([]);
+  setMiscChargeId("");
+  setMiscAmount("");
+
+  // Reset calculation
+  setCalculationResponse(null);
+
+  // Get next GRN number for next entry
+  fetchNextGRNNo();
+  getPurchaseOrderNumber(branchCode)
+};
   const fetchPurchaseOrderNumbers = async () => {
     if (!branchCode) return;
 
@@ -715,247 +749,277 @@ useEffect(() => {
     calculationResponse?.grandTotal ?? grnData?.master?.grossAmount ?? "",
   );
 
-  const handleSaveGRN = async () => {
-    if (!grnData) {
-      toast.error("Please select a purchase order");
-      return;
-    }
+const handleSaveGRN = async () => {
+  if (!grnData) {
+    toast.error("Please select a purchase order");
+    return;
+  }
 
-    if (!grnNo.trim()) {
-      toast.error("Please enter GRN No.");
-      return;
-    }
+  if (!grnNo.trim()) {
+    toast.error("Please enter GRN No.");
+    return;
+  }
 
-    if (!billNo.trim()) {
-      toast.error("Please enter Bill No.");
-      return;
-    }
+  if (!billNo.trim()) {
+    toast.error("Please enter Bill No.");
+    return;
+  }
 
-    if (!confirmedBy.trim()) {
-      toast.error("Please enter Confirmed By");
-      return;
-    }
+  if (!confirmedBy.trim()) {
+    toast.error("Please enter Confirmed By");
+    return;
+  }
 
-    if (!inspectedBy.trim()) {
-      toast.error("Please enter Inspected By");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const now = new Date();
-
-      /*
-       * =========================
-       * SAVE GRN PAYLOAD
-       * =========================
-       */
-
-      const payload = {
-        poNo: Number(grnData.master?.poNo || 0),
-
-        poDate: grnData.master?.poDate || now.toISOString(),
-
-        supCode: Number(grnData.master?.supCode || 0),
-
-        branch_Code: branchCode,
-
-        orderBy: grnData.master?.orderBy || "",
-
-        grnNo: grnNo.trim(),
-
-        grnDate: new Date(`${grnDate}T00:00:00`).toISOString(),
-
-        grnTime: now.toTimeString().split(" ")[0],
-
-        receivedBy: confirmedBy.trim(),
-
-        userId: appData?.user?.userId || "",
-
-        ipAddress: "",
-
-        billNo: billNo.trim(),
-
-        inspectedBy: inspectedBy.trim(),
-
-        storeId: Number(grnData.master?.storeId || 0),
-
-        storeName: getStoreName(grnData.master?.storeId),
-
-        totalAmount: Number(
-          calculationResponse?.totalAmount ?? grnData.master?.totalAmount ?? 0,
-        ),
-
-        totalTax: Number(
-          calculationResponse?.totalTax ??
-            calculationResponse?.taxAmount ??
-            grnData.master?.taxAmount ??
-            0,
-        ),
-
-        roundOff: Number(calculationResponse?.roundOff ?? 0),
-
-        netAmount: Number(
-          calculationResponse?.netAmount ??
-            calculationResponse?.grandTotal ??
-            grnData.master?.grossAmount ??
-            0,
-        ),
-
-        otherCharges: Number(calculationResponse?.otherCharges ?? 0),
-
-        missChargeAmount: Number(
-          calculationResponse?.miscTotalAmount ?? summaryMisc ?? 0,
-        ),
-
-        cgstAmount: Number(
-          calculationResponse?.cgstAmt ?? grnData.master?.cgstAmount ?? 0,
-        ),
-
-        sgstAmount: Number(
-          calculationResponse?.sgstAmt ?? grnData.master?.sgstAmount ?? 0,
-        ),
-
-        /*
-         * =========================
-         * DETAILS
-         * =========================
-         */
-
-        details: (grnData.details || []).map((item) => {
-          const receivedQty = Number(receivedQuantities[item.itemCode] ?? 0);
-
-          const orderedQty = Number(item.poItemQty || 0);
-
-          return {
-            poNo: Number(item.poNo || grnData.master?.poNo || 0),
-
-            itemCode: Number(item.itemCode || 0),
-
-            poItemQty: Number(item.poItemQty || 0),
-
-            poOrderQty: Number(item.poOrderQty || 0),
-
-            poItemRate: Number(item.poItemRate || 0),
-
-            branch_Code: branchCode,
-
-            unit: item.unit || "",
-
-            unitCode: Number(item.unitCode || 0),
-
-            poItemSuplyQty: Number(item.poItemSuplyQty || 0),
-
-            cpoItemQty: Number(item.cpoItemQty || 0),
-
-            receivedQty,
-
-            balanceQty: Math.max(0, orderedQty - receivedQty),
-
-            approvedBy: grnData.master?.approvedBy || "",
-
-            approvedDate: grnData.master?.approvedDate || now.toISOString(),
-          };
-        }),
-
-        /*
-         * =========================
-         * TAXES
-         * =========================
-         */
-
-        taxes: calculationResponse?.taxList || [],
-
-        /*
-         * =========================
-         * MISCELLANEOUS
-         * =========================
-         */
-
-        miscellaneous: calculationResponse?.miscTaxList || [],
-      };
-      console.log("Create GRN Payload:", payload);
-
-      const response = await createPurchaseGoodsReceivedNote(payload);
-
-      console.log("Create GRN Response:", response);
-
-   if (response?.success) {
-  toast.success(response?.message || "GRN saved successfully");
-
-  // ==========================================
-  // CLEAR CURRENT GRN DATA
-  // ==========================================
-
-  setSelectedPoNo("");
-  setGrnData(null);
-  setReceivedQuantities({});
-  setMiscRows([]);
-  setCalculationResponse(null);
-
-  // Clear user-entered fields
-  setBillNo("");
-  setConfirmedBy("");
-  setInspectedBy("");
-
-  // Reset GRN date
-  setGrnDate(new Date().toISOString().split("T")[0]);
-
-  // ==========================================
-  // FETCH FRESH PURCHASE ORDER NUMBERS
-  // ==========================================
+  if (!inspectedBy.trim()) {
+    toast.error("Please enter Inspected By");
+    return;
+  }
 
   try {
-    const poRes = await getPurchaseOrderNumber(branchCode);
+    setLoading(true);
 
-    console.log("Fresh Purchase Order Numbers:", poRes);
+    const now = new Date();
 
-    if (poRes?.success) {
-      setPoNumbers(poRes.data || []);
-    } else {
-      setPoNumbers([]);
+    // ==========================================
+    // SAVE GRN PAYLOAD
+    // ==========================================
 
+    const payload = {
+      poNo: Number(grnData.master?.poNo || 0),
+
+      poDate: grnData.master?.poDate || now.toISOString(),
+
+      supCode: Number(grnData.master?.supCode || 0),
+
+      branch_Code: branchCode,
+
+      orderBy: grnData.master?.orderBy || "",
+
+      grnNo: grnNo.trim(),
+
+      grnDate: new Date(`${grnDate}T00:00:00`).toISOString(),
+
+      grnTime: now.toTimeString().split(" ")[0],
+
+      receivedBy: confirmedBy.trim(),
+
+      userId: appData?.user?.userId || "",
+
+      ipAddress: "",
+
+      billNo: billNo.trim(),
+
+      inspectedBy: inspectedBy.trim(),
+
+      storeId: Number(grnData.master?.storeId || 0),
+
+      storeName: getStoreName(grnData.master?.storeId),
+
+      totalAmount: Number(
+        calculationResponse?.totalAmount ??
+          grnData.master?.totalAmount ??
+          0,
+      ),
+
+      totalTax: Number(
+        calculationResponse?.totalTax ??
+          calculationResponse?.taxAmount ??
+          grnData.master?.taxAmount ??
+          0,
+      ),
+
+      roundOff: Number(calculationResponse?.roundOff ?? 0),
+
+      netAmount: Number(
+        calculationResponse?.netAmount ??
+          calculationResponse?.grandTotal ??
+          grnData.master?.grossAmount ??
+          0,
+      ),
+
+      otherCharges: Number(
+        calculationResponse?.otherCharges ?? 0,
+      ),
+
+      missChargeAmount: Number(
+        calculationResponse?.miscTotalAmount ??
+          summaryMisc ??
+          0,
+      ),
+
+      cgstAmount: Number(
+        calculationResponse?.cgstAmt ??
+          grnData.master?.cgstAmount ??
+          0,
+      ),
+
+      sgstAmount: Number(
+        calculationResponse?.sgstAmt ??
+          grnData.master?.sgstAmount ??
+          0,
+      ),
+
+      // ==========================================
+      // DETAILS
+      // ==========================================
+
+      details: (grnData.details || []).map((item) => {
+        const receivedQty = Number(
+          receivedQuantities[item.itemCode] ?? 0,
+        );
+
+        const orderedQty = Number(
+          item.poItemQty || item.poOrderQty || 0,
+        );
+
+        return {
+          poNo: Number(
+            item.poNo || grnData.master?.poNo || 0,
+          ),
+
+          itemCode: Number(item.itemCode || 0),
+
+          poItemQty: Number(item.poItemQty || 0),
+
+          poOrderQty: Number(item.poOrderQty || 0),
+
+          poItemRate: Number(item.poItemRate || 0),
+
+          branch_Code: branchCode,
+
+          unit: item.unit || "",
+
+          unitCode: Number(item.unitCode || 0),
+
+          poItemSuplyQty: Number(
+            item.poItemSuplyQty || 0,
+          ),
+
+          cpoItemQty: Number(item.cpoItemQty || 0),
+
+          receivedQty,
+
+          balanceQty: Math.max(
+            0,
+            orderedQty - receivedQty,
+          ),
+
+          approvedBy: grnData.master?.approvedBy || "",
+
+          approvedDate:
+            grnData.master?.approvedDate ||
+            now.toISOString(),
+        };
+      }),
+
+      // ==========================================
+      // TAXES
+      // ==========================================
+
+      taxes: calculationResponse?.taxList || [],
+
+      // ==========================================
+      // MISCELLANEOUS
+      // ==========================================
+
+      miscellaneous:
+        calculationResponse?.miscTaxList || [],
+    };
+
+    console.log("Create GRN Payload:", payload);
+
+    // ==========================================
+    // CREATE GRN
+    // ==========================================
+
+    const response =
+      await createPurchaseGoodsReceivedNote(payload);
+
+    console.log("Create GRN Response:", response);
+
+    if (!response?.success) {
       toast.error(
-        poRes?.message || "Failed to refresh purchase orders",
+        response?.message || "Failed to save GRN",
       );
+      return;
     }
-  } catch (error: any) {
-    console.error(
-      "Error refreshing purchase order numbers:",
-      error,
+
+    toast.success(
+      response?.message || "GRN saved successfully",
     );
 
-    setPoNumbers([]);
+    // ==========================================
+    // GET GRN PRINT DATA
+    // ==========================================
+
+    try {
+      console.log("Fetching GRN Print Data...", {
+        poNo: Number(grnData.master?.poNo || 0),
+        grnNo: grnNo.trim(),
+        branchCode,
+      });
+
+      const printResponse =
+        await getGoodsReceivedNotePrint(
+          Number(grnData.master?.poNo || 0),
+          Number(grnNo.trim()),
+          branchCode,
+        );
+
+      console.log(
+        "GRN Print Response:",
+        printResponse,
+      );
+
+    if (printResponse?.success) {
+  // Store API print response
+  setPrintData(printResponse.data);
+
+  // Open preview
+  setShowPrintPreview(true);
+
+  // Reset the form after successful save + print data load
+  resetGRNForm();
+} else {
+        toast.error(
+          printResponse?.message ||
+            "GRN saved, but print data could not be loaded",
+        );
+      }
+    } catch (printError: any) {
+      console.error(
+        "GRN Print API Error:",
+        printError,
+      );
+
+      toast.error(
+        printError?.response?.data?.message ||
+          printError?.message ||
+          "GRN saved, but print preview failed",
+      );
+    }
+
+    // ==========================================
+    // REFRESH PURCHASE ORDERS
+    // ==========================================
+
+    await getPurchaseOrderNumber(branchCode);
+
+  } catch (error: any) {
+    console.error(
+      "Create GRN Error:",
+      error,
+    );
 
     toast.error(
       error?.response?.data?.message ||
         error?.message ||
-        "Failed to refresh purchase orders",
+        "Failed to save GRN",
     );
+  } finally {
+    setLoading(false);
   }
-
-  // ==========================================
-  // GENERATE NEW GRN NUMBER
-  // ==========================================
-
-  await fetchNextGRNNo();
-
-} else {
-        toast.error(response?.message || "Failed to save GRN");
-      }
-    } catch (error: any) {
-      console.error("Create GRN Error:", error);
-
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to save GRN",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+};
 
   return (
     <>
@@ -1471,6 +1535,449 @@ useEffect(() => {
             </button>
           </div>
         </div>
+        {showPrintPreview && printData && (
+  <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+    <div className="mx-auto my-6 w-full max-w-[900px]">
+
+      {/* =========================
+          PREVIEW HEADER
+      ========================= */}
+
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">
+            Goods Received Note Preview
+          </h2>
+
+          <p className="text-xs text-gray-500">
+            GRN No: {printData.master?.grnNo}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            🖨 Print
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowPrintPreview(false);
+              setPrintData(null);
+            }}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Close
+          </button>
+
+        </div>
+      </div>
+
+      {/* =========================
+          PRINT AREA
+      ========================= */}
+
+      <div
+        id="grn-print"
+        className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+      >
+
+        {/* =========================
+            COMPANY HEADER
+        ========================= */}
+
+        <div className="mb-5 text-center">
+
+          <h1 className="text-xl font-bold tracking-wide">
+            COGWAVE POS
+          </h1>
+
+          <div className="mt-1 text-xs leading-5 text-gray-600">
+            Basavanagudi
+            <br />
+            Bangalore - 560004
+            <br />
+            PH : 7338818178
+            <br />
+            Email : 0
+            <br />
+            GST : -
+          </div>
+
+        </div>
+
+        {/* =========================
+            TITLE
+        ========================= */}
+
+        <div className="mb-5 text-center">
+
+          <h2 className="text-lg font-semibold text-red-600">
+            Goods Received Note
+          </h2>
+
+        </div>
+
+        {/* =========================
+            GRN INFORMATION
+        ========================= */}
+
+        <div className="mb-5 grid grid-cols-2 gap-3 border border-gray-300 p-4">
+
+          <div>
+            <span className="font-semibold">
+              GRN No:
+            </span>{" "}
+            {printData.master?.grnNo || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              GRN Date:
+            </span>{" "}
+            {formatDate(printData.master?.grnDate)}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              PO No:
+            </span>{" "}
+            {printData.master?.poNo || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              PO Date:
+            </span>{" "}
+            {formatDate(printData.master?.poDate)}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Supplier:
+            </span>{" "}
+            {printData.master?.vendorName || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Supplier Code:
+            </span>{" "}
+            {printData.master?.supCode || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Store:
+            </span>{" "}
+            {printData.master?.storeName || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Ordered By:
+            </span>{" "}
+            {printData.master?.orderBy || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Received By:
+            </span>{" "}
+            {printData.master?.receivedby || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Inspected By:
+            </span>{" "}
+            {printData.master?.inspectedBy || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Bill No:
+            </span>{" "}
+            {billNo || "-"}
+          </div>
+
+          <div>
+            <span className="font-semibold">
+              Phone:
+            </span>{" "}
+            {printData.master?.phoneNo || "-"}
+          </div>
+
+        </div>
+
+        {/* =========================
+            SUPPLIER ADDRESS
+        ========================= */}
+
+        <div className="mb-5 border border-gray-300 p-4">
+
+          <div className="mb-1 font-semibold">
+            Supplier Details
+          </div>
+
+          <div>
+            {printData.master?.vendorName || "-"}
+          </div>
+
+          <div>
+            {printData.master?.vendorAddress || "-"}
+          </div>
+
+          <div>
+            Phone: {printData.master?.phoneNo || "-"}
+          </div>
+
+          <div>
+            GST No: {printData.master?.gstNo || "-"}
+          </div>
+
+        </div>
+
+        {/* =========================
+            ITEM DETAILS
+        ========================= */}
+
+        <table className="mb-5 w-full border-collapse border border-gray-400 text-[12px]">
+
+          <thead>
+
+            <tr className="bg-gray-100">
+
+              <th className="border border-gray-400 px-2 py-2 text-center">
+                Sl
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-left">
+                Code
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-left">
+                Item Name
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-center">
+                Unit
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-right">
+                PO Qty
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-right">
+                Received Qty
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-right">
+                Balance Qty
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-right">
+                Rate
+              </th>
+
+              <th className="border border-gray-400 px-2 py-2 text-right">
+                Amount
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {(printData.details || []).map(
+              (item: any, index: number) => {
+
+                const poQty = Number(
+                  item.poItemQty || 0,
+                );
+
+                const receivedQty = Number(
+                  item.receivedQty || 0,
+                );
+
+                const balanceQty = Number(
+                  item.balanceQty ??
+                    Math.max(
+                      0,
+                      poQty - receivedQty,
+                    ),
+                );
+
+                const amount = Number(
+                  item.receivedQtyTotal ??
+                    receivedQty *
+                      Number(item.poItemRate || 0),
+                );
+
+                return (
+                  <tr
+                    key={`${item.itemCode}-${index}`}
+                  >
+
+                    <td className="border border-gray-400 px-2 py-2 text-center">
+                      {index + 1}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2">
+                      {item.itemCode || "-"}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 font-medium">
+                      {item.itemName || "-"}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-center">
+                      {item.unit || "-"}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-right">
+                      {formatNumber(poQty)}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-right">
+                      {formatNumber(receivedQty)}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-right">
+                      {formatNumber(balanceQty)}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-right">
+                      ₹ {formatNumber(item.poItemRate)}
+                    </td>
+
+                    <td className="border border-gray-400 px-2 py-2 text-right font-semibold">
+                      ₹ {formatNumber(amount)}
+                    </td>
+
+                  </tr>
+                );
+              },
+            )}
+
+          </tbody>
+
+        </table>
+
+        {/* =========================
+            TAX DETAILS
+        ========================= */}
+
+    
+
+        {/* =========================
+            TOTALS
+        ========================= */}
+
+        <div className="mb-6 ml-auto w-full max-w-[400px]">
+
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span>Total Amount</span>
+            <span className="font-semibold">
+              ₹ {formatNumber(printData.master?.totalAmount)}
+            </span>
+          </div>
+
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span>CGST</span>
+            <span>
+              ₹ {formatNumber(printData.master?.cgstAmount)}
+            </span>
+          </div>
+
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span>SGST</span>
+            <span>
+              ₹ {formatNumber(printData.master?.sgstAmount)}
+            </span>
+          </div>
+
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span>Other Charges</span>
+            <span>
+              ₹ {formatNumber(printData.master?.otherCharges)}
+            </span>
+          </div>
+
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span>Round Off</span>
+            <span>
+              ₹ {formatNumber(printData.master?.roundoff)}
+            </span>
+          </div>
+
+          <div className="flex justify-between py-3 text-base font-bold">
+            <span>Net Amount</span>
+            <span>
+              ₹ {formatNumber(printData.master?.netAmount)}
+            </span>
+          </div>
+
+        </div>
+
+        {/* =========================
+            TERMS & CONDITIONS
+        ========================= */}
+
+        {printData.termsMaster?.length > 0 && (
+          <div className="border-t border-gray-300 pt-4">
+
+            {printData.termsMaster.map(
+              (term: any, index: number) => (
+
+                <div key={index} className="mb-4">
+
+                  <h3 className="mb-1 font-semibold">
+                    {term.termsTitle}
+                  </h3>
+
+                  <div className="whitespace-pre-line text-xs leading-5 text-gray-600">
+                    {term.termsDescription}
+                  </div>
+
+                </div>
+
+              ),
+            )}
+
+          </div>
+        )}
+
+        {/* =========================
+            SIGNATURE
+        ========================= */}
+
+        <div className="mt-12 grid grid-cols-3 gap-8 text-center text-xs">
+
+          <div className="border-t border-gray-400 pt-2">
+            Received By
+          </div>
+
+          <div className="border-t border-gray-400 pt-2">
+            Inspected By
+          </div>
+
+          <div className="border-t border-gray-400 pt-2">
+            Authorized Signature
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </>
   );

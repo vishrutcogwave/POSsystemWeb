@@ -6515,3 +6515,102 @@ export const createPurchaseGoodsReceivedNote = async (payload: {
     throw error;
   }
 };
+
+export const getGoodsReceivedNotePrint = async (
+  poNo: number,
+  GrnNo: number,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetGoodsReceivedNotePrint",
+      {
+        params: {
+          poNo,
+          GrnNo,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Goods Received Note print:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const getGoodsReceivedList = async (
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetGoodsReceivedList",
+      {
+        params: {
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Goods Received List:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+
+export const getPurchaseGoodsReceivedList = async (
+  branchCode: string,
+  GrnNo: number,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseGoodsReceivedList",
+      {
+        params: {
+          branchCode,
+          GrnNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Purchase Goods Received List:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

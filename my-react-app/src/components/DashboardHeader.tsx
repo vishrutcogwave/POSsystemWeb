@@ -369,6 +369,11 @@ const DashboardHeader: React.FC = () => {
     icon: Package,
     permissionName: "Goods Received Note",
   },
+    {
+    name: "Item Purchase",
+    icon: Receipt,
+    permissionName: "Item Purchase",
+  },
  {
     name: "Purchase Unit Master",
     icon: Package,
@@ -423,7 +428,8 @@ const DashboardHeader: React.FC = () => {
   "Purchase Order": "/purchase/purchaseorder",
   "Purchase Unit Master": "/purchase/purchaseunitmaster",
    "Purchase Order Approval": "/purchase/purchaseorderapproval",
-   "Goods Received Note" : "/purchase/goodsreceivednote"
+   "Goods Received Note" : "/purchase/goodsreceivednote",
+   "Item Purchase": "/purchase/itempurchase",
   };
 
   const handleLogout = () => {
