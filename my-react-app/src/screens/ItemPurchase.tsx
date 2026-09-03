@@ -45,6 +45,8 @@ type PurchaseItem = {
   rate: number;
   total: number;
   taxName: string;
+  noOfDays: number;
+  expiryDate: string;
 };
 
 type InventoryUnitConversion = {
@@ -111,6 +113,8 @@ const ItemPurchase: React.FC = () => {
   const [qty, setQty] = useState("");
   const [rate, setRate] = useState("");
   const [taxName, setTaxName] = useState("");
+  const [noOfDays, setNoOfDays] = useState("");
+  const [expiryDate, setExpiryDate] = useState(formData.date);
 
   const [selectedUnitQty, setSelectedUnitQty] = useState(0);
   const [unitConversions, setUnitConversions] = useState<
@@ -532,6 +536,8 @@ const handleGrnChange = async (
     setUnitCode(Number(item.unitCode || 0));
     setRate(String(item.itemRate ?? ""));
     setTaxName(item.taxName || "");
+    setNoOfDays("0");
+    setExpiryDate(formData.date);
     setSelectedUnitQty(0);
     setShowUnitConversion(false);
     setItemSearch(`${item.itemCode} - ${item.itemName}`);
@@ -550,7 +556,25 @@ const handleGrnChange = async (
       setSelectedUnitQty(0);
       setRate("");
       setTaxName("");
+      setNoOfDays("");
+      setExpiryDate(formData.date);
     }
+  };
+
+  /* =========================
+      EXPIRY DATE CALCULATION
+  ========================= */
+
+  const calculateExpiryDate = (date: string, days: number) => {
+    if (!date) return "";
+
+    const result = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(result.getTime())) return "";
+
+    result.setDate(result.getDate() + Number(days || 0));
+
+    return result.toISOString().split("T")[0];
   };
 
   /* =========================
@@ -610,6 +634,8 @@ const handleGrnChange = async (
     setQty("");
     setRate("");
     setTaxName("");
+    setNoOfDays("");
+    setExpiryDate(formData.date);
     setItemSearch("");
     setShowItemDropdown(false);
   };
@@ -628,6 +654,11 @@ const handleGrnChange = async (
     const enteredQty = Number(qty);
     const conversionQty = Number(selectedUnitQty);
     const itemRate = Number(rate);
+    const enteredNoOfDays = Number(noOfDays || 0);
+    const calculatedExpiryDate = calculateExpiryDate(
+      formData.date,
+      enteredNoOfDays,
+    );
 
     if (!enteredQty || enteredQty <= 0) {
       toast.error("Please enter a valid quantity");
@@ -657,6 +688,8 @@ const handleGrnChange = async (
       rate: itemRate,
       total: actualQty * itemRate,
       taxName,
+      noOfDays: enteredNoOfDays,
+      expiryDate: calculatedExpiryDate,
     };
 
     const nextItems =
@@ -685,6 +718,11 @@ const handleGrnChange = async (
     setSelectedUnitQty(Number(item.unitQty || 0));
     setRate(String(item.rate));
     setTaxName(item.taxName || "");
+    setNoOfDays(String(item.noOfDays ?? 0));
+    setExpiryDate(
+      item.expiryDate ||
+        calculateExpiryDate(formData.date, Number(item.noOfDays ?? 0)),
+    );
     setItemSearch(`${item.code} - ${item.name}`);
     setShowItemDropdown(false);
   };
@@ -946,12 +984,23 @@ const handleGrnChange = async (
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+
                       setFormData((prev) => ({
                         ...prev,
-                        date: e.target.value,
-                      }))
-                    }
+                        date: newDate,
+                      }));
+
+                      if (formData.directPurchase) {
+                        setExpiryDate(
+                          calculateExpiryDate(
+                            newDate,
+                            Number(noOfDays || 0),
+                          ),
+                        );
+                      }
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -1350,6 +1399,43 @@ onChange={(e) => {
                       />
                     </div>
 
+                    <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                      <label className={`${labelClass} h-[18px]`}>
+                        No. of Days
+                      </label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={noOfDays}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setNoOfDays(value);
+
+                          const days = Number(value || 0);
+                          setExpiryDate(
+                            calculateExpiryDate(formData.date, days),
+                          );
+                        }}
+                        placeholder="No. of Days"
+                        className={`${inputClass} text-right`}
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                      <label className={`${labelClass} h-[18px]`}>
+                        Expiry Date
+                      </label>
+
+                      <input
+                        type="date"
+                        value={expiryDate}
+                        readOnly
+                        className={`${inputClass} cursor-not-allowed bg-gray-100`}
+                      />
+                    </div>
+
                     <div className="col-span-1 sm:col-span-2 lg:col-span-1">
                       <button
                         type="button"
@@ -1430,6 +1516,14 @@ onChange={(e) => {
                         Total
                       </th>
 
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        No. of Days
+                      </th>
+
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
+                        Expiry Date
+                      </th>
+
                       {formData.directPurchase && (
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
                           Action
@@ -1443,7 +1537,7 @@ onChange={(e) => {
                       directPurchaseItems.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={formData.directPurchase ? 8 : 7}
+                            colSpan={formData.directPurchase ? 10 : 9}
                             className="px-4 py-10 text-center text-sm text-gray-400"
                           >
                             No items added to this purchase
@@ -1483,6 +1577,14 @@ onChange={(e) => {
                               ₹ {Number(item.total || 0).toFixed(2)}
                             </td>
 
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                              {Number(item.noOfDays || 0)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
+                              {item.expiryDate || formData.date}
+                            </td>
+
                             <td className="whitespace-nowrap px-4 py-3 text-center">
                               <div className="flex items-center justify-center gap-2">
                                 <button
@@ -1513,7 +1615,7 @@ onChange={(e) => {
                       selectedGrnDetails.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={9}
                             className="px-4 py-10 text-center text-sm text-gray-400"
                           >
                             No purchase details available
@@ -1551,6 +1653,14 @@ onChange={(e) => {
 
                             <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
                               ₹ {Number(item.receivedQtyTotal || 0).toFixed(2)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                              0
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
+                              {formData.date}
                             </td>
                           </tr>
                         ))
