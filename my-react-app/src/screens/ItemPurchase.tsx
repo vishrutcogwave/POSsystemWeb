@@ -8,6 +8,9 @@ import {
   getGoodsReceivedList,
   getPurchaseGoodsReceivedList,
   getDepartmentList,
+  purchaseOrderCalculation,
+  getItemStoreListByStoreId,
+  getInventoryUnitConversionList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -17,6 +20,41 @@ type Store = {
   storeLocation: string;
   storeIncharge: string;
   branch_Code: string;
+};
+
+
+type InventoryItem = {
+  itemCode: number;
+  itemName: string;
+  unitCode: number;
+  unitName: string;
+  itemRate: number;
+  taxName: string;
+  taxCode: number;
+};
+
+type PurchaseItem = {
+  id: number;
+  code: string;
+  name: string;
+  unit: string;
+  unitCode: number;
+  unitQty: number;
+  enteredQty: number;
+  qty: number;
+  rate: number;
+  total: number;
+  taxName: string;
+};
+
+type InventoryUnitConversion = {
+  unitCode: number;
+  unitName: string;
+  qty: number;
+  isActive: boolean;
+  branch_Code: string;
+  createdBy: string;
+  createdDate: string;
 };
 
 const ItemPurchase: React.FC = () => {
@@ -53,10 +91,41 @@ const ItemPurchase: React.FC = () => {
 
   const [purchaseGoodsReceivedData, setPurchaseGoodsReceivedData] =
     useState<any>(null);
-
   const [loadingStores, setLoadingStores] = useState(false);
   const [loadingGrnList, setLoadingGrnList] = useState(false);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
+
+  /* =========================
+      DIRECT PURCHASE ITEM STATE
+  ========================= */
+
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [loadingInventoryItems, setLoadingInventoryItems] = useState(false);
+  const [itemSearch, setItemSearch] = useState("");
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
+
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [unit, setUnit] = useState("");
+  const [unitCode, setUnitCode] = useState(0);
+  const [qty, setQty] = useState("");
+  const [rate, setRate] = useState("");
+  const [taxName, setTaxName] = useState("");
+
+  const [selectedUnitQty, setSelectedUnitQty] = useState(0);
+  const [unitConversions, setUnitConversions] = useState<
+    InventoryUnitConversion[]
+  >([]);
+  const [loadingUnitConversions, setLoadingUnitConversions] = useState(false);
+  const [showUnitConversion, setShowUnitConversion] = useState(false);
+
+  const [directPurchaseItems, setDirectPurchaseItems] = useState<
+    PurchaseItem[]
+  >([]);
+  const [editingDirectPurchaseItemIndex, setEditingDirectPurchaseItemIndex] =
+    useState<number | null>(null);
+  const [directPurchaseCalculation, setDirectPurchaseCalculation] =
+    useState<any>(null);
 
   /* =========================
       API LOADER
@@ -276,6 +345,93 @@ const ItemPurchase: React.FC = () => {
   };
 
   /* =========================
+      FETCH DIRECT PURCHASE ITEMS
+  ========================= */
+
+  const fetchInventoryItems = async (storeId?: number) => {
+    const branch = appData?.user?.branch_code;
+    const selectedStoreId = storeId ?? formData.store?.storeId;
+
+    if (!branch || !selectedStoreId) {
+      setInventoryItems([]);
+      return;
+    }
+
+    startApiLoading();
+
+    try {
+      setLoadingInventoryItems(true);
+
+      const res = await getItemStoreListByStoreId(
+        branch,
+        String(selectedStoreId),
+      );
+
+      if (res?.success) {
+        setInventoryItems(res?.data || []);
+      } else {
+        setInventoryItems([]);
+      }
+    } catch (error) {
+      console.error("Error fetching direct purchase inventory items:", error);
+      setInventoryItems([]);
+    } finally {
+      setLoadingInventoryItems(false);
+      stopApiLoading();
+    }
+  };
+
+  /* =========================
+      FETCH UNIT CONVERSIONS
+  ========================= */
+
+  const fetchInventoryUnitConversions = async () => {
+    const branch = appData?.user?.branch_code;
+
+    if (!branch) {
+      setUnitConversions([]);
+      return;
+    }
+
+    startApiLoading();
+
+    try {
+      setLoadingUnitConversions(true);
+
+      const res = await getInventoryUnitConversionList(branch);
+
+      if (res?.success) {
+        setUnitConversions(
+          (res?.data || []).filter(
+            (item: InventoryUnitConversion) => item.isActive,
+          ),
+        );
+      } else {
+        setUnitConversions([]);
+      }
+    } catch (error) {
+      console.error("Error fetching unit conversions:", error);
+      setUnitConversions([]);
+    } finally {
+      setLoadingUnitConversions(false);
+      stopApiLoading();
+    }
+  };
+
+  useEffect(() => {
+    if (appData?.user?.branch_code) {
+      fetchInventoryUnitConversions();
+    }
+  }, [appData?.user?.branch_code]);
+
+useEffect(() => {
+  if (formData.store?.storeId) {
+    fetchInventoryItems(formData.store.storeId);
+  } else {
+    setInventoryItems([]);
+  }
+}, [formData.store?.storeId]);
+  /* =========================
       INITIAL LOAD
   ========================= */
 
@@ -344,6 +500,218 @@ const handleGrnChange = async (
   await fetchPurchaseGoodsReceived(grnNo);
 };
   /* =========================
+      DIRECT PURCHASE ITEM SEARCH
+  ========================= */
+
+  const filteredDirectPurchaseItems = inventoryItems.filter((item) => {
+    const search = itemSearch.trim().toLowerCase();
+
+    if (!search) return true;
+
+    return (
+      String(item.itemCode).toLowerCase().includes(search) ||
+      String(item.itemName || "").toLowerCase().includes(search)
+    );
+  });
+
+  const handleDirectPurchaseItemSelect = (item: InventoryItem) => {
+    const existingItem = directPurchaseItems.find(
+      (purchaseItem, index) =>
+        purchaseItem.code === String(item.itemCode) &&
+        index !== editingDirectPurchaseItemIndex,
+    );
+
+    if (existingItem) {
+      toast.error(`${item.itemName} is already added`);
+      return;
+    }
+
+    setCode(String(item.itemCode));
+    setName(item.itemName || "");
+    setUnit(item.unitName || "");
+    setUnitCode(Number(item.unitCode || 0));
+    setRate(String(item.itemRate ?? ""));
+    setTaxName(item.taxName || "");
+    setSelectedUnitQty(0);
+    setShowUnitConversion(false);
+    setItemSearch(`${item.itemCode} - ${item.itemName}`);
+    setShowItemDropdown(false);
+  };
+
+  const handleDirectPurchaseItemSearchChange = (value: string) => {
+    setItemSearch(value);
+    setShowItemDropdown(true);
+
+    if (!value.trim()) {
+      setCode("");
+      setName("");
+      setUnit("");
+      setUnitCode(0);
+      setSelectedUnitQty(0);
+      setRate("");
+      setTaxName("");
+    }
+  };
+
+  /* =========================
+      DIRECT PURCHASE CALCULATION
+  ========================= */
+
+  const calculateDirectPurchase = async (nextItems: PurchaseItem[]) => {
+    if (!formData.store) {
+      toast.error("Please select a store");
+      return;
+    }
+
+    const payload = {
+      poNo: 0,
+      storeId: Number(formData.store.storeId),
+      branch: appData?.user?.branch_code || "",
+      discount: 0,
+      discountIn: "",
+      poDetail: nextItems.map((item) => ({
+        itemCode: Number(item.code),
+        poItemQty: Number(item.qty),
+        poItemRate: Number(item.rate),
+        unit: item.unit,
+        unitCode: Number(item.unitCode || 0),
+        poItemSuplyQty: Number(item.qty),
+        cpoItemQty: Number(item.qty),
+      })),
+      poMiscDetail: [],
+    };
+
+    console.log("Direct Purchase Calculation Payload:", payload);
+
+    startApiLoading();
+
+    try {
+      const res = await purchaseOrderCalculation(payload);
+
+      console.log("Direct Purchase Calculation Response:", res);
+
+      setDirectPurchaseCalculation(res);
+      return res;
+    } catch (error) {
+      console.error("Error calculating direct purchase:", error);
+      toast.error("Failed to calculate purchase");
+    } finally {
+      stopApiLoading();
+    }
+  };
+
+  const resetDirectPurchaseItemForm = () => {
+    setEditingDirectPurchaseItemIndex(null);
+    setCode("");
+    setName("");
+    setUnit("");
+    setUnitCode(0);
+    setSelectedUnitQty(0);
+    setQty("");
+    setRate("");
+    setTaxName("");
+    setItemSearch("");
+    setShowItemDropdown(false);
+  };
+
+  const handleAddDirectPurchaseItem = async () => {
+    if (!code || !name) {
+      toast.error("Please select an item");
+      return;
+    }
+
+    if (!unit) {
+      toast.error("Please select a unit");
+      return;
+    }
+
+    const enteredQty = Number(qty);
+    const conversionQty = Number(selectedUnitQty);
+    const itemRate = Number(rate);
+
+    if (!enteredQty || enteredQty <= 0) {
+      toast.error("Please enter a valid quantity");
+      return;
+    }
+
+    if (!itemRate || itemRate <= 0) {
+      toast.error("Please enter a valid rate");
+      return;
+    }
+
+    const actualQty =
+      conversionQty > 0 ? enteredQty * conversionQty : enteredQty;
+
+    const newItem: PurchaseItem = {
+      id:
+        editingDirectPurchaseItemIndex !== null
+          ? directPurchaseItems[editingDirectPurchaseItemIndex].id
+          : Date.now(),
+      code,
+      name,
+      unit,
+      unitCode: Number(unitCode || 0),
+      unitQty: conversionQty,
+      enteredQty,
+      qty: actualQty,
+      rate: itemRate,
+      total: actualQty * itemRate,
+      taxName,
+    };
+
+    const nextItems =
+      editingDirectPurchaseItemIndex !== null
+        ? directPurchaseItems.map((item, index) =>
+            index === editingDirectPurchaseItemIndex ? newItem : item,
+          )
+        : [...directPurchaseItems, newItem];
+
+    setDirectPurchaseItems(nextItems);
+    await calculateDirectPurchase(nextItems);
+    resetDirectPurchaseItemForm();
+  };
+
+  const handleEditDirectPurchaseItem = (index: number) => {
+    const item = directPurchaseItems[index];
+
+    if (!item) return;
+
+    setEditingDirectPurchaseItemIndex(index);
+    setCode(item.code);
+    setName(item.name);
+    setUnit(item.unit);
+    setUnitCode(Number(item.unitCode || 0));
+    setQty(String(item.enteredQty));
+    setSelectedUnitQty(Number(item.unitQty || 0));
+    setRate(String(item.rate));
+    setTaxName(item.taxName || "");
+    setItemSearch(`${item.code} - ${item.name}`);
+    setShowItemDropdown(false);
+  };
+
+  const handleRemoveDirectPurchaseItem = async (index: number) => {
+    const item = directPurchaseItems[index];
+
+    const nextItems = directPurchaseItems.filter(
+      (_, itemIndex) => itemIndex !== index,
+    );
+
+    setDirectPurchaseItems(nextItems);
+
+    if (editingDirectPurchaseItemIndex === index) {
+      resetDirectPurchaseItemForm();
+    }
+
+    if (nextItems.length > 0) {
+      await calculateDirectPurchase(nextItems);
+    } else {
+      setDirectPurchaseCalculation(null);
+    }
+
+    toast.success(`${item?.name || "Item"} removed`);
+  };
+
+  /* =========================
       SELECTED GRN DATA
   ========================= */
 
@@ -357,20 +725,51 @@ const handleGrnChange = async (
       ORDER SUMMARY VALUES
   ========================= */
 
-  const totalQuantity = selectedGrnDetails.reduce(
-    (sum: number, item: any) => sum + Number(item?.receivedQty || 0),
+  const directPurchaseTotalQuantity = directPurchaseItems.reduce(
+    (sum, item) => sum + Number(item.qty || 0),
     0,
   );
 
-  const totalAmount = Number(selectedGrnMaster?.totalAmount || 0);
+  const directPurchaseSubTotal = directPurchaseItems.reduce(
+    (sum, item) => sum + Number(item.total || 0),
+    0,
+  );
 
-  const cgstAmount = Number(selectedGrnMaster?.cgstAmount || 0);
+  const totalQuantity = formData.directPurchase
+    ? directPurchaseTotalQuantity
+    : selectedGrnDetails.reduce(
+        (sum: number, item: any) =>
+          sum + Number(item?.receivedQty || 0),
+        0,
+      );
 
-  const sgstAmount = Number(selectedGrnMaster?.sgstAmount || 0);
+  const totalAmount = formData.directPurchase
+    ? Number(
+        directPurchaseCalculation?.totalAmount ??
+          directPurchaseSubTotal ??
+          0,
+      )
+    : Number(selectedGrnMaster?.totalAmount || 0);
 
-  const miscellaneousAmount = Number(selectedGrnMaster?.missChargeAmount || 0);
+  const cgstAmount = formData.directPurchase
+    ? Number(directPurchaseCalculation?.cgstAmt || 0)
+    : Number(selectedGrnMaster?.cgstAmount || 0);
 
-  const grandTotal = Number(selectedGrnMaster?.netAmount || 0);
+  const sgstAmount = formData.directPurchase
+    ? Number(directPurchaseCalculation?.sgstAmt || 0)
+    : Number(selectedGrnMaster?.sgstAmount || 0);
+
+  const miscellaneousAmount = formData.directPurchase
+    ? Number(directPurchaseCalculation?.miscTotalAmount || 0)
+    : Number(selectedGrnMaster?.missChargeAmount || 0);
+
+  const grandTotal = formData.directPurchase
+    ? Number(
+        directPurchaseCalculation?.grandTotal ??
+          directPurchaseSubTotal ??
+          0,
+      )
+    : Number(selectedGrnMaster?.netAmount || 0);
 
   /* =========================
       SAVE
@@ -402,7 +801,12 @@ const handleGrnChange = async (
       return;
     }
 
-    if (!selectedGrnData) {
+    if (formData.directPurchase && directPurchaseItems.length === 0) {
+      toast.error("Please add at least one item");
+      return;
+    }
+
+    if (!formData.directPurchase && !selectedGrnData) {
       toast.error("Please load GRN details");
       return;
     }
@@ -414,6 +818,8 @@ const handleGrnChange = async (
     });
 
     console.log("Selected GRN Data:", purchaseGoodsReceivedData);
+    console.log("Direct Purchase Items:", directPurchaseItems);
+    console.log("Direct Purchase Calculation:", directPurchaseCalculation);
 
     toast.success("Item Purchase details saved");
   };
@@ -429,6 +835,9 @@ const handleGrnChange = async (
     }));
 
     setPurchaseGoodsReceivedData(null);
+    setDirectPurchaseItems([]);
+    setDirectPurchaseCalculation(null);
+    resetDirectPurchaseItemForm();
   };
 
   return (
@@ -647,27 +1056,30 @@ const handleGrnChange = async (
               </div>
               <div className="flex min-h-10 items-center gap-6 lg:col-span-2 mt-2">
                 <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={formData.directPurchase}
-                    onChange={(e) => {
-                      const checked = e.target.checked;
+                <input
+  type="checkbox"
+checked={formData.directPurchase}
+onChange={(e) => {
+  const checked = e.target.checked;
 
-                setFormData((prev) => ({
-  ...prev,
-  directPurchase: checked,
-  orderNo: checked ? "" : prev.orderNo,
-  billNo: checked ? "" : prev.billNo,
-  supplier: checked ? "Direct Purchase" : "",
-}));
+  setFormData((prev) => ({
+    ...prev,
+    directPurchase: checked,
+    orderNo: checked ? "" : prev.orderNo,
+    billNo: checked ? "" : prev.billNo,
+    supplier: checked ? "Direct Purchase" : "",
+  }));
 
-                      // Clear GRN data when switching to Direct Purchase
-                      if (checked) {
-                        setPurchaseGoodsReceivedData(null);
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
+  setPurchaseGoodsReceivedData(null);
+
+  if (!checked) {
+    setDirectPurchaseItems([]);
+    setDirectPurchaseCalculation(null);
+    resetDirectPurchaseItemForm();
+  }
+}}
+  className="h-4 w-4 rounded border-gray-300"
+/>
                   <span>Direct Purchase</span>
                 </label>
 
@@ -699,10 +1111,280 @@ const handleGrnChange = async (
           </section>
 
           {/* =========================
+              DIRECT PURCHASE ITEM ENTRY
+          ========================= */}
+
+       {/* DIRECT PURCHASE DETAILS - SHOW ONLY FOR DIRECT PURCHASE */}
+       {formData.directPurchase && (
+       <>
+              {showUnitConversion && (
+                <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4">
+                  <div className="w-full max-w-md rounded-xl bg-white shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-800">
+                          Unit Conversion
+                        </h3>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          Optional conversion for {name || "this item"}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowUnitConversion(false)}
+                        className="rounded-md px-2 py-1 text-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="p-5">
+                      <label className={labelClass}>Select Conversion</label>
+
+                      <select
+                        value={
+                          unitConversions.find(
+                            (conversion) =>
+                              Number(conversion.qty) ===
+                                Number(selectedUnitQty) &&
+                              conversion.unitName !== unit,
+                          )?.unitCode || ""
+                        }
+                        onChange={(e) => {
+                          const selected = unitConversions.find(
+                            (conversion) =>
+                              conversion.unitCode === Number(e.target.value),
+                          );
+
+                          setSelectedUnitQty(
+                            selected ? Number(selected.qty) : 0,
+                          );
+                        }}
+                        className={inputClass}
+                        disabled={loadingUnitConversions}
+                      >
+                        <option value="">
+                          {loadingUnitConversions
+                            ? "Loading conversions..."
+                            : "No conversion"}
+                        </option>
+
+                        {unitConversions
+                          .filter(
+                            (conversion) => conversion.unitName !== unit,
+                          )
+                          .map((conversion) => (
+                            <option
+                              key={conversion.unitCode}
+                              value={conversion.unitCode}
+                            >
+                              {conversion.unitName} ({conversion.qty})
+                            </option>
+                          ))}
+                      </select>
+
+                      <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                        {selectedUnitQty > 0 ? (
+                          <>
+                            <span className="font-semibold">
+                              {unitConversions.find(
+                                (conversion) =>
+                                  Number(conversion.qty) ===
+                                    Number(selectedUnitQty) &&
+                                  conversion.unitName !== unit,
+                              )?.unitName || "Conversion"}
+                            </span>{" "}
+                            = {selectedUnitQty} {unit || "base units"}
+                          </>
+                        ) : (
+                          <>No conversion selected. Quantity is used as entered.</>
+                        )}
+                      </div>
+
+                      <div className="mt-5 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedUnitQty(0);
+                            setShowUnitConversion(false);
+                          }}
+                          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          No Conversion
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowUnitConversion(false)}
+                          className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <section className="relative z-50 mt-6 mb-6 overflow-visible rounded-xl border border-gray-200">
+                <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                  <h3 className="text-base font-semibold text-gray-800">
+                    Direct Purchase Details
+                  </h3>
+
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Select an item, enter quantity, unit conversion and rate
+                  </p>
+                </div>
+
+                <div className="p-4 md:p-5">
+                  <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-12">
+                    <div className="relative col-span-1 sm:col-span-2 lg:col-span-4">
+                      <label className={`${labelClass} h-[18px]`}>Item</label>
+
+                      <input
+                        value={itemSearch}
+                        onChange={(e) =>
+                          handleDirectPurchaseItemSearchChange(e.target.value)
+                        }
+                        onFocus={() => setShowItemDropdown(true)}
+                        onBlur={() =>
+                          setTimeout(
+                            () => setShowItemDropdown(false),
+                            150,
+                          )
+                        }
+                        placeholder={
+                          loadingInventoryItems
+                            ? "Loading items..."
+                            : "Search code or item name"
+                        }
+                        disabled={loadingInventoryItems || !formData.store}
+                        className={`${inputClass} ${
+                          loadingInventoryItems || !formData.store
+                            ? "cursor-not-allowed bg-gray-100"
+                            : ""
+                        }`}
+                      />
+
+                      {showItemDropdown && formData.store && (
+                        <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl">
+                          {filteredDirectPurchaseItems.length === 0 ? (
+                            <div className="px-3 py-4 text-center text-sm text-gray-500">
+                              No items found
+                            </div>
+                          ) : (
+                            filteredDirectPurchaseItems.map((item) => (
+                              <button
+                                type="button"
+                                key={item.itemCode}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() =>
+                                  handleDirectPurchaseItemSelect(item)
+                                }
+                                className="flex w-full items-center justify-between gap-3 border-b border-gray-100 px-3 py-2.5 text-left last:border-b-0 hover:bg-blue-50"
+                              >
+                                <span className="font-medium text-gray-800">
+                                  {item.itemCode} - {item.itemName}
+                                </span>
+                                <span className="shrink-0 text-xs text-gray-500">
+                                  {item.unitName}
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                      <label className={`${labelClass} h-[18px]`}>Unit</label>
+
+                      <input
+                        value={unit}
+                        readOnly
+                        placeholder="Unit"
+                        className={`${inputClass} cursor-not-allowed bg-gray-100`}
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowUnitConversion(true)}
+                        disabled={!code}
+                        className={`mt-1 text-xs font-medium hover:underline ${
+                          !code
+                            ? "cursor-not-allowed text-gray-400"
+                            : "text-blue-600 hover:text-blue-800"
+                        }`}
+                      >
+                        Unit Conversion
+                      </button>
+
+                      <label className={`${labelClass} h-[18px]`}>Qty</label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={qty}
+                        onChange={(e) => setQty(e.target.value)}
+                        placeholder="Qty"
+                        className={`${inputClass} text-right`}
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                      <label className={`${labelClass} h-[18px]`}>Rate</label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={rate}
+                        onChange={(e) => setRate(e.target.value)}
+                        placeholder="Rate"
+                        className={`${inputClass} text-right`}
+                      />
+                    </div>
+
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-1">
+                      <button
+                        type="button"
+                        onClick={handleAddDirectPurchaseItem}
+                        className="h-10 w-full whitespace-nowrap rounded-lg bg-green-600 px-2 text-sm font-semibold text-white transition hover:bg-green-700"
+                      >
+                        {editingDirectPurchaseItemIndex !== null
+                          ? "Update"
+                          : "+ Add"}
+                      </button>
+                    </div>
+
+                    {editingDirectPurchaseItemIndex !== null && (
+                      <div className="col-span-1 sm:col-span-2 lg:col-span-1">
+                        <button
+                          type="button"
+                          onClick={resetDirectPurchaseItemForm}
+                          className="h-10 w-full whitespace-nowrap rounded-lg border border-gray-300 bg-white px-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </section>
+       </>
+
+       )}
+
+          {/* =========================
               PURCHASE DETAILS TABLE
           ========================= */}
 
-      
             <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
               <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
                 <h2 className="text-base font-semibold text-gray-800">
@@ -747,52 +1429,137 @@ const handleGrnChange = async (
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                         Total
                       </th>
+
+                      {formData.directPurchase && (
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
+                          Action
+                        </th>
+                      )}
                     </tr>
                   </thead>
 
                   <tbody>
-                    {selectedGrnDetails.map((item: any, index: number) => (
-                      <tr
-                        key={`${item.itemCode}-${item.rno}-${index}`}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                          {index + 1}
-                        </td>
+                    {formData.directPurchase ? (
+                      directPurchaseItems.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={formData.directPurchase ? 8 : 7}
+                            className="px-4 py-10 text-center text-sm text-gray-400"
+                          >
+                            No items added to this purchase
+                          </td>
+                        </tr>
+                      ) : (
+                        directPurchaseItems.map((item, index) => (
+                          <tr
+                            key={item.id}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                              {index + 1}
+                            </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
-                          {item.itemCode}
-                        </td>
+                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
+                              {item.code}
+                            </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
-                          {item.itemName}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                          {item.unit || "-"}
-                        </td>
+                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                              {item.name}
+                            </td>
 
-                 
+                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                              {item.unit || "-"}
+                            </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
-                          {Number(item.receivedQty || 0).toFixed(2)}
-                        </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                              {Number(item.qty || 0).toFixed(2)}
+                            </td>
 
-               
+                            <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
+                              ₹ {Number(item.rate || 0).toFixed(2)}
+                            </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
-                          ₹ {Number(item.poItemRate || 0).toFixed(2)}
-                        </td>
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
+                              ₹ {Number(item.total || 0).toFixed(2)}
+                            </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
-                          ₹ {Number(item.receivedQtyTotal || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                            <td className="whitespace-nowrap px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleEditDirectPurchaseItem(index)
+                                  }
+                                  className="rounded-md border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                                >
+                                  Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveDirectPurchaseItem(index)
+                                  }
+                                  className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    ) : (
+                      selectedGrnDetails.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="px-4 py-10 text-center text-sm text-gray-400"
+                          >
+                            No purchase details available
+                          </td>
+                        </tr>
+                      ) : (
+                        selectedGrnDetails.map((item: any, index: number) => (
+                          <tr
+                            key={`${item.itemCode}-${item.rno}-${index}`}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                              {index + 1}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
+                              {item.itemCode}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                              {item.itemName}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                              {item.unit || "-"}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                              {Number(item.receivedQty || 0).toFixed(2)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
+                              ₹ {Number(item.poItemRate || 0).toFixed(2)}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
+                              ₹ {Number(item.receivedQtyTotal || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      )
+                    )}
                   </tbody>
                 </table>
               </div>
             </section>
-          
 
           {/* =========================
               ORDER SUMMARY
