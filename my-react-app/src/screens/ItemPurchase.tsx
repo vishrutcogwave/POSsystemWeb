@@ -948,17 +948,16 @@ const handleSave = async () => {
       unitCode: Number(item.unitCode || 0),
 
       expiryDate: item.expiryDate
-        ? new Date(
-            `${item.expiryDate}T00:00:00`
-          ).toISOString()
-        : new Date(
-            `${formData.date}T00:00:00`
-          ).toISOString(),
+        ? new Date(`${item.expiryDate}T00:00:00`).toISOString()
+        : new Date(`${formData.date}T00:00:00`).toISOString(),
 
       trowQty: Number(item.qty || 0),
     }));
 
-    // Taxes from PurchaseOrderCalculation
+    // ----------------------------------------------------------
+    // DIRECT PURCHASE TAX DETAILS
+    // ----------------------------------------------------------
+
     const taxList = Array.isArray(
       directPurchaseCalculation?.taxList
     )
@@ -967,8 +966,11 @@ const handleSave = async () => {
 
     taxes = taxList.map((tax: any) => ({
       itemCode: Number(tax?.itemCode ?? 0),
+
       taxCode: Number(tax?.taxCode ?? 0),
+
       taxAmount: Number(tax?.taxAmount ?? 0),
+
       taxPer: Number(
         tax?.taxper ??
           tax?.taxPer ??
@@ -976,7 +978,11 @@ const handleSave = async () => {
       ),
     }));
 
-    // Misc taxes from PurchaseOrderCalculation
+    // ----------------------------------------------------------
+    // DIRECT PURCHASE MISC DETAILS
+    // chargeId ADDED
+    // ----------------------------------------------------------
+
     const miscTaxList = Array.isArray(
       directPurchaseCalculation?.miscTaxList
     )
@@ -984,12 +990,18 @@ const handleSave = async () => {
       : [];
 
     miscDetails = miscTaxList.map((misc: any) => ({
-      taxCode: Number(misc?.taxCode ?? 0),
+      taxCode: Number(
+        misc?.taxCode ?? 0
+      ),
 
       chargeCode: String(
         misc?.chargeCode ??
           misc?.chargeName ??
           ""
+      ),
+
+      chargeId: Number(
+        misc?.chargeId ?? 0
       ),
 
       chargeAmount: String(
@@ -1018,7 +1030,9 @@ const handleSave = async () => {
     // ----------------------------------------------------------
 
     details = grnDetails.map((item: any) => ({
-      itemCode: Number(item?.itemCode ?? 0),
+      itemCode: Number(
+        item?.itemCode ?? 0
+      ),
 
       pItemQty: Number(
         item?.poItemQty ?? 0
@@ -1035,19 +1049,25 @@ const handleSave = async () => {
       ),
 
       noOfQty: Number(
-        item?.poItemSuplyQty ?? item?.receivedQty ?? 0
+        item?.poItemSuplyQty ??
+          item?.receivedQty ??
+          0
       ),
 
       totalQty: Number(
-        item?.receivedQty ?? item?.poItemSuplyQty ?? 0
+        item?.receivedQty ??
+          item?.poItemSuplyQty ??
+          0
       ),
 
       storeName: String(
-        master?.storeName ?? storeName
+        master?.storeName ??
+          storeName
       ),
 
       storedId: String(
-        master?.storeID ?? storedId
+        master?.storeID ??
+          storedId
       ),
 
       noOfDays: 0,
@@ -1102,6 +1122,7 @@ const handleSave = async () => {
 
     // ----------------------------------------------------------
     // GRN MISC DETAILS
+    // chargeId ADDED HERE ALSO
     // ----------------------------------------------------------
 
     const grnMiscDetails = Array.isArray(
@@ -1120,6 +1141,10 @@ const handleSave = async () => {
           misc?.chargeName ??
             misc?.chargeCode ??
             ""
+        ),
+
+        chargeId: Number(
+          misc?.chargeId ?? 0
         ),
 
         chargeAmount: String(
@@ -1143,7 +1168,6 @@ const handleSave = async () => {
     poNo: Number(
       formData.transactionNo || 0
     ),
-
 
     pDate: new Date(
       `${formData.date}T00:00:00`
@@ -1270,14 +1294,18 @@ const handleSave = async () => {
     miscDetails,
   };
 
+  // ============================================================
+  // DEBUG PAYLOAD
+  // ============================================================
+
   console.log(
     "CreateDirectPurchase Payload:",
-    directPurchasePayload
+    JSON.stringify(
+      directPurchasePayload,
+      null,
+      2
+    )
   );
-
-  // ============================================================
-  // SAME API FOR BOTH FLOWS
-  // ============================================================
 
   startApiLoading();
 
@@ -1424,6 +1452,7 @@ const handleSave = async () => {
                         billNo: e.target.value,
                       }))
                     }
+                    disabled={!formData.directPurchase}
                     placeholder="Bill No."
                     className={inputClass}
                   />
