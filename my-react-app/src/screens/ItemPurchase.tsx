@@ -147,7 +147,7 @@ const ItemPurchase: React.FC = () => {
   const stopApiLoading = () => {
     setApiLoadingCount((count) => Math.max(0, count - 1));
   };
-
+const branch = appData?.user?.branch_code;
   /* =========================
       COMMON CLASSES
   ========================= */
@@ -162,7 +162,7 @@ const ItemPurchase: React.FC = () => {
   ========================= */
 
   const fetchTransactionNo = async () => {
-    const branch = appData?.user?.branch_code;
+    
 
     if (!branch) return;
 
@@ -861,7 +861,7 @@ const handleGrnChange = async (
   /* =========================
       SAVE
   ========================= */
-const resetAllForm = () => {
+const resetAllForm = async() => {
   const today = new Date().toISOString().split("T")[0];
 
   // Reset main form
@@ -904,6 +904,18 @@ const resetAllForm = () => {
   // Reset item search/dropdown
   setItemSearch("");
   setShowItemDropdown(false);
+  const res = await getPurchaseOrderGRNNumber(branch);
+
+    if (res?.success && Array.isArray(res.data)) {
+      const grnNumbers = res.data
+        .map((item: any) => String(item?.grnNumber ?? ""))
+        .filter((grnNo: string) => grnNo !== "")
+        .sort((a: string, b: string) => Number(a) - Number(b));
+
+      setGrnList(grnNumbers);
+    } else {
+      setGrnList([]);
+    }
 };
 const handleSave = async () => {
   if (!formData.store) {
