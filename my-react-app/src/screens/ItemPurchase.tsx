@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Loader from "../components/Loader";
+import * as XLSX from "xlsx";
 import {
   getNextIdCode,
   getStoreMasterList,
@@ -12,6 +13,7 @@ import {
   getInventoryUnitConversionList,
   getPurchaseOrderGRNNumber,
   createDirectPurchase,
+  downloadDirectPurchaseExcel,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -1076,7 +1078,8 @@ const handleSave = async () => {
       ),
 
       pItemQty: Number(
-        item?.poItemQty ?? 0
+          item?.receivedQty ??
+          0
       ),
 
       pItemRate: Number(
@@ -1090,14 +1093,12 @@ const handleSave = async () => {
       ),
 
       noOfQty: Number(
-        item?.poItemSuplyQty ??
           item?.receivedQty ??
           0
       ),
 
-      totalQty: Number(
-        item?.receivedQty ??
-          item?.poItemSuplyQty ??
+      totalQty:Number(
+          item?.receivedQty ??
           0
       ),
 
@@ -1391,21 +1392,279 @@ const handleSave = async () => {
   }
 };
   /* =========================
-      BACK
+      DOWNLOAD DIRECT PURCHASE TEMPLATE
   ========================= */
 
-  // const handleBack = () => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     orderNo: "",
-  //   }));
+  const handleDownloadDirectPurchaseTemplate = async () => {
+    const branchCode = appData?.user?.branch_code;
 
-  //   setPurchaseGoodsReceivedData(null);
-  //   setDirectPurchaseItems([]);
-  //   setDirectPurchaseCalculation(null);
-  //   resetDirectPurchaseItemForm();
-  // };
+    if (!branchCode) {
+      toast.error("Branch code not found");
+      return;
+    }
 
+    try {
+      startApiLoading();
+
+      await downloadDirectPurchaseExcel(branchCode);
+
+      toast.success("Template downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading Direct Purchase template:", error);
+      toast.error("Failed to download template");
+    } finally {
+      stopApiLoading();
+    }
+  };
+
+  const handleImportDirectPurchaseExcel = async (
+  e: React.ChangeEvent<HTMLInputElement>,
+) => {
+  const file = e.target.files?.[0];
+
+  // Reset file input so the same file can be selected again
+  e.target.value = "";
+
+  if (!file) return;
+
+  if (!formData.store) {
+    toast.error("Please select store first");
+    return;
+  }
+
+  try {
+    startApiLoading();
+
+    const buffer = await file.arrayBuffer();
+
+    const workbook = XLSX.read(buffer, {
+      type: "array",
+      cellDates: true,
+    });
+
+    const sheetName = workbook.SheetNames[0];
+
+    if (!sheetName) {
+      toast.error("Invalid Excel file");
+      return;
+    }
+
+    const worksheet = workbook.Sheets[sheetName];
+
+    const rows: any[] = XLSX.utils.sheet_to_json(worksheet, {
+      defval: "",
+    });
+
+    if (!rows.length) {
+      toast.error("Excel file is empty");
+      return;
+    }
+
+    console.log("Imported Excel Rows:", rows);
+
+    const importedItems: PurchaseItem[] = [];
+    const invalidItems: string[] = [];
+
+    rows.forEach((row, index) => {
+      const itemCode = String(
+        row?.ItemCode ??
+          row?.itemCode ??
+          "",
+      ).trim();
+
+      const itemQty = Number(
+        row?.ItemQty ??
+          row?.itemQty ??
+          0,
+      );
+
+      // Ignore completely empty rows
+      if (!itemCode && !itemQty) {
+        return;
+      }
+
+      if (!itemCode) {
+        invalidItems.push(
+          `Row ${index + 2}: ItemCode is missing`,
+        );
+        return;
+      }
+
+      if (!itemQty || itemQty <= 0) {
+        invalidItems.push(
+          `Row ${index + 2}: Invalid quantity`,
+        );
+        return;
+      }
+
+      // Find item from inventory list using ItemCode
+      const inventoryItem = inventoryItems.find(
+        (item) =>
+          String(item.itemCode).trim() === itemCode,
+      );
+
+      if (!inventoryItem) {
+        invalidItems.push(
+          `Row ${index + 2}: Item ${itemCode} not found`,
+        );
+        return;
+      }
+
+      // Prevent duplicate item codes in imported Excel
+      const alreadyImported = importedItems.some(
+        (item) => item.code === itemCode,
+      );
+
+      if (alreadyImported) {
+        invalidItems.push(
+          `Row ${index + 2}: Item ${itemCode} is duplicated`,
+        );
+        return;
+      }
+
+      const excelNoOfDays = Number(
+        row?.NoOfDays ??
+          row?.noOfDays ??
+          0,
+      );
+
+      let excelExpiryDate = "";
+
+      const excelExpiry =
+        row?.ExpiryDate ??
+        row?.expiryDate ??
+        "";
+
+      if (excelExpiry instanceof Date) {
+        excelExpiryDate = excelExpiry
+          .toISOString()
+          .split("T")[0];
+      } else if (excelExpiry) {
+        const parsedDate = new Date(excelExpiry);
+
+        if (!Number.isNaN(parsedDate.getTime())) {
+          excelExpiryDate = parsedDate
+            .toISOString()
+            .split("T")[0];
+        }
+      }
+
+      const finalExpiryDate =
+        excelExpiryDate ||
+        calculateExpiryDate(
+          formData.date,
+          excelNoOfDays,
+        );
+
+      const itemRate = Number(
+        inventoryItem.itemRate ?? 0,
+      );
+
+      const newItem: PurchaseItem = {
+        id: Date.now() + index,
+
+        code: String(inventoryItem.itemCode),
+
+        name: inventoryItem.itemName || "",
+
+        unit: inventoryItem.unitName || "",
+
+        unitCode: Number(
+          inventoryItem.unitCode || 0,
+        ),
+
+        // Excel import does not apply conversion
+        unitQty: 0,
+
+        // Quantity directly from Excel
+        enteredQty: itemQty,
+
+        qty: itemQty,
+
+        // Rate from inventory master
+        rate: itemRate,
+
+        total: itemQty * itemRate,
+
+        taxName:
+          inventoryItem.taxName || "",
+
+        noOfDays: excelNoOfDays,
+
+        expiryDate:
+          finalExpiryDate ||
+          formData.date,
+      };
+
+      importedItems.push(newItem);
+    });
+
+    if (importedItems.length === 0) {
+      if (invalidItems.length > 0) {
+        toast.error(
+          invalidItems.slice(0, 2).join(", "),
+        );
+      } else {
+        toast.error(
+          "No valid items found in Excel",
+        );
+      }
+
+      return;
+    }
+
+    console.log(
+      "Imported Direct Purchase Items:",
+      importedItems,
+    );
+
+    // Replace current table with imported items
+    setDirectPurchaseItems(importedItems);
+
+    // Clear current item-entry form
+    resetDirectPurchaseItemForm();
+
+    // ----------------------------------------------------------
+    // CALL PURCHASE CALCULATION API
+    // ----------------------------------------------------------
+
+    const calculationResponse =
+      await calculateDirectPurchase(
+        importedItems,
+      );
+
+    console.log(
+      "Imported Purchase Calculation Response:",
+      calculationResponse,
+    );
+
+    if (invalidItems.length > 0) {
+      toast.success(
+        `${importedItems.length} item(s) imported. ${invalidItems.length} row(s) skipped.`,
+      );
+
+      console.warn(
+        "Skipped Excel rows:",
+        invalidItems,
+      );
+    } else {
+      toast.success(
+        `${importedItems.length} item(s) imported successfully`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Error importing Direct Purchase Excel:",
+      error,
+    );
+
+    toast.error(
+      "Failed to import Excel file",
+    );
+  } finally {
+    stopApiLoading();
+  }
+};
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       {apiLoadingCount > 0 && <Loader />}
@@ -2000,16 +2259,80 @@ onChange={(e) => {
               PURCHASE DETAILS TABLE
           ========================= */}
 
-            <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
-              <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                <h2 className="text-base font-semibold text-gray-800">
-                  Purchase Details
-                </h2>
+         <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
+  <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2 className="text-base font-semibold text-gray-800">
+        Purchase Details
+      </h2>
 
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Item details for selected GRN
-                </p>
-              </div>
+      <p className="mt-0.5 text-xs text-gray-500">
+        Item details for selected GRN
+      </p>
+    </div>
+<div className="flex flex-wrap items-center gap-2">
+  {/* IMPORT EXCEL */}
+
+  <label
+    className={`inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-green-600 bg-white px-4 text-sm font-semibold text-green-600 transition hover:bg-green-50 ${
+      apiLoadingCount > 0
+        ? "pointer-events-none cursor-not-allowed opacity-50"
+        : ""
+    }`}
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 16V4m0 0L8 8m4-4l4 4M5 20h14"
+      />
+    </svg>
+
+    Import
+
+    <input
+      type="file"
+      accept=".xlsx,.xls"
+      className="hidden"
+      onChange={handleImportDirectPurchaseExcel}
+      disabled={apiLoadingCount > 0}
+    />
+  </label>
+
+  {/* DOWNLOAD TEMPLATE */}
+
+  <button
+    type="button"
+    onClick={handleDownloadDirectPurchaseTemplate}
+    disabled={apiLoadingCount > 0}
+    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-600 bg-white px-4 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-4 w-4"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
+      />
+    </svg>
+
+    Download Template
+  </button>
+</div>
+  </div>
 
               <div className="w-full overflow-x-auto">
                 <table className="w-full min-w-[1100px] text-sm">

@@ -6720,3 +6720,44 @@ export const createDirectPurchase = async (
     throw error;
   }
 };
+
+export const downloadDirectPurchaseExcel = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/DirectPurchaseExcelDownload",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+        responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "DirectPurchase.xlsx");
+
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error: any) {
+    console.error(
+      "Error downloading Direct Purchase Excel:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
