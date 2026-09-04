@@ -859,7 +859,48 @@ const handleGrnChange = async (
   /* =========================
       SAVE
   ========================= */
+const resetAllForm = () => {
+  // Reset main form
+  setFormData({
+    transactionNo: "",
+    billNo: "",
+    date: new Date().toISOString().split("T")[0],
+    orderNo: "",
+    supplier: "",
+    departmentCode: "",
+    departmentName: "",
+    directPurchase: false,
+    directIssue: false,
+    store: null,
+  });
 
+  // Reset GRN / purchase data
+  setPurchaseGoodsReceivedData(null);
+
+  // Reset direct purchase items
+  setDirectPurchaseItems([]);
+  setDirectPurchaseCalculation(null);
+
+  // Reset direct purchase item entry form
+  setEditingDirectPurchaseItemIndex(null);
+  setCode("");
+  setName("");
+  setUnit("");
+  setUnitCode(0);
+  setQty("");
+  setRate("");
+  setTaxName("");
+  setNoOfDays("");
+  setExpiryDate(new Date().toISOString().split("T")[0]);
+
+  // Reset unit conversion
+  setSelectedUnitQty(0);
+  setShowUnitConversion(false);
+
+  // Reset item search/dropdown
+  setItemSearch("");
+  setShowItemDropdown(false);
+};
 const handleSave = async () => {
   if (!formData.store) {
     toast.error("Please select store");
@@ -1319,12 +1360,18 @@ const handleSave = async () => {
       response
     );
 
-    if (response?.success) {
-      toast.success(
-        response?.message ||
-          "Purchase saved successfully"
-      );
-    } else {
+  if (response?.success) {
+  toast.success(
+    response?.message ||
+      "Purchase saved successfully"
+  );
+
+  // Reset the complete form after successful save
+  resetAllForm();
+
+  // Get a fresh transaction number for the next purchase
+  await fetchTransactionNo();
+} else {
       toast.error(
         response?.message ||
           "Failed to save purchase"
@@ -1347,17 +1394,17 @@ const handleSave = async () => {
       BACK
   ========================= */
 
-  const handleBack = () => {
-    setFormData((prev) => ({
-      ...prev,
-      orderNo: "",
-    }));
+  // const handleBack = () => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     orderNo: "",
+  //   }));
 
-    setPurchaseGoodsReceivedData(null);
-    setDirectPurchaseItems([]);
-    setDirectPurchaseCalculation(null);
-    resetDirectPurchaseItemForm();
-  };
+  //   setPurchaseGoodsReceivedData(null);
+  //   setDirectPurchaseItems([]);
+  //   setDirectPurchaseCalculation(null);
+  //   resetDirectPurchaseItemForm();
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
@@ -2238,13 +2285,13 @@ onChange={(e) => {
           ========================= */}
 
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
-            <button
+            {/* <button
               type="button"
               onClick={handleBack}
               className="h-10 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
               Back
-            </button>
+            </button> */}
 
             <button
               type="button"
