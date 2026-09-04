@@ -223,7 +223,6 @@ const resetGRNForm = () => {
 
   // Get next GRN number for next entry
   fetchNextGRNNo();
-  getPurchaseOrderNumber(branchCode)
 };
   const fetchPurchaseOrderNumbers = async () => {
     if (!branchCode) return;
@@ -1003,7 +1002,13 @@ const handleSaveGRN = async () => {
     // REFRESH PURCHASE ORDERS
     // ==========================================
 
-    await getPurchaseOrderNumber(branchCode);
+  const res = await getPurchaseOrderNumber(branchCode);
+      if (res?.success) {
+        setPoNumbers(res.data || []);
+      } else {
+        setPoNumbers([]);
+        toast.error(res?.message || "Failed to fetch purchase orders");
+      }
 
   } catch (error: any) {
     console.error(
