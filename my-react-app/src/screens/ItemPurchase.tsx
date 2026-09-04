@@ -862,11 +862,13 @@ const handleGrnChange = async (
       SAVE
   ========================= */
 const resetAllForm = () => {
+  const today = new Date().toISOString().split("T")[0];
+
   // Reset main form
   setFormData({
     transactionNo: "",
     billNo: "",
-    date: new Date().toISOString().split("T")[0],
+    date: today,
     orderNo: "",
     supplier: "",
     departmentCode: "",
@@ -893,7 +895,7 @@ const resetAllForm = () => {
   setRate("");
   setTaxName("");
   setNoOfDays("");
-  setExpiryDate(new Date().toISOString().split("T")[0]);
+  setExpiryDate(today);
 
   // Reset unit conversion
   setSelectedUnitQty(0);
@@ -2270,7 +2272,7 @@ onChange={(e) => {
         Item details for selected GRN
       </p>
     </div>
-<div className="flex flex-wrap items-center gap-2">
+    {formData.directPurchase&&<div className="flex flex-wrap items-center gap-2">
   {/* IMPORT EXCEL */}
 
   <label
@@ -2332,6 +2334,7 @@ onChange={(e) => {
     Download Template
   </button>
 </div>
+}
   </div>
 
               <div className="w-full overflow-x-auto">
