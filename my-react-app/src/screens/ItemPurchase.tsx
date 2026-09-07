@@ -77,7 +77,7 @@ const ItemPurchase: React.FC = () => {
     supplier: "",
     departmentCode: "",
     departmentName: "",
-    directPurchase: false,
+    directPurchase: true,
     directIssue: false,
     store: null as Store | null,
   });
