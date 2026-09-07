@@ -88,6 +88,7 @@ type PurchaseItem = {
   // Unit conversion quantity
   // Example: 1 box = 30
   unitQty: number;
+  unitConversion: string;
 
   // Quantity entered by user
   // Example: user enters 2
@@ -146,7 +147,8 @@ const PurchaseOrder: React.FC = () => {
   ========================= */
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
-  const [selectedUnitQty, setSelectedUnitQty] = useState(0);
+ const [selectedUnitQty, setSelectedUnitQty] = useState(0);
+const [selectedUnitConversion, setSelectedUnitConversion] = useState("");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
@@ -512,8 +514,9 @@ const PurchaseOrder: React.FC = () => {
     setUnit(item.unitName || "");
     setUnitCode(Number(item.unitCode || 0));
     // Unit conversion is optional.
-    setSelectedUnitQty(0);
-    setShowUnitConversion(false);
+  setSelectedUnitQty(0);
+setSelectedUnitConversion("");
+setShowUnitConversion(false);
 
     // User will manually enter Rate
     setRate(String(item.itemRate));
@@ -538,6 +541,7 @@ const PurchaseOrder: React.FC = () => {
       setName("");
       setUnit("");
       setSelectedUnitQty(0);
+setSelectedUnitConversion("");
       setRate("");
     }
   };
@@ -627,6 +631,7 @@ const PurchaseOrder: React.FC = () => {
       unitCode: Number(unitCode || 0),
       // Unit conversion
       unitQty: conversionQty,
+unitConversion: selectedUnitConversion,
 
       // Quantity entered by user
       enteredQty: enteredQty,
@@ -663,8 +668,9 @@ const PurchaseOrder: React.FC = () => {
     setCode("");
     setName("");
     setUnit("");
-    setSelectedUnitQty(0);
-    setQty("");
+  setSelectedUnitQty(0);
+setSelectedUnitConversion("");
+setQty("");
     setRate("");
     setTaxName("");
     setItemSearch("");
@@ -679,8 +685,9 @@ const PurchaseOrder: React.FC = () => {
     setCode("");
     setName("");
     setUnit("");
-    setSelectedUnitQty(0);
-    setQty("");
+   setSelectedUnitQty(0);
+setSelectedUnitConversion("");
+setQty("");
     setRate("");
 
     setItemSearch("");
@@ -712,6 +719,7 @@ const PurchaseOrder: React.FC = () => {
 
     // Restore unit conversion
     setSelectedUnitQty(Number(item.unitQty) > 0 ? Number(item.unitQty) : 0);
+    setSelectedUnitConversion(item.unitConversion || "");
 
     setShowUnitConversion(false);
 
@@ -1014,6 +1022,8 @@ const PurchaseOrder: React.FC = () => {
 
         unit: `${item.unit}`,
         unitCode: Number(item.unitCode || 0),
+        mainUnitConverstion: String(item.unitQty || 0),
+mainUnit: item.unitConversion || "",
 
         poItemSuplyQty: 0,
 
@@ -1400,6 +1410,8 @@ const PurchaseOrder: React.FC = () => {
         poOrderQty: Number(item.rate),
         unit: `${item.unit}`,
         unitCode: Number(item.unitCode || 0),
+      mainUnitConverstion: String(item.unitQty || 0),
+mainUnit: item.unitConversion || "",
 
         poItemSuplyQty: 0,
 
@@ -1618,7 +1630,8 @@ const PurchaseOrder: React.FC = () => {
 
         unit: `${item.unit}`,
         unitCode: Number(item.unitCode || 0),
-
+      mainUnitConverstion: String(item.unitQty || 0),
+mainUnit: item.unitConversion || "",
         poItemSuplyQty: 0,
         poOrderQty: Number(item.rate),
         cpoItemQty: 0,
@@ -1742,19 +1755,20 @@ const PurchaseOrder: React.FC = () => {
                       conversion.unitName !== unit,
                   )?.unitCode || ""
                 }
-                onChange={(e) => {
-                  const selected = unitConversions.find(
-                    (conversion) =>
-                      conversion.unitCode === Number(e.target.value),
-                  );
+              onChange={(e) => {
+  const selected = unitConversions.find(
+    (conversion) =>
+      conversion.unitCode === Number(e.target.value),
+  );
 
-                  if (selected) {
-                    setSelectedUnitQty(Number(selected.qty));
-                    // setQty(String(selected.qty))
-                  } else {
-                    setSelectedUnitQty(0);
-                  }
-                }}
+  if (selected) {
+    setSelectedUnitQty(Number(selected.qty));
+    setSelectedUnitConversion(selected.unitName);
+  } else {
+    setSelectedUnitQty(0);
+    setSelectedUnitConversion("");
+  }
+}}
                 className={inputClass}
               >
                 <option value="">No conversion</option>
@@ -2005,7 +2019,9 @@ const PurchaseOrder: React.FC = () => {
                           Approved Qty
                         </th>
                       )}
-
+   <th className="border border-gray-800 px-2 py-2 text-right">
+                        Tax
+                      </th>
                       <th className="border border-gray-800 px-2 py-2 text-right">
                         Total
                       </th>
@@ -2041,6 +2057,13 @@ const PurchaseOrder: React.FC = () => {
                           </td>
                         )}
 
+                          <td className="border border-gray-800 px-2 py-2 text-right">
+                          {item.taxName}
+                        </td>
+
+
+
+
                         <td className="border border-gray-800 px-2 py-2 text-right font-medium">
                           ₹ {Number(item.total || 0).toFixed(2)}
                         </td>
@@ -2061,7 +2084,7 @@ const PurchaseOrder: React.FC = () => {
                   </div>
 
                   <div className="flex justify-between border-b border-gray-300 py-2">
-                    <span>Additional Tax</span>
+                    <span> Tax</span>
                     <span>
                       ₹ {Number(printData.master?.tax || 0).toFixed(2)}
                     </span>

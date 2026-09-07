@@ -143,8 +143,10 @@ export default function App() {
 
         console.log("Base URL:", baseURL);
 
-        JSPM.JSPrintManager.license_url =
-          `${baseURL}api/POS/jspm`;
+        // JSPM.JSPrintManager.license_url =
+        //   `${baseURL}api/POS/jspm`;
+
+        JSPM.JSPrintManager.license_url = "https://www.neodynamic.com/licenses/jspm/v9/cogwave";
 
         console.log(
           "License URL:",
