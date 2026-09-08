@@ -215,14 +215,9 @@ const PurchaseReturn: React.FC = () => {
 
           const unit = item?.unit ?? item?.unitName ?? item?.Unit ?? "";
 
-          const rate = Number(
-            item?.pItemRate?? 0,
-          );
+          const rate = Number(item?.pItemRate ?? 0);
 
-          const qty = Number(
-            item?.reamingQty ??
-              0,
-          );
+          const qty = Number(item?.reamingQty ?? 0);
 
           return {
             id: index + 1,
@@ -420,14 +415,6 @@ const PurchaseReturn: React.FC = () => {
      REMOVE ITEM
   ========================================================= */
 
-  const removeItem = async (id: number) => {
-    const nextItems = items.filter((item) => item.id !== id);
-
-    setItems(nextItems);
-
-    await calculatePurchaseReturn(nextItems);
-  };
-
   /* =========================================================
      SAVE PURCHASE RETURN
   ========================================================= */
@@ -566,7 +553,7 @@ const PurchaseReturn: React.FC = () => {
         prDate: new Date(`${formData.date}T00:00:00`).toISOString(),
 
         supCode: Number(master?.supCode ?? 0),
-
+        supplierName: formData.supplier ?? "",
         pNo: Number(formData.purchaseNo || 0),
 
         branchCode,
@@ -846,10 +833,6 @@ const PurchaseReturn: React.FC = () => {
                           <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                             Amount
                           </th>
-
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
-                            Action
-                          </th>
                         </tr>
                       </thead>
 
@@ -910,16 +893,6 @@ const PurchaseReturn: React.FC = () => {
 
                                 <td className="px-4 py-3 text-right font-semibold text-gray-800">
                                   ₹ {Number(item.amount || 0).toFixed(2)}
-                                </td>
-
-                                <td className="px-4 py-3 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => removeItem(item.id)}
-                                    className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                                  >
-                                    Remove
-                                  </button>
                                 </td>
                               </tr>
                             ),
