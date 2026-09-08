@@ -1905,9 +1905,10 @@ supplierName:formData.supplier,
                   </div>
                 )}
               </div>
-              <div className="flex min-h-10 items-center gap-6 lg:col-span-2 mt-2">
-                <label className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-700">
+              <div  className="flex min-h-10 items-center gap-6 lg:col-span-2 mt-2">
+                <label  style={{display:"none"}} className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-700">
                 <input
+                 style={{display:"none"}}
   type="checkbox"
 checked={formData.directPurchase}
 onChange={(e) => {
