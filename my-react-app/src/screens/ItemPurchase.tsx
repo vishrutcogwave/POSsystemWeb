@@ -25,7 +25,6 @@ type Store = {
   branch_Code?: string;
 };
 
-
 type InventoryItem = {
   itemCode: number;
   itemName: string;
@@ -35,16 +34,21 @@ type InventoryItem = {
   taxName: string;
   taxCode: number;
 };
-
 type PurchaseItem = {
   id: number;
   code: string;
   name: string;
   unit: string;
   unitCode: number;
+
+  // Unit conversion
   unitQty: number;
+  unitConversion: string;
+
+  // Quantity
   enteredQty: number;
   qty: number;
+
   rate: number;
   total: number;
   taxName: string;
@@ -120,6 +124,7 @@ const ItemPurchase: React.FC = () => {
   const [expiryDate, setExpiryDate] = useState(formData.date);
 
   const [selectedUnitQty, setSelectedUnitQty] = useState(0);
+  const [selectedUnitConversion, setSelectedUnitConversion] = useState("");
   const [unitConversions, setUnitConversions] = useState<
     InventoryUnitConversion[]
   >([]);
@@ -147,7 +152,7 @@ const ItemPurchase: React.FC = () => {
   const stopApiLoading = () => {
     setApiLoadingCount((count) => Math.max(0, count - 1));
   };
-const branch = appData?.user?.branch_code;
+  const branch = appData?.user?.branch_code;
   /* =========================
       COMMON CLASSES
   ========================= */
@@ -162,8 +167,6 @@ const branch = appData?.user?.branch_code;
   ========================= */
 
   const fetchTransactionNo = async () => {
-    
-
     if (!branch) return;
 
     startApiLoading();
@@ -226,9 +229,7 @@ const branch = appData?.user?.branch_code;
             storeIncharge: String(
               item?.storeIncharge ?? item?.storeInCharge ?? "",
             ),
-            branch_Code: String(
-              item?.branch_Code ?? item?.branchCode ?? "",
-            ),
+            branch_Code: String(item?.branch_Code ?? item?.branchCode ?? ""),
           }))
           .filter((item: Store) => item.storeId > 0 && item.storeName);
 
@@ -241,9 +242,8 @@ const branch = appData?.user?.branch_code;
             return {
               ...prev,
               store:
-                storeData.find(
-                  (store) => store.storeId === currentStoreId,
-                ) || storeData[0],
+                storeData.find((store) => store.storeId === currentStoreId) ||
+                storeData[0],
             };
           });
         }
@@ -263,37 +263,37 @@ const branch = appData?.user?.branch_code;
       FETCH GRN LIST
   ========================= */
 
-const fetchGoodsReceivedList = async () => {
-  const branch = appData?.user?.branch_code;
+  const fetchGoodsReceivedList = async () => {
+    const branch = appData?.user?.branch_code;
 
-  if (!branch) return;
+    if (!branch) return;
 
-  startApiLoading();
+    startApiLoading();
 
-  try {
-    setLoadingGrnList(true);
+    try {
+      setLoadingGrnList(true);
 
-    const res = await getPurchaseOrderGRNNumber(branch);
+      const res = await getPurchaseOrderGRNNumber(branch);
 
-    if (res?.success && Array.isArray(res.data)) {
-      const grnNumbers = res.data
-        .map((item: any) => String(item?.grnNumber ?? ""))
-        .filter((grnNo: string) => grnNo !== "")
-        .sort((a: string, b: string) => Number(a) - Number(b));
+      if (res?.success && Array.isArray(res.data)) {
+        const grnNumbers = res.data
+          .map((item: any) => String(item?.grnNumber ?? ""))
+          .filter((grnNo: string) => grnNo !== "")
+          .sort((a: string, b: string) => Number(a) - Number(b));
 
-      setGrnList(grnNumbers);
-    } else {
+        setGrnList(grnNumbers);
+      } else {
+        setGrnList([]);
+      }
+    } catch (error) {
+      console.error("Error fetching Purchase Order GRN Number List:", error);
+
       setGrnList([]);
+    } finally {
+      setLoadingGrnList(false);
+      stopApiLoading();
     }
-  } catch (error) {
-    console.error("Error fetching Purchase Order GRN Number List:", error);
-
-    setGrnList([]);
-  } finally {
-    setLoadingGrnList(false);
-    stopApiLoading();
-  }
-};
+  };
 
   /* =========================
       FETCH SELECTED GRN
@@ -317,12 +317,11 @@ const fetchGoodsReceivedList = async () => {
       const master = res?.data?.[0]?.master;
 
       if (master) {
-
         const supplierValue = `${master?.supCode ?? ""}-${
           master?.vendorName ?? ""
         }`;
 
-          const selectedStoreId = Number(master?.storeID ?? 0);
+        const selectedStoreId = Number(master?.storeID ?? 0);
 
         const selectedStore =
           stores.find((store) => store.storeId === selectedStoreId) ||
@@ -380,7 +379,7 @@ const fetchGoodsReceivedList = async () => {
       if (res?.success && Array.isArray(res?.data)) {
         // Ignore departments where depName is empty
         const departmentData = res.data.filter(
-          (item: any) => String(item?.depName ?? "").trim() !== ""
+          (item: any) => String(item?.depName ?? "").trim() !== "",
         );
 
         setDepartmentList(departmentData);
@@ -477,13 +476,13 @@ const fetchGoodsReceivedList = async () => {
     }
   }, [appData?.user?.branch_code]);
 
-useEffect(() => {
-  if (formData.store?.storeId) {
-    fetchInventoryItems(formData.store.storeId);
-  } else {
-    setInventoryItems([]);
-  }
-}, [formData.store?.storeId]);
+  useEffect(() => {
+    if (formData.store?.storeId) {
+      fetchInventoryItems(formData.store.storeId);
+    } else {
+      setInventoryItems([]);
+    }
+  }, [formData.store?.storeId]);
   /* =========================
       INITIAL LOAD
   ========================= */
@@ -525,33 +524,31 @@ useEffect(() => {
       GRN CHANGE
   ========================= */
 
-const handleGrnChange = async (
-  e: React.ChangeEvent<HTMLSelectElement>
-) => {
-  const grnNo = e.target.value;
+  const handleGrnChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const grnNo = e.target.value;
 
-  setFormData((prev) => ({
-    ...prev,
-    orderNo: grnNo,
-    // Reset Bill No when no Order No is selected
-    billNo: grnNo ? prev.billNo : "",
-  }));
-
-  if (!grnNo) {
-    setPurchaseGoodsReceivedData(null);
-
-    // Reset supplier also
     setFormData((prev) => ({
       ...prev,
-      billNo: "",
-      supplier: "",
+      orderNo: grnNo,
+      // Reset Bill No when no Order No is selected
+      billNo: grnNo ? prev.billNo : "",
     }));
 
-    return;
-  }
+    if (!grnNo) {
+      setPurchaseGoodsReceivedData(null);
 
-  await fetchPurchaseGoodsReceived(grnNo);
-};
+      // Reset supplier also
+      setFormData((prev) => ({
+        ...prev,
+        billNo: "",
+        supplier: "",
+      }));
+
+      return;
+    }
+
+    await fetchPurchaseGoodsReceived(grnNo);
+  };
   /* =========================
       DIRECT PURCHASE ITEM SEARCH
   ========================= */
@@ -563,7 +560,9 @@ const handleGrnChange = async (
 
     return (
       String(item.itemCode).toLowerCase().includes(search) ||
-      String(item.itemName || "").toLowerCase().includes(search)
+      String(item.itemName || "")
+        .toLowerCase()
+        .includes(search)
     );
   });
 
@@ -587,8 +586,11 @@ const handleGrnChange = async (
     setTaxName(item.taxName || "");
     setNoOfDays("0");
     setExpiryDate(formData.date);
+
     setSelectedUnitQty(0);
+    setSelectedUnitConversion("");
     setShowUnitConversion(false);
+
     setItemSearch(`${item.itemCode} - ${item.itemName}`);
     setShowItemDropdown(false);
   };
@@ -678,6 +680,7 @@ const handleGrnChange = async (
     setCode("");
     setName("");
     setUnit("");
+    setSelectedUnitConversion("");
     setUnitCode(0);
     setSelectedUnitQty(0);
     setQty("");
@@ -727,13 +730,20 @@ const handleGrnChange = async (
         editingDirectPurchaseItemIndex !== null
           ? directPurchaseItems[editingDirectPurchaseItemIndex].id
           : Date.now(),
+
       code,
       name,
       unit,
       unitCode: Number(unitCode || 0),
+
+      // Unit conversion
       unitQty: conversionQty,
+      unitConversion: selectedUnitConversion,
+
+      // Quantity
       enteredQty,
       qty: actualQty,
+
       rate: itemRate,
       total: actualQty * itemRate,
       taxName,
@@ -764,7 +774,10 @@ const handleGrnChange = async (
     setUnit(item.unit);
     setUnitCode(Number(item.unitCode || 0));
     setQty(String(item.enteredQty));
+
     setSelectedUnitQty(Number(item.unitQty || 0));
+    setSelectedUnitConversion(item.unitConversion || "");
+
     setRate(String(item.rate));
     setTaxName(item.taxName || "");
     setNoOfDays(String(item.noOfDays ?? 0));
@@ -825,16 +838,13 @@ const handleGrnChange = async (
   const totalQuantity = formData.directPurchase
     ? directPurchaseTotalQuantity
     : selectedGrnDetails.reduce(
-        (sum: number, item: any) =>
-          sum + Number(item?.receivedQty || 0),
+        (sum: number, item: any) => sum + Number(item?.receivedQty || 0),
         0,
       );
 
   const totalAmount = formData.directPurchase
     ? Number(
-        directPurchaseCalculation?.totalAmount ??
-          directPurchaseSubTotal ??
-          0,
+        directPurchaseCalculation?.totalAmount ?? directPurchaseSubTotal ?? 0,
       )
     : Number(selectedGrnMaster?.totalAmount || 0);
 
@@ -852,59 +862,57 @@ const handleGrnChange = async (
 
   const grandTotal = formData.directPurchase
     ? Number(
-        directPurchaseCalculation?.grandTotal ??
-          directPurchaseSubTotal ??
-          0,
+        directPurchaseCalculation?.grandTotal ?? directPurchaseSubTotal ?? 0,
       )
     : Number(selectedGrnMaster?.netAmount || 0);
 
   /* =========================
       SAVE
   ========================= */
-const resetAllForm = async() => {
-  const today = new Date().toISOString().split("T")[0];
+  const resetAllForm = async () => {
+    const today = new Date().toISOString().split("T")[0];
 
-  // Reset main form
-  setFormData({
-    transactionNo: "",
-    billNo: "",
-    date: today,
-    orderNo: "",
-    supplier: "",
-    departmentCode: "",
-    departmentName: "",
-    directPurchase: false,
-    directIssue: false,
-    store: null,
-  });
+    // Reset main form
+    setFormData({
+      transactionNo: "",
+      billNo: "",
+      date: today,
+      orderNo: "",
+      supplier: "",
+      departmentCode: "",
+      departmentName: "",
+      directPurchase: true,
+      directIssue: false,
+      store: null,
+    });
 
-  // Reset GRN / purchase data
-  setPurchaseGoodsReceivedData(null);
+    // Reset GRN / purchase data
+    setPurchaseGoodsReceivedData(null);
 
-  // Reset direct purchase items
-  setDirectPurchaseItems([]);
-  setDirectPurchaseCalculation(null);
+    // Reset direct purchase items
+    setDirectPurchaseItems([]);
+    setDirectPurchaseCalculation(null);
 
-  // Reset direct purchase item entry form
-  setEditingDirectPurchaseItemIndex(null);
-  setCode("");
-  setName("");
-  setUnit("");
-  setUnitCode(0);
-  setQty("");
-  setRate("");
-  setTaxName("");
-  setNoOfDays("");
-  setExpiryDate(today);
+    // Reset direct purchase item entry form
+    setEditingDirectPurchaseItemIndex(null);
+    setCode("");
+    setName("");
+    setUnit("");
+    setUnitCode(0);
+    setQty("");
+    setRate("");
+    setTaxName("");
+    setNoOfDays("");
+    setExpiryDate(today);
 
-  // Reset unit conversion
-  setSelectedUnitQty(0);
-  setShowUnitConversion(false);
+    // Reset unit conversion
+    setSelectedUnitQty(0);
+    setShowUnitConversion(false);
 
-  // Reset item search/dropdown
-  setItemSearch("");
-  setShowItemDropdown(false);
-  const res = await getPurchaseOrderGRNNumber(branch);
+    // Reset item search/dropdown
+    setItemSearch("");
+    setShowItemDropdown(false);
+    const res = await getPurchaseOrderGRNNumber(branch);
 
     if (res?.success && Array.isArray(res.data)) {
       const grnNumbers = res.data
@@ -916,495 +924,334 @@ const resetAllForm = async() => {
     } else {
       setGrnList([]);
     }
-};
-const handleSave = async () => {
-  if (!formData.store) {
-    toast.error("Please select store");
-    return;
-  }
-
-  if (!formData.billNo.trim()) {
-    toast.error("Please enter bill number");
-    return;
-  }
-
-  if (!formData.supplier.trim()) {
-    toast.error("Please enter supplier");
-    return;
-  }
-
-  if (formData.directIssue && !formData.departmentCode.trim()) {
-    toast.error("Please select department");
-    return;
-  }
-
-  if (!formData.directPurchase && !formData.orderNo) {
-    toast.error("Please select Order No.");
-    return;
-  }
-
-  if (formData.directPurchase && directPurchaseItems.length === 0) {
-    toast.error("Please add at least one item");
-    return;
-  }
-
-  if (!formData.directPurchase && !selectedGrnData) {
-    toast.error("Please load GRN details");
-    return;
-  }
-
-  const user = (appData?.user || {}) as any;
-
-  const branchCode = String(user?.branch_code ?? "");
-
-  const userCode = String(
-    user?.user_code ??
-      user?.userCode ??
-      user?.username ??
-      user?.code ??
-      ""
-  );
-
-  const storeName = String(formData.store?.storeName ?? "");
-  const storedId = String(formData.store?.storeId ?? "");
-
-  // ============================================================
-  // DETAILS
-  // ============================================================
-
-  let details: any[] = [];
-  let taxes: any[] = [];
-  let miscDetails: any[] = [];
-
-  // ============================================================
-  // DIRECT PURCHASE
-  // ============================================================
-
-  if (formData.directPurchase) {
-    details = directPurchaseItems.map((item) => ({
-      itemCode: Number(item.code || 0),
-
-      pItemQty: Number(item.enteredQty || 0),
-
-      pItemRate: Number(item.rate || 0),
-
-      unit: item.unit || "",
-
-      qtyPer: Number(item.unitQty || 0),
-
-      noOfQty: Number(item.enteredQty || 0),
-
-      totalQty: Number(item.qty || 0),
-
-      storeName,
-
-      storedId,
-
-      noOfDays: Number(item.noOfDays || 0),
-
-      unitCode: Number(item.unitCode || 0),
-
-      expiryDate: item.expiryDate
-        ? new Date(`${item.expiryDate}T00:00:00`).toISOString()
-        : new Date(`${formData.date}T00:00:00`).toISOString(),
-
-      trowQty: Number(item.qty || 0),
-    }));
-
-    // ----------------------------------------------------------
-    // DIRECT PURCHASE TAX DETAILS
-    // ----------------------------------------------------------
-
-    const taxList = Array.isArray(
-      directPurchaseCalculation?.taxList
-    )
-      ? directPurchaseCalculation.taxList
-      : [];
-
-    taxes = taxList.map((tax: any) => ({
-      itemCode: Number(tax?.itemCode ?? 0),
-
-      taxCode: Number(tax?.taxCode ?? 0),
-
-      taxAmount: Number(tax?.taxAmount ?? 0),
-
-      taxPer: Number(
-        tax?.taxper ??
-          tax?.taxPer ??
-          0
-      ),
-    }));
-
-    // ----------------------------------------------------------
-    // DIRECT PURCHASE MISC DETAILS
-    // chargeId ADDED
-    // ----------------------------------------------------------
-
-    const miscTaxList = Array.isArray(
-      directPurchaseCalculation?.miscTaxList
-    )
-      ? directPurchaseCalculation.miscTaxList
-      : [];
-
-    miscDetails = miscTaxList.map((misc: any) => ({
-      taxCode: Number(
-        misc?.taxCode ?? 0
-      ),
-
-      chargeCode: String(
-        misc?.chargeCode ??
-          misc?.chargeName ??
-          ""
-      ),
-
-      chargeId: Number(
-        misc?.chargeId ?? 0
-      ),
-
-      chargeAmount: String(
-        misc?.chargeAmount ??
-          misc?.chargeAmt ??
-          "0"
-      ),
-    }));
-  }
-
-  // ============================================================
-  // NORMAL PURCHASE / GRN
-  // ============================================================
-
-  else {
-    const master = selectedGrnMaster;
-    const grnDetails = selectedGrnDetails || [];
-
-    if (!master) {
-      toast.error("GRN master details not found");
+  };
+  const handleSave = async () => {
+    if (!formData.store) {
+      toast.error("Please select store");
       return;
     }
 
-    // ----------------------------------------------------------
-    // GRN DETAILS
-    // ----------------------------------------------------------
+    if (!formData.billNo.trim()) {
+      toast.error("Please enter bill number");
+      return;
+    }
 
-    details = grnDetails.map((item: any) => ({
-      itemCode: Number(
-        item?.itemCode ?? 0
-      ),
+    if (!formData.supplier.trim()) {
+      toast.error("Please enter supplier");
+      return;
+    }
 
-      pItemQty: Number(
-          item?.receivedQty ??
-          0
-      ),
+    if (formData.directIssue && !formData.departmentCode.trim()) {
+      toast.error("Please select department");
+      return;
+    }
 
-      pItemRate: Number(
-        item?.poItemRate ?? 0
-      ),
+    if (!formData.directPurchase && !formData.orderNo) {
+      toast.error("Please select Order No.");
+      return;
+    }
 
-      unit: item?.unit || "",
+    if (formData.directPurchase && directPurchaseItems.length === 0) {
+      toast.error("Please add at least one item");
+      return;
+    }
 
-      qtyPer: Number(
-        item?.poItemQty ?? 0
-      ),
+    if (!formData.directPurchase && !selectedGrnData) {
+      toast.error("Please load GRN details");
+      return;
+    }
 
-      noOfQty: Number(
-          item?.receivedQty ??
-          0
-      ),
+    const user = (appData?.user || {}) as any;
 
-      totalQty:Number(
-          item?.receivedQty ??
-          0
-      ),
+    const branchCode = String(user?.branch_code ?? "");
 
-      storeName: String(
-        master?.storeName ??
-          storeName
-      ),
-
-      storedId: String(
-        master?.storeID ??
-          storedId
-      ),
-
-      noOfDays: 0,
-
-      unitCode: Number(
-        item?.unitCode ?? 0
-      ),
-
-      expiryDate: new Date(
-        `${formData.date}T00:00:00`
-      ).toISOString(),
-
-      trowQty: Number(
-        item?.receivedQty ??
-          item?.poItemSuplyQty ??
-          0
-      ),
-    }));
-
-    // ----------------------------------------------------------
-    // GRN TAX DETAILS
-    // ----------------------------------------------------------
-
-    const grnTaxDetails = Array.isArray(
-      selectedGrnData?.taxDetails
-    )
-      ? selectedGrnData.taxDetails
-      : [];
-
-    taxes = grnTaxDetails.map(
-      (tax: any) => ({
-        itemCode: Number(
-          tax?.itemCode ?? 0
-        ),
-
-        taxCode: Number(
-          tax?.taxCode ?? 0
-        ),
-
-        taxAmount: Number(
-          tax?.taxAmount ?? 0
-        ),
-
-        taxPer: Number(
-          tax?.taxPer ??
-            tax?.taxper ??
-            tax?.taxPercentage ??
-            0
-        ),
-      })
+    const userCode = String(
+      user?.user_code ?? user?.userCode ?? user?.username ?? user?.code ?? "",
     );
 
-    // ----------------------------------------------------------
-    // GRN MISC DETAILS
-    // chargeId ADDED HERE ALSO
-    // ----------------------------------------------------------
+    const storeName = String(formData.store?.storeName ?? "");
+    const storedId = String(formData.store?.storeId ?? "");
 
-    const grnMiscDetails = Array.isArray(
-      selectedGrnData?.miscDetails
-    )
-      ? selectedGrnData.miscDetails
-      : [];
+    // ============================================================
+    // DETAILS
+    // ============================================================
 
-    miscDetails = grnMiscDetails.map(
-      (misc: any) => ({
-        taxCode: Number(
-          misc?.taxCode ?? 0
-        ),
+    let details: any[] = [];
+    let taxes: any[] = [];
+    let miscDetails: any[] = [];
 
-        chargeCode: String(
-          misc?.chargeName ??
-            misc?.chargeCode ??
-            ""
-        ),
+    // ============================================================
+    // DIRECT PURCHASE
+    // ============================================================
 
-        chargeId: Number(
-          misc?.chargeId ?? 0
-        ),
+    if (formData.directPurchase) {
+      details = directPurchaseItems.map((item) => ({
+        itemCode: Number(item.code || 0),
 
-        chargeAmount: String(
-          misc?.chargeAmt ??
-            misc?.chargeAmount ??
-            "0"
-        ),
-      })
-    );
-  }
+        pItemQty: Number(item.enteredQty || 0),
 
-  // ============================================================
-  // COMMON PAYLOAD
-  // ============================================================
+        pItemRate: Number(item.rate || 0),
 
-  const directPurchasePayload = {
-    pNo: Number(
-      formData.transactionNo || 0
-    ),
+        unit: item.unit || "",
 
-    poNo: Number(
-      formData.transactionNo || 0
-    ),
+        qtyPer: Number(item.unitQty || 0),
 
-    pDate: new Date(
-      `${formData.date}T00:00:00`
-    ).toISOString(),
+        noOfQty: Number(item.enteredQty || 0),
 
-    supCode: formData.directPurchase
-      ? 0
-      : Number(
-          selectedGrnMaster?.supCode ?? 0
-        ),
-supplierName:formData.supplier,
-    pTotalAmount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.totalAmount ??
-            directPurchaseSubTotal ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.totalAmount ??
-            0
-        ),
+        totalQty: Number(item.qty || 0),
 
-    billNo: formData.billNo.trim(),
+        storeName,
 
-    taxAmount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.taxAmount ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.totTax ??
-            0
-        ),
+        storedId,
 
-    roundOff: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.roundOff ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.roundoff ??
-            0
-        ),
+        noOfDays: Number(item.noOfDays || 0),
 
-    misc: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.miscTotalAmount ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.otherCharges ??
-            0
-        ),
+        unitCode: Number(item.unitCode || 0),
+        // ✅ Same as Purchase Order
+        mainUnitConverstion: String(item.unitQty || 0),
 
-    discount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.discount ??
-            0
-        )
-      : 0,
+        // ✅ Selected conversion name
+        mainUnit: item.unitConversion || "",
+        expiryDate: item.expiryDate
+          ? new Date(`${item.expiryDate}T00:00:00`).toISOString()
+          : new Date(`${formData.date}T00:00:00`).toISOString(),
 
-    depCode: Number(
-      formData.departmentCode || 0
-    ),
+        trowQty: Number(item.qty || 0),
+      }));
 
-    pType: formData.directPurchase
-      ? "Direct Purchase"
-      : "Purchase",
+      // ----------------------------------------------------------
+      // DIRECT PURCHASE TAX DETAILS
+      // ----------------------------------------------------------
 
-    directIssue: Boolean(
-      formData.directIssue
-    ),
+      const taxList = Array.isArray(directPurchaseCalculation?.taxList)
+        ? directPurchaseCalculation.taxList
+        : [];
 
-    storeName,
+      taxes = taxList.map((tax: any) => ({
+        itemCode: Number(tax?.itemCode ?? 0),
 
-    branchCode,
+        taxCode: Number(tax?.taxCode ?? 0),
 
-    userCode,
+        taxAmount: Number(tax?.taxAmount ?? 0),
 
-    storedId,
+        taxPer: Number(tax?.taxper ?? tax?.taxPer ?? 0),
+      }));
 
-    missChargeAmount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.miscCharge ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.missChargeAmount ??
-            0
-        ),
+      // ----------------------------------------------------------
+      // DIRECT PURCHASE MISC DETAILS
+      // chargeId ADDED
+      // ----------------------------------------------------------
 
-    cgstAmount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.cgstAmt ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.cgstAmount ??
-            0
-        ),
+      const miscTaxList = Array.isArray(directPurchaseCalculation?.miscTaxList)
+        ? directPurchaseCalculation.miscTaxList
+        : [];
 
-    sgstAmount: formData.directPurchase
-      ? Number(
-          directPurchaseCalculation?.sgstAmt ??
-            0
-        )
-      : Number(
-          selectedGrnMaster?.sgstAmount ??
-            0
-        ),
+      miscDetails = miscTaxList.map((misc: any) => ({
+        taxCode: Number(misc?.taxCode ?? 0),
 
-    grnNo: formData.directPurchase
-      ? ""
-      : String(
-          selectedGrnMaster?.grnNo ??
-            formData.orderNo ??
-            ""
-        ),
+        chargeCode: String(misc?.chargeCode ?? misc?.chargeName ?? ""),
 
-    details,
+        chargeId: Number(misc?.chargeId ?? 0),
 
-    taxes,
+        chargeAmount: String(misc?.chargeAmount ?? misc?.chargeAmt ?? "0"),
+      }));
+    }
 
-    miscDetails,
-  };
+    // ============================================================
+    // NORMAL PURCHASE / GRN
+    // ============================================================
+    else {
+      const master = selectedGrnMaster;
+      const grnDetails = selectedGrnDetails || [];
 
-  // ============================================================
-  // DEBUG PAYLOAD
-  // ============================================================
+      if (!master) {
+        toast.error("GRN master details not found");
+        return;
+      }
 
-  console.log(
-    "CreateDirectPurchase Payload:",
-    JSON.stringify(
-      directPurchasePayload,
-      null,
-      2
-    )
-  );
+      // ----------------------------------------------------------
+      // GRN DETAILS
+      // ----------------------------------------------------------
 
-  startApiLoading();
+      details = grnDetails.map((item: any) => ({
+        itemCode: Number(item?.itemCode ?? 0),
 
-  try {
-    const response = await createDirectPurchase(
-      directPurchasePayload
-    );
+        pItemQty: Number(item?.receivedQty ?? 0),
+
+        pItemRate: Number(item?.poItemRate ?? 0),
+
+        unit: item?.unit || "",
+
+        qtyPer: Number(item?.poItemQty ?? 0),
+
+        noOfQty: Number(item?.receivedQty ?? 0),
+
+        totalQty: Number(item?.receivedQty ?? 0),
+
+        storeName: String(master?.storeName ?? storeName),
+
+        storedId: String(master?.storeID ?? storedId),
+
+        noOfDays: 0,
+
+        unitCode: Number(item?.unitCode ?? 0),
+
+        expiryDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+
+        trowQty: Number(item?.receivedQty ?? item?.poItemSuplyQty ?? 0),
+      }));
+
+      // ----------------------------------------------------------
+      // GRN TAX DETAILS
+      // ----------------------------------------------------------
+
+      const grnTaxDetails = Array.isArray(selectedGrnData?.taxDetails)
+        ? selectedGrnData.taxDetails
+        : [];
+
+      taxes = grnTaxDetails.map((tax: any) => ({
+        itemCode: Number(tax?.itemCode ?? 0),
+
+        taxCode: Number(tax?.taxCode ?? 0),
+
+        taxAmount: Number(tax?.taxAmount ?? 0),
+
+        taxPer: Number(tax?.taxPer ?? tax?.taxper ?? tax?.taxPercentage ?? 0),
+      }));
+
+      // ----------------------------------------------------------
+      // GRN MISC DETAILS
+      // chargeId ADDED HERE ALSO
+      // ----------------------------------------------------------
+
+      const grnMiscDetails = Array.isArray(selectedGrnData?.miscDetails)
+        ? selectedGrnData.miscDetails
+        : [];
+
+      miscDetails = grnMiscDetails.map((misc: any) => ({
+        taxCode: Number(misc?.taxCode ?? 0),
+
+        chargeCode: String(misc?.chargeName ?? misc?.chargeCode ?? ""),
+
+        chargeId: Number(misc?.chargeId ?? 0),
+
+        chargeAmount: String(misc?.chargeAmt ?? misc?.chargeAmount ?? "0"),
+      }));
+    }
+
+    // ============================================================
+    // COMMON PAYLOAD
+    // ============================================================
+
+    const directPurchasePayload = {
+      pNo: Number(formData.transactionNo || 0),
+
+      poNo: Number(formData.transactionNo || 0),
+
+      pDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+
+      supCode: formData.directPurchase
+        ? 0
+        : Number(selectedGrnMaster?.supCode ?? 0),
+      supplierName: formData.supplier,
+      pTotalAmount: formData.directPurchase
+        ? Number(
+            directPurchaseCalculation?.totalAmount ??
+              directPurchaseSubTotal ??
+              0,
+          )
+        : Number(selectedGrnMaster?.totalAmount ?? 0),
+
+      billNo: formData.billNo.trim(),
+
+      taxAmount: formData.directPurchase
+        ? Number(directPurchaseCalculation?.taxAmount ?? 0)
+        : Number(selectedGrnMaster?.totTax ?? 0),
+
+      roundOff: formData.directPurchase
+        ? Number(directPurchaseCalculation?.roundOff ?? 0)
+        : Number(selectedGrnMaster?.roundoff ?? 0),
+
+      misc: formData.directPurchase
+        ? Number(directPurchaseCalculation?.miscTotalAmount ?? 0)
+        : Number(selectedGrnMaster?.otherCharges ?? 0),
+
+      discount: formData.directPurchase
+        ? Number(directPurchaseCalculation?.discount ?? 0)
+        : 0,
+
+      depCode: Number(formData.departmentCode || 0),
+
+      pType: formData.directPurchase ? "Direct Purchase" : "Purchase",
+
+      directIssue: Boolean(formData.directIssue),
+
+      storeName,
+
+      branchCode,
+
+      userCode,
+
+      storedId,
+
+      missChargeAmount: formData.directPurchase
+        ? Number(directPurchaseCalculation?.miscCharge ?? 0)
+        : Number(selectedGrnMaster?.missChargeAmount ?? 0),
+
+      cgstAmount: formData.directPurchase
+        ? Number(directPurchaseCalculation?.cgstAmt ?? 0)
+        : Number(selectedGrnMaster?.cgstAmount ?? 0),
+
+      sgstAmount: formData.directPurchase
+        ? Number(directPurchaseCalculation?.sgstAmt ?? 0)
+        : Number(selectedGrnMaster?.sgstAmount ?? 0),
+
+      grnNo: formData.directPurchase
+        ? ""
+        : String(selectedGrnMaster?.grnNo ?? formData.orderNo ?? ""),
+
+      details,
+
+      taxes,
+
+      miscDetails,
+    };
+
+    // ============================================================
+    // DEBUG PAYLOAD
+    // ============================================================
 
     console.log(
-      "CreateDirectPurchase Response:",
-      response
+      "CreateDirectPurchase Payload:",
+      JSON.stringify(directPurchasePayload, null, 2),
     );
 
-  if (response?.success) {
-  toast.success(
-    response?.message ||
-      "Purchase saved successfully"
-  );
+    startApiLoading();
 
-  // Reset the complete form after successful save
-  resetAllForm();
+    try {
+      const response = await createDirectPurchase(directPurchasePayload);
 
-  // Get a fresh transaction number for the next purchase
-  await fetchTransactionNo();
-} else {
-      toast.error(
-        response?.message ||
-          "Failed to save purchase"
-      );
+      console.log("CreateDirectPurchase Response:", response);
+
+      if (response?.success) {
+        toast.success(response?.message || "Purchase saved successfully");
+
+        // Reset the complete form after successful save
+        resetAllForm();
+
+        // Get a fresh transaction number for the next purchase
+        await fetchTransactionNo();
+      } else {
+        toast.error(response?.message || "Failed to save purchase");
+      }
+    } catch (error) {
+      console.error("Error creating purchase:", error);
+
+      toast.error("Failed to save purchase");
+    } finally {
+      stopApiLoading();
     }
-  } catch (error) {
-    console.error(
-      "Error creating purchase:",
-      error
-    );
-
-    toast.error(
-      "Failed to save purchase"
-    );
-  } finally {
-    stopApiLoading();
-  }
-};
+  };
   /* =========================
       DOWNLOAD DIRECT PURCHASE TEMPLATE
   ========================= */
@@ -1432,253 +1279,197 @@ supplierName:formData.supplier,
   };
 
   const handleImportDirectPurchaseExcel = async (
-  e: React.ChangeEvent<HTMLInputElement>,
-) => {
-  const file = e.target.files?.[0];
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
 
-  // Reset file input so the same file can be selected again
-  e.target.value = "";
+    // Reset file input so the same file can be selected again
+    e.target.value = "";
 
-  if (!file) return;
+    if (!file) return;
 
-  if (!formData.store) {
-    toast.error("Please select store first");
-    return;
-  }
-
-  try {
-    startApiLoading();
-
-    const buffer = await file.arrayBuffer();
-
-    const workbook = XLSX.read(buffer, {
-      type: "array",
-      cellDates: true,
-    });
-
-    const sheetName = workbook.SheetNames[0];
-
-    if (!sheetName) {
-      toast.error("Invalid Excel file");
+    if (!formData.store) {
+      toast.error("Please select store first");
       return;
     }
 
-    const worksheet = workbook.Sheets[sheetName];
+    try {
+      startApiLoading();
 
-    const rows: any[] = XLSX.utils.sheet_to_json(worksheet, {
-      defval: "",
-    });
+      const buffer = await file.arrayBuffer();
 
-    if (!rows.length) {
-      toast.error("Excel file is empty");
-      return;
-    }
+      const workbook = XLSX.read(buffer, {
+        type: "array",
+        cellDates: true,
+      });
 
-    console.log("Imported Excel Rows:", rows);
+      const sheetName = workbook.SheetNames[0];
 
-    const importedItems: PurchaseItem[] = [];
-    const invalidItems: string[] = [];
-
-    rows.forEach((row, index) => {
-      const itemCode = String(
-        row?.ItemCode ??
-          row?.itemCode ??
-          "",
-      ).trim();
-
-      const itemQty = Number(
-        row?.ItemQty ??
-          row?.itemQty ??
-          0,
-      );
-
-      // Ignore completely empty rows
-      if (!itemCode && !itemQty) {
+      if (!sheetName) {
+        toast.error("Invalid Excel file");
         return;
       }
 
-      if (!itemCode) {
-        invalidItems.push(
-          `Row ${index + 2}: ItemCode is missing`,
-        );
+      const worksheet = workbook.Sheets[sheetName];
+
+      const rows: any[] = XLSX.utils.sheet_to_json(worksheet, {
+        defval: "",
+      });
+
+      if (!rows.length) {
+        toast.error("Excel file is empty");
         return;
       }
 
-      if (!itemQty || itemQty <= 0) {
-        invalidItems.push(
-          `Row ${index + 2}: Invalid quantity`,
-        );
-        return;
-      }
+      console.log("Imported Excel Rows:", rows);
 
-      // Find item from inventory list using ItemCode
-      const inventoryItem = inventoryItems.find(
-        (item) =>
-          String(item.itemCode).trim() === itemCode,
-      );
+      const importedItems: PurchaseItem[] = [];
+      const invalidItems: string[] = [];
 
-      if (!inventoryItem) {
-        invalidItems.push(
-          `Row ${index + 2}: Item ${itemCode} not found`,
-        );
-        return;
-      }
+      rows.forEach((row, index) => {
+        const itemCode = String(row?.ItemCode ?? row?.itemCode ?? "").trim();
 
-      // Prevent duplicate item codes in imported Excel
-      const alreadyImported = importedItems.some(
-        (item) => item.code === itemCode,
-      );
+        const itemQty = Number(row?.ItemQty ?? row?.itemQty ?? 0);
 
-      if (alreadyImported) {
-        invalidItems.push(
-          `Row ${index + 2}: Item ${itemCode} is duplicated`,
-        );
-        return;
-      }
-
-      const excelNoOfDays = Number(
-        row?.NoOfDays ??
-          row?.noOfDays ??
-          0,
-      );
-
-      let excelExpiryDate = "";
-
-      const excelExpiry =
-        row?.ExpiryDate ??
-        row?.expiryDate ??
-        "";
-
-      if (excelExpiry instanceof Date) {
-        excelExpiryDate = excelExpiry
-          .toISOString()
-          .split("T")[0];
-      } else if (excelExpiry) {
-        const parsedDate = new Date(excelExpiry);
-
-        if (!Number.isNaN(parsedDate.getTime())) {
-          excelExpiryDate = parsedDate
-            .toISOString()
-            .split("T")[0];
+        // Ignore completely empty rows
+        if (!itemCode && !itemQty) {
+          return;
         }
-      }
 
-      const finalExpiryDate =
-        excelExpiryDate ||
-        calculateExpiryDate(
-          formData.date,
-          excelNoOfDays,
+        if (!itemCode) {
+          invalidItems.push(`Row ${index + 2}: ItemCode is missing`);
+          return;
+        }
+
+        if (!itemQty || itemQty <= 0) {
+          invalidItems.push(`Row ${index + 2}: Invalid quantity`);
+          return;
+        }
+
+        // Find item from inventory list using ItemCode
+        const inventoryItem = inventoryItems.find(
+          (item) => String(item.itemCode).trim() === itemCode,
         );
 
-      const itemRate = Number(
-        inventoryItem.itemRate ?? 0,
+        if (!inventoryItem) {
+          invalidItems.push(`Row ${index + 2}: Item ${itemCode} not found`);
+          return;
+        }
+
+        // Prevent duplicate item codes in imported Excel
+        const alreadyImported = importedItems.some(
+          (item) => item.code === itemCode,
+        );
+
+        if (alreadyImported) {
+          invalidItems.push(`Row ${index + 2}: Item ${itemCode} is duplicated`);
+          return;
+        }
+
+        const excelNoOfDays = Number(row?.NoOfDays ?? row?.noOfDays ?? 0);
+
+        let excelExpiryDate = "";
+
+        const excelExpiry = row?.ExpiryDate ?? row?.expiryDate ?? "";
+
+        if (excelExpiry instanceof Date) {
+          excelExpiryDate = excelExpiry.toISOString().split("T")[0];
+        } else if (excelExpiry) {
+          const parsedDate = new Date(excelExpiry);
+
+          if (!Number.isNaN(parsedDate.getTime())) {
+            excelExpiryDate = parsedDate.toISOString().split("T")[0];
+          }
+        }
+
+        const finalExpiryDate =
+          excelExpiryDate || calculateExpiryDate(formData.date, excelNoOfDays);
+
+        const itemRate = Number(inventoryItem.itemRate ?? 0);
+
+        const newItem: PurchaseItem = {
+          id: Date.now() + index,
+
+          code: String(inventoryItem.itemCode),
+
+          name: inventoryItem.itemName || "",
+
+          unit: inventoryItem.unitName || "",
+
+          unitCode: Number(inventoryItem.unitCode || 0),
+
+          // Excel import does not apply conversion
+          unitQty: 0,
+
+          // No unit conversion selected during Excel import
+          unitConversion: "",
+
+          // Quantity directly from Excel
+          enteredQty: itemQty,
+
+          qty: itemQty,
+
+          // Rate from inventory master
+          rate: itemRate,
+
+          total: itemQty * itemRate,
+
+          taxName: inventoryItem.taxName || "",
+
+          noOfDays: excelNoOfDays,
+
+          expiryDate: finalExpiryDate || formData.date,
+        };
+
+        importedItems.push(newItem);
+      });
+
+      if (importedItems.length === 0) {
+        if (invalidItems.length > 0) {
+          toast.error(invalidItems.slice(0, 2).join(", "));
+        } else {
+          toast.error("No valid items found in Excel");
+        }
+
+        return;
+      }
+
+      console.log("Imported Direct Purchase Items:", importedItems);
+
+      // Replace current table with imported items
+      setDirectPurchaseItems(importedItems);
+
+      // Clear current item-entry form
+      resetDirectPurchaseItemForm();
+
+      // ----------------------------------------------------------
+      // CALL PURCHASE CALCULATION API
+      // ----------------------------------------------------------
+
+      const calculationResponse = await calculateDirectPurchase(importedItems);
+
+      console.log(
+        "Imported Purchase Calculation Response:",
+        calculationResponse,
       );
 
-      const newItem: PurchaseItem = {
-        id: Date.now() + index,
-
-        code: String(inventoryItem.itemCode),
-
-        name: inventoryItem.itemName || "",
-
-        unit: inventoryItem.unitName || "",
-
-        unitCode: Number(
-          inventoryItem.unitCode || 0,
-        ),
-
-        // Excel import does not apply conversion
-        unitQty: 0,
-
-        // Quantity directly from Excel
-        enteredQty: itemQty,
-
-        qty: itemQty,
-
-        // Rate from inventory master
-        rate: itemRate,
-
-        total: itemQty * itemRate,
-
-        taxName:
-          inventoryItem.taxName || "",
-
-        noOfDays: excelNoOfDays,
-
-        expiryDate:
-          finalExpiryDate ||
-          formData.date,
-      };
-
-      importedItems.push(newItem);
-    });
-
-    if (importedItems.length === 0) {
       if (invalidItems.length > 0) {
-        toast.error(
-          invalidItems.slice(0, 2).join(", "),
+        toast.success(
+          `${importedItems.length} item(s) imported. ${invalidItems.length} row(s) skipped.`,
         );
+
+        console.warn("Skipped Excel rows:", invalidItems);
       } else {
-        toast.error(
-          "No valid items found in Excel",
-        );
+        toast.success(`${importedItems.length} item(s) imported successfully`);
       }
+    } catch (error) {
+      console.error("Error importing Direct Purchase Excel:", error);
 
-      return;
+      toast.error("Failed to import Excel file");
+    } finally {
+      stopApiLoading();
     }
-
-    console.log(
-      "Imported Direct Purchase Items:",
-      importedItems,
-    );
-
-    // Replace current table with imported items
-    setDirectPurchaseItems(importedItems);
-
-    // Clear current item-entry form
-    resetDirectPurchaseItemForm();
-
-    // ----------------------------------------------------------
-    // CALL PURCHASE CALCULATION API
-    // ----------------------------------------------------------
-
-    const calculationResponse =
-      await calculateDirectPurchase(
-        importedItems,
-      );
-
-    console.log(
-      "Imported Purchase Calculation Response:",
-      calculationResponse,
-    );
-
-    if (invalidItems.length > 0) {
-      toast.success(
-        `${importedItems.length} item(s) imported. ${invalidItems.length} row(s) skipped.`,
-      );
-
-      console.warn(
-        "Skipped Excel rows:",
-        invalidItems,
-      );
-    } else {
-      toast.success(
-        `${importedItems.length} item(s) imported successfully`,
-      );
-    }
-  } catch (error) {
-    console.error(
-      "Error importing Direct Purchase Excel:",
-      error,
-    );
-
-    toast.error(
-      "Failed to import Excel file",
-    );
-  } finally {
-    stopApiLoading();
-  }
-};
+  };
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       {apiLoadingCount > 0 && <Loader />}
@@ -1796,10 +1587,7 @@ supplierName:formData.supplier,
 
                       if (formData.directPurchase) {
                         setExpiryDate(
-                          calculateExpiryDate(
-                            newDate,
-                            Number(noOfDays || 0),
-                          ),
+                          calculateExpiryDate(newDate, Number(noOfDays || 0)),
                         );
                       }
                     }}
@@ -1849,7 +1637,6 @@ supplierName:formData.supplier,
                         supplier: e.target.value,
                       }))
                     }
-                    
                     placeholder="Supplier"
                     className={inputClass}
                   />
@@ -1869,15 +1656,13 @@ supplierName:formData.supplier,
                         const selectedCode = e.target.value;
 
                         const selectedDepartment = departmentList.find(
-                          (dept: any) =>
-                            String(dept?.depCode) === selectedCode
+                          (dept: any) => String(dept?.depCode) === selectedCode,
                         );
 
                         setFormData((prev) => ({
                           ...prev,
                           departmentCode: selectedCode,
-                          departmentName:
-                            selectedDepartment?.depName ?? "",
+                          departmentName: selectedDepartment?.depName ?? "",
                         }));
                       }}
                       disabled={loadingDepartments}
@@ -1894,10 +1679,7 @@ supplierName:formData.supplier,
                       </option>
 
                       {departmentList.map((dept: any) => (
-                        <option
-                          key={dept.depCode}
-                          value={dept.depCode}
-                        >
+                        <option key={dept.depCode} value={dept.depCode}>
                           {dept.depName}
                         </option>
                       ))}
@@ -1905,33 +1687,36 @@ supplierName:formData.supplier,
                   </div>
                 )}
               </div>
-              <div  className="flex min-h-10 items-center gap-6 lg:col-span-2 mt-2">
-                <label  style={{display:"none"}} className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-700">
-                <input
-                 style={{display:"none"}}
-  type="checkbox"
-checked={formData.directPurchase}
-onChange={(e) => {
-  const checked = e.target.checked;
+              <div className="flex min-h-10 items-center gap-6 lg:col-span-2 mt-2">
+                <label
+                  style={{ display: "none" }}
+                  className="flex cursor-pointer items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-700"
+                >
+                  <input
+                    style={{ display: "none" }}
+                    type="checkbox"
+                    checked={formData.directPurchase}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
 
-  setFormData((prev) => ({
-    ...prev,
-    directPurchase: checked,
-    orderNo: checked ? "" : prev.orderNo,
-    billNo: checked ? "" : prev.billNo,
-    supplier: checked ? "Direct Purchase" : "",
-  }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        directPurchase: checked,
+                        orderNo: checked ? "" : prev.orderNo,
+                        billNo: checked ? "" : prev.billNo,
+                        supplier: checked ? "Direct Purchase" : "",
+                      }));
 
-  setPurchaseGoodsReceivedData(null);
+                      setPurchaseGoodsReceivedData(null);
 
-  if (!checked) {
-    setDirectPurchaseItems([]);
-    setDirectPurchaseCalculation(null);
-    resetDirectPurchaseItemForm();
-  }
-}}
-  className="h-4 w-4 rounded border-gray-300"
-/>
+                      if (!checked) {
+                        setDirectPurchaseItems([]);
+                        setDirectPurchaseCalculation(null);
+                        resetDirectPurchaseItemForm();
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
                   <span>Direct Purchase</span>
                 </label>
 
@@ -1945,12 +1730,8 @@ onChange={(e) => {
                       setFormData((prev) => ({
                         ...prev,
                         directIssue: checked,
-                        departmentCode: checked
-                          ? prev.departmentCode
-                          : "",
-                        departmentName: checked
-                          ? prev.departmentName
-                          : "",
+                        departmentCode: checked ? prev.departmentCode : "",
+                        departmentName: checked ? prev.departmentName : "",
                       }));
                     }}
                     className="h-4 w-4 rounded border-gray-300"
@@ -1966,9 +1747,9 @@ onChange={(e) => {
               DIRECT PURCHASE ITEM ENTRY
           ========================= */}
 
-       {/* DIRECT PURCHASE DETAILS - SHOW ONLY FOR DIRECT PURCHASE */}
-       {formData.directPurchase && (
-       <>
+          {/* DIRECT PURCHASE DETAILS - SHOW ONLY FOR DIRECT PURCHASE */}
+          {formData.directPurchase && (
+            <>
               {showUnitConversion && (
                 <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 p-4">
                   <div className="w-full max-w-md rounded-xl bg-white shadow-2xl">
@@ -2012,6 +1793,10 @@ onChange={(e) => {
                           setSelectedUnitQty(
                             selected ? Number(selected.qty) : 0,
                           );
+
+                          setSelectedUnitConversion(
+                            selected ? selected.unitName || "" : "",
+                          );
                         }}
                         className={inputClass}
                         disabled={loadingUnitConversions}
@@ -2023,9 +1808,7 @@ onChange={(e) => {
                         </option>
 
                         {unitConversions
-                          .filter(
-                            (conversion) => conversion.unitName !== unit,
-                          )
+                          .filter((conversion) => conversion.unitName !== unit)
                           .map((conversion) => (
                             <option
                               key={conversion.unitCode}
@@ -2050,7 +1833,9 @@ onChange={(e) => {
                             = {selectedUnitQty} {unit || "base units"}
                           </>
                         ) : (
-                          <>No conversion selected. Quantity is used as entered.</>
+                          <>
+                            No conversion selected. Quantity is used as entered.
+                          </>
                         )}
                       </div>
 
@@ -2059,6 +1844,7 @@ onChange={(e) => {
                           type="button"
                           onClick={() => {
                             setSelectedUnitQty(0);
+                            setSelectedUnitConversion("");
                             setShowUnitConversion(false);
                           }}
                           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -2102,10 +1888,7 @@ onChange={(e) => {
                         }
                         onFocus={() => setShowItemDropdown(true)}
                         onBlur={() =>
-                          setTimeout(
-                            () => setShowItemDropdown(false),
-                            150,
-                          )
+                          setTimeout(() => setShowItemDropdown(false), 150)
                         }
                         placeholder={
                           loadingInventoryItems
@@ -2264,360 +2047,349 @@ onChange={(e) => {
                     )}
                   </div>
                 </div>
-
               </section>
-       </>
-
-       )}
+            </>
+          )}
 
           {/* =========================
               PURCHASE DETAILS TABLE
           ========================= */}
 
-         <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
-  <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 className="text-base font-semibold text-gray-800">
-        Purchase Details
-      </h2>
+          <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
+            <div className="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-800">
+                  Purchase Details
+                </h2>
 
-      <p className="mt-0.5 text-xs text-gray-500">
-        Item details for selected GRN
-      </p>
-    </div>
-    {formData.directPurchase&&<div className="flex flex-wrap items-center gap-2">
-  {/* IMPORT EXCEL */}
-
-  <label
-    className={`inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-green-600 bg-white px-4 text-sm font-semibold text-green-600 transition hover:bg-green-50 ${
-      apiLoadingCount > 0
-        ? "pointer-events-none cursor-not-allowed opacity-50"
-        : ""
-    }`}
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 16V4m0 0L8 8m4-4l4 4M5 20h14"
-      />
-    </svg>
-
-    Import
-
-    <input
-      type="file"
-      accept=".xlsx,.xls"
-      className="hidden"
-      onChange={handleImportDirectPurchaseExcel}
-      disabled={apiLoadingCount > 0}
-    />
-  </label>
-
-  {/* DOWNLOAD TEMPLATE */}
-
-  <button
-    type="button"
-    onClick={handleDownloadDirectPurchaseTemplate}
-    disabled={apiLoadingCount > 0}
-    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-600 bg-white px-4 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
-      />
-    </svg>
-
-    Download Template
-  </button>
-</div>
-}
-  </div>
-
-              <div className="w-full overflow-x-auto">
-                <table className="w-full min-w-[1100px] text-sm">
-                  <thead className="bg-gray-100">
-                    <tr className="border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        S.No.
-                      </th>
-
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        Item Code
-                      </th>
-
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        Item Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        Unit
-                      </th>
-
-                  
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                      Qty  
-                      </th>
-
-                
-
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                        Rate
-                      </th>
-
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                        Total
-                      </th>
-
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                        No. of Days
-                      </th>
-
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
-                        Expiry Date
-                      </th>
-
-                      {formData.directPurchase && (
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
-                          Action
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {formData.directPurchase ? (
-                      directPurchaseItems.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={formData.directPurchase ? 10 : 9}
-                            className="px-4 py-10 text-center text-sm text-gray-400"
-                          >
-                            No items added to this purchase
-                          </td>
-                        </tr>
-                      ) : (
-                        directPurchaseItems.map((item, index) => (
-                          <tr
-                            key={item.id}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                              {index + 1}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
-                              {item.code}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
-                              {item.name}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                              {item.unit || "-"}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
-                              {Number(item.qty || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
-                              ₹ {Number(item.rate || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
-                              ₹ {Number(item.total || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
-                              {Number(item.noOfDays || 0)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
-                              {item.expiryDate || formData.date}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleEditDirectPurchaseItem(index)
-                                  }
-                                  className="rounded-md border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleRemoveDirectPurchaseItem(index)
-                                  }
-                                  className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )
-                    ) : (
-                      selectedGrnDetails.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={9}
-                            className="px-4 py-10 text-center text-sm text-gray-400"
-                          >
-                            No purchase details available
-                          </td>
-                        </tr>
-                      ) : (
-                        selectedGrnDetails.map((item: any, index: number) => (
-                          <tr
-                            key={`${item.itemCode}-${item.rno}-${index}`}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                              {index + 1}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
-                              {item.itemCode}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
-                              {item.itemName}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-gray-700">
-                              {item.unit || "-"}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
-                              {Number(item.receivedQty || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
-                              ₹ {Number(item.poItemRate || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
-                              ₹ {Number(item.receivedQtyTotal || 0).toFixed(2)}
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
-                              0
-                            </td>
-
-                            <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
-                              {formData.date}
-                            </td>
-                          </tr>
-                        ))
-                      )
-                    )}
-                  </tbody>
-                </table>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Item details for selected GRN
+                </p>
               </div>
-            </section>
+              {formData.directPurchase && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* IMPORT EXCEL */}
+
+                  <label
+                    className={`inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-green-600 bg-white px-4 text-sm font-semibold text-green-600 transition hover:bg-green-50 ${
+                      apiLoadingCount > 0
+                        ? "pointer-events-none cursor-not-allowed opacity-50"
+                        : ""
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 16V4m0 0L8 8m4-4l4 4M5 20h14"
+                      />
+                    </svg>
+                    Import
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls"
+                      className="hidden"
+                      onChange={handleImportDirectPurchaseExcel}
+                      disabled={apiLoadingCount > 0}
+                    />
+                  </label>
+
+                  {/* DOWNLOAD TEMPLATE */}
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadDirectPurchaseTemplate}
+                    disabled={apiLoadingCount > 0}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-600 bg-white px-4 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14"
+                      />
+                    </svg>
+                    Download Template
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[1100px] text-sm">
+                <thead className="bg-gray-100">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      S.No.
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Item Code
+                    </th>
+
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Item Name
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                      Unit
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                      Qty
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                      Rate
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                      Total
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                      No. of Days
+                    </th>
+
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
+                      Expiry Date
+                    </th>
+
+                    {formData.directPurchase && (
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
+                        Action
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {formData.directPurchase ? (
+                    directPurchaseItems.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={formData.directPurchase ? 10 : 9}
+                          className="px-4 py-10 text-center text-sm text-gray-400"
+                        >
+                          No items added to this purchase
+                        </td>
+                      </tr>
+                    ) : (
+                      directPurchaseItems.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                            {index + 1}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
+                            {item.code}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                            {item.name}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                            {item.unit || "-"}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                            {Number(item.qty || 0).toFixed(2)}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
+                            ₹ {Number(item.rate || 0).toFixed(2)}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
+                            ₹ {Number(item.total || 0).toFixed(2)}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                            {Number(item.noOfDays || 0)}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
+                            {item.expiryDate || formData.date}
+                          </td>
+
+                          <td className="whitespace-nowrap px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleEditDirectPurchaseItem(index)
+                                }
+                                className="rounded-md border border-blue-200 px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveDirectPurchaseItem(index)
+                                }
+                                className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )
+                  ) : selectedGrnDetails.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={9}
+                        className="px-4 py-10 text-center text-sm text-gray-400"
+                      >
+                        No purchase details available
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedGrnDetails.map((item: any, index: number) => (
+                      <tr
+                        key={`${item.itemCode}-${item.rno}-${index}`}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                          {index + 1}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-700">
+                          {item.itemCode}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 font-medium text-gray-800">
+                          {item.itemName}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                          {item.unit || "-"}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                          {Number(item.receivedQty || 0).toFixed(2)}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-gray-700">
+                          ₹ {Number(item.poItemRate || 0).toFixed(2)}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-gray-800">
+                          ₹ {Number(item.receivedQtyTotal || 0).toFixed(2)}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-800">
+                          0
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-center text-gray-700">
+                          {formData.date}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           {/* =========================
               ORDER SUMMARY
           ========================= */}
 
-  
-            <div className="mt-6 flex justify-end">
-              <div className="w-full max-w-[430px] rounded-xl border border-gray-200 bg-gray-50 p-5">
-                <h3 className="mb-4 border-b border-gray-200 pb-3 text-base font-semibold text-gray-800">
-                  Order Summary
-                </h3>
+          <div className="mt-6 flex justify-end">
+            <div className="w-full max-w-[430px] rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <h3 className="mb-4 border-b border-gray-200 pb-3 text-base font-semibold text-gray-800">
+                Order Summary
+              </h3>
 
-                <div className="space-y-3 text-sm">
-                  {/* TOTAL QUANTITY */}
+              <div className="space-y-3 text-sm">
+                {/* TOTAL QUANTITY */}
 
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">Total Quantity</span>
+
+                  <span className="min-w-[120px] text-right font-medium text-gray-800">
+                    {totalQuantity.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* TOTAL AMOUNT */}
+
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">Total Amount</span>
+
+                  <span className="min-w-[120px] text-right font-medium text-gray-800">
+                    ₹ {totalAmount.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* CGST */}
+
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">CGST</span>
+
+                  <span className="min-w-[120px] text-right font-medium text-gray-800">
+                    ₹ {cgstAmount.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* SGST */}
+
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">SGST</span>
+
+                  <span className="min-w-[120px] text-right font-medium text-gray-800">
+                    ₹ {sgstAmount.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* MISCELLANEOUS */}
+
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-gray-600">Miscellaneous</span>
+
+                  <span className="min-w-[120px] text-right font-medium text-gray-800">
+                    ₹ {miscellaneousAmount.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* GRAND TOTAL */}
+
+                <div className="border-t border-gray-200 pt-3">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-600">Total Quantity</span>
-
-                    <span className="min-w-[120px] text-right font-medium text-gray-800">
-                      {totalQuantity.toFixed(2)}
+                    <span className="text-base font-bold text-gray-800">
+                      Grand Total
                     </span>
-                  </div>
 
-                  {/* TOTAL AMOUNT */}
-
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-600">Total Amount</span>
-
-                    <span className="min-w-[120px] text-right font-medium text-gray-800">
-                      ₹ {totalAmount.toFixed(2)}
+                    <span className="min-w-[120px] text-right text-lg font-bold text-blue-600">
+                      ₹ {grandTotal.toFixed(2)}
                     </span>
-                  </div>
-
-                  {/* CGST */}
-
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-600">CGST</span>
-
-                    <span className="min-w-[120px] text-right font-medium text-gray-800">
-                      ₹ {cgstAmount.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* SGST */}
-
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-600">SGST</span>
-
-                    <span className="min-w-[120px] text-right font-medium text-gray-800">
-                      ₹ {sgstAmount.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* MISCELLANEOUS */}
-
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-600">Miscellaneous</span>
-
-                    <span className="min-w-[120px] text-right font-medium text-gray-800">
-                      ₹ {miscellaneousAmount.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* GRAND TOTAL */}
-
-                  <div className="border-t border-gray-200 pt-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-base font-bold text-gray-800">
-                        Grand Total
-                      </span>
-
-                      <span className="min-w-[120px] text-right text-lg font-bold text-blue-600">
-                        ₹ {grandTotal.toFixed(2)}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          
+          </div>
 
           {/* =========================
               BACK + SAVE BUTTONS
