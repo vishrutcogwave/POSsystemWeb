@@ -62,6 +62,7 @@ import PurchaseUnitMaster from "./PurchaseUnitMaster";
 import PurchaseOrderApproval from "./PurchaseOrderApproval";
 import GoodsReceivedNote from "./GoodsReceivedNote";
 import ItemPurchase from "./ItemPurchase";
+import PurchaseReturn from "./PurchaseReturn";
 
 function LandingPage() {
   const location = useLocation();
@@ -241,6 +242,10 @@ function LandingPage() {
 <Route
   path="/purchase/itempurchase"
   element={<ItemPurchase />}
+/>
+<Route
+  path="/purchase/purchasereturn"
+  element={<PurchaseReturn />}
 />
 
       </Routes>

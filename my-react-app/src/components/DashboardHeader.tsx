@@ -378,7 +378,12 @@ const DashboardHeader: React.FC = () => {
     name: "Purchase Unit Master",
     icon: Package,
     permissionName: "Purchase Unit Master",
-  },]
+  },
+{
+  name: "Purchase Return",
+  icon: Receipt,
+  permissionName: "Purchase Return",
+}]
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
     Dashboard: "/dashboard",
@@ -430,6 +435,7 @@ const DashboardHeader: React.FC = () => {
    "Purchase Order Approval": "/purchase/purchaseorderapproval",
    "Goods Received Note" : "/purchase/goodsreceivednote",
    "Item Purchase": "/purchase/itempurchase",
+   "Purchase Return": "/purchase/purchasereturn",
   };
 
   const handleLogout = () => {
