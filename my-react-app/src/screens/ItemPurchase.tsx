@@ -1234,7 +1234,7 @@ const handleSave = async () => {
       : Number(
           selectedGrnMaster?.supCode ?? 0
         ),
-
+supplierName:formData.supplier,
     pTotalAmount: formData.directPurchase
       ? Number(
           directPurchaseCalculation?.totalAmount ??
@@ -1849,7 +1849,7 @@ const handleSave = async () => {
                         supplier: e.target.value,
                       }))
                     }
-                    disabled
+                    
                     placeholder="Supplier"
                     className={inputClass}
                   />

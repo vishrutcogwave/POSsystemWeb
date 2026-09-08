@@ -4,7 +4,10 @@ import {
   getPurchaseOrderReturnNumber,
   getItemPurchaseOrderList,
   savePurchaseReturnOrder,
+  getNextIdCode,
+  purchaseOrderCalculation,
 } from "../api/services/products.service";
+import { useAppContext } from "../context/AppContext";
 
 type PurchaseNumber = {
   pNo: string;
@@ -49,6 +52,7 @@ type PurchaseReturnItem = {
 };
 
 const PurchaseReturn: React.FC = () => {
+  const { appData } = useAppContext();
   const [formData, setFormData] = useState({
     transactionNo: "6",
     date: new Date().toISOString().split("T")[0],
@@ -57,55 +61,65 @@ const PurchaseReturn: React.FC = () => {
     store: "",
   });
 
-  const [purchaseNumbers, setPurchaseNumbers] =
-    useState<PurchaseNumber[]>([]);
+  const [purchaseNumbers, setPurchaseNumbers] = useState<PurchaseNumber[]>([]);
 
-  const [items, setItems] =
-    useState<PurchaseReturnItem[]>([]);
+  const [items, setItems] = useState<PurchaseReturnItem[]>([]);
 
-  const [activeTab, setActiveTab] =
-    useState<"return" | "tax">("return");
+  const [activeTab, setActiveTab] = useState<"return" | "tax">("return");
 
-  const [loadingPurchase, setLoadingPurchase] =
-    useState(false);
+  const [loadingPurchase, setLoadingPurchase] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
-  const [selectedPurchaseData, setSelectedPurchaseData] =
+  const [selectedPurchaseData, setSelectedPurchaseData] = useState<any>(null);
+
+  const branchCode = appData?.user?.branch_code;
+  const [purchaseReturnCalculation, setPurchaseReturnCalculation] =
     useState<any>(null);
-
-  const branchCode = "deroy";
-
   /* =========================================================
      GET PURCHASE RETURN NUMBERS
   ========================================================= */
+  const fetchPurchaseNumbers = async () => {
+    try {
+      const response = await getPurchaseOrderReturnNumber(branchCode);
 
-  useEffect(() => {
-    const fetchPurchaseNumbers = async () => {
-      try {
-        const response =
-          await getPurchaseOrderReturnNumber(
-            branchCode,
-          );
-
-        if (
-          response?.success &&
-          Array.isArray(response?.data)
-        ) {
-          setPurchaseNumbers(response.data);
-        } else {
-          setPurchaseNumbers([]);
-        }
-      } catch (error) {
-        console.error(
-          "Error fetching purchase return numbers:",
-          error,
-        );
-
+      if (response?.success && Array.isArray(response?.data)) {
+        setPurchaseNumbers(response.data);
+      } else {
         setPurchaseNumbers([]);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching purchase return numbers:", error);
 
+      setPurchaseNumbers([]);
+    }
+  };
+
+  const fetchTransactionNo = async () => {
+    try {
+      const response = await getNextIdCode({
+        tableName: "PurchaseReturnMaster",
+        columnName: "PRNo",
+        conditionName: "Branch_Code",
+        branch: branchCode,
+      });
+
+      console.log("Next Transaction No Response:", response);
+
+      const nextNo =
+        response?.data ?? response?.nextNumber ?? response?.nextId ?? response;
+
+      setFormData((prev) => ({
+        ...prev,
+        transactionNo: String(nextNo ?? ""),
+      }));
+    } catch (error) {
+      console.error("Error fetching next transaction number:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransactionNo();
     fetchPurchaseNumbers();
   }, []);
 
@@ -127,29 +141,20 @@ const PurchaseReturn: React.FC = () => {
 
     setItems([]);
     setSelectedPurchaseData(null);
-
+    setPurchaseReturnCalculation(null);
     if (!pNo) {
+      setPurchaseReturnCalculation(null);
       return;
     }
 
     setLoadingPurchase(true);
 
     try {
-      const response =
-        await getItemPurchaseOrderList(
-          branchCode,
-          Number(pNo),
-        );
+      const response = await getItemPurchaseOrderList(branchCode, Number(pNo));
 
-      console.log(
-        "Item Purchase Order Response:",
-        response,
-      );
+      console.log("Item Purchase Order Response:", response);
 
-      if (
-        !response?.success ||
-        !Array.isArray(response?.data)
-      ) {
+      if (!response?.success || !Array.isArray(response?.data)) {
         setItems([]);
         return;
       }
@@ -159,45 +164,28 @@ const PurchaseReturn: React.FC = () => {
       const firstData = response.data?.[0];
 
       const master =
-        firstData?.master ||
-        response.data?.master ||
-        response?.master ||
-        {};
+        firstData?.master || response.data?.master || response?.master || {};
 
       /* =====================================================
          STORE
       ===================================================== */
 
-      const storeName = String(
-        master?.storeName ??
-          master?.StoreName ??
-          "",
-      );
+      const storeName = String(master?.storeName ?? master?.StoreName ?? "");
 
       /* =====================================================
          SUPPLIER
       ===================================================== */
 
-      const supplierCode =
-        master?.supCode ??
-        master?.supCodeId ??
-        master?.supplierCode ??
-        "";
-
-      const supplierName =
-        master?.vendorName ??
-        master?.supplierName ??
-        master?.supplier ??
-        "";
+      const supplierCode = master?.supCode;
+      ("");
+      debugger;
+      const supplierName = master?.vendorName ?? "";
 
       const supplierValue =
-        supplierCode || supplierName
-          ? `${supplierCode}${
-              supplierCode && supplierName
-                ? "-"
-                : ""
-            }${supplierName}`
-          : "";
+        (supplierCode !== 0
+          ? `${supplierCode} - ${supplierName}`
+          : supplierName) ?? "";
+      console.log("supplierValue", supplierValue);
 
       setFormData((prev) => ({
         ...prev,
@@ -211,96 +199,60 @@ const PurchaseReturn: React.FC = () => {
 
       let detailData: any[] = [];
 
-      if (
-        Array.isArray(firstData?.detail)
-      ) {
+      if (Array.isArray(firstData?.detail)) {
         detailData = firstData.detail;
-      } else if (
-        Array.isArray(firstData?.details)
-      ) {
+      } else if (Array.isArray(firstData?.details)) {
         detailData = firstData.details;
-      } else if (
-        Array.isArray(firstData?.items)
-      ) {
+      } else if (Array.isArray(firstData?.items)) {
         detailData = firstData.items;
       }
 
-      const mappedItems: PurchaseReturnItem[] =
-        detailData.map(
-          (item: any, index: number) => {
-            const itemCode =
-              item?.itemCode ??
-              item?.ItemCode ??
-              item?.code ??
-              "";
+      const mappedItems: PurchaseReturnItem[] = detailData.map(
+        (item: any, index: number) => {
+          const itemCode = item?.itemCode ?? item?.ItemCode ?? item?.code ?? "";
 
-            const itemName =
-              item?.itemName ??
-              item?.ItemName ??
-              item?.name ??
-              "";
+          const itemName = item?.itemName ?? item?.ItemName ?? item?.name ?? "";
 
-            const unit =
-              item?.unit ??
-              item?.unitName ??
-              item?.Unit ??
-              "";
+          const unit = item?.unit ?? item?.unitName ?? item?.Unit ?? "";
 
-            const rate = Number(
-              item?.pItemRate ??
-                item?.poItemRate ??
-                item?.itemRate ??
-                item?.rate ??
-                0,
-            );
+          const rate = Number(
+            item?.pItemRate?? 0,
+          );
 
-            const qty = Number(
-              item?.pItemQty ??
-                item?.poItemQty ??
-                item?.qty ??
-                item?.quantity ??
-                0,
-            );
+          const qty = Number(
+            item?.reamingQty ??
+              0,
+          );
 
-            return {
-              id: index + 1,
+          return {
+            id: index + 1,
 
-              code: String(itemCode),
+            code: String(itemCode),
 
-              name: String(itemName),
+            name: String(itemName),
 
-              unit: String(unit),
+            unit: String(unit),
 
-              unitCode: Number(
-                item?.unitCode ?? 0,
-              ),
+            unitCode: Number(item?.unitCode ?? 0),
 
-              mainUnit: String(
-                item?.mainUnit ?? "",
-              ),
+            mainUnit: String(item?.mainUnit ?? ""),
 
-              mainUnitConverstion: String(
-                item?.mainUnitConverstion ??
-                  "",
-              ),
+            mainUnitConverstion: String(item?.mainUnitConverstion ?? ""),
 
-              rate,
+            rate,
 
-              qty,
+            qty,
 
-              returnQty: 0,
+            returnQty: 0,
 
-              amount: 0,
-            };
-          },
-        );
+            amount: 0,
+          };
+        },
+      );
 
       setItems(mappedItems);
     } catch (error) {
-      console.error(
-        "Error fetching selected purchase order:",
-        error,
-      );
+      console.error("Error fetching selected purchase order:", error);
 
       setItems([]);
       setSelectedPurchaseData(null);
@@ -318,41 +270,162 @@ const PurchaseReturn: React.FC = () => {
   /* =========================================================
      RETURN QTY
   ========================================================= */
+  /* =========================================================
+   PURCHASE RETURN CALCULATION
+========================================================= */
 
-  const updateReturnQty = (
-    id: number,
-    value: string,
-  ) => {
-    const returnQty = Math.max(
-      0,
-      Number(value || 0),
+  const calculatePurchaseReturn = async (nextItems: PurchaseReturnItem[]) => {
+    if (!formData.purchaseNo) {
+      return;
+    }
+
+    const purchaseData = selectedPurchaseData?.data?.[0];
+
+    const master = purchaseData?.master;
+
+    if (!master) {
+      console.error("Purchase master details not found");
+      return;
+    }
+
+    const storeId = Number(master?.storeID ?? master?.storeId ?? 0);
+
+    if (!storeId) {
+      console.error("Store ID not found");
+      return;
+    }
+
+    /*
+     * Only send items which have Return Qty.
+     */
+    const returnItems = nextItems.filter(
+      (item) => Number(item.returnQty || 0) > 0,
     );
 
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              returnQty,
-              amount:
-                returnQty *
-                Number(item.rate || 0),
-            }
-          : item,
-      ),
+    /*
+     * No return quantity entered.
+     */
+    if (returnItems.length === 0) {
+      setPurchaseReturnCalculation(null);
+      return;
+    }
+
+    /*
+     * SAME PAYLOAD STRUCTURE AS ITEM PURCHASE
+     */
+    const payload = {
+      poNo: Number(formData.purchaseNo || 0),
+
+      storeId,
+
+      branch: branchCode || "",
+
+      discount: 0,
+
+      discountIn: "",
+
+      poDetail: returnItems.map((item) => ({
+        itemCode: Number(item.code || 0),
+
+        /*
+         * IMPORTANT:
+         * Use RETURN QTY here.
+         */
+        poItemQty: Number(item.returnQty || 0),
+
+        poItemRate: Number(item.rate || 0),
+
+        unit: item.unit || "",
+
+        unitCode: Number(item.unitCode || 0),
+
+        poItemSuplyQty: Number(item.returnQty || 0),
+
+        cpoItemQty: Number(item.returnQty || 0),
+      })),
+
+      poMiscDetail: [],
+    };
+
+    console.log(
+      "Purchase Return Calculation Payload:",
+      JSON.stringify(payload, null, 2),
     );
+
+    try {
+      const response = await purchaseOrderCalculation(payload);
+
+      console.log("Purchase Return Calculation Response:", response);
+
+      setPurchaseReturnCalculation(response);
+
+      return response;
+    } catch (error) {
+      console.error("Purchase Return Calculation Error:", error);
+
+      setPurchaseReturnCalculation(null);
+    }
+  };
+  /* =========================================================
+   RETURN QTY
+========================================================= */
+
+  const updateReturnQty = async (id: number, value: string) => {
+    let returnQty = Math.max(0, Number(value || 0));
+
+    const currentItem = items.find((item) => item.id === id);
+
+    if (!currentItem) {
+      return;
+    }
+
+    /*
+     * Return Qty cannot be greater than
+     * original purchase Qty.
+     */
+    if (returnQty > Number(currentItem.qty || 0)) {
+      returnQty = Number(currentItem.qty || 0);
+    }
+
+    /*
+     * Create the latest items array.
+     * We pass this same array to the
+     * calculation API.
+     */
+    const nextItems = items.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+
+            returnQty,
+
+            amount: returnQty * Number(item.rate || 0),
+          }
+        : item,
+    );
+
+    /*
+     * Update UI
+     */
+    setItems(nextItems);
+
+    /*
+     * Call calculation API immediately
+     * whenever Return Qty changes.
+     */
+    await calculatePurchaseReturn(nextItems);
   };
 
   /* =========================================================
      REMOVE ITEM
   ========================================================= */
 
-  const removeItem = (id: number) => {
-    setItems((prev) =>
-      prev.filter(
-        (item) => item.id !== id,
-      ),
-    );
+  const removeItem = async (id: number) => {
+    const nextItems = items.filter((item) => item.id !== id);
+
+    setItems(nextItems);
+
+    await calculatePurchaseReturn(nextItems);
   };
 
   /* =========================================================
@@ -365,323 +438,150 @@ const PurchaseReturn: React.FC = () => {
       return;
     }
 
-    const returnItems =
-      items.filter(
-        (item: PurchaseReturnItem) =>
-          Number(item.returnQty || 0) > 0,
-      );
+    const returnItems = items.filter((item) => Number(item.returnQty || 0) > 0);
 
     if (returnItems.length === 0) {
-      alert("Please enter Return Qty.");
+      alert("Please enter Return Qty for at least one item");
       return;
     }
 
-    const purchaseData =
-      selectedPurchaseData?.data?.[0];
-
-    const master = purchaseData?.master;
-
-    if (!master) {
-      alert("Purchase details not found.");
+    if (!selectedPurchaseData) {
+      alert("Please load Purchase details");
       return;
     }
+
+    setSaving(true);
 
     try {
-      setSaving(true);
+      const purchaseData = selectedPurchaseData?.data?.[0];
+
+      const master =
+        purchaseData?.master ||
+        selectedPurchaseData?.data?.master ||
+        selectedPurchaseData?.master ||
+        {};
 
       /* =====================================================
-         DETAILS
-      ===================================================== */
+       DETAILS
+    ===================================================== */
 
-      const details = returnItems.map(
-        (item: PurchaseReturnItem) => ({
-          itemCode: Number(
-            item.code || 0,
-          ),
+      const details = returnItems.map((item: PurchaseReturnItem) => ({
+        itemCode: Number(item.code || 0),
 
-          prItemRate: Number(
-            item.rate || 0,
-          ),
+        prItemRate: Number(item.rate || 0),
 
-          prItemQty: Number(
-            item.qty || 0,
-          ),
+        prItemQty: Number(item.qty || 0),
 
-          prniQty: Number(
-            item.returnQty || 0,
-          ),
+        prniQty: Number(item.returnQty || 0),
 
-          pReturnQty: Number(
-            item.returnQty || 0,
-          ),
+        pReturnQty: Number(item.returnQty || 0),
 
-          praQty: Number(
-            item.returnQty || 0,
-          ),
+        praQty: Number(item.qty - item.returnQty || 0),
 
-          unit: item.unit || "",
+        unit: item.unit || "",
 
-          unitCode: Number(
-            item.unitCode || 0,
-          ),
+        unitCode: Number(item.unitCode || 0),
 
-          mainUnit:
-            item.mainUnit || "",
+        mainUnit: item.mainUnit || "",
 
-          mainUnitConverstion:
-            item.mainUnitConverstion ||
-            "",
-        }),
-      );
+        mainUnitConverstion: item.mainUnitConverstion || "",
+      }));
 
       /* =====================================================
-         TAXES
-      ===================================================== */
+       TAX DETAILS
+    ===================================================== */
 
-      const taxDetails: any[] =
-        Array.isArray(
-          purchaseData?.taxDetails,
-        )
-          ? purchaseData.taxDetails
-          : [];
-
-      const taxes: PurchaseReturnTax[] =
-        taxDetails.map(
-          (tax: any) => ({
-            pno: Number(
-              tax?.pno ??
-                formData.purchaseNo ??
-                0,
-            ),
-
-            itemCode: Number(
-              tax?.itemCode ?? 0,
-            ),
-
-            taxCode: Number(
-              tax?.taxCode ?? 0,
-            ),
-
-            taxPer: Number(
-              tax?.taxPer ?? 0,
-            ),
-
-            taxAmount: Number(
-              tax?.taxAmount ?? 0,
-            ),
-
-            branch_Code:
-              tax?.branch_Code ||
-              branchCode,
-
-            itemName:
-              tax?.itemName || "",
-
-            taxDescription:
-              tax?.taxDescription ||
-              "",
-
-            taxPercentage: String(
-              tax?.taxPercentage ?? "",
-            ),
-          }),
-        );
+      const taxes: PurchaseReturnTax[] = Array.isArray(purchaseData?.taxDetails)
+        ? purchaseData.taxDetails
+        : [];
 
       /* =====================================================
-         MISCELLANEOUS
-      ===================================================== */
+       MISCELLANEOUS
+    ===================================================== */
 
-      const miscDetails: any[] =
-        Array.isArray(
-          purchaseData?.miscDetails,
-        )
+      const miscellaneous: PurchaseReturnMiscellaneous[] = Array.isArray(
+        purchaseData?.miscellaneous,
+      )
+        ? purchaseData.miscellaneous
+        : Array.isArray(purchaseData?.miscDetails)
           ? purchaseData.miscDetails
           : [];
 
-      const miscellaneous:
-        PurchaseReturnMiscellaneous[] =
-        miscDetails.map(
-          (misc: any) => ({
-            chargeId: Number(
-              misc?.chargeId ?? 0,
-            ),
+      /* =====================================================
+       CALCULATION API RESPONSE
+       
+       Calculation API is called when Return Qty changes.
+       Use the latest calculation response for Save.
+    ===================================================== */
 
-            chargeAmt: Number(
-              misc?.chargeAmt ?? 0,
-            ),
+      const calculation = purchaseReturnCalculation || {};
 
-            pno: Number(
-              misc?.pno ??
-                formData.purchaseNo ??
-                0,
-            ),
-
-            branch_Code:
-              misc?.branch_Code ||
-              branchCode,
-
-            taxCode: Number(
-              misc?.taxCode ?? 0,
-            ),
-
-            taxDescription:
-              misc?.taxDescription ||
-              "",
-
-            taxPercentage: String(
-              misc?.taxPercentage ?? "",
-            ),
-
-            chargeName:
-              misc?.chargeName || "",
-          }),
-        );
+      console.log("Purchase Return Calculation Response:", calculation);
 
       /* =====================================================
-         TOTALS
-      ===================================================== */
+       AMOUNTS FROM CALCULATION API
+    ===================================================== */
 
-      const totalAmount =
-        returnItems.reduce(
-          (
-            total: number,
-            item: PurchaseReturnItem,
-          ) =>
-            total +
-            Number(
-              item.returnQty || 0,
-            ) *
-              Number(
-                item.rate || 0,
-              ),
+      const totalAmount = Number(
+        calculation?.totalAmount ??
+          calculation?.subTotal ??
+          calculation?.subtotal ??
           0,
-        );
+      );
 
-      const taxAmount =
-        taxes.reduce(
-          (
-            total: number,
-            tax: PurchaseReturnTax,
-          ) =>
-            total +
-            Number(
-              tax.taxAmount || 0,
-            ),
+      const taxAmount = Number(
+        calculation?.taxAmount ?? calculation?.totalTax ?? 0,
+      );
+
+      const missChargeAmount = Number(
+        calculation?.miscCharge ??
+          calculation?.missChargeAmount ??
+          calculation?.miscTotalAmount ??
           0,
-        );
+      );
 
-      const missChargeAmount =
-        miscellaneous.reduce(
-          (
-            total: number,
-            misc: PurchaseReturnMiscellaneous,
-          ) =>
-            total +
-            Number(
-              misc.chargeAmt || 0,
-            ),
-          0,
-        );
+      const cgstAmount = Number(
+        calculation?.cgstAmt ?? calculation?.cgstAmount ?? 0,
+      );
 
-      const cgstAmount =
-        taxes
-          .filter(
-            (tax: PurchaseReturnTax) =>
-              String(
-                tax.taxDescription ||
-                  "",
-              )
-                .toUpperCase()
-                .includes("CGST"),
-          )
-          .reduce(
-            (
-              total: number,
-              tax: PurchaseReturnTax,
-            ) =>
-              total +
-              Number(
-                tax.taxAmount || 0,
-              ),
-            0,
-          );
+      const sgstAmount = Number(
+        calculation?.sgstAmt ?? calculation?.sgstAmount ?? 0,
+      );
 
-      const sgstAmount =
-        taxes
-          .filter(
-            (tax: PurchaseReturnTax) =>
-              String(
-                tax.taxDescription ||
-                  "",
-              )
-                .toUpperCase()
-                .includes("SGST"),
-          )
-          .reduce(
-            (
-              total: number,
-              tax: PurchaseReturnTax,
-            ) =>
-              total +
-              Number(
-                tax.taxAmount || 0,
-              ),
-            0,
-          );
-
-      const grossAmount =
-        totalAmount +
-        taxAmount +
-        missChargeAmount;
+      const grossAmount = Number(
+        calculation?.grandTotal ??
+          calculation?.grossAmount ??
+          totalAmount + taxAmount + missChargeAmount,
+      );
 
       /* =====================================================
-         FINAL PAYLOAD
-      ===================================================== */
+       FINAL PAYLOAD
+    ===================================================== */
 
       const payload = {
-        transactionNo: Number(
-          formData.transactionNo || 0,
-        ),
+        transactionNo: Number(formData.purchaseNo || 0),
 
-        prNo: 0,
+        prNo: Number(formData.transactionNo || 0),
 
-        prDate: new Date(
-          `${formData.date}T00:00:00`,
-        ).toISOString(),
+        prDate: new Date(`${formData.date}T00:00:00`).toISOString(),
 
-        supCode: Number(
-          master?.supCode ?? 0,
-        ),
+        supCode: Number(master?.supCode ?? 0),
 
-        pNo: Number(
-          formData.purchaseNo || 0,
-        ),
+        pNo: Number(formData.purchaseNo || 0),
 
         branchCode,
 
-        totalAmount: Number(
-          totalAmount.toFixed(2),
-        ),
+        totalAmount: Number(totalAmount.toFixed(2)),
 
-        taxAmount: Number(
-          taxAmount.toFixed(2),
-        ),
+        taxAmount: Number(taxAmount.toFixed(2)),
 
-        grossAmount: Number(
-          grossAmount.toFixed(2),
-        ),
+        grossAmount: Number(grossAmount.toFixed(2)),
 
-        missChargeAmount: Number(
-          missChargeAmount.toFixed(2),
-        ),
+        missChargeAmount: Number(missChargeAmount.toFixed(2)),
 
-        cgstAmount: Number(
-          cgstAmount.toFixed(2),
-        ),
+        cgstAmount: Number(cgstAmount.toFixed(2)),
 
-        sgstAmount: Number(
-          sgstAmount.toFixed(2),
-        ),
+        sgstAmount: Number(sgstAmount.toFixed(2)),
 
         details,
 
@@ -690,40 +590,33 @@ const PurchaseReturn: React.FC = () => {
         miscellaneous,
       };
 
+      /* =====================================================
+       DEBUG
+    ===================================================== */
+
       console.log(
         "SavePurchaseReturnOrder Payload:",
-        JSON.stringify(
-          payload,
-          null,
-          2,
-        ),
+        JSON.stringify(payload, null, 2),
       );
 
       /* =====================================================
-         API CALL
-      ===================================================== */
+       SAVE API
+    ===================================================== */
 
-      const response =
-        await savePurchaseReturnOrder(
-          payload,
-        );
+      const response = await savePurchaseReturnOrder(payload);
 
-      console.log(
-        "SavePurchaseReturnOrder Response:",
-        response,
-      );
+      console.log("SavePurchaseReturnOrder Response:", response);
 
       if (response?.success) {
-        alert(
-          response?.message ||
-            "Purchase Return saved successfully",
-        );
+        alert(response?.message || "Purchase Return saved successfully");
+
+        /* =================================================
+         RESET FORM
+      ================================================= */
 
         setFormData({
           transactionNo: "6",
-          date: new Date()
-            .toISOString()
-            .split("T")[0],
+          date: new Date().toISOString().split("T")[0],
           purchaseNo: "",
           supplier: "",
           store: "",
@@ -732,22 +625,18 @@ const PurchaseReturn: React.FC = () => {
         setItems([]);
 
         setSelectedPurchaseData(null);
+
+        setPurchaseReturnCalculation(null);
+
+        /* Get new transaction number */
+        await fetchTransactionNo();
       } else {
-        alert(
-          response?.message ||
-            "Failed to save Purchase Return",
-        );
+        alert(response?.message || "Failed to save Purchase Return");
       }
     } catch (error: any) {
-      console.error(
-        "Error saving Purchase Return:",
-        error,
-      );
+      console.error("Error saving Purchase Return:", error);
 
-      alert(
-        error?.response?.data?.message ||
-          "Failed to save Purchase Return",
-      );
+      alert(error?.response?.data?.message || "Failed to save Purchase Return");
     } finally {
       setSaving(false);
     }
@@ -756,15 +645,54 @@ const PurchaseReturn: React.FC = () => {
   const inputClass =
     "h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
-  const labelClass =
-    "mb-1.5 block text-xs font-semibold text-gray-600";
+  const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
+  /* =========================
+    ORDER SUMMARY VALUES
+========================= */
 
+  const totalQuantity = items.reduce(
+    (sum, item) => sum + Number(item.returnQty || 0),
+    0,
+  );
+
+  const totalAmount = Number(
+    purchaseReturnCalculation?.totalAmount ??
+      items.reduce(
+        (sum, item) =>
+          sum + Number(item.returnQty || 0) * Number(item.rate || 0),
+        0,
+      ),
+  );
+
+  const cgstAmount = Number(
+    purchaseReturnCalculation?.cgstAmt ??
+      purchaseReturnCalculation?.cgstAmount ??
+      0,
+  );
+
+  const sgstAmount = Number(
+    purchaseReturnCalculation?.sgstAmt ??
+      purchaseReturnCalculation?.sgstAmount ??
+      0,
+  );
+
+  const miscellaneousAmount = Number(
+    purchaseReturnCalculation?.miscTotalAmount ??
+      purchaseReturnCalculation?.miscCharge ??
+      purchaseReturnCalculation?.missChargeAmount ??
+      0,
+  );
+
+  const grandTotal = Number(
+    purchaseReturnCalculation?.grandTotal ??
+      purchaseReturnCalculation?.grossAmount ??
+      totalAmount + cgstAmount + sgstAmount + miscellaneousAmount,
+  );
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       <Header />
 
       <div className="mx-auto w-full max-w-[1600px]">
-
         <div className="mb-5 mt-2">
           <h1 className="text-2xl font-bold leading-tight text-gray-800">
             Purchase Return
@@ -776,9 +704,7 @@ const PurchaseReturn: React.FC = () => {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-
           <section className="overflow-hidden rounded-xl border border-gray-200">
-
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
               <h2 className="text-sm font-bold text-gray-800">
                 Purchase Return
@@ -787,46 +713,25 @@ const PurchaseReturn: React.FC = () => {
 
             <div className="p-4 md:p-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-   <div className="min-w-0">
-                  <label className={labelClass}>
-                    Purchase No.
-                  </label>
+                <div className="min-w-0">
+                  <label className={labelClass}>Purchase No.</label>
 
                   <select
-                    value={
-                      formData.purchaseNo
-                    }
-                    onChange={
-                      handlePurchaseNoChange
-                    }
+                    value={formData.purchaseNo}
+                    onChange={handlePurchaseNoChange}
                     className={inputClass}
                   >
-                    <option value="">
-                      Select Purchase No.
-                    </option>
+                    <option value="">Select Purchase No.</option>
 
-                    {purchaseNumbers.map(
-                      (
-                        purchase: PurchaseNumber,
-                      ) => (
-                        <option
-                          key={
-                            purchase.pNo
-                          }
-                          value={
-                            purchase.pNo
-                          }
-                        >
-                          {purchase.pNo}
-                        </option>
-                      ),
-                    )}
+                    {purchaseNumbers.map((purchase: PurchaseNumber) => (
+                      <option key={purchase.pNo} value={purchase.pNo}>
+                        {purchase.pNo}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Store
-                  </label>
+                  <label className={labelClass}>Store</label>
 
                   <input
                     type="text"
@@ -838,79 +743,57 @@ const PurchaseReturn: React.FC = () => {
                 </div>
 
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Trans No.
-                  </label>
+                  <label className={labelClass}>Trans No.</label>
 
                   <input
                     type="text"
-                    value={
-                      formData.transactionNo
-                    }
+                    value={formData.transactionNo}
                     onChange={(e) =>
-                      setFormData(
-                        (prev) => ({
-                          ...prev,
-                          transactionNo:
-                            e.target.value,
-                        }),
-                      )
+                      setFormData((prev) => ({
+                        ...prev,
+                        transactionNo: e.target.value,
+                      }))
                     }
                     className={inputClass}
                   />
                 </div>
 
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Date
-                  </label>
+                  <label className={labelClass}>Date</label>
 
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) =>
-                      setFormData(
-                        (prev) => ({
-                          ...prev,
-                          date: e.target.value,
-                        }),
-                      )
+                      setFormData((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
                     }
                     className={inputClass}
                   />
                 </div>
 
-             
-
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Supplier
-                  </label>
+                  <label className={labelClass}>Supplier</label>
 
                   <input
                     type="text"
-                    value={
-                      formData.supplier
-                    }
+                    value={formData.supplier}
                     readOnly
                     placeholder="Supplier"
                     className={inputClass}
                   />
                 </div>
-
               </div>
             </div>
           </section>
 
           <section className="mt-6 overflow-hidden rounded-xl border border-gray-200">
-
             <div className="flex border-b border-gray-200 bg-gray-50">
-
               <button
                 type="button"
-                onClick={() =>
-                  setActiveTab("return")
-                }
+                onClick={() => setActiveTab("return")}
                 className={`border-r border-gray-200 px-5 py-3 text-sm font-semibold transition ${
                   activeTab === "return"
                     ? "bg-white text-blue-600"
@@ -919,38 +802,19 @@ const PurchaseReturn: React.FC = () => {
               >
                 Purchase Return Detail
               </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveTab("tax")
-                }
-                className={`px-5 py-3 text-sm font-semibold transition ${
-                  activeTab === "tax"
-                    ? "bg-white text-blue-600"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Tax Detail
-              </button>
-
             </div>
 
             {activeTab === "return" ? (
               <div className="p-4 md:p-5">
-
                 {loadingPurchase ? (
                   <div className="py-10 text-center text-sm text-gray-500">
                     Loading purchase details...
                   </div>
                 ) : (
                   <div className="overflow-x-auto rounded-lg border border-gray-200">
-
                     <table className="w-full min-w-[900px] text-sm">
-
                       <thead className="bg-gray-100">
                         <tr className="border-b border-gray-200">
-
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                             S.No.
                           </th>
@@ -986,12 +850,10 @@ const PurchaseReturn: React.FC = () => {
                           <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600">
                             Action
                           </th>
-
                         </tr>
                       </thead>
 
                       <tbody>
-
                         {items.length === 0 ? (
                           <tr>
                             <td
@@ -1003,106 +865,70 @@ const PurchaseReturn: React.FC = () => {
                           </tr>
                         ) : (
                           items.map(
-                            (
-                              item: PurchaseReturnItem,
-                              index: number,
-                            ) => (
+                            (item: PurchaseReturnItem, index: number) => (
                               <tr
                                 key={item.id}
                                 className="border-b border-gray-100 hover:bg-gray-50"
                               >
-
                                 <td className="px-4 py-3 text-gray-700">
                                   {index + 1}
                                 </td>
 
                                 <td className="px-4 py-3 font-medium text-gray-700">
-                                  {item.code ||
-                                    "-"}
+                                  {item.code || "-"}
                                 </td>
 
                                 <td className="px-4 py-3 font-medium text-gray-800">
-                                  {item.name ||
-                                    "-"}
+                                  {item.name || "-"}
                                 </td>
 
                                 <td className="px-4 py-3 text-gray-700">
-                                  {item.unit ||
-                                    "-"}
+                                  {item.unit || "-"}
                                 </td>
 
                                 <td className="px-4 py-3 text-right text-gray-700">
-                                  {Number(
-                                    item.rate ||
-                                      0,
-                                  ).toFixed(2)}
+                                  {Number(item.rate || 0).toFixed(2)}
                                 </td>
 
                                 <td className="px-4 py-3 text-right font-medium text-gray-800">
-                                  {Number(
-                                    item.qty ||
-                                      0,
-                                  ).toFixed(2)}
+                                  {Number(item.qty || 0).toFixed(2)}
                                 </td>
 
                                 <td className="px-4 py-2 text-right">
                                   <input
                                     type="number"
                                     min="0"
-                                    max={
-                                      item.qty
-                                    }
+                                    max={item.qty}
                                     step="0.01"
-                                    value={
-                                      item.returnQty
-                                    }
-                                    onChange={(
-                                      e,
-                                    ) =>
-                                      updateReturnQty(
-                                        item.id,
-                                        e.target
-                                          .value,
-                                      )
+                                    value={item.returnQty}
+                                    onChange={(e) =>
+                                      updateReturnQty(item.id, e.target.value)
                                     }
                                     className="h-9 w-28 rounded-md border border-gray-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                   />
                                 </td>
 
                                 <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                                  ₹{" "}
-                                  {Number(
-                                    item.amount ||
-                                      0,
-                                  ).toFixed(2)}
+                                  ₹ {Number(item.amount || 0).toFixed(2)}
                                 </td>
 
                                 <td className="px-4 py-3 text-center">
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      removeItem(
-                                        item.id,
-                                      )
-                                    }
+                                    onClick={() => removeItem(item.id)}
                                     className="rounded-md border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                                   >
                                     Remove
                                   </button>
                                 </td>
-
                               </tr>
                             ),
                           )
                         )}
-
                       </tbody>
-
                     </table>
-
                   </div>
                 )}
-
               </div>
             ) : (
               <div className="p-5">
@@ -1111,16 +937,89 @@ const PurchaseReturn: React.FC = () => {
                 </div>
               </div>
             )}
+            {/* =========================
+    ORDER SUMMARY
+========================= */}
 
+            <div className="mt-5 flex justify-end">
+              <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-5 sm:w-[420px]">
+                <h3 className="mb-4 text-base font-bold text-gray-800">
+                  Order Summary
+                </h3>
+
+                <div className="space-y-3">
+                  {/* TOTAL QUANTITY */}
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-gray-600">Total Quantity</span>
+
+                    <span className="min-w-[120px] text-right font-medium text-gray-800">
+                      {totalQuantity.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* TOTAL AMOUNT */}
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-gray-600">Total Amount</span>
+
+                    <span className="min-w-[120px] text-right font-medium text-gray-800">
+                      ₹ {totalAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* CGST */}
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-gray-600">CGST</span>
+
+                    <span className="min-w-[120px] text-right font-medium text-gray-800">
+                      ₹ {cgstAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* SGST */}
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-gray-600">SGST</span>
+
+                    <span className="min-w-[120px] text-right font-medium text-gray-800">
+                      ₹ {sgstAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* MISCELLANEOUS */}
+
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-gray-600">Miscellaneous</span>
+
+                    <span className="min-w-[120px] text-right font-medium text-gray-800">
+                      ₹ {miscellaneousAmount.toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* GRAND TOTAL */}
+
+                  <div className="border-t border-gray-200 pt-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-base font-bold text-gray-800">
+                        Grand Total
+                      </span>
+
+                      <span className="min-w-[120px] text-right text-lg font-bold text-blue-600">
+                        ₹ {grandTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
-
             <button
               type="button"
-              onClick={() =>
-                window.history.back()
-              }
+              onClick={() => window.history.back()}
               className="h-10 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
               Back
@@ -1132,13 +1031,9 @@ const PurchaseReturn: React.FC = () => {
               disabled={saving}
               className="h-10 rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {saving
-                ? "Saving..."
-                : "Save"}
+              {saving ? "Saving..." : "Save"}
             </button>
-
           </div>
-
         </div>
       </div>
     </div>
