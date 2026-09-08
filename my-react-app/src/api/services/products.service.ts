@@ -6761,3 +6761,140 @@ export const downloadDirectPurchaseExcel = async (branchCode: string) => {
     throw error;
   }
 };
+
+
+export const getPurchaseOrderReturnNumber = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseOrderReturnNumber",
+      {
+        params: {
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase order return number:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const getItemPurchaseOrderList = async (
+  branchCode: string,
+  pNo: number,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetItemPurchaseOrderList",
+      {
+        params: {
+          branchCode,
+          pNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item purchase order list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+export const savePurchaseReturnOrder = async (payload: {
+  transactionNo: number;
+  prNo: number;
+  prDate: string;
+  supCode: number;
+  pNo: number;
+  branchCode: string;
+  totalAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  missChargeAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+
+  details: {
+    itemCode: number;
+    prItemRate: number;
+    prItemQty: number;
+    prniQty: number;
+    pReturnQty: number;
+    praQty: number;
+    unit: string;
+    unitCode: number;
+    mainUnit: string;
+    mainUnitConverstion: string;
+  }[];
+
+  taxes: {
+    pno: number;
+    itemCode: number;
+    taxCode: number;
+    taxPer: number;
+    taxAmount: number;
+    branch_Code: string;
+    itemName: string;
+    taxDescription: string;
+    taxPercentage: string;
+  }[];
+
+  miscellaneous: {
+    chargeId: number;
+    chargeAmt: number;
+    pno: number;
+    branch_Code: string;
+    taxCode: number;
+    taxDescription: string;
+    taxPercentage: string;
+    chargeName: string;
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/SavePurchaseReturnOrder",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving purchase return order:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
