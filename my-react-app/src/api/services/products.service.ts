@@ -6898,3 +6898,30 @@ export const savePurchaseReturnOrder = async (payload: {
     throw error;
   }
 };
+
+
+
+
+
+export const getPurchaseReturnOrderPrintList = async (
+  branchCode: string,
+  PRNo: number
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/InventoryPurchase/GetPurchaseReturnOrderPrintList",
+    {
+      params: {
+        branchCode,
+        PRNo,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};

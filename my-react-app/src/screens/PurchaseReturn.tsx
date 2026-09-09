@@ -6,6 +6,7 @@ import {
   savePurchaseReturnOrder,
   getNextIdCode,
   purchaseOrderCalculation,
+  getPurchaseReturnOrderPrintList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -79,6 +80,9 @@ const PurchaseReturn: React.FC = () => {
   /* =========================================================
      GET PURCHASE RETURN NUMBERS
   ========================================================= */
+
+  const [printData, setPrintData] = useState<any>(null);
+const [showPrintPreview, setShowPrintPreview] = useState(false);
   const fetchPurchaseNumbers = async () => {
     try {
       const response = await getPurchaseOrderReturnNumber(branchCode);
@@ -418,216 +422,430 @@ const PurchaseReturn: React.FC = () => {
   /* =========================================================
      SAVE PURCHASE RETURN
   ========================================================= */
+const formatPrintDate = (dateString: string) => {
+  if (!dateString) return "";
 
-  const handleSave = async () => {
-    if (!formData.purchaseNo) {
-      alert("Please select Purchase No.");
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const handleSave = async () => {
+  if (!formData.purchaseNo) {
+    alert("Please select Purchase No.");
+    return;
+  }
+
+  if (items.length === 0) {
+    alert("Please add at least one item.");
+    return;
+  }
+
+  const invalidItem = items.some(
+    (item) =>
+      Number(item.returnQty || 0) <= 0
+  );
+
+  if (invalidItem) {
+    alert("Please enter Return Qty for the items.");
+    return;
+  }
+
+  if (!purchaseReturnCalculation) {
+    alert("Please calculate the purchase return before saving.");
+    return;
+  }
+
+  setSaving(true);
+
+  try {
+    /* =====================================================
+       PURCHASE DATA
+    ===================================================== */
+
+    const purchaseData =
+      selectedPurchaseData?.data?.[0];
+
+    const master = purchaseData?.master;
+
+    if (!master) {
+      alert("Purchase master details not found.");
       return;
     }
 
-    const returnItems = items.filter((item) => Number(item.returnQty || 0) > 0);
-
-    if (returnItems.length === 0) {
-      alert("Please enter Return Qty for at least one item");
-      return;
-    }
-
-    if (!selectedPurchaseData) {
-      alert("Please load Purchase details");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const purchaseData = selectedPurchaseData?.data?.[0];
-
-      const master =
-        purchaseData?.master ||
-        selectedPurchaseData?.data?.master ||
-        selectedPurchaseData?.master ||
-        {};
-
-      /* =====================================================
+    /* =====================================================
        DETAILS
     ===================================================== */
 
-      const details = returnItems.map((item: PurchaseReturnItem) => ({
-        itemCode: Number(item.code || 0),
+    const details = items
+      .filter(
+        (item) =>
+          Number(item.returnQty || 0) > 0
+      )
+      .map((item) => ({
+        rno: 0,
 
-        prItemRate: Number(item.rate || 0),
+        prNo: Number(
+          formData.transactionNo || 0
+        ),
 
-        prItemQty: Number(item.qty || 0),
+        pNo: Number(
+          formData.purchaseNo || 0
+        ),
 
-        prniQty: Number(item.returnQty || 0),
+        itemCode: Number(
+          item.code || 0
+        ),
 
-        pReturnQty: Number(item.returnQty || 0),
+        prItemQty: Number(
+          item.returnQty || 0
+        ),
 
-        praQty: Number(item.qty - item.returnQty || 0),
+        prItemRate: Number(
+          item.rate || 0
+        ),
 
-        unit: item.unit || "",
+        prniQty: Number(
+          item.returnQty || 0
+        ),
 
-        unitCode: Number(item.unitCode || 0),
+        branch_Code: branchCode,
+
+        pReturnQty: Number(
+          item.returnQty || 0
+        ),
+
+        praQty: 0,
 
         mainUnit: item.mainUnit || "",
 
-        mainUnitConverstion: item.mainUnitConverstion || "",
+        mainUnitConverstion:
+          item.mainUnitConverstion || "",
+
+        itemName: item.name || "",
+
+        total:
+          Number(item.returnQty || 0) *
+          Number(item.rate || 0),
+
+        remainingQty: Math.max(
+          0,
+          Number(item.qty || 0) -
+            Number(item.returnQty || 0)
+        ),
+
+        taxCode: Number(
+          (item as any).taxCode || 0
+        ),
+
+        taxName:
+          (item as any).taxName || "",
+
+        unitCode: Number(
+          item.unitCode || 0
+        ),
+
+        unit: item.unit || "",
       }));
 
-      /* =====================================================
+    /* =====================================================
        TAX DETAILS
     ===================================================== */
 
-      const taxes: PurchaseReturnTax[] = Array.isArray(purchaseData?.taxDetails)
+    const taxes: PurchaseReturnTax[] =
+      Array.isArray(
+        purchaseData?.taxDetails
+      )
         ? purchaseData.taxDetails
         : [];
 
-      /* =====================================================
+    /* =====================================================
        MISCELLANEOUS
     ===================================================== */
 
-      const miscellaneous: PurchaseReturnMiscellaneous[] = Array.isArray(
-        purchaseData?.miscellaneous,
-      )
-        ? purchaseData.miscellaneous
-        : Array.isArray(purchaseData?.miscDetails)
-          ? purchaseData.miscDetails
-          : [];
+    const miscellaneous:
+      PurchaseReturnMiscellaneous[] =
+        Array.isArray(
+          purchaseData?.miscellaneous
+        )
+          ? purchaseData.miscellaneous
+          : Array.isArray(
+              purchaseData?.miscDetails
+            )
+            ? purchaseData.miscDetails
+            : [];
 
-      /* =====================================================
-       CALCULATION API RESPONSE
-       
-       Calculation API is called when Return Qty changes.
-       Use the latest calculation response for Save.
+    /* =====================================================
+       CALCULATION RESPONSE
     ===================================================== */
 
-      const calculation = purchaseReturnCalculation || {};
+    const calculation =
+      purchaseReturnCalculation || {};
 
-      console.log("Purchase Return Calculation Response:", calculation);
+    console.log(
+      "Purchase Return Calculation Response:",
+      calculation
+    );
 
-      /* =====================================================
-       AMOUNTS FROM CALCULATION API
-    ===================================================== */
+    const totalAmount = Number(
+      calculation?.totalAmount ??
+        calculation?.subTotal ??
+        calculation?.subtotal ??
+        0
+    );
 
-      const totalAmount = Number(
-        calculation?.totalAmount ??
-          calculation?.subTotal ??
-          calculation?.subtotal ??
-          0,
-      );
+    const taxAmount = Number(
+      calculation?.taxAmount ??
+        calculation?.totalTax ??
+        0
+    );
 
-      const taxAmount = Number(
-        calculation?.taxAmount ?? calculation?.totalTax ?? 0,
-      );
+    const missChargeAmount = Number(
+      calculation?.miscCharge ??
+        calculation?.missChargeAmount ??
+        calculation?.miscTotalAmount ??
+        0
+    );
 
-      const missChargeAmount = Number(
-        calculation?.miscCharge ??
-          calculation?.missChargeAmount ??
-          calculation?.miscTotalAmount ??
-          0,
-      );
+    const cgstAmount = Number(
+      calculation?.cgstAmt ??
+        calculation?.cgstAmount ??
+        0
+    );
 
-      const cgstAmount = Number(
-        calculation?.cgstAmt ?? calculation?.cgstAmount ?? 0,
-      );
+    const sgstAmount = Number(
+      calculation?.sgstAmt ??
+        calculation?.sgstAmount ??
+        0
+    );
 
-      const sgstAmount = Number(
-        calculation?.sgstAmt ?? calculation?.sgstAmount ?? 0,
-      );
+    const grossAmount = Number(
+      calculation?.grandTotal ??
+        calculation?.grossAmount ??
+        totalAmount +
+          taxAmount +
+          missChargeAmount
+    );
 
-      const grossAmount = Number(
-        calculation?.grandTotal ??
-          calculation?.grossAmount ??
-          totalAmount + taxAmount + missChargeAmount,
-      );
-
-      /* =====================================================
+    /* =====================================================
        FINAL PAYLOAD
     ===================================================== */
 
-      const payload = {
-        transactionNo: Number(formData.purchaseNo || 0),
+    const payload = {
+      transactionNo: Number(
+        formData.purchaseNo || 0
+      ),
 
-        prNo: Number(formData.transactionNo || 0),
+      prNo: Number(
+        formData.transactionNo || 0
+      ),
 
-        prDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+      prDate: new Date(
+        `${formData.date}T00:00:00`
+      ).toISOString(),
 
-        supCode: Number(master?.supCode ?? 0),
-        supplierName: formData.supplier ?? "",
-        pNo: Number(formData.purchaseNo || 0),
+      supCode: Number(
+        master?.supCode ?? 0
+      ),
 
-        branchCode,
+      supplierName:
+        formData.supplier || "",
 
-        totalAmount: Number(totalAmount.toFixed(2)),
+      pNo: Number(
+        formData.purchaseNo || 0
+      ),
 
-        taxAmount: Number(taxAmount.toFixed(2)),
+      branchCode,
 
-        grossAmount: Number(grossAmount.toFixed(2)),
+      totalAmount: Number(
+        totalAmount.toFixed(2)
+      ),
 
-        missChargeAmount: Number(missChargeAmount.toFixed(2)),
+      taxAmount: Number(
+        taxAmount.toFixed(2)
+      ),
 
-        cgstAmount: Number(cgstAmount.toFixed(2)),
+      grossAmount: Number(
+        grossAmount.toFixed(2)
+      ),
 
-        sgstAmount: Number(sgstAmount.toFixed(2)),
+      missChargeAmount: Number(
+        missChargeAmount.toFixed(2)
+      ),
 
-        details,
+      cgstAmount: Number(
+        cgstAmount.toFixed(2)
+      ),
 
-        taxes,
+      sgstAmount: Number(
+        sgstAmount.toFixed(2)
+      ),
 
-        miscellaneous,
-      };
+      details,
 
-      /* =====================================================
-       DEBUG
-    ===================================================== */
+      taxes,
 
-      console.log(
-        "SavePurchaseReturnOrder Payload:",
-        JSON.stringify(payload, null, 2),
-      );
+      miscellaneous,
+    };
 
-      /* =====================================================
+    console.log(
+      "SavePurchaseReturnOrder Payload:",
+      JSON.stringify(
+        payload,
+        null,
+        2
+      )
+    );
+
+    /* =====================================================
        SAVE API
     ===================================================== */
 
-      const response = await savePurchaseReturnOrder(payload);
+    const response =
+      await savePurchaseReturnOrder(
+        payload
+      );
 
-      console.log("SavePurchaseReturnOrder Response:", response);
+    console.log(
+      "SavePurchaseReturnOrder Response:",
+      response
+    );
 
-      if (response?.success) {
-        alert(response?.message || "Purchase Return saved successfully");
-
-        /* =================================================
-         RESET FORM
-      ================================================= */
-
-        setFormData({
-          transactionNo: "6",
-          date: new Date().toISOString().split("T")[0],
-          purchaseNo: "",
-          supplier: "",
-          store: "",
-        });
-
-        setItems([]);
-
-        setSelectedPurchaseData(null);
-
-        setPurchaseReturnCalculation(null);
-
-        /* Get new transaction number */
-        await fetchTransactionNo();
-      } else {
-        alert(response?.message || "Failed to save Purchase Return");
-      }
-    } catch (error: any) {
-      console.error("Error saving Purchase Return:", error);
-
-      alert(error?.response?.data?.message || "Failed to save Purchase Return");
-    } finally {
-      setSaving(false);
+    if (!response?.success) {
+      alert(
+        response?.message ||
+          "Failed to save Purchase Return"
+      );
+      return;
     }
-  };
+    const responseofgt= await getPurchaseOrderReturnNumber(branchCode);
+     if (responseofgt?.success && Array.isArray(responseofgt?.data)) {
+        setPurchaseNumbers(responseofgt.data);
+      } else {
+        setPurchaseNumbers([]);
+      }
+    /* =====================================================
+       GET PRINT DATA
+       SAME FLOW AS PURCHASE ORDER
+    ===================================================== */
+
+    const createdPRNo = Number(
+      formData.transactionNo || 0
+    );
+
+    console.log(
+      "Created Purchase Return No:",
+      createdPRNo
+    );
+
+    if (createdPRNo) {
+      try {
+        const printResponse =
+          await getPurchaseReturnOrderPrintList(
+            branchCode,
+            createdPRNo
+          );
+
+        console.log(
+          "Purchase Return Print Response:",
+          printResponse
+        );
+
+        if (
+          printResponse?.success &&
+          Array.isArray(
+            printResponse?.data
+          )
+        ) {
+          /*
+           * API response:
+           *
+           * data: [
+           *   {
+           *     master: {},
+           *     details: [],
+           *     taxDetails: [],
+           *     miscDetails: []
+           *   }
+           * ]
+           */
+
+          setPrintData(
+            printResponse.data[0]
+          );
+
+          setShowPrintPreview(true);
+        } else {
+          alert(
+            printResponse?.message ||
+              "Unable to get purchase return print data"
+          );
+        }
+      } catch (printError: any) {
+        console.error(
+          "Error getting Purchase Return print data:",
+          printError
+        );
+
+        alert(
+          "Purchase Return saved, but print preview could not be loaded"
+        );
+      }
+    }
+
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
+
+    alert(
+      response?.message ||
+        "Purchase Return saved successfully"
+    );
+
+    /* =====================================================
+       RESET FORM
+       DO THIS AFTER PRINT API
+    ===================================================== */
+
+    setFormData({
+      transactionNo: "6",
+      date: new Date()
+        .toISOString()
+        .split("T")[0],
+      purchaseNo: "",
+      supplier: "",
+      store: "",
+    });
+
+    setItems([]);
+
+    setSelectedPurchaseData(null);
+
+    setPurchaseReturnCalculation(null);
+
+    /* Get new transaction number */
+    await fetchTransactionNo();
+
+  } catch (error: any) {
+    console.error(
+      "Error saving Purchase Return:",
+      error
+    );
+
+    alert(
+      error?.response?.data?.message ||
+        "Failed to save Purchase Return"
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   const inputClass =
     "h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
@@ -675,7 +893,305 @@ const PurchaseReturn: React.FC = () => {
       purchaseReturnCalculation?.grossAmount ??
       totalAmount + cgstAmount + sgstAmount + miscellaneousAmount,
   );
-  return (
+  return (<>{showPrintPreview && printData && (
+  <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+    <div className="mx-auto my-6 w-full max-w-[900px]">
+
+      {/* PREVIEW HEADER */}
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">
+            Purchase Return Preview
+          </h2>
+
+          <p className="text-xs text-gray-500">
+            PR No: {printData.master?.prNo}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            🖨 Print
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowPrintPreview(false);
+              setPrintData(null);
+            }}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Close
+          </button>
+
+        </div>
+      </div>
+
+      {/* PRINT AREA */}
+      <div
+        id="purchase-return-print"
+        className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+      >
+
+        {/* COMPANY HEADER */}
+        <div className="mb-5 text-center">
+          <h1 className="text-xl font-bold tracking-wide">
+            COGWAVE POS
+          </h1>
+
+          <div className="mt-1 text-xs leading-5 text-gray-600">
+            Basavanagudi<br />
+            Bangalore - 560004<br />
+            PH : 7338818178<br />
+            Email : 0<br />
+            GST : -
+          </div>
+        </div>
+
+        {/* TITLE */}
+        <div className="mb-4 text-center">
+          <h2 className="text-lg font-semibold text-red-600">
+            Purchase Return
+          </h2>
+        </div>
+
+        {/* MASTER DETAILS */}
+        <div className="grid grid-cols-2 border border-gray-800">
+
+          {/* LEFT */}
+          <div className="border-r border-gray-800 p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Vendor:
+              </span>{" "}
+              {printData.master?.vendorName || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Address:
+              </span>{" "}
+              {printData.master?.vendorAddress || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Phone No:
+              </span>{" "}
+              {printData.master?.phoneNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Mobile No:
+              </span>{" "}
+              {printData.master?.mobileNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                GST No:
+              </span>{" "}
+              {printData.master?.gstNo || "-"}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                State Code:
+              </span>{" "}
+              {printData.master?.stateCode || "-"}
+            </div>
+
+          </div>
+
+          {/* RIGHT */}
+          <div className="p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                PR No:
+              </span>{" "}
+              {printData.master?.prNo || "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                PR Date:
+              </span>{" "}
+              {formatPrintDate(
+                printData.master?.prDate
+              )}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Transaction No:
+              </span>{" "}
+              {printData.master?.transactionNo || "-"}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                Purchase No:
+              </span>{" "}
+              {printData.master?.pNo || "-"}
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ITEMS */}
+        <div className="mt-3 overflow-hidden border border-gray-800">
+
+          <table className="w-full border-collapse">
+
+            <thead>
+              <tr className="bg-gray-200 text-xs font-bold">
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Code
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Description
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-center">
+                  Unit
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Rate
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Qty
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Total
+                </th>
+
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {printData.details?.map(
+                (item: any, index: number) => (
+                  <tr key={index}>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item.itemCode}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item.itemName || "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-center">
+                      {item.unit || "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      ₹{" "}
+                      {Number(
+                        item.prItemRate || 0
+                      ).toFixed(2)}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      {item.pReturnQty ??
+                        item.prItemQty ??
+                        0}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                      ₹{" "}
+                      {Number(
+                        item.total || 0
+                      ).toFixed(2)}
+                    </td>
+
+                  </tr>
+                )
+              )}
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+        {/* SUMMARY */}
+        <div className="mt-6 flex justify-end">
+
+          <div className="w-[330px]">
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Amount Before Tax</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData.master?.totalAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Tax Amount</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData.master?.taxAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Misc Charges</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData.master?.missChargeAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b-2 border-gray-800 py-3 text-base font-bold">
+              <span>Final Amount</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData.master?.grossAmount || 0
+                ).toFixed(2)}
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+     
+
+      </div>
+    </div>
+  </div>
+)}
+
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       <Header />
 
@@ -1009,7 +1525,7 @@ const PurchaseReturn: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div></>
   );
 };
 
