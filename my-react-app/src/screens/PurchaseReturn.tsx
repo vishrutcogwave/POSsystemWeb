@@ -521,7 +521,11 @@ const handleSave = async () => {
           item.returnQty || 0
         ),
 
-        praQty: 0,
+        praQty: Math.max(
+          0,
+          Number(item.qty || 0) -
+            Number(item.returnQty || 0)
+        ),
 
         mainUnit: item.mainUnit || "",
 
