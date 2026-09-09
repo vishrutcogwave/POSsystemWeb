@@ -14,6 +14,7 @@ import {
   getPurchaseOrderGRNNumber,
   createDirectPurchase,
   downloadDirectPurchaseExcel,
+  getPurchasePrintList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -138,6 +139,22 @@ const ItemPurchase: React.FC = () => {
     useState<number | null>(null);
   const [directPurchaseCalculation, setDirectPurchaseCalculation] =
     useState<any>(null);
+
+const formatPrintDate = (dateValue: any) => {
+  if (!dateValue) return "-";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+    const [printData, setPrintData] = useState<any>(null);
+const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   /* =========================
       API LOADER
@@ -1233,15 +1250,98 @@ const ItemPurchase: React.FC = () => {
 
       console.log("CreateDirectPurchase Response:", response);
 
-      if (response?.success) {
-        toast.success(response?.message || "Purchase saved successfully");
+    if (response?.success) {
+      debugger
+  toast.success(response?.message || "Purchase saved successfully");
 
-        // Reset the complete form after successful save
-        resetAllForm();
+  console.log("CreateDirectPurchase Response:", response);
 
-        // Get a fresh transaction number for the next purchase
-        await fetchTransactionNo();
-      } else {
+  // ============================================================
+  // GET CREATED PURCHASE NUMBER
+  // ============================================================
+
+  const createdPNo = Number(
+    typeof response?.data === "object"
+      ? response?.data?.pNo ??
+          response?.data?.PNo ??
+          response?.data?.purchaseNo ??
+          response?.data?.transactionNo ??
+          formData.transactionNo
+      : response?.data ?? formData.transactionNo
+  );
+
+  console.log("Created Purchase No:", createdPNo);
+  console.log("Branch Code:", branchCode);
+
+  // ============================================================
+  // CALL PURCHASE PRINT API
+  // ============================================================
+
+  if (!createdPNo || Number.isNaN(createdPNo)) {
+    console.error("Invalid Purchase No for Print API:", {
+      response,
+      createdPNo,
+      transactionNo: formData.transactionNo,
+    });
+
+    toast.error("Purchase saved, but Purchase No was not found");
+  } else if (!branchCode) {
+    console.error("Branch code is missing");
+
+    toast.error("Purchase saved, but branch code is missing");
+  } else {
+    try {
+      console.log(
+        "Calling GetPurchasePrintList API:",
+        {
+          branchCode,
+          pNo: createdPNo,
+        }
+      );
+
+      const printResponse = await getPurchasePrintList(
+        branchCode,
+        createdPNo
+      );
+
+      console.log(
+        "GetPurchasePrintList Response:",
+        printResponse
+      );
+
+      if (printResponse?.success) {
+  const purchasePrintData = printResponse?.data?.[0] ?? null;
+
+  console.log("Purchase Print Data:", purchasePrintData);
+
+  setPrintData(purchasePrintData);
+  setShowPrintPreview(true);
+}else {
+        toast.error(
+          printResponse?.message ||
+            "Purchase saved, but print preview could not be loaded"
+        );
+      }
+    } catch (printError: any) {
+      console.error(
+        "GetPurchasePrintList Error:",
+        printError?.response?.data ||
+          printError?.message ||
+          printError
+      );
+
+      toast.error(
+        "Purchase saved, but print preview could not be loaded"
+      );
+    }
+  }
+
+  // Reset only AFTER print API is completed
+  await resetAllForm();
+
+  // Get next transaction number
+  await fetchTransactionNo();
+}else {
         toast.error(response?.message || "Failed to save purchase");
       }
     } catch (error) {
@@ -1471,6 +1571,337 @@ const ItemPurchase: React.FC = () => {
     }
   };
   return (
+    <>
+
+    {showPrintPreview && printData && (
+  <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+    <div className="mx-auto my-6 w-full max-w-[900px]">
+
+      {/* =========================
+          PREVIEW HEADER
+      ========================= */}
+
+      <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">
+            Purchase Preview
+          </h2>
+
+          <p className="text-xs text-gray-500">
+            Purchase No:{" "}
+            {printData?.master?.pNo ??
+              printData?.master?.transactionNo ??
+              printData?.master?.purchaseNo ??
+              "-"}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            🖨 Print
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowPrintPreview(false)}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      {/* =========================
+          PRINT AREA
+      ========================= */}
+
+      <div
+        id="purchase-print"
+        className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+      >
+
+        {/* COMPANY HEADER */}
+
+        <div className="mb-5 text-center">
+          <h1 className="text-xl font-bold tracking-wide">
+            COGWAVE POS
+          </h1>
+
+          <div className="mt-1 text-xs leading-5 text-gray-600">
+            Basavanagudi
+            <br />
+            Bangalore - 560004
+            <br />
+            PH : 7338818178
+            <br />
+            Email : 0
+            <br />
+            GST : -
+          </div>
+        </div>
+
+        {/* TITLE */}
+
+        <div className="mb-4 text-center">
+          <h2 className="text-lg font-semibold text-red-600">
+            Purchase
+          </h2>
+        </div>
+
+        {/* MASTER DETAILS */}
+
+        <div className="grid grid-cols-2 border border-gray-800">
+
+          {/* LEFT */}
+
+          <div className="border-r border-gray-800 p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Supplier:
+              </span>{" "}
+              {printData?.master?.supplierName ||
+                printData?.master?.vendorName ||
+                printData?.master?.supName ||
+                "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Bill No:
+              </span>{" "}
+              {printData?.master?.billNo ||
+                printData?.master?.billed ||
+                "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Store:
+              </span>{" "}
+              {printData?.master?.storeName || "-"}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                GRN No:
+              </span>{" "}
+              {printData?.master?.grnNo || "-"}
+            </div>
+
+          </div>
+
+          {/* RIGHT */}
+
+          <div className="p-3">
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Purchase No:
+              </span>{" "}
+              {printData?.master?.pNo ??
+                printData?.master?.transactionNo ??
+                "-"}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Purchase Date:
+              </span>{" "}
+              {formatPrintDate(
+                printData?.master?.pDate ??
+                  printData?.master?.purchaseDate ??
+                  printData?.master?.date,
+              )}
+            </div>
+
+            <div className="mb-2">
+              <span className="font-semibold">
+                Purchase Type:
+              </span>{" "}
+              {printData?.master?.pType || "Purchase"}
+            </div>
+
+            <div>
+              <span className="font-semibold">
+                Department:
+              </span>{" "}
+              {printData?.master?.departmentName ||
+                printData?.master?.depName ||
+                "-"}
+            </div>
+
+          </div>
+        </div>
+
+        {/* ITEMS */}
+
+        <div className="mt-3 overflow-hidden border border-gray-800">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-200 text-xs font-bold">
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Code
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-left">
+                  Description
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-center">
+                  Unit
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Rate
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Qty
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Tax
+                </th>
+
+                <th className="border border-gray-800 px-2 py-2 text-right">
+                  Total
+                </th>
+
+              </tr>
+            </thead>
+
+            <tbody>
+              {(printData?.details || []).map(
+                (item: any, index: number) => (
+                  <tr key={index}>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item?.itemCode ?? "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2">
+                      {item?.itemName ??
+                        item?.description ??
+                        "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-center">
+                      {item?.unit || "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      ₹{" "}
+                      {Number(
+                        item?.itemRate ??
+                          item?.pItemRate ??
+                          item?.rate ??
+                          0,
+                      ).toFixed(2)}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      {item?.itemQty ??
+                        item?.pItemQty ??
+                        item?.totalQty ??
+                        item?.qty ??
+                        0}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right">
+                      {item?.taxName ||
+                        item?.tax ||
+                        "-"}
+                    </td>
+
+                    <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                      ₹{" "}
+                      {Number(
+                        item?.total ??
+                          item?.totalAmount ??
+                          0,
+                      ).toFixed(2)}
+                    </td>
+
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* SUMMARY */}
+
+        <div className="mt-6 flex justify-end">
+          <div className="w-[330px]">
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Amount Before Tax</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData?.master?.totalAmount ??
+                    printData?.master?.pTotalAmount ??
+                    0,
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Tax</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData?.master?.taxAmount ??
+                    printData?.master?.tax ??
+                    printData?.master?.totTax ??
+                    0,
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b border-gray-300 py-2">
+              <span>Misc Charges</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData?.master?.missChargeAmount ??
+                    printData?.master?.misc ??
+                    printData?.master?.otherCharges ??
+                    0,
+                ).toFixed(2)}
+              </span>
+            </div>
+
+            <div className="flex justify-between border-b-2 border-gray-800 py-3 text-base font-bold">
+              <span>Final Amount</span>
+
+              <span>
+                ₹{" "}
+                {Number(
+                  printData?.master?.netamount ??
+                    printData?.master?.grossAmount ??
+                    printData?.master?.grandTotal ??
+                    0,
+                ).toFixed(2)}
+              </span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       {apiLoadingCount > 0 && <Loader />}
 
@@ -2414,7 +2845,7 @@ const ItemPurchase: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div></>
   );
 };
 

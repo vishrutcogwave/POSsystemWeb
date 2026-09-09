@@ -1306,7 +1306,6 @@ export const GetPrintingMasterList = async (branchcode: string) => {
   return response.data;
 };
 
-
 export const createItemMaster = async (payload: {
   itemCode: number;
   itemName: string;
@@ -4881,12 +4880,10 @@ export const getUnsettledBillDetails = async (
   }
 };
 
-
- 
 export const getSupplierList = async (branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.get("/api/InventoryMaster/GetSupplierList", {
       params: { branchcode },
       headers: {
@@ -4904,25 +4901,25 @@ export const getSupplierList = async (branchcode: string) => {
     throw error;
   }
 };
- 
+
 export const createSupplier = async (payload: any) => {
   const response = await api.post(
     "/api/InventoryMaster/CreateSupplier",
     payload,
   );
- 
+
   return response.data;
 };
- 
+
 export const updateSupplier = async (payload: any) => {
   const response = await api.put(
     "/api/InventoryMaster/UpdateSupplier",
     payload,
   );
- 
+
   return response.data;
 };
- 
+
 export const deleteSupplier = async (id: number, branchcode: string) => {
   const response = await api.delete("/api/InventoryMaster/DeleteSupplier", {
     params: {
@@ -4930,14 +4927,14 @@ export const deleteSupplier = async (id: number, branchcode: string) => {
       branchcode,
     },
   });
- 
+
   return response.data;
 };
- 
+
 export const getInventoryItemCategoryList = async (branchcode: string) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.get(
       "/api/InventoryMaster/GetInventoryCategoryMasterList",
       {
@@ -4955,11 +4952,11 @@ export const getInventoryItemCategoryList = async (branchcode: string) => {
       "Error fetching category master list:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 export const createInventoryItemCategory = async (payload: {
   catCode: number;
   catName: string;
@@ -4970,7 +4967,7 @@ export const createInventoryItemCategory = async (payload: {
 }) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.post(
       "/api/InventoryMaster/CreateInventoryCategoryMaster",
       payload,
@@ -4982,7 +4979,7 @@ export const createInventoryItemCategory = async (payload: {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.log("Status:", error.response?.status);
@@ -4999,7 +4996,7 @@ export const updateInventoryItemCategory = async (payload: {
   imageUrl: string;
 }) => {
   const token = localStorage.getItem("token");
- 
+
   const response = await api.put(
     "/api/InventoryMaster/UpdateInventoryCategoryMaster",
     payload,
@@ -5011,17 +5008,17 @@ export const updateInventoryItemCategory = async (payload: {
       },
     },
   );
- 
+
   return response.data;
 };
- 
+
 export const deleteInventoryItemCategory = async (
   id: number,
   branchcode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.delete(
       "/api/InventoryMaster/DeleteInventoryCategoryMaster",
       {
@@ -5032,18 +5029,18 @@ export const deleteInventoryItemCategory = async (
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error deleting category master:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 export const getInventorySubCategoryMasterList = async (branchcode: string) => {
   const token = localStorage.getItem("token");
   const response = await api.get(
@@ -5056,10 +5053,10 @@ export const getInventorySubCategoryMasterList = async (branchcode: string) => {
       },
     },
   );
- 
+
   return response.data;
 };
- 
+
 export const createInventorySubCategoryMaster = async (payload: {
   catCode: number;
   catName: string;
@@ -5071,7 +5068,7 @@ export const createInventorySubCategoryMaster = async (payload: {
 }) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.post(
       "/api/InventoryMaster/CreateInventorySubCategoryMaster",
       payload,
@@ -5083,18 +5080,18 @@ export const createInventorySubCategoryMaster = async (payload: {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error creating sub category:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 export const updateInventorySubCategoryMaster = async (payload: {
   catCode: number;
   catName: string;
@@ -5104,10 +5101,9 @@ export const updateInventorySubCategoryMaster = async (payload: {
   trDate: string;
   branch_Code: string;
 }) => {
-  
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.put(
       "/api/InventoryMaster/UpdateInventorySubCategoryMaster",
       payload,
@@ -5119,25 +5115,25 @@ export const updateInventorySubCategoryMaster = async (payload: {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error updating sub category:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 export const deleteInventorySubCategoryMaster = async (
   id: number,
   branchcode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.delete(
       "/api/InventoryMaster/DeleteInventorySubCategoryMaster",
       {
@@ -5148,27 +5144,26 @@ export const deleteInventorySubCategoryMaster = async (
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error deleting sub category:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 /* ===========================
       GET STORE LIST
 =========================== */
- 
+
 export const getStoreMasterList = async (branch: string) => {
-  
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.get(
       "/api/InventoryMaster/GetInventoryStoreMasterList",
       {
@@ -5179,7 +5174,7 @@ export const getStoreMasterList = async (branch: string) => {
         },
       },
     );
- 
+
     console.log(response.data);
     return response.data;
   } catch (error: any) {
@@ -5187,15 +5182,15 @@ export const getStoreMasterList = async (branch: string) => {
       "Error fetching store master list:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 /* ===========================
       CREATE STORE
 =========================== */
- 
+
 export const createStoreMaster = async (payload: {
   storeId: number;
   storeName: string;
@@ -5205,7 +5200,7 @@ export const createStoreMaster = async (payload: {
 }) => {
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.post(
       "/api/InventoryMaster/CreateInventoryStoreMaster",
       payload,
@@ -5217,22 +5212,22 @@ export const createStoreMaster = async (payload: {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error creating store:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 /* ===========================
       UPDATE STORE
 =========================== */
- 
+
 export const updateStoreMaster = async (payload: {
   storeId: number;
   storeName: string;
@@ -5241,9 +5236,8 @@ export const updateStoreMaster = async (payload: {
   branch_Code: string;
 }) => {
   try {
-    
     const token = localStorage.getItem("token");
- 
+
     const response = await api.put(
       "/api/InventoryMaster/UpdateInventoryStoreMaster",
       payload,
@@ -5255,27 +5249,26 @@ export const updateStoreMaster = async (payload: {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error updating store:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
+
 /* ===========================
       DELETE STORE
 =========================== */
- 
+
 export const deleteStoreMaster = async (storeId: number, branch: string) => {
-  
   try {
     const token = localStorage.getItem("token");
- 
+
     const response = await api.delete(
       "/api/InventoryMaster/DeleteInventoryStoreMaster",
       {
@@ -5289,18 +5282,17 @@ export const deleteStoreMaster = async (storeId: number, branch: string) => {
         },
       },
     );
- 
+
     return response.data;
   } catch (error: any) {
     console.error(
       "Error deleting store:",
       error.response?.data || error.message,
     );
- 
+
     throw error;
   }
 };
- 
 
 export const getInventoryItemStoreList = async (branchcode: string) => {
   try {
@@ -5330,10 +5322,9 @@ export const getInventoryItemStoreList = async (branchcode: string) => {
   }
 };
 
-
 export const getItemStoreListByStoreId = async (
   branchcode: string,
-  Storeid: string
+  Storeid: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -5349,14 +5340,14 @@ export const getItemStoreListByStoreId = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching item store list:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
@@ -5418,7 +5409,6 @@ export const createInventoryItemStore = async (payload: {
   }
 };
 
-
 export const updateInventoryItemStore = async (payload: {
   itemCode: number;
   itemName: string;
@@ -5473,7 +5463,6 @@ export const updateInventoryItemStore = async (payload: {
     throw error;
   }
 };
-
 
 export const deleteInventoryItemStore = async (
   id: number,
@@ -5535,7 +5524,6 @@ export const getInventoryMiscList = async (branch: string) => {
   }
 };
 
-
 export const createInventoryMisc = async (payload: {
   chargeId: number;
   chargeName: string;
@@ -5567,7 +5555,6 @@ export const createInventoryMisc = async (payload: {
   }
 };
 
-
 export const updateInventoryMisc = async (payload: {
   chargeId: number;
   chargeName: string;
@@ -5598,10 +5585,7 @@ export const updateInventoryMisc = async (payload: {
     throw error;
   }
 };
-export const deleteInventoryMisc = async (
-  chargeId: number,
-  branch: string,
-) => {
+export const deleteInventoryMisc = async (chargeId: number, branch: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -5629,7 +5613,6 @@ export const deleteInventoryMisc = async (
     throw error;
   }
 };
-
 
 export const getInventoryGRNMiscList = async (branch: string) => {
   try {
@@ -5659,9 +5642,8 @@ export const getInventoryGRNMiscList = async (branch: string) => {
   }
 };
 
-
 export const createInventoryGRNMisc = async (payload: {
-  grnId:number
+  grnId: number;
   pno: number;
   chargeId: number;
   chargeAmt: number;
@@ -5694,7 +5676,7 @@ export const createInventoryGRNMisc = async (payload: {
 };
 
 export const updateInventoryGRNMisc = async (payload: {
-  grnId:number;
+  grnId: number;
   pno: number;
   chargeId: number;
   chargeAmt: number;
@@ -5726,10 +5708,7 @@ export const updateInventoryGRNMisc = async (payload: {
   }
 };
 
-export const deleteInventoryGRNMisc = async (
-  GRNId: number,
-  branch: string,
-) => {
+export const deleteInventoryGRNMisc = async (GRNId: number, branch: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -5758,9 +5737,7 @@ export const deleteInventoryGRNMisc = async (
   }
 };
 
-export const downloadInventoryItemStoreExcel = async (
-  branchCode: string
-) => {
+export const downloadInventoryItemStoreExcel = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -5777,23 +5754,18 @@ export const downloadInventoryItemStoreExcel = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     // Create download URL
-    const url = window.URL.createObjectURL(
-      new Blob([response.data])
-    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
 
     const link = document.createElement("a");
 
     link.href = url;
 
     // File name from API response
-    link.setAttribute(
-      "download",
-      "InventoryItemImport.xlsx"
-    );
+    link.setAttribute("download", "InventoryItemImport.xlsx");
 
     document.body.appendChild(link);
 
@@ -5807,13 +5779,12 @@ export const downloadInventoryItemStoreExcel = async (
   } catch (error: any) {
     console.error(
       "Error downloading Inventory Item Store excel:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
 
 export const uploadInventoryItemStoreExcel = async (
   file: File,
@@ -5848,7 +5819,6 @@ export const uploadInventoryItemStoreExcel = async (
     throw error;
   }
 };
-
 
 export const importInventoryItemStoreExcel = async (
   items: any[],
@@ -5937,8 +5907,6 @@ export const purchaseOrderCalculation = async (payload: {
   }
 };
 
-
-
 // ================= SECOND USER ACCESS MASTER =================
 
 export const getSecoundUserAccessMaster = async (branchCode: string) => {
@@ -6000,35 +5968,30 @@ export const updateSecoundUserAccessDetail = async (payload: {
   }
 };
 
-
 export const getAdminAccessMaster = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.get(
-      "/api/UserAccess/GetAdminAccessMaster",
-      {
-        params: {
-          BranchCode: branchCode,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.get("/api/UserAccess/GetAdminAccessMaster", {
+      params: {
+        BranchCode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching admin access master:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
 
 // ================= PURCHASE ORDER =================
 
@@ -6045,24 +6008,21 @@ export const createPurchaseOrder = async (payload: any) => {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error creating purchase order:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
 
-export const printPurchaseOrder = async (
-  poNo: number,
-  branchCode: string,
-) => {
+export const printPurchaseOrder = async (poNo: number, branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -6091,23 +6051,9 @@ export const printPurchaseOrder = async (
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
 // ================= INVENTORY UNIT CONVERSION =================
 
-export const getInventoryUnitConversionList = async (
-  branch: string,
-) => {
+export const getInventoryUnitConversionList = async (branch: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -6134,7 +6080,6 @@ export const getInventoryUnitConversionList = async (
 };
 
 export const createInventoryUnitConversion = async (payload: {
-  
   unitCode: number;
   unitName: string;
   qty: number;
@@ -6170,7 +6115,6 @@ export const createInventoryUnitConversion = async (payload: {
 };
 
 export const updateInventoryUnitConversion = async (payload: {
-  
   unitCode: number;
   unitName: string;
   qty: number;
@@ -6237,7 +6181,6 @@ export const deleteInventoryUnitConversion = async (
   }
 };
 
-
 export const getPurchaseOrderList = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
@@ -6252,24 +6195,21 @@ export const getPurchaseOrderList = async (branchCode: string) => {
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching purchase order list:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
 
-
-export const createPurchaseOrderApproval = async (
-  payload: any
-) => {
+export const createPurchaseOrderApproval = async (payload: any) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -6282,20 +6222,19 @@ export const createPurchaseOrderApproval = async (
           accept: "*/*",
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error creating purchase order approval:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
 
 export const getPurchaseOrderApprovalPrint = async (
   poNo: number,
@@ -6328,13 +6267,6 @@ export const getPurchaseOrderApprovalPrint = async (
     throw error;
   }
 };
-
-
-
-
-
-
-
 
 export const deletePurchaseOrder = async (
   poNo: number,
@@ -6395,7 +6327,7 @@ export const getPurchaseOrderNumber = async (branchCode: string) => {
 
     throw error;
   }
-};  
+};
 
 export const getPurchaseOrderGRNList = async (
   poNo: number,
@@ -6428,8 +6360,6 @@ export const getPurchaseOrderGRNList = async (
     throw error;
   }
 };
-
-
 
 export const createPurchaseGoodsReceivedNote = async (payload: {
   poNo: number;
@@ -6550,10 +6480,7 @@ export const getGoodsReceivedNotePrint = async (
   }
 };
 
-
-export const getGoodsReceivedList = async (
-  branchCode: string,
-) => {
+export const getGoodsReceivedList = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -6580,8 +6507,6 @@ export const getGoodsReceivedList = async (
     throw error;
   }
 };
-
-
 
 export const getPurchaseGoodsReceivedList = async (
   branchCode: string,
@@ -6615,12 +6540,6 @@ export const getPurchaseGoodsReceivedList = async (
   }
 };
 
-
-
-
-
-
-
 export const getPurchaseOrderGRNNumber = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
@@ -6632,7 +6551,7 @@ export const getPurchaseOrderGRNNumber = async (branchCode: string) => {
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
@@ -6641,7 +6560,6 @@ export const getPurchaseOrderGRNNumber = async (branchCode: string) => {
     throw error;
   }
 };
-
 
 export interface CreateDirectPurchasePayload {
   pNo: number;
@@ -6697,7 +6615,7 @@ export interface CreateDirectPurchasePayload {
 }
 
 export const createDirectPurchase = async (
-  payload: CreateDirectPurchasePayload
+  payload: CreateDirectPurchasePayload,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -6711,7 +6629,7 @@ export const createDirectPurchase = async (
           accept: "*/*",
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
@@ -6761,7 +6679,6 @@ export const downloadDirectPurchaseExcel = async (branchCode: string) => {
     throw error;
   }
 };
-
 
 export const getPurchaseOrderReturnNumber = async (branchCode: string) => {
   try {
@@ -6899,13 +6816,9 @@ export const savePurchaseReturnOrder = async (payload: {
   }
 };
 
-
-
-
-
 export const getPurchaseReturnOrderPrintList = async (
   branchCode: string,
-  PRNo: number
+  PRNo: number,
 ) => {
   const token = localStorage.getItem("token");
 
@@ -6920,8 +6833,36 @@ export const getPurchaseReturnOrderPrintList = async (
         Authorization: `Bearer ${token}`,
         accept: "*/*",
       },
-    }
+    },
   );
 
   return response.data;
+};
+
+export const getPurchasePrintList = async (branchCode: string, pNo: number) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchasePrintList",
+      {
+        params: {
+          branchCode,
+          pNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase print list:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
 };

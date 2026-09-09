@@ -197,6 +197,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { SubTable } from "../utils";
+import { useAppContext } from "../context/AppContext";
 
 type Props = {
   isOpen: boolean;
@@ -216,8 +217,12 @@ const KotModal: React.FC<Props> = ({
   onUnsettledClick
 }) => {
   const [, setCurrentTime] = useState(Date.now());
-
-  // Update timer every second
+const { userRights } = useAppContext();
+const isSettlementAccessDisabled =
+  userRights
+    ?.flatMap((menu) => menu.subMenus || [])
+    ?.find((subMenu) => subMenu.subMenuName === "IsSettlementAccess")
+    ?.isPermission === false;
   useEffect(() => {
     if (!isOpen) return;
 
@@ -312,9 +317,16 @@ const KotModal: React.FC<Props> = ({
     );
 
     return (
-    <button
+<button
   key={item.subTable}
+  disabled={
+    item.tableStatus === "Unsettled" && isSettlementAccessDisabled
+  }
   onClick={() => {
+    if (item.tableStatus === "Unsettled" && isSettlementAccessDisabled) {
+      return;
+    }
+
     if (item.tableStatus === "Unsettled") {
       onUnsettledClick(item);
     } else {
