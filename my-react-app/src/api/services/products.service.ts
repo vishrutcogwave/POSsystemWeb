@@ -4341,6 +4341,7 @@ export const deleteprintGroupSettings = async (
   grpCode: number,
   oltCode: number,
   branchcode: string,
+  UserCode:number
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -4352,6 +4353,7 @@ export const deleteprintGroupSettings = async (
           GrpCode: grpCode,
           OltCode: oltCode,
           Branchcode: branchcode,
+          UserCode:UserCode
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -6866,3 +6868,40 @@ export const getPurchasePrintList = async (branchCode: string, pNo: number) => {
     throw error;
   }
 };
+
+
+
+
+
+
+
+
+
+export const loadPurchaseDetailReturnData = async (payload: {
+  itemCode: number;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/LoadPurchaseDetailReturnData",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error loading purchase return detail:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};  

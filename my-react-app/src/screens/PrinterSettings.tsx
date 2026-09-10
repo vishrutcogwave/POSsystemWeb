@@ -41,6 +41,7 @@ export default function PrinterSettings() {
         grpCode,
         Number(selectedOutlet),
         appData?.user?.branch_code,
+        appData?.user?.userCode
       );
 
       if (res?.success) {
