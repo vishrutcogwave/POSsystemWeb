@@ -1005,7 +1005,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
       details = directPurchaseItems.map((item) => ({
         itemCode: Number(item.code || 0),
 
-        pItemQty: Number(item.enteredQty || 0),
+        pItemQty:  Number(item.qty || 0),
 
         pItemRate: Number(item.rate || 0),
 
@@ -1013,7 +1013,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 
         qtyPer: Number(item.unitQty || 0),
 
-        noOfQty: Number(item.enteredQty || 0),
+        noOfQty:  Number(item.qty || 0),
 
         totalQty: Number(item.qty || 0),
 
