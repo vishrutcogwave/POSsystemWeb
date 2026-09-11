@@ -7,6 +7,7 @@ import {
   getNextIdCode,
   loadPurchaseDetailData,
   purchaseItemDamageSave,
+  getPurchaseItemDamagePrintList,
 } from "../api/services/products.service";
 
 import toast from "react-hot-toast";
@@ -40,6 +41,20 @@ type DamageItem = {
   mainUnit: string;
 };
 
+const formatPrintDate = (dateValue: any) => {
+  if (!dateValue) return "-";
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
 const ItemDamageEntry: React.FC = () => {
   const [formData, setFormData] = useState({
     transactionNo: "",
@@ -69,6 +84,12 @@ const ItemDamageEntry: React.FC = () => {
   // =========================================================
 
   const [items, setItems] = useState<DamageItem[]>([]);
+
+  // =========================================================
+  // PRINT PREVIEW
+  // =========================================================
+  const [printData, setPrintData] = useState<any>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   // =========================================================
   // STYLES
@@ -385,7 +406,6 @@ const ItemDamageEntry: React.FC = () => {
       toast.error(
         "Please enter Damage Qty for at least one item."
       );
-
       return;
     }
 
@@ -397,14 +417,26 @@ const ItemDamageEntry: React.FC = () => {
         localStorage.getItem("branch") ||
         "";
 
+      const dNo = Number(
+        formData.transactionNo || 0
+      );
+
+      if (!dNo) {
+        toast.error("Damage transaction number not found.");
+        return;
+      }
+
+      if (!branchCode) {
+        toast.error("Branch code not found.");
+        return;
+      }
+
       // =====================================================
       // SAVE PAYLOAD
       // =====================================================
 
       const payload = {
-        dNo: Number(
-          formData.transactionNo || 0
-        ),
+        dNo,
 
         dDate: new Date(
           formData.date
@@ -424,53 +456,47 @@ const ItemDamageEntry: React.FC = () => {
 
         branchCode,
 
-  details: damageItems.map((item) => ({
-  dNo: Number(
-    formData.transactionNo || 0
-  ),
+        details: damageItems.map((item) => ({
+          dNo,
 
-  itemCode: Number(
-    item.code || 0
-  ),
+          itemCode: Number(
+            item.code || 0
+          ),
 
-  dItemRate: Number(
-    item.rate || 0
-  ),
+          dItemRate: Number(
+            item.rate || 0
+          ),
 
-  dItemQty: Number(
-    item.damageQty || 0
-  ),
+          dItemQty: Number(
+            item.damageQty || 0
+          ),
 
-  itemQty: Number(
-    item.qty || 0
-  ),
+          itemQty: Number(
+            item.qty || 0
+          ),
 
-  itemBalQty:
-    Number(item.qty || 0) -
-    Number(item.damageQty || 0),
+          itemBalQty:
+            Number(item.qty || 0) -
+            Number(item.damageQty || 0),
 
-  pNo: Number(
-    item.pNo || 0
-  ),
+          pNo: Number(
+            item.pNo || 0
+          ),
 
-  // =========================================
-  // UNIT DETAILS - FROM LOAD API
-  // =========================================
+          unit: item.unit || "",
 
-  unit: item.unit || "",
+          unitCode: Number(
+            item.unitCode || 0
+          ),
 
-  unitCode: Number(
-    item.unitCode || 0
-  ),
+          mainUnitConverstion:
+            item.mainUnitConverstion || "",
 
-  mainUnitConverstion:
-    item.mainUnitConverstion || "",
+          mainUnit:
+            item.mainUnit || "",
 
-  mainUnit:
-    item.mainUnit || "",
-
-  branch_Code: branchCode,
-})),
+          branch_Code: branchCode,
+        })),
       };
 
       console.log(
@@ -492,24 +518,97 @@ const ItemDamageEntry: React.FC = () => {
         response
       );
 
-      if (response?.success) {
-        toast.success(
-          "Damage Entry saved successfully."
-        );
-      } else {
+      if (!response?.success) {
         toast.error(
           response?.message ||
             "Failed to save Damage Entry."
         );
+        return;
       }
-    } catch (error) {
+
+      toast.success(
+        response?.message ||
+          "Damage Entry saved successfully."
+      );
+
+      // =====================================================
+      // GET DAMAGE PRINT DATA
+      // =====================================================
+
+      try {
+        console.log(
+          "Calling GetPurchaseItemDamagePrintList API:",
+          {
+            branchCode,
+            damageNo: dNo,
+          }
+        );
+
+        const printResponse =
+          await getPurchaseItemDamagePrintList(
+            branchCode,
+            dNo
+          );
+
+        console.log(
+          "GetPurchaseItemDamagePrintList Response:",
+          printResponse
+        );
+
+        if (printResponse?.success) {
+          const damagePrintData =
+            printResponse?.data?.[0] ?? null;
+
+          console.log(
+            "Damage Print Data:",
+            damagePrintData
+          );
+
+          setPrintData(
+            damagePrintData
+          );
+
+          setShowPrintPreview(true);
+        } else {
+          toast.error(
+            printResponse?.message ||
+              "Damage saved, but print preview could not be loaded."
+          );
+        }
+      } catch (printError: any) {
+        console.error(
+          "GetPurchaseItemDamagePrintList Error:",
+          printError?.response?.data ||
+            printError?.message ||
+            printError
+        );
+
+        toast.error(
+          "Damage saved, but print preview could not be loaded."
+        );
+      }
+
+      // =====================================================
+      // LOAD NEXT TRANSACTION NUMBER
+      // =====================================================
+
+      await loadNextTransactionNo();
+
+      // Clear current entry
+      setItems([]);
+      setItemSearch("");
+
+    } catch (error: any) {
       console.error(
         "Error saving Damage Entry:",
-        error
+        error?.response?.data ||
+          error?.message ||
+          error
       );
 
       toast.error(
-        "Failed to save Damage Entry."
+        error?.response?.data?.message ||
+          "Failed to save Damage Entry."
       );
     } finally {
       setLoadingDetails(false);
@@ -583,9 +682,373 @@ const ItemDamageEntry: React.FC = () => {
   // =========================================================
 
   return (
-    <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
+    <>
+      {/* =========================================================
+          DAMAGE PRINT PREVIEW
+      ========================================================= */}
+
+      {showPrintPreview && printData && (
+        <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+          <div className="mx-auto my-6 w-full max-w-[900px]">
+
+            {/* PREVIEW HEADER */}
+            <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">
+                  Item Damage Preview
+                </h2>
+
+                <p className="text-xs text-gray-500">
+                  Damage No:{" "}
+                  {printData?.master?.dNo ?? "-"}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  🖨 Print
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPrintPreview(false)
+                  }
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            {/* PRINT AREA */}
+            <div
+              id="damage-print"
+              className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+            >
+
+              {/* COMPANY HEADER */}
+              <div className="mb-5 text-center">
+                <h1 className="text-xl font-bold tracking-wide">
+                  COGWAVE POS
+                </h1>
+
+                <div className="mt-1 text-xs leading-5 text-gray-600">
+                  Basavanagudi
+                  <br />
+                  Bangalore - 560004
+                  <br />
+                  PH : 7338818178
+                  <br />
+                  Email : 0
+                  <br />
+                  GST : -
+                </div>
+              </div>
+
+              {/* TITLE */}
+              <div className="mb-4 text-center">
+                <h2 className="text-lg font-semibold text-red-600">
+                  Item Damage
+                </h2>
+              </div>
+
+              {/* MASTER DETAILS */}
+              <div className="grid grid-cols-2 border border-gray-800">
+
+                {/* LEFT */}
+                <div className="border-r border-gray-800 p-3">
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Damage No:
+                    </span>{" "}
+                    {printData?.master?.dNo ?? "-"}
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Branch:
+                    </span>{" "}
+                    {printData?.master?.branch_Code ?? "-"}
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Item:
+                    </span>{" "}
+                    {printData?.master?.itemName ?? "-"}
+                  </div>
+
+                  <div>
+                    <span className="font-semibold">
+                      Purchase No:
+                    </span>{" "}
+                    {printData?.master?.pNo ?? "-"}
+                  </div>
+                </div>
+
+                {/* RIGHT */}
+                <div className="p-3">
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Damage Date:
+                    </span>{" "}
+                    {formatPrintDate(
+                      printData?.master?.dDate
+                    )}
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Item Code:
+                    </span>{" "}
+                    {printData?.master?.itemCode ?? "-"}
+                  </div>
+
+                  <div className="mb-2">
+                    <span className="font-semibold">
+                      Purchase Qty:
+                    </span>{" "}
+                    {Number(
+                      printData?.master?.itemQty ?? 0
+                    ).toFixed(2)}
+                  </div>
+
+                  <div>
+                    <span className="font-semibold">
+                      Damage Qty:
+                    </span>{" "}
+                    {Number(
+                      printData?.master?.dItemQty ?? 0
+                    ).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+
+              {/* DAMAGE ITEMS */}
+              <div className="mt-3 overflow-hidden border border-gray-800">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-200 text-xs font-bold">
+
+                      <th className="border border-gray-800 px-2 py-2 text-left">
+                        Code
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-left">
+                        Description
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-center">
+                        Unit
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Rate
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Qty
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Damage Qty
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Balance Qty
+                      </th>
+
+                      <th className="border border-gray-800 px-2 py-2 text-right">
+                        Amount
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {(printData?.details || []).map(
+                      (item: any, index: number) => (
+                        <tr key={index}>
+
+                          <td className="border border-gray-800 px-2 py-2">
+                            {item?.itemCode ?? "-"}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2">
+                            {item?.itemName ??
+                              printData?.master?.itemName ??
+                              "-"}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-center">
+                            {item?.unit || "-"}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-right">
+                            ₹{" "}
+                            {Number(
+                              item?.dItemRate ?? 0
+                            ).toFixed(2)}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-right">
+                            {Number(
+                              item?.itemQty ?? 0
+                            ).toFixed(2)}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-right">
+                            {Number(
+                              item?.dItemQty ?? 0
+                            ).toFixed(2)}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-right">
+                            {Number(
+                              item?.itemBalQty ?? 0
+                            ).toFixed(2)}
+                          </td>
+
+                          <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                            ₹{" "}
+                            {(
+                              Number(
+                                item?.dItemRate ?? 0
+                              ) *
+                              Number(
+                                item?.dItemQty ?? 0
+                              )
+                            ).toFixed(2)}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* SUMMARY */}
+              <div className="mt-6 flex justify-end">
+                <div className="w-[330px]">
+
+                  <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>Total Damage Qty</span>
+
+                    <span>
+                      {Number(
+                        printData?.master?.dItemQty ?? 0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>Amount</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.dTotalAmount ??
+                          printData?.master?.amount ??
+                          0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>Tax</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.taxAmount ?? 0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>CGST</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.cgstAmount ?? 0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>SGST</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.sgstAmount ?? 0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between border-b border-gray-300 py-2">
+                    <span>Misc Charges</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.missChargeAmount ?? 0
+                      ).toFixed(2)}
+                    </span>
+                  </div> */}
+
+                  <div className="flex justify-between border-b-2 border-gray-800 py-3 text-base font-bold">
+                    <span>Final Amount</span>
+
+                    <span>
+                      ₹{" "}
+                      {Number(
+                        printData?.master?.grossAmount ??
+                          printData?.master?.dTotalAmount ??
+                          0
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
 
       {/* GLOBAL API LOADER */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+
+          #damage-print,
+          #damage-print * {
+            visibility: visible;
+          }
+
+          #damage-print {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
+
       {isLoading && <Loader />}
 
       <Header />
@@ -1043,7 +1506,6 @@ const ItemDamageEntry: React.FC = () => {
             >
               Save
             </button>
-
           </div>
 
         </div>
@@ -1051,6 +1513,7 @@ const ItemDamageEntry: React.FC = () => {
       </div>
 
     </div>
+  </>
   );
 };
 

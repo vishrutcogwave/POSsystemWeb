@@ -6955,3 +6955,37 @@ export const purchaseItemDamageSave = async (data: {
     throw error;
   }
 };
+
+
+
+export const getPurchaseItemDamagePrintList = async (
+  branchCode: string,
+  damageNo: number,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetPurchaseItemDamagePrintList",
+      {
+        params: {
+          branchCode,
+          damageNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase item damage print list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
