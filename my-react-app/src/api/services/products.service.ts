@@ -4341,7 +4341,7 @@ export const deleteprintGroupSettings = async (
   grpCode: number,
   oltCode: number,
   branchcode: string,
-  UserCode:number
+  UserCode: number,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -4353,7 +4353,7 @@ export const deleteprintGroupSettings = async (
           GrpCode: grpCode,
           OltCode: oltCode,
           Branchcode: branchcode,
-          UserCode:UserCode
+          UserCode: UserCode,
         },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -6869,39 +6869,89 @@ export const getPurchasePrintList = async (branchCode: string, pNo: number) => {
   }
 };
 
-
-
-
-
-
-
-
-
-export const loadPurchaseDetailReturnData = async (payload: {
-  itemCode: number;
+export const loadPurchaseDetailData = async ({
+  branchCode,
+  itemCode,
+}: {
   branchCode: string;
+  itemCode: number;
 }) => {
   try {
     const token = localStorage.getItem("token");
 
     const response = await api.post(
-      "/api/InventoryPurchase/LoadPurchaseDetailReturnData",
-      payload,
+      "/api/InventoryPurchase/LoadPurchaseDetailData",
+      null,
       {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          accept: "*/*",
+        params: {
+          branchCode,
+          ItemCode: itemCode,
         },
-      }
+        headers: {
+          accept: "*/*",
+          Authorization: `Bearer ${token}`,
+        },
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
-      "Error loading purchase return detail:",
-      error.response?.data || error.message
+      "Error loading purchase detail data:",
+      error.response?.data || error.message,
     );
+
     throw error;
   }
-};  
+};
+
+export const purchaseItemDamageSave = async (data: {
+  dNo: number;
+  dDate: string;
+  dTotalAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  missChargeAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  branchCode: string;
+  details: Array<{
+    dNo: number;
+    itemCode: number;
+    dItemRate: number;
+    dItemQty: number;
+    itemQty: number;
+    itemBalQty: number;
+    pNo: number;
+    unit: string;
+    unitCode: number;
+    mainUnitConverstion: string;
+    mainUnit: string;
+    branch_Code: string;
+  }>;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/PurchaseItemDamageSave",
+      data,
+      {
+        headers: {
+          accept: "*/*",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving purchase item damage:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};

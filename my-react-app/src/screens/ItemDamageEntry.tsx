@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
+import Loader from "../components/Loader";
 
 import {
   getInventoryItemStoreList,
-  loadPurchaseDetailReturnData,
-} from "../api/services/products.service"; 
+  getNextIdCode,
+  loadPurchaseDetailData,
+  purchaseItemDamageSave,
+} from "../api/services/products.service";
+import toast from "react-hot-toast";
 
 type InventoryItem = {
   itemCode: number;
@@ -31,24 +35,55 @@ type DamageItem = {
 
 const ItemDamageEntry: React.FC = () => {
   const [formData, setFormData] = useState({
-    transactionNo: "7",
+    transactionNo: "",
     date: new Date().toISOString().split("T")[0],
   });
+  const loadNextTransactionNo = async () => {
+    try {
+      setLoadingItems(true);
+
+      const branchCode =
+        localStorage.getItem("branchCode") ||
+        localStorage.getItem("branch") ||
+        "";
+
+      const response = await getNextIdCode({
+        tableName: "ItemDamageMaster",
+        columnName: "DNo",
+        conditionName: "Branch_Code",
+        branch: branchCode,
+      });
+
+      console.log("Next Transaction Number Response:", response);
+
+      if (response?.success) {
+        setFormData((prev) => ({
+          ...prev,
+          transactionNo: String(
+            response?.data ?? response?.nextNumber ?? response?.nextId ?? "",
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error("Error loading next transaction number:", error);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
 
   // =========================================================
   // INVENTORY ITEMS
   // =========================================================
-  const [inventoryItems, setInventoryItems] = useState<
-    InventoryItem[]
-  >([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
 
   const [itemSearch, setItemSearch] = useState("");
-  const [showItemDropdown, setShowItemDropdown] =
-    useState(false);
+  const [showItemDropdown, setShowItemDropdown] = useState(false);
 
   const [loadingItems, setLoadingItems] = useState(false);
-  const [loadingDetails, setLoadingDetails] =
-    useState(false);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Combined loader for all API calls
+  const isLoading = loadingItems || loadingDetails;
 
   // =========================================================
   // DAMAGE ITEMS
@@ -61,49 +96,40 @@ const ItemDamageEntry: React.FC = () => {
   const inputClass =
     "h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
-  const labelClass =
-    "mb-1.5 block text-xs font-semibold text-gray-600";
+  const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
 
   // =========================================================
   // LOAD INVENTORY ITEM LIST
   // =========================================================
-  useEffect(() => {
-    const loadInventoryItems = async () => {
-      try {
-        setLoadingItems(true);
 
-        const branchCode =
-          localStorage.getItem("branchCode") ||
-          localStorage.getItem("branch") ||
-          "";
+  const loadInventoryItems = async () => {
+    try {
+      setLoadingItems(true);
 
-        const response =
-          await getInventoryItemStoreList(branchCode);
+      const branchCode =
+        localStorage.getItem("branchCode") ||
+        localStorage.getItem("branch") ||
+        "";
 
-        console.log(
-          "Inventory Item Store List:",
-          response,
-        );
+      const response = await getInventoryItemStoreList(branchCode);
 
-        if (
-          response?.success &&
-          Array.isArray(response?.data)
-        ) {
-          setInventoryItems(response.data);
-        } else {
-          setInventoryItems([]);
-        }
-      } catch (error) {
-        console.error(
-          "Error loading inventory items:",
-          error,
-        );
+      console.log("Inventory Item Store List:", response);
 
+      if (response?.success && Array.isArray(response?.data)) {
+        setInventoryItems(response.data);
+      } else {
         setInventoryItems([]);
-      } finally {
-        setLoadingItems(false);
       }
-    };
+    } catch (error) {
+      console.error("Error loading inventory items:", error);
+
+      setInventoryItems([]);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+  useEffect(() => {
+    loadNextTransactionNo();
 
     loadInventoryItems();
   }, []);
@@ -111,41 +137,27 @@ const ItemDamageEntry: React.FC = () => {
   // =========================================================
   // FILTER SEARCH ITEMS
   // =========================================================
-  const filteredItems = inventoryItems.filter(
-    (item) => {
-      const search = itemSearch
-        .trim()
-        .toLowerCase();
+  const filteredItems = inventoryItems.filter((item) => {
+    const search = itemSearch.trim().toLowerCase();
 
-      if (!search) {
-        return true;
-      }
+    if (!search) {
+      return true;
+    }
 
-      return (
-        String(item.itemCode)
-          .toLowerCase()
-          .includes(search) ||
-        item.itemName
-          ?.toLowerCase()
-          .includes(search) ||
-        item.barCode
-          ?.toLowerCase()
-          .includes(search)
-      );
-    },
-  );
+    return (
+      String(item.itemCode).toLowerCase().includes(search) ||
+      item.itemName?.toLowerCase().includes(search) ||
+      item.barCode?.toLowerCase().includes(search)
+    );
+  });
 
   // =========================================================
   // SELECT ITEM
   // =========================================================
-  const handleSelectItem = async (
-    selectedItem: InventoryItem,
-  ) => {
+  const handleSelectItem = async (selectedItem: InventoryItem) => {
     try {
       // Show selected item in search box
-      setItemSearch(
-        `${selectedItem.itemCode} - ${selectedItem.itemName}`,
-      );
+      setItemSearch(`${selectedItem.itemCode} - ${selectedItem.itemName}`);
 
       // Hide dropdown
       setShowItemDropdown(false);
@@ -162,23 +174,14 @@ const ItemDamageEntry: React.FC = () => {
       // =====================================================
       // CALL PURCHASE DETAIL RETURN API
       // =====================================================
-      const response =
-        await loadPurchaseDetailReturnData({
-          itemCode: Number(
-            selectedItem.itemCode,
-          ),
-          branchCode,
-        });
+      const response = await loadPurchaseDetailData({
+        itemCode: Number(selectedItem.itemCode),
+        branchCode,
+      });
 
-      console.log(
-        "Purchase Detail Return Response:",
-        response,
-      );
+      console.log("Purchase Detail Return Response:", response);
 
-      if (
-        !response?.success ||
-        !Array.isArray(response?.data)
-      ) {
+      if (!response?.success || !Array.isArray(response?.data)) {
         setItems([]);
         return;
       }
@@ -186,71 +189,152 @@ const ItemDamageEntry: React.FC = () => {
       // =====================================================
       // MAP API RESPONSE TO TABLE
       // =====================================================
-      const newItems: DamageItem[] =
-        response.data.map(
-          (detail: any, index: number) => {
-            return {
-              id:
-                Date.now() + index,
+      const newItems: DamageItem[] = response.data.map(
+        (detail: any, index: number) => {
+          const damageQty = Number(detail.damageQty || 0);
 
-              // API itemCode
-              code: String(
-                detail.itemCode ??
-                  selectedItem.itemCode,
-              ),
+          const rate = Number(detail.rate || 0);
 
-              // API itemName is empty,
-              // so use selected item's name
-              name:
-                detail.itemName ||
-                selectedItem.itemName ||
-                "",
+          return {
+            id: Date.now() + index,
 
-              // API rate
-              rate: Number(
-                detail.rate || 0,
-              ),
+            // API itemCode
+            code: String(detail.itemCode ?? selectedItem.itemCode),
 
-              // API availQty
-              qty: Number(
-                detail.availQty || 0,
-              ),
+            // API itemName is empty,
+            // so use selected item's name
+            name: detail.itemName || selectedItem.itemName || "",
 
-              // Initially 0
-              damageQty: 0,
+            // API rate
+            rate,
 
-              // Initially 0
-              amount: 0,
+            // API available quantity
+            qty: Number(detail.availQty || 0),
 
-              // API pNo
-              pNo: Number(
-                detail.pNo || 0,
-              ),
+            // IMPORTANT:
+            // Use damageQty returned by API
+            damageQty,
 
-              // API already issued flag
-              isAlreadyIssued:
-                detail.isAlreadyIssued === true,
+            // Calculate amount using
+            // existing damageQty
+            amount: damageQty * rate,
 
-              // API message
-              message:
-                detail.message || "",
-            };
-          },
-        );
+            // API pNo
+            pNo: Number(detail.pNo || 0),
 
-      console.log(
-        "Mapped Damage Items:",
-        newItems,
+            // API already issued flag
+            isAlreadyIssued: detail.isAlreadyIssued === true,
+
+            // API message
+            message: detail.message || "",
+          };
+        },
       );
+
+      console.log("Mapped Damage Items:", newItems);
 
       setItems(newItems);
     } catch (error) {
-      console.error(
-        "Error loading purchase details:",
-        error,
-      );
+      console.error("Error loading purchase details:", error);
 
       setItems([]);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleSave = async () => {
+    // =====================================================
+    // ONLY ITEMS WITH DAMAGE QTY > 0
+    // =====================================================
+    const damageItems = items.filter(
+      (item) => !item.isAlreadyIssued && Number(item.damageQty || 0) > 0,
+    );
+
+    // At least one item must have damage quantity
+    if (damageItems.length === 0) {
+      toast.error("Please enter Damage Qty for at least one item.");
+      return;
+    }
+
+    try {
+      setLoadingDetails(true);
+
+      const branchCode =
+        localStorage.getItem("branchCode") ||
+        localStorage.getItem("branch") ||
+        "";
+
+      // =====================================================
+      // SAVE PAYLOAD
+      // =====================================================
+      const payload = {
+        dNo: Number(formData.transactionNo || 0),
+
+        dDate: new Date(formData.date).toISOString(),
+
+        dTotalAmount: totalAmount,
+
+        taxAmount: 0,
+
+        grossAmount: totalAmount,
+
+        missChargeAmount: 0,
+
+        cgstAmount: 0,
+
+        sgstAmount: 0,
+
+        branchCode,
+
+        // =================================================
+        // ONLY SEND ITEMS WHERE DAMAGE QTY > 0
+        // =================================================
+        details: damageItems.map((item) => ({
+          dNo: Number(formData.transactionNo || 0),
+
+          itemCode: Number(item.code || 0),
+
+          dItemRate: Number(item.rate || 0),
+
+          dItemQty: Number(item.damageQty || 0),
+
+          itemQty: Number(item.qty || 0),
+
+          itemBalQty: Number(item.qty || 0) - Number(item.damageQty || 0),
+
+          pNo: Number(item.pNo || 0),
+
+          unit: "",
+
+          unitCode: 0,
+
+          mainUnitConverstion: "",
+
+          mainUnit: "",
+
+          branch_Code: branchCode,
+        })),
+      };
+
+      console.log("Purchase Item Damage Save Payload:", payload);
+
+      // =====================================================
+      // SAVE API
+      // =====================================================
+      const response = await purchaseItemDamageSave(payload);
+
+      console.log("Purchase Item Damage Save Response:", response);
+
+      if (response?.success) {
+        toast.success("Damage Entry saved successfully.");
+      } else {
+        toast.error(response?.message || "Failed to save Damage Entry.");
+      }
+    } catch (error) {
+      console.error("Error saving Damage Entry:", error);
+
+      toast.error("Failed to save Damage Entry.");
     } finally {
       setLoadingDetails(false);
     }
@@ -259,14 +343,8 @@ const ItemDamageEntry: React.FC = () => {
   // =========================================================
   // UPDATE DAMAGE QTY
   // =========================================================
-  const updateDamageQty = (
-    id: number,
-    value: string,
-  ) => {
-    let damageQty = Math.max(
-      0,
-      Number(value || 0),
-    );
+  const updateDamageQty = (id: number, value: string) => {
+    let damageQty = Math.max(0, Number(value || 0));
 
     setItems((prev) =>
       prev.map((item) => {
@@ -288,9 +366,7 @@ const ItemDamageEntry: React.FC = () => {
         return {
           ...item,
           damageQty,
-          amount:
-            damageQty *
-            Number(item.rate || 0),
+          amount: damageQty * Number(item.rate || 0),
         };
       }),
     );
@@ -299,47 +375,12 @@ const ItemDamageEntry: React.FC = () => {
   // =========================================================
   // SAVE
   // =========================================================
-  const handleSave = () => {
-    const invalidItem = items.some(
-      (item) => {
-        // Ignore already issued items
-        if (item.isAlreadyIssued) {
-          return false;
-        }
-
-        return (
-          Number(item.damageQty || 0) <= 0
-        );
-      },
-    );
-
-    if (invalidItem) {
-      alert(
-        "Please enter Damage Qty for the items.",
-      );
-      return;
-    }
-
-    console.log(
-      "Damage Entry Data:",
-      {
-        ...formData,
-        items,
-      },
-    );
-
-    alert(
-      "Damage Entry saved successfully.",
-    );
-  };
 
   // =========================================================
   // TOTAL DAMAGE QTY
   // =========================================================
   const totalDamageQty = items.reduce(
-    (sum, item) =>
-      sum +
-      Number(item.damageQty || 0),
+    (sum, item) => sum + Number(item.damageQty || 0),
     0,
   );
 
@@ -347,18 +388,20 @@ const ItemDamageEntry: React.FC = () => {
   // TOTAL AMOUNT
   // =========================================================
   const totalAmount = items.reduce(
-    (sum, item) =>
-      sum +
-      Number(item.amount || 0),
+    (sum, item) => sum + Number(item.amount || 0),
     0,
   );
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
+      {/* ================================================= */}
+      {/* GLOBAL API LOADER */}
+      {/* ================================================= */}
+      {isLoading && <Loader />}
+
       <Header />
 
       <div className="mx-auto w-full max-w-[1600px]">
-
         {/* ================================================= */}
         {/* PAGE HEADER */}
         {/* ================================================= */}
@@ -376,48 +419,35 @@ const ItemDamageEntry: React.FC = () => {
         {/* MAIN CONTAINER */}
         {/* ================================================= */}
         <div className="relative z-[50] rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-
           {/* ================================================= */}
           {/* MASTER DETAILS */}
           {/* ================================================= */}
           <section className="relative z-[100] overflow-visible rounded-xl border border-gray-200">
-
             {/* HEADER */}
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
               <h2 className="text-sm font-bold text-gray-800">
                 Item Damage Entry
               </h2>
 
-              <span className="text-sm font-semibold text-red-600">
-                [New Entry]
-              </span>
+              
             </div>
 
             <div className="p-4 md:p-5">
-
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-
                 {/* ================================================= */}
                 {/* TRANS NO */}
                 {/* ================================================= */}
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Trans No.
-                  </label>
+                  <label className={labelClass}>Trans No.</label>
 
                   <input
                     type="text"
-                    value={
-                      formData.transactionNo
-                    }
+                    value={formData.transactionNo}
                     onChange={(e) =>
-                      setFormData(
-                        (prev) => ({
-                          ...prev,
-                          transactionNo:
-                            e.target.value,
-                        }),
-                      )
+                      setFormData((prev) => ({
+                        ...prev,
+                        transactionNo: e.target.value,
+                      }))
                     }
                     className={inputClass}
                   />
@@ -427,20 +457,16 @@ const ItemDamageEntry: React.FC = () => {
                 {/* DATE */}
                 {/* ================================================= */}
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Date
-                  </label>
+                  <label className={labelClass}>Date</label>
 
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) =>
-                      setFormData(
-                        (prev) => ({
-                          ...prev,
-                          date: e.target.value,
-                        }),
-                      )
+                      setFormData((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
                     }
                     className={inputClass}
                   />
@@ -450,52 +476,47 @@ const ItemDamageEntry: React.FC = () => {
                 {/* SEARCH ITEM */}
                 {/* ================================================= */}
                 <div className="relative z-[9999] min-w-0 md:col-span-2">
+                  <label className={labelClass}>Search Item</label>
 
-                  <label className={labelClass}>
-                    Search Item
-                  </label>
-
-              <input
-  type="text"
-  value={itemSearch}
-  onChange={(e) => {
-    setItemSearch(e.target.value);
-    setShowItemDropdown(true);
-  }}
-  onFocus={() => setShowItemDropdown(true)}
-  onBlur={() => {
-    setTimeout(() => setShowItemDropdown(false), 150);
-  }}
-  placeholder="Search item..."
-  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
-/>
+                  <input
+                    type="text"
+                    value={itemSearch}
+                    onChange={(e) => {
+                      setItemSearch(e.target.value);
+                      setShowItemDropdown(true);
+                    }}
+                    onFocus={() => setShowItemDropdown(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowItemDropdown(false), 150);
+                    }}
+                    placeholder="Search item..."
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
 
                   {/* ================================================= */}
                   {/* ITEM DROPDOWN */}
                   {/* ================================================= */}
                   {showItemDropdown && (
                     <div className="absolute left-0 right-0 top-full z-[99999] mt-1 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-2xl">
-
                       {loadingItems ? (
                         <div className="px-4 py-3 text-sm text-gray-500">
                           Loading items...
                         </div>
-                      ) : filteredItems.length ===
-                        0 ? (
+                      ) : filteredItems.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-gray-500">
                           No items found.
                         </div>
                       ) : (
-                       filteredItems.map((item) => (
-  <button
-    key={item.itemCode}
-    type="button"
-    onClick={() => handleSelectItem(item)}
-    className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-  >
-    {item.itemCode} - {item.itemName}
-  </button>
-))
+                        filteredItems.map((item) => (
+                          <button
+                            key={item.itemCode}
+                            type="button"
+                            onClick={() => handleSelectItem(item)}
+                            className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                          >
+                            {item.itemCode} - {item.itemName}
+                          </button>
+                        ))
                       )}
                     </div>
                   )}
@@ -508,7 +529,6 @@ const ItemDamageEntry: React.FC = () => {
           {/* DAMAGE DETAILS */}
           {/* ================================================= */}
           <section className="relative z-10 mt-6 overflow-visible rounded-xl border border-gray-200">
-
             {/* TAB HEADER */}
             <div className="flex border-b border-gray-200 bg-gray-50">
               <button
@@ -521,194 +541,149 @@ const ItemDamageEntry: React.FC = () => {
 
             {/* TABLE */}
             <div className="p-4 md:p-5">
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full min-w-[1100px] text-sm">
+                  <thead className="bg-gray-100">
+                    <tr className="border-b border-gray-200">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                        S.No.
+                      </th>
 
-              {loadingDetails ? (
-                <div className="rounded-lg border border-gray-200 py-10 text-center text-sm text-gray-500">
-                  Loading purchase details...
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                        Code
+                      </th>
 
-                  <table className="w-full min-w-[1100px] text-sm">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                        Name
+                      </th>
 
-                    <thead className="bg-gray-100">
-                      <tr className="border-b border-gray-200">
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        Rate
+                      </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                          S.No.
-                        </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        Qty
+                      </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                          Code
-                        </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        Damage Qty
+                      </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                          Name
-                        </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        Amount
+                      </th>
 
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                          Rate
-                        </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+                        PNo
+                      </th>
 
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                          Qty
-                        </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
 
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                          Damage Qty
-                        </th>
-
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                          Amount
-                        </th>
-
-                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                          PNo
-                        </th>
-
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                          Status
-                        </th>
-
+                  <tbody>
+                    {items.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={9}
+                          className="px-4 py-10 text-center text-sm text-gray-500"
+                        >
+                          Select an item to load purchase details.
+                        </td>
                       </tr>
-                    </thead>
+                    ) : (
+                      items.map((item, index) => (
+                        <tr
+                          key={item.id}
+                          className={`border-b border-gray-100 ${
+                            item.isAlreadyIssued
+                              ? "bg-gray-50"
+                              : "hover:bg-gray-50"
+                          }`}
+                        >
+                          {/* S.NO */}
+                          <td className="px-4 py-3 text-gray-700">
+                            {index + 1}
+                          </td>
 
-                    <tbody>
+                          {/* CODE */}
+                          <td className="px-4 py-3 font-medium text-gray-700">
+                            {item.code || "-"}
+                          </td>
 
-                      {items.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={9}
-                            className="px-4 py-10 text-center text-sm text-gray-500"
-                          >
-                            Select an item to load
-                            purchase details.
+                          {/* NAME */}
+                          <td className="px-4 py-3 font-medium text-gray-800">
+                            {item.name || "-"}
+                          </td>
+
+                          {/* RATE */}
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            {Number(item.rate || 0).toFixed(2)}
+                          </td>
+
+                          {/* AVAILABLE QTY */}
+                          <td className="px-4 py-3 text-right font-medium text-gray-800">
+                            {Number(item.qty || 0).toFixed(2)}
+                          </td>
+
+                          {/* DAMAGE QTY */}
+                          <td className="px-4 py-2 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              max={item.qty}
+                              step="0.01"
+                              value={item.damageQty}
+                              disabled={item.isAlreadyIssued}
+                              onChange={(e) =>
+                                updateDamageQty(item.id, e.target.value)
+                              }
+                              className={`h-9 w-28 rounded-md border px-2 text-right text-sm outline-none ${
+                                item.isAlreadyIssued
+                                  ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+                                  : "border-gray-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              }`}
+                            />
+                          </td>
+
+                          {/* AMOUNT */}
+                          <td className="px-4 py-3 text-right font-semibold text-gray-800">
+                            ₹ {Number(item.amount || 0).toFixed(2)}
+                          </td>
+
+                          {/* PNO */}
+                          <td className="px-4 py-3 text-right font-medium text-gray-700">
+                            {item.pNo || "-"}
+                          </td>
+
+                          {/* STATUS */}
+                          <td className="px-4 py-3">
+                            {item.isAlreadyIssued ? (
+                              <div>
+                                <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-600">
+                                  Already Issued
+                                </span>
+
+                                {item.message && (
+                                  <div className="mt-1 max-w-[250px] text-xs font-medium text-red-500">
+                                    {item.message}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-600">
+                                Available
+                              </span>
+                            )}
                           </td>
                         </tr>
-                      ) : (
-                        items.map(
-                          (item, index) => (
-                            <tr
-                              key={item.id}
-                              className={`border-b border-gray-100 ${
-                                item.isAlreadyIssued
-                                  ? "bg-gray-50"
-                                  : "hover:bg-gray-50"
-                              }`}
-                            >
-
-                              {/* S.NO */}
-                              <td className="px-4 py-3 text-gray-700">
-                                {index + 1}
-                              </td>
-
-                              {/* CODE */}
-                              <td className="px-4 py-3 font-medium text-gray-700">
-                                {item.code ||
-                                  "-"}
-                              </td>
-
-                              {/* NAME */}
-                              <td className="px-4 py-3 font-medium text-gray-800">
-                                {item.name ||
-                                  "-"}
-                              </td>
-
-                              {/* RATE */}
-                              <td className="px-4 py-3 text-right text-gray-700">
-                                {Number(
-                                  item.rate ||
-                                    0,
-                                ).toFixed(2)}
-                              </td>
-
-                              {/* AVAILABLE QTY */}
-                              <td className="px-4 py-3 text-right font-medium text-gray-800">
-                                {Number(
-                                  item.qty ||
-                                    0,
-                                ).toFixed(2)}
-                              </td>
-
-                              {/* DAMAGE QTY */}
-                              <td className="px-4 py-2 text-right">
-
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={item.qty}
-                                  step="0.01"
-                                  value={
-                                    item.damageQty
-                                  }
-                                  disabled={
-                                    item.isAlreadyIssued
-                                  }
-                                  onChange={(e) =>
-                                    updateDamageQty(
-                                      item.id,
-                                      e.target
-                                        .value,
-                                    )
-                                  }
-                                  className={`h-9 w-28 rounded-md border px-2 text-right text-sm outline-none ${
-                                    item.isAlreadyIssued
-                                      ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                                      : "border-gray-300 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                  }`}
-                                />
-
-                              </td>
-
-                              {/* AMOUNT */}
-                              <td className="px-4 py-3 text-right font-semibold text-gray-800">
-                                ₹{" "}
-                                {Number(
-                                  item.amount ||
-                                    0,
-                                ).toFixed(2)}
-                              </td>
-
-                              {/* PNO */}
-                              <td className="px-4 py-3 text-right font-medium text-gray-700">
-                                {item.pNo ||
-                                  "-"}
-                              </td>
-
-                              {/* STATUS */}
-                              <td className="px-4 py-3">
-
-                                {item.isAlreadyIssued ? (
-                                  <div>
-                                    <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-600">
-                                      Already Issued
-                                    </span>
-
-                                    {item.message && (
-                                      <div className="mt-1 max-w-[250px] text-xs font-medium text-red-500">
-                                        {
-                                          item.message
-                                        }
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-600">
-                                    Available
-                                  </span>
-                                )}
-
-                              </td>
-
-                            </tr>
-                          ),
-                        )
-                      )}
-
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 
@@ -716,60 +691,42 @@ const ItemDamageEntry: React.FC = () => {
           {/* SUMMARY */}
           {/* ================================================= */}
           <div className="mt-5 flex justify-end">
-
             <div className="w-full rounded-xl border border-gray-200 bg-gray-50 p-5 sm:w-[420px]">
-
               <h3 className="mb-4 text-base font-bold text-gray-800">
                 Damage Summary
               </h3>
 
               <div className="space-y-3">
-
                 {/* TOTAL DAMAGE QTY */}
                 <div className="flex items-center justify-between gap-4">
-
-                  <span className="text-gray-600">
-                    Total Quantity
-                  </span>
+                  <span className="text-gray-600">Total Quantity</span>
 
                   <span className="min-w-[120px] text-right font-medium text-gray-800">
                     {totalDamageQty.toFixed(2)}
                   </span>
-
                 </div>
 
                 {/* TOTAL AMOUNT */}
                 <div className="flex items-center justify-between gap-4">
-
-                  <span className="text-gray-600">
-                    Total Amount
-                  </span>
+                  <span className="text-gray-600">Total Amount</span>
 
                   <span className="min-w-[120px] text-right font-medium text-gray-800">
-                    ₹{" "}
-                    {totalAmount.toFixed(2)}
+                    ₹ {totalAmount.toFixed(2)}
                   </span>
-
                 </div>
 
                 {/* GRAND TOTAL */}
                 <div className="border-t border-gray-200 pt-3">
-
                   <div className="flex items-center justify-between gap-4">
-
                     <span className="text-base font-bold text-gray-800">
                       Grand Total
                     </span>
 
                     <span className="min-w-[120px] text-right text-lg font-bold text-blue-600">
-                      ₹{" "}
-                      {totalAmount.toFixed(2)}
+                      ₹ {totalAmount.toFixed(2)}
                     </span>
-
                   </div>
-
                 </div>
-
               </div>
             </div>
           </div>
@@ -778,12 +735,9 @@ const ItemDamageEntry: React.FC = () => {
           {/* BUTTONS */}
           {/* ================================================= */}
           <div className="mt-6 flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:flex-row sm:justify-end">
-
             <button
               type="button"
-              onClick={() =>
-                window.history.back()
-              }
+              onClick={() => window.history.back()}
               className="h-10 rounded-lg border border-gray-300 bg-white px-6 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
               Back
@@ -796,9 +750,7 @@ const ItemDamageEntry: React.FC = () => {
             >
               Save
             </button>
-
           </div>
-
         </div>
       </div>
     </div>
