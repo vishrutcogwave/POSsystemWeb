@@ -7060,3 +7060,29 @@ export const saveIndentOrder = async (data: {
 
   return response.data;
 };
+
+export const getIndentOrderPrintList = async ({
+  branchCode,
+  IONo,
+}: {
+  branchCode: string;
+  IONo: number;
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/InventoryPurchase/GetIndentOrderPrintList",
+    {
+      params: {
+        BranchCode: branchCode,
+        IONo,
+      },
+      headers: {
+        accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};

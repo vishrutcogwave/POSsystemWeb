@@ -8,9 +8,10 @@ import {
   getInventoryItemStoreList,
   getItemDetailsIndentOrder,
   saveIndentOrder,
+  getIndentOrderPrintList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Store = {
   storeId: number;
@@ -74,16 +75,32 @@ const IndentOrder: React.FC = () => {
   const [selectedItemDetails, setSelectedItemDetails] =
     useState<ItemIndentDetails | null>(null);
   const [indentQty, setIndentQty] = useState("");
-
+const itemSearchRef = useRef<HTMLDivElement>(null);
   const [indentItems, setIndentItems] = useState<IndentItem[]>([]);
-
+// ============================================================
+// PRINT PREVIEW
+// ============================================================
+const [printData, setPrintData] = useState<any>(null);
+const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [apiLoadingCount, setApiLoadingCount] = useState(0);
-
+const [_selectedTableItemId, setSelectedTableItemId] = useState<number | null>(null);
   const inputClass =
     "h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
 
   const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
+const formatPrintDate = (dateValue: any) => {
+  if (!dateValue) return "-";
 
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
   const startApiLoading = () => {
     setApiLoadingCount((count) => count + 1);
   };
@@ -91,7 +108,22 @@ const IndentOrder: React.FC = () => {
   const stopApiLoading = () => {
     setApiLoadingCount((count) => Math.max(0, count - 1));
   };
+useEffect(() => {
+  const handleClickOutside = (event: MouseEvent) => {
+    if (
+      itemSearchRef.current &&
+      !itemSearchRef.current.contains(event.target as Node)
+    ) {
+      setShowItemDropdown(false);
+    }
+  };
 
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
   // ============================================================
   // GET NEXT INDENT NUMBER
   // ============================================================
@@ -357,55 +389,78 @@ const IndentOrder: React.FC = () => {
     }
   };
 
+const handleAddIndentItem = () => {
+  if (!selectedItemDetails) {
+    toast.error("Please select an item first.");
+    return;
+  }
+
+  const qty = Number(indentQty);
+
+  if (!Number.isFinite(qty) || qty <= 0) {
+    toast.error("Please enter a valid Indent Qty.");
+    return;
+  }
+
+  if (qty > selectedItemDetails.availableQty) {
+    toast.error("Indent Qty cannot be greater than Available Qty.");
+    return;
+  }
+
+  // Check whether item already exists in the table
+  const existingIndex = indentItems.findIndex(
+    (item) =>
+      Number(item.itemCode) === Number(selectedItemDetails.itemCode)
+  );
+
   // ============================================================
-  // ADD ITEM TO INDENT TABLE
+  // ITEM ALREADY EXISTS
+  // Replace the quantity instead of adding to old quantity
   // ============================================================
-  const handleAddIndentItem = () => {
-    if (!selectedItemDetails) {
-      toast.error("Please select an item first.");
-      return;
-    }
+  if (existingIndex >= 0) {
+    const existingItem = indentItems[existingIndex];
 
-    const qty = Number(indentQty);
-
-    if (!Number.isFinite(qty) || qty <= 0) {
-      toast.error("Please enter a valid Indent Qty.");
-      return;
-    }
-
-    if (qty > selectedItemDetails.availableQty) {
-      toast.error("Indent Qty cannot be greater than Available Qty.");
-      return;
-    }
-
-    const existingIndex = indentItems.findIndex(
-      (item) => item.itemCode === selectedItemDetails.itemCode,
+    setIndentItems((prev) =>
+      prev.map((item, index) =>
+        index === existingIndex
+          ? {
+              ...item,
+              indentQty: qty, // REPLACE old quantity
+            }
+          : item
+      )
     );
 
-    if (existingIndex >= 0) {
-      setIndentItems((prev) =>
-        prev.map((item, index) =>
-          index === existingIndex
-            ? { ...item, indentQty: item.indentQty + qty }
-            : item,
-        ),
-      );
-    } else {
-      setIndentItems((prev) => [
-        ...prev,
-        {
-          ...selectedItemDetails,
-          id: Date.now(),
-          indentQty: qty,
-        },
-      ]);
-    }
+    setSelectedTableItemId(existingItem.id);
+
+    toast.success("Item quantity updated.");
 
     setSelectedItemDetails(null);
     setIndentQty("");
     setItemSearch("");
-    toast.success("Item added to indent table.");
-  };
+
+    return;
+  }
+
+  // ============================================================
+  // NEW ITEM
+  // Add a new row
+  // ============================================================
+const newItem: IndentItem = {
+  ...selectedItemDetails,
+  id: Date.now(),
+  indentQty: qty,
+};
+
+setIndentItems((prev) => [...prev, newItem]);
+setSelectedTableItemId(newItem.id);
+
+  setSelectedItemDetails(null);
+  setIndentQty("");
+  setItemSearch("");
+
+  toast.success("Item added to indent table.");
+};
 
   const handleIndentQtyChange = (id: number, value: string) => {
     if (value === "") {
@@ -469,150 +524,590 @@ const IndentOrder: React.FC = () => {
     setSelectedItemDetails(null);
     setIndentQty("");
     setIndentItems([]);
+    setSelectedTableItemId(null);
 
     await fetchIndentNo();
 
     toast.success("Form cleared");
   };
 
-  const handleSaveIndentOrder = async () => {
-    try {
-      // Validate store
-      if (!formData.store) {
-        toast.error("Please select a store.");
-        return;
-      }
-         if (!formData.enteredBy.trim()) {
+const handleSaveIndentOrder = async () => {
+  try {
+    // ============================================================
+    // VALIDATION
+    // ============================================================
+
+    if (!formData.store) {
+      toast.error("Please select a store.");
+      return;
+    }
+
+    if (!formData.enteredBy.trim()) {
       toast.error("Please enter Entered By.");
       return;
     }
 
+    if (!formData.departmentCode) {
+      toast.error("Please select a department.");
+      return;
+    }
 
-      // Validate department
-      if (!formData.departmentCode) {
-        toast.error("Please select a department.");
-        return;
-      }
+    if (indentItems.length === 0) {
+      toast.error("Please add at least one item.");
+      return;
+    }
 
-      // Validate items
-      if (indentItems.length === 0) {
-        toast.error("Please add at least one item.");
-        return;
-      }
+    const invalidQty = indentItems.some(
+      (item) =>
+        !Number.isFinite(Number(item.indentQty)) ||
+        Number(item.indentQty) <= 0,
+    );
 
-      // Validate indent quantities
-      const invalidQty = indentItems.some(
-        (item) =>
-          !Number.isFinite(Number(item.indentQty)) ||
-          Number(item.indentQty) <= 0,
-      );
+    if (invalidQty) {
+      toast.error("Please enter a valid Indent Qty for all items.");
+      return;
+    }
 
-      if (invalidQty) {
-        toast.error("Please enter a valid Indent Qty for all items.");
-        return;
-      }
+    // ============================================================
+    // BRANCH CODE
+    // ============================================================
 
-      // Branch code
-      const branchCode =
-        branch ||
-        localStorage.getItem("branchCode") ||
-        localStorage.getItem("branch") ||
-        "";
+    const branchCode =
+      branch ||
+      localStorage.getItem("branchCode") ||
+      localStorage.getItem("branch") ||
+      "";
 
-      if (!branchCode) {
-        toast.error("Branch code not found.");
-        return;
-      }
+    if (!branchCode) {
+      toast.error("Branch code not found.");
+      return;
+    }
 
+    // ============================================================
+    // SAVE PAYLOAD
+    // ============================================================
 
-      const payload = {
-        ioNo: Number(formData.indentNo) || 0,
+    const payload = {
+      ioNo: Number(formData.indentNo) || 0,
 
-        billed: "",
+      billed: "",
 
-        ioDate: formData.date ?? "",
+      ioDate: formData.date ?? "",
 
-        storeCode: String(formData.store.storeId),
+      storeCode: String(formData.store.storeId),
 
-        orderBy: String(formData.enteredBy || ""),
+      orderBy: String(formData.enteredBy || ""),
 
-        depCode: String(formData.departmentCode || ""),
+      depCode: String(formData.departmentCode || ""),
 
-        branchCode: String(branchCode),
+      branchCode: String(branchCode),
 
-        cgstAmount: 0,
+      cgstAmount: 0,
 
-        sgstAmount: 0,
+      sgstAmount: 0,
 
-        missChargeAmount: 0,
+      missChargeAmount: 0,
 
-        totalAmount: 0,
+      totalAmount: 0,
 
-        taxAmount: 0,
+      taxAmount: 0,
 
-        grossAmount: 0,
+      grossAmount: 0,
 
-        storeId: String(formData.store.storeId),
-        status: "IO",
-        // ==========================================================
-        // ITEMS
-        // ==========================================================
+      storeId: String(formData.store.storeId),
 
-        items: indentItems.map((item) => ({
-          itemCode: Number(item.itemCode),
+      status: "IO",
 
-          itemName: String(item.itemName || ""),
+      items: indentItems.map((item) => ({
+        itemCode: Number(item.itemCode),
 
-          ioItemQty: Number(item.indentQty || 0),
+        itemName: String(item.itemName || ""),
 
-          ioItemRate: Number(item.itemRate || 0),
+        ioItemQty: Number(item.indentQty || 0),
 
-          unit: String(item.unitName || ""),
+        ioItemRate: Number(item.itemRate || 0),
 
-          unitCode: Number(item.unitCode || 0),
+        unit: String(item.unitName || ""),
 
-          mainUnitConverstion: String(item.mainUnitConverstion || ""),
+        unitCode: Number(item.unitCode || 0),
 
-          mainUnit: String(item.mainUnit || ""),
+        mainUnitConverstion: String(
+          item.mainUnitConverstion || "",
+        ),
 
-          ioAvailableQty: Number(item.availableQty - item.indentQty),
+        mainUnit: String(item.mainUnit || ""),
 
-          ioOrginalQty: Number(item.availableQty || 0),
-        })),
-      };
+        ioAvailableQty: Number(
+          item.availableQty - item.indentQty,
+        ),
 
-      console.log("========================================");
-      console.log("SaveIndentOrder Payload:", payload);
-      console.log("========================================");
+        ioOrginalQty: Number(
+          item.availableQty || 0,
+        ),
+      })),
+    };
 
-      // Call API
-      const response = await saveIndentOrder(payload);
+    console.log(
+      "========================================",
+    );
 
-      console.log("SaveIndentOrder Response:", response);
+    console.log(
+      "SaveIndentOrder Payload:",
+      JSON.stringify(payload, null, 2),
+    );
 
-      // Success
-      if (response?.success) {
-        toast.success(response?.message || "Indent Order saved successfully.");
+    console.log(
+      "========================================",
+    );
 
-        // Clear added items
-        setIndentItems([]);
+    // ============================================================
+    // SAVE INDENT ORDER
+    // ============================================================
 
-        // Get next indent number
-        await fetchIndentNo();
-      } else {
-        toast.error(response?.message || "Failed to save Indent Order.");
-      }
-    } catch (error: any) {
-      console.error("Error saving Indent Order:", error);
+    startApiLoading();
 
+    const response = await saveIndentOrder(payload);
+
+    console.log(
+      "SaveIndentOrder Response:",
+      response,
+    );
+
+    if (!response?.success) {
       toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
+        response?.message ||
           "Failed to save Indent Order.",
       );
+      return;
     }
-  };
-  return (
+
+    toast.success(
+      response?.message ||
+        "Indent Order saved successfully.",
+    );
+
+    // ============================================================
+    // GET CREATED IONO FROM SAVE RESPONSE
+    // ============================================================
+
+    const createdIONo = Number(
+      typeof response?.data === "object"
+        ? response?.data?.ioNo ??
+            response?.data?.IONo ??
+            response?.data?.ioNO ??
+            response?.data?.indentNo ??
+            response?.data?.indentOrderNo ??
+            formData.indentNo
+        : response?.data ?? formData.indentNo,
+    );
+
+    console.log(
+      "Created Indent Order No:",
+      createdIONo,
+    );
+
+    console.log(
+      "Branch Code:",
+      branchCode,
+    );
+
+    // ============================================================
+    // CALL INDENT ORDER PRINT API
+    // ============================================================
+
+    if (
+      !createdIONo ||
+      Number.isNaN(createdIONo)
+    ) {
+      console.error(
+        "Invalid IONo for Print API:",
+        {
+          response,
+          createdIONo,
+          indentNo: formData.indentNo,
+        },
+      );
+
+      toast.error(
+        "Indent Order saved, but IONo was not found.",
+      );
+    } else {
+      try {
+        console.log(
+          "Calling GetIndentOrderPrintList API:",
+          {
+            branchCode,
+            IONo: createdIONo,
+          },
+        );
+
+        const printResponse =
+          await getIndentOrderPrintList({
+            branchCode,
+            IONo: createdIONo,
+          });
+
+        console.log(
+          "GetIndentOrderPrintList Response:",
+          printResponse,
+        );
+
+        if (printResponse?.success) {
+          const indentPrintData =
+            printResponse?.data?.[0] ?? null;
+
+          console.log(
+            "Indent Order Print Data:",
+            indentPrintData,
+          );
+
+          setPrintData(indentPrintData);
+          setShowPrintPreview(true);
+        } else {
+          toast.error(
+            printResponse?.message ||
+              "Indent Order saved, but print preview could not be loaded.",
+          );
+        }
+      } catch (printError: any) {
+        console.error(
+          "GetIndentOrderPrintList Error:",
+          printError?.response?.data ||
+            printError?.message ||
+            printError,
+        );
+
+        toast.error(
+          "Indent Order saved, but print preview could not be loaded.",
+        );
+      }
+    }
+
+    // ============================================================
+    // CLEAR ITEMS
+    // ============================================================
+
+    setIndentItems([]);
+
+    // ============================================================
+    // GET NEXT INDENT NUMBER
+    // ============================================================
+
+    await fetchIndentNo();
+
+  } catch (error: any) {
+    console.error(
+      "Error saving Indent Order:",
+      error,
+    );
+
+    toast.error(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Failed to save Indent Order.",
+    );
+  } finally {
+    stopApiLoading();
+  }
+};
+ return (
+  <>
+    {showPrintPreview && printData && (
+      <div className="fixed inset-0 z-[99999] overflow-y-auto bg-black/60 p-4">
+        <div className="mx-auto my-6 w-full max-w-[900px]">
+
+          {/* ============================================================
+              PREVIEW HEADER
+          ============================================================ */}
+
+          <div className="mb-3 flex items-center justify-between rounded-xl bg-white px-5 py-3 shadow-lg">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">
+                Indent Order Preview
+              </h2>
+
+              <p className="text-xs text-gray-500">
+                Indent No:{" "}
+                {printData?.master?.ioNo ?? "-"}
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              >
+                🖨 Print
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowPrintPreview(false)
+                }
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+
+          {/* ============================================================
+              PRINT AREA
+          ============================================================ */}
+
+          <div
+            id="indent-order-print"
+            className="bg-white px-10 py-8 text-[13px] text-gray-800 shadow-xl"
+          >
+
+            {/* ============================================================
+                COMPANY HEADER
+            ============================================================ */}
+
+            <div className="mb-5 text-center">
+              <h1 className="text-xl font-bold tracking-wide">
+                COGWAVE POS
+              </h1>
+
+              <div className="mt-1 text-xs leading-5 text-gray-600">
+                Basavanagudi
+                <br />
+                Bangalore - 560004
+                <br />
+                PH : 7338818178
+                <br />
+                Email : 0
+                <br />
+                GST : -
+              </div>
+            </div>
+
+            {/* ============================================================
+                TITLE
+            ============================================================ */}
+
+            <div className="mb-4 text-center">
+              <h2 className="text-lg font-semibold text-red-600">
+                Indent Order
+              </h2>
+            </div>
+
+            {/* ============================================================
+                MASTER DETAILS
+            ============================================================ */}
+
+            <div className="grid grid-cols-2 border border-gray-800">
+
+              {/* LEFT */}
+
+              <div className="border-r border-gray-800 p-3">
+
+                <div className="mb-2">
+                  <span className="font-semibold">
+                    Indent No:
+                  </span>{" "}
+                  {printData?.master?.ioNo ?? "-"}
+                </div>
+
+                <div className="mb-2">
+                  <span className="font-semibold">
+                    Store:
+                  </span>{" "}
+                  {printData?.master?.storeName ||
+                    printData?.master?.storeCode ||
+                    printData?.master?.storeId ||
+                    "-"}
+                </div>
+
+                <div>
+                  <span className="font-semibold">
+                    Department:
+                  </span>{" "}
+                  {printData?.master?.departmentName ||
+                    printData?.master?.depName ||
+                    printData?.master?.depCode ||
+                    "-"}
+                </div>
+
+              </div>
+
+              {/* RIGHT */}
+
+              <div className="p-3">
+
+                <div className="mb-2">
+                  <span className="font-semibold">
+                    Date:
+                  </span>{" "}
+                  {formatPrintDate(
+                    printData?.master?.ioDate,
+                  )}
+                </div>
+
+                <div className="mb-2">
+                  <span className="font-semibold">
+                    Entered By:
+                  </span>{" "}
+                  {printData?.master?.orderBy ||
+                    "-"}
+                </div>
+
+                <div>
+                  <span className="font-semibold">
+                    Status:
+                  </span>{" "}
+                  {printData?.master?.status ||
+                    "IO"}
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* ============================================================
+                ITEMS
+            ============================================================ */}
+
+            <div className="mt-3 overflow-hidden border border-gray-800">
+              <table className="w-full border-collapse">
+
+                <thead>
+                  <tr className="bg-gray-200 text-xs font-bold">
+
+                    <th className="border border-gray-800 px-2 py-2 text-center">
+                      S.No.
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-left">
+                      Code
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-left">
+                      Description
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-center">
+                      Unit
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-right">
+                      Rate
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-right">
+                      Available Qty
+                    </th>
+
+                    <th className="border border-gray-800 px-2 py-2 text-right">
+                      Indent Qty
+                    </th>
+
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {(printData?.details || []).map(
+                    (item: any, index: number) => (
+                      <tr key={index}>
+
+                        <td className="border border-gray-800 px-2 py-2 text-center">
+                          {index + 1}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2">
+                          {item?.itemCode ?? "-"}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2">
+                          {item?.itemName ||
+                            item?.description ||
+                            "-"}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2 text-center">
+                          {item?.unit || "-"}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2 text-right">
+                          ₹{" "}
+                          {Number(
+                            item?.ioItemRate ?? 0,
+                          ).toFixed(2)}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2 text-right">
+                          {item?.ioAvailableQty ?? 0}
+                        </td>
+
+                        <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                          {item?.ioItemQty ?? 0}
+                        </td>
+
+                      </tr>
+                    ),
+                  )}
+                </tbody>
+
+              </table>
+            </div>
+
+            {/* ============================================================
+                SUMMARY
+            ============================================================ */}
+
+            <div className="mt-6 flex justify-end">
+              <div className="w-[330px]">
+
+                <div className="flex justify-between border-b border-gray-300 py-2">
+                  <span>Total Quantity</span>
+
+                  <span>
+                    {(
+                      printData?.details || []
+                    ).reduce(
+                      (
+                        sum: number,
+                        item: any,
+                      ) =>
+                        sum +
+                        Number(
+                          item?.ioItemQty || 0,
+                        ),
+                      0,
+                    )}
+                  </span>
+                </div>
+
+            
+
+              </div>
+            </div>
+
+            {/* ============================================================
+                SIGNATURE
+            ============================================================ */}
+
+            <div className="mt-16 grid grid-cols-2 gap-10 text-center text-sm">
+
+              <div>
+                <div className="mb-8 border-b border-gray-400" />
+                Prepared By
+              </div>
+
+              <div>
+                <div className="mb-8 border-b border-gray-400" />
+                Authorized By
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
       {apiLoadingCount > 0 && <Loader />}
 
@@ -780,7 +1275,10 @@ const IndentOrder: React.FC = () => {
             </div>
 
             <div className="p-4 md:p-5">
-              <div className="relative max-w-xl">
+             <div
+  ref={itemSearchRef}
+  className="relative max-w-xl"
+>
                 <label className={labelClass}>Search Item</label>
 
                 <input
@@ -1071,7 +1569,8 @@ const IndentOrder: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+  </>
+);
 };
 
 export default IndentOrder;
