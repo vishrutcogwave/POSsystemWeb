@@ -9,6 +9,7 @@
   } from "../api/services/products.service";
   import BillReprintAdvancedTable from "../components/BillReprintTable";
 import { reprintBill } from "../api/services/printer";
+import toast from "react-hot-toast";
   // import { reprintBill } from "../api/services/printer";
 
   export default function BillReprintReport() {
@@ -125,41 +126,87 @@ if (!outletId) return;
       setIsOpen(true);
     };
 
-    const handlePrint = async () => {
-      try {
-        const payload: any = {
-          billno: Number(formData.billNo),
-          oltcode: formData.outlet,
-          branchcode: localStorage.getItem("branch"),
-        };
-
-        // ✅ GST fields only if checkbox checked
-        if (formData.guestGST) {
-          payload.guestName = formData.guestName;
-          payload.address = formData.address;
-          payload.gstNo = formData.gstNo;
-          payload.stateCode = Number(formData.stateCode);
-        }
-
-        console.log("FINAL PAYLOAD:", payload);
-
-        // ✅ FIXED CALL
-        const res = await getReprintBill(payload);
-        console.log(res);
-
-        const printRes = await reprintBill(
-                res,
-                formData,
-                _companyInfo,
-                res.ipAddress,
-              );
-        console.log("printRes", printRes);
-
-        setIsOpen(false);
-      } catch (error) {
-        console.error("Print Error:", error);
-      }
+   const handlePrint = async () => {
+  try {
+    const payload: any = {
+      billno: Number(formData.billNo),
+      oltcode: formData.outlet,
+      branchcode: localStorage.getItem("branch"),
     };
+
+    // ✅ Validate GST fields only when Guest GST is selected
+    if (formData.guestGST) {
+      if (!formData.guestName?.trim()) {
+        toast.error("Please enter Guest Name.");
+        return;
+      }
+
+      if (!formData.address?.trim()) {
+        toast.error("Please enter Address.");
+        return;
+      }
+
+      if (!formData.gstNo?.trim()) {
+        toast.error("Please enter GST Number.");
+        return;
+      }
+
+  if (
+  formData.stateCode === "" ||
+  formData.stateCode === null ||
+  formData.stateCode === undefined ||
+  isNaN(Number(formData.stateCode))
+) {
+  toast.error("Please enter a valid State Code.");
+  return;
+}
+
+
+      if (!formData.gstNo.trim()) {
+        toast.error("Please enter a valid GST Number.");
+        return;
+      }
+
+      // ✅ Add GST fields only after validation passes
+      payload.guestName = formData.guestName.trim();
+      payload.address = formData.address.trim();
+      payload.gstNo = formData.gstNo.trim().toUpperCase();
+      payload.stateCode = Number(formData.stateCode);
+    }
+
+    console.log("FINAL PAYLOAD:", payload);
+
+    // ✅ Get bill details
+    const res = await getReprintBill(payload);
+    console.log("Reprint response:", res);
+
+    // ✅ Print bill
+    const printRes = await reprintBill(
+      res,
+      formData,
+      _companyInfo,
+      res.ipAddress,
+    );
+
+    console.log("printRes", printRes);
+setFormData({
+  outlet: "",
+  billDate: "",
+  billTime: "",
+  billNo: "",
+  discount: 0,
+  guestName: "",
+  address: "",
+  gstNo: "",
+  stateCode: "",
+  guestGST: false,
+});
+    setIsOpen(false);
+  } catch (error) {
+    console.error("Print Error:", error);
+    toast.error("Failed to print bill.");
+  }
+};
     return (
       <div className="h-screen flex flex-col overflow-hidden">
         <Header showNeworderButton={false} />
