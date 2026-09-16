@@ -389,6 +389,11 @@ const DashboardHeader: React.FC = () => {
       icon: FileX,
       permissionName: "Purchase Damage",
     },
+      {
+    name: "Indent Order",
+    icon: ClipboardList,
+    permissionName: "Indent Order",
+  },
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -442,6 +447,7 @@ const DashboardHeader: React.FC = () => {
     "Item Purchase": "/purchase/itempurchase",
     "Purchase Return": "/purchase/purchasereturn",
     "Purchase Damage": "/purchase/purchasedamage",
+    "Indent Order": "/purchase/indentorder",
   };
 
   const handleLogout = () => {

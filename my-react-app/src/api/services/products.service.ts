@@ -6956,8 +6956,6 @@ export const purchaseItemDamageSave = async (data: {
   }
 };
 
-
-
 export const getPurchaseItemDamagePrintList = async (
   branchCode: string,
   damageNo: number,
@@ -6988,4 +6986,77 @@ export const getPurchaseItemDamagePrintList = async (
 
     throw error;
   }
+};
+export const getItemDetailsIndentOrder = async ({
+  branchCode,
+  StoreId,
+  ItemCode,
+}: {
+  branchCode: string;
+  StoreId: number;
+  ItemCode: number;
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/InventoryPurchase/GetItemDetailsIndentOrder",
+    {
+      params: {
+        branchCode,
+        StoreId,
+        ItemCode,
+      },
+      headers: {
+        accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};
+export const saveIndentOrder = async (data: {
+  ioNo: number;
+  billed: string;
+  ioDate: string;
+  storeCode: string;
+  orderBy: string;
+  depCode: string;
+  branchCode: string;
+  cgstAmount: number;
+  sgstAmount: number;
+  missChargeAmount: number;
+  totalAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  storeId: string;
+  status: string;
+  items: {
+    itemCode: number;
+    itemName: string;
+    ioItemQty: number;
+    ioItemRate: number;
+    unit: string;
+    unitCode: number;
+    mainUnitConverstion: string;
+    mainUnit: string;
+    ioAvailableQty: number;
+    ioOrginalQty: number;
+  }[];
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post(
+    "/api/InventoryPurchase/SaveIndentOrder",
+    data,
+    {
+      headers: {
+        accept: "*/*",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
 };
