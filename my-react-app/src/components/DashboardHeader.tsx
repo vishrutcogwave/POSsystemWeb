@@ -394,6 +394,11 @@ const DashboardHeader: React.FC = () => {
     icon: ClipboardList,
     permissionName: "Indent Order",
   },
+    {
+    name: "Indent Order Approval",
+    icon: ShieldCheck,
+    permissionName: "Indent Order Approval",
+  },
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -448,6 +453,7 @@ const DashboardHeader: React.FC = () => {
     "Purchase Return": "/purchase/purchasereturn",
     "Purchase Damage": "/purchase/purchasedamage",
     "Indent Order": "/purchase/indentorder",
+    "Indent Order Approval": "/purchase/indentorderapproval",
   };
 
   const handleLogout = () => {

@@ -7086,3 +7086,132 @@ export const getIndentOrderPrintList = async ({
 
   return response.data;
 };
+
+
+
+// ================= INDENT ORDER APPROVAL =================
+
+export const getIndentOrderList = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetIndentOrderList",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching indent order list:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+export const saveIndentOrderApproval = async (payload: {
+  ioNo: number;
+  ioDate: string;
+  poValidDate: string;
+  supCode: number;
+  billed: string;
+  branch_Code: string;
+  orderBy: string;
+  approvedBy: string;
+  depCode: string;
+  cgstAmount: number;
+  sgstAmount: number;
+  missChargeAmount: number;
+  totalAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  storeId: string;
+  status: string;
+
+  items: {
+    ioNo: number;
+    itemCode: number;
+    unit: string;
+    unitCode: number;
+    ioItemQty: number;
+    ioItemRate: number;
+    approvedQty: number;
+    branchCode: string;
+    mainUnitConverstion: string;
+    mainUnit: string;
+    availableQty: number;
+    orginalQty: number;
+    
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/IndentOrderApprovalSave",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving indent order approval:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+
+export const getIndentOrderApprovalPrintList = async (
+  branchCode: string,
+  ioNo: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetIndentOrderApprovalPrintList",
+      {
+        params: {
+          BranchCode: branchCode,
+          IONo: ioNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching Indent Order Approval Print List:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

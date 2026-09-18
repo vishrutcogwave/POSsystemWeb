@@ -65,6 +65,7 @@ import ItemPurchase from "./ItemPurchase";
 import PurchaseReturn from "./PurchaseReturn";
 import ItemDamageEntry from "./ItemDamageEntry";
 import IndentOrder from "./IndentOrder";
+import IndentOrderApproval from "./IndentOrderApproval";
 
 function LandingPage() {
   const location = useLocation();
@@ -257,6 +258,10 @@ function LandingPage() {
   path="/purchase/indentorder" 
   element={<IndentOrder />} 
 
+/>
+<Route
+  path="/purchase/indentorderapproval"
+  element={<IndentOrderApproval />}
 />
       </Routes>
     </>
