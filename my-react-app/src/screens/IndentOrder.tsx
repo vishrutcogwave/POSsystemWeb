@@ -10,6 +10,7 @@ import {
   saveIndentOrder,
   getIndentOrderPrintList,
   saveIndentOrderApproval,
+  getIndentOrderApprovalPrintList,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { useEffect, useRef, useState } from "react";
@@ -959,7 +960,50 @@ const IndentOrder: React.FC = () => {
             : "Indent Order rejected successfully",
         );
 
-        handleBack();
+        // ============================================================
+        // GET APPROVAL PRINT DATA
+        // ============================================================
+
+        try {
+          const branchCode =
+            master.branchCode ||
+            master.branch_Code ||
+            branch ||
+            localStorage.getItem("branchCode") ||
+            localStorage.getItem("branch") ||
+            "";
+
+          const approvalPrintResponse = await getIndentOrderApprovalPrintList({
+            branchCode: String(branchCode),
+            IONo: Number(response.data),
+          });
+
+          console.log(
+            "GetIndentOrderApprovalPrintList Response:",
+            approvalPrintResponse,
+          );
+
+          if (approvalPrintResponse?.success) {
+            const approvalPrintData = approvalPrintResponse?.data?.[0] ?? null;
+
+            console.log("Indent Approval Print Data:", approvalPrintData);
+
+            setPrintData(approvalPrintData);
+            setShowPrintPreview(true);
+          } else {
+            toast.error(
+              approvalPrintResponse?.message ||
+                "Approval saved, but print preview could not be loaded.",
+            );
+          }
+        } catch (printError: any) {
+          console.error(
+            "GetIndentOrderApprovalPrintList Error:",
+            printError?.response?.data || printError?.message || printError,
+          );
+
+          toast.error("Approval saved, but print preview could not be loaded.");
+        }
       } else {
         toast.error(
           response?.message ||
@@ -1008,7 +1052,10 @@ const IndentOrder: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    window.print();
+                    handleBack();
+                  }}
                   className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   🖨 Print
@@ -1016,7 +1063,10 @@ const IndentOrder: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowPrintPreview(false)}
+                  onClick={() => {
+                    setShowPrintPreview(false);
+                    handleBack();
+                  }}
                   className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                 >
                   Close
@@ -1139,10 +1189,17 @@ const IndentOrder: React.FC = () => {
                       <th className="border border-gray-800 px-2 py-2 text-right">
                         Rate
                       </th>
+                      {printData?.master?.status == "IO" && (
+                        <th className="border border-gray-800 px-2 py-2 text-right">
+                          Available Qty
+                        </th>
+                      )}
 
-                      <th className="border border-gray-800 px-2 py-2 text-right">
-                        Available Qty
-                      </th>
+                      {printData?.master?.status !== "IO" && (
+                        <th className="border border-gray-800 px-2 py-2 text-right">
+                          Approved Qty
+                        </th>
+                      )}
 
                       <th className="border border-gray-800 px-2 py-2 text-right">
                         Indent Qty
@@ -1173,13 +1230,20 @@ const IndentOrder: React.FC = () => {
                           <td className="border border-gray-800 px-2 py-2 text-right">
                             ₹ {Number(item?.ioItemRate ?? 0).toFixed(2)}
                           </td>
+                          {printData?.master?.status == "IO" && (
+                            <td className="border border-gray-800 px-2 py-2 text-right">
+                              {item?.availableQty ?? item?.ioAvailableQty ?? 0}
+                            </td>
+                          )}
 
-                          <td className="border border-gray-800 px-2 py-2 text-right">
-                            {item?.ioAvailableQty ?? 0}
-                          </td>
+                          {printData?.master?.status !== "IO" && (
+                            <td className="border border-gray-800 px-2 py-2 text-right font-medium">
+                              {item?.approvedQty ?? 0}
+                            </td>
+                          )}
 
                           <td className="border border-gray-800 px-2 py-2 text-right font-medium">
-                            {item?.ioItemQty ?? 0}
+                            {item?.indentQty || item?.ioItemQty || 0}
                           </td>
                         </tr>
                       ),

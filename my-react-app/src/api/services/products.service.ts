@@ -7184,11 +7184,13 @@ export const saveIndentOrderApproval = async (payload: {
 
 
 
-
-export const getIndentOrderApprovalPrintList = async (
-  branchCode: string,
-  ioNo: number
-) => {
+export const getIndentOrderApprovalPrintList = async ({
+  branchCode,
+  IONo,
+}: {
+  branchCode: string;
+  IONo: number;
+}) => {
   try {
     const token = localStorage.getItem("token");
 
@@ -7197,21 +7199,22 @@ export const getIndentOrderApprovalPrintList = async (
       {
         params: {
           BranchCode: branchCode,
-          IONo: ioNo,
+          IONo,
         },
         headers: {
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
-      "Error fetching Indent Order Approval Print List:",
-      error.response?.data || error.message
+      "GetIndentOrderApprovalPrintList Error:",
+      error?.response?.data || error?.message || error,
     );
+
     throw error;
   }
 };
