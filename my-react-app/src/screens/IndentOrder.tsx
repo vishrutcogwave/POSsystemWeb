@@ -82,7 +82,7 @@ const IndentOrder: React.FC = () => {
     departmentName: "",
     enteredBy: "",
   });
-  const [approvedQtyMap, setApprovedQtyMap] = useState<Record<number, number>>(
+  const [approvedQtyMap, _setApprovedQtyMap] = useState<Record<number, number>>(
     {},
   );
 
@@ -551,56 +551,56 @@ const IndentOrder: React.FC = () => {
     toast.success("Item quantity allocated successfully.");
   };
 
-  const handleIndentQtyChange = (id: number, value: string) => {
-    if (value === "") {
-      setIndentItems((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                indentQty: 0,
-                availableQty: Number(item.originalQty || 0),
-              }
-            : item,
-        ),
-      );
+  // const handleIndentQtyChange = (id: number, value: string) => {
+  //   if (value === "") {
+  //     setIndentItems((prev) =>
+  //       prev.map((item) =>
+  //         item.id === id
+  //           ? {
+  //               ...item,
+  //               indentQty: 0,
+  //               availableQty: Number(item.originalQty || 0),
+  //             }
+  //           : item,
+  //       ),
+  //     );
 
-      return;
-    }
+  //     return;
+  //   }
 
-    const qty = Number(value);
+  //   const qty = Number(value);
 
-    if (!Number.isFinite(qty) || qty < 0) {
-      return;
-    }
+  //   if (!Number.isFinite(qty) || qty < 0) {
+  //     return;
+  //   }
 
-    setIndentItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) {
-          return item;
-        }
+  //   setIndentItems((prev) =>
+  //     prev.map((item) => {
+  //       if (item.id !== id) {
+  //         return item;
+  //       }
 
-        const originalQty = Number(item.originalQty || 0);
+  //       const originalQty = Number(item.originalQty || 0);
 
-        const safeQty = Math.min(qty, originalQty);
+  //       const safeQty = Math.min(qty, originalQty);
 
-        return {
-          ...item,
-          indentQty: safeQty,
-          availableQty: originalQty - safeQty,
-        };
-      }),
-    );
-  };
-  const handleApprovedQtyChange = (itemCode: number, value: string) => {
-    setApprovedQtyMap((prev) => ({
-      ...prev,
-      [itemCode]: value === "" ? 0 : Number(value),
-    }));
-  };
-  const handleRemoveIndentItem = (id: number) => {
-    setIndentItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  //       return {
+  //         ...item,
+  //         indentQty: safeQty,
+  //         availableQty: originalQty - safeQty,
+  //       };
+  //     }),
+  //   );
+  // };
+  // const handleApprovedQtyChange = (itemCode: number, value: string) => {
+  //   setApprovedQtyMap((prev) => ({
+  //     ...prev,
+  //     [itemCode]: value === "" ? 0 : Number(value),
+  //   }));
+  // };
+  // const handleRemoveIndentItem = (id: number) => {
+  //   setIndentItems((prev) => prev.filter((item) => item.id !== id));
+  // };
 
   // ============================================================
   // STORE CHANGE
