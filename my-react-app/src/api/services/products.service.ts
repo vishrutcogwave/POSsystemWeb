@@ -7019,6 +7019,7 @@ export const saveIndentOrder = async (data: {
   ioNo: number;
   billed: string;
   ioDate: string;
+  poValidDate: string;
   storeCode: string;
   orderBy: string;
   depCode: string;
@@ -7031,7 +7032,10 @@ export const saveIndentOrder = async (data: {
   grossAmount: number;
   storeId: string;
   status: string;
+
   items: {
+    pNo: number;
+    ioNo: number;
     itemCode: number;
     itemName: string;
     ioItemQty: number;
@@ -7042,6 +7046,9 @@ export const saveIndentOrder = async (data: {
     mainUnit: string;
     ioAvailableQty: number;
     ioOrginalQty: number;
+    branch_Code: string;
+    reamingQty: number;
+    approvedQty: number;
   }[];
 }) => {
   const token = localStorage.getItem("token");
@@ -7060,7 +7067,6 @@ export const saveIndentOrder = async (data: {
 
   return response.data;
 };
-
 export const getIndentOrderPrintList = async ({
   branchCode,
   IONo,

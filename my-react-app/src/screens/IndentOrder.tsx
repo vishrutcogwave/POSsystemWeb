@@ -35,16 +35,28 @@ type InventoryItem = {
 };
 
 type ItemIndentDetails = {
+  pNo: number;
+  poNo: number;
   itemCode: number;
   itemName: string;
   itemRate: number;
+
+  // pItemQty is the actual quantity available for this PNo
+  pItemQty: number;
+
+  // Keep availableQty for existing UI/code
   availableQty: number;
+
+  pItemReturnQty: number;
+  damageQty: number;
+  storedId: string;
+
   unitName: string;
   unitCode: number;
   mainUnit: string;
   mainUnitConverstion: string;
+  branch_Code: string;
 };
-
 type IndentItem = ItemIndentDetails & {
   id: number;
   indentQty: number;
@@ -87,6 +99,11 @@ const IndentOrder: React.FC = () => {
   const [loadingItemDetails, setLoadingItemDetails] = useState(false);
   const [selectedItemDetails, setSelectedItemDetails] =
     useState<ItemIndentDetails | null>(null);
+
+  const [itemDetailOptions, setItemDetailOptions] = useState<
+    ItemIndentDetails[]
+  >([]);
+
   const [indentQty, setIndentQty] = useState("");
   const itemSearchRef = useRef<HTMLDivElement>(null);
   const [indentItems, setIndentItems] = useState<IndentItem[]>([]);
@@ -351,6 +368,7 @@ const IndentOrder: React.FC = () => {
       setItemSearch(`${selectedItem.itemCode} - ${selectedItem.itemName}`);
       setShowItemDropdown(false);
       setSelectedItemDetails(null);
+      setItemDetailOptions([]);
       setIndentQty("");
       setLoadingItemDetails(true);
 
@@ -381,28 +399,57 @@ const IndentOrder: React.FC = () => {
 
       console.log("GetItemDetailsIndentOrder Response:", response);
 
-      if (!response?.success || !response?.data) {
+      if (!response?.success || !Array.isArray(response?.data)) {
         toast.error(response?.message || "Item details not found.");
         return;
       }
 
-      const data = response.data;
+      const details: ItemIndentDetails[] = response.data.map((data: any) => ({
+        pNo: Number(data?.pNo ?? 0),
+        poNo: Number(data?.poNo ?? 0),
 
-      const details: ItemIndentDetails = {
-        itemCode: Number(data.itemCode ?? selectedItem.itemCode ?? 0),
-        itemName: String(data.itemName ?? selectedItem.itemName ?? ""),
-        itemRate: Number(data.itemRate ?? 0),
-        availableQty: Number(data.availableQty ?? 0),
-        unitName: String(data.unitName ?? ""),
-        unitCode: Number(data.unitCode ?? 0),
-        mainUnit: String(data.mainUnit ?? ""),
-        mainUnitConverstion: String(data.mainUnitConverstion ?? ""),
-      };
+        itemCode: Number(data?.itemCode ?? selectedItem.itemCode ?? 0),
 
-      setSelectedItemDetails(details);
+        itemName: String(data?.itemName ?? selectedItem.itemName ?? ""),
+
+        itemRate: Number(data?.itemRate ?? 0),
+
+        // IMPORTANT
+        pItemQty: Number(data?.pItemQty ?? 0),
+
+        // Use pItemQty as available quantity
+        availableQty: Number(data?.pItemQty ?? 0),
+
+        pItemReturnQty: Number(data?.pItemReturnQty ?? 0),
+        damageQty: Number(data?.damageQty ?? 0),
+
+        storedId: String(data?.storedId ?? ""),
+
+        unitName: String(data?.unitName ?? ""),
+        unitCode: Number(data?.unitCode ?? 0),
+
+        mainUnit: String(data?.mainUnit ?? ""),
+        mainUnitConverstion: String(data?.mainUnitConverstion ?? ""),
+
+        branch_Code: String(data?.branch_Code ?? branchCode),
+      }));
+
+      console.log("Mapped PNo Details:", details);
+
+      setItemDetailOptions(details);
+
+      // First PNo is shown in the form
+      if (details.length > 0) {
+        setSelectedItemDetails(details[0]);
+      } else {
+        toast.error("No available quantity found.");
+      }
     } catch (error) {
       console.error("Error loading indent item details:", error);
+
       setSelectedItemDetails(null);
+      setItemDetailOptions([]);
+
       toast.error("Failed to load item details.");
     } finally {
       setLoadingItemDetails(false);
@@ -410,7 +457,7 @@ const IndentOrder: React.FC = () => {
   };
 
   const handleAddIndentItem = () => {
-    if (!selectedItemDetails) {
+    if (!selectedItemDetails || itemDetailOptions.length === 0) {
       toast.error("Please select an item first.");
       return;
     }
@@ -422,85 +469,127 @@ const IndentOrder: React.FC = () => {
       return;
     }
 
-    if (qty > selectedItemDetails.availableQty) {
-      toast.error("Indent Qty cannot be greater than Available Qty.");
-      return;
-    }
-
-    // Check whether item already exists in the table
-    const existingIndex = indentItems.findIndex(
-      (item) => Number(item.itemCode) === Number(selectedItemDetails.itemCode),
+    // Total available from all PNos
+    const totalAvailable = itemDetailOptions.reduce(
+      (total, item) => total + Number(item.pItemQty || 0),
+      0,
     );
 
+    if (qty > totalAvailable) {
+      toast.error(`Only ${totalAvailable} quantity is available.`);
+      return;
+    }
+
+    let remainingIndentQty = qty;
+
+    const newItems: IndentItem[] = [];
+
     // ============================================================
-    // ITEM ALREADY EXISTS
-    // Replace the quantity instead of adding to old quantity
+    // FIFO ALLOCATION
+    // PNo 1 -> PNo 2 -> PNo 3...
     // ============================================================
-    if (existingIndex >= 0) {
-      const existingItem = indentItems[existingIndex];
 
-      setIndentItems((prev) =>
-        prev.map((item, index) =>
-          index === existingIndex
-            ? {
-                ...item,
-                indentQty: qty, // REPLACE old quantity
-              }
-            : item,
-        ),
-      );
+    for (const detail of itemDetailOptions) {
+      if (remainingIndentQty <= 0) {
+        break;
+      }
 
-      setSelectedTableItemId(existingItem.id);
+      const availableQty = Number(detail.pItemQty || 0);
 
-      toast.success("Item quantity updated.");
+      if (availableQty <= 0) {
+        continue;
+      }
 
-      setSelectedItemDetails(null);
-      setIndentQty("");
-      setItemSearch("");
+      // Take either full available qty or remaining required qty
+      const allocatedQty = Math.min(availableQty, remainingIndentQty);
 
+      const remainingQty = availableQty - allocatedQty;
+
+      newItems.push({
+        ...detail,
+
+        id: Date.now() + newItems.length + Math.floor(Math.random() * 1000),
+
+        // Quantity taken from this PNo
+        indentQty: allocatedQty,
+
+        // Original PNo quantity
+        originalQty: availableQty,
+
+        // Keep approved qty 0 for new indent
+        approvedQty: 0,
+
+        // Remaining quantity after indent
+        availableQty: remainingQty,
+      });
+
+      remainingIndentQty -= allocatedQty;
+    }
+
+    console.log("FIFO Allocation:", newItems);
+
+    if (remainingIndentQty > 0) {
+      toast.error(`Unable to allocate ${remainingIndentQty} quantity.`);
       return;
     }
 
     // ============================================================
-    // NEW ITEM
-    // Add a new row
+    // ADD ALL PNO ALLOCATIONS
     // ============================================================
-    const newItem: IndentItem = {
-      ...selectedItemDetails,
-      id: Date.now(),
-      indentQty: qty,
-      approvedQty: qty,
-    };
-    setIndentItems((prev) => [...prev, newItem]);
-    setSelectedTableItemId(newItem.id);
+
+    setIndentItems((prev) => [...prev, ...newItems]);
+
+    if (newItems.length > 0) {
+      setSelectedTableItemId(newItems[0].id);
+    }
 
     setSelectedItemDetails(null);
+    setItemDetailOptions([]);
     setIndentQty("");
     setItemSearch("");
 
-    toast.success("Item added to indent table.");
+    toast.success("Item quantity allocated successfully.");
   };
 
   const handleIndentQtyChange = (id: number, value: string) => {
     if (value === "") {
       setIndentItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, indentQty: 0 } : item)),
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                indentQty: 0,
+                availableQty: Number(item.originalQty || 0),
+              }
+            : item,
+        ),
       );
+
       return;
     }
 
     const qty = Number(value);
-    if (!Number.isFinite(qty) || qty < 0) return;
+
+    if (!Number.isFinite(qty) || qty < 0) {
+      return;
+    }
 
     setIndentItems((prev) =>
-      prev.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              indentQty: Math.min(qty, item.availableQty),
-            }
-          : item,
-      ),
+      prev.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const originalQty = Number(item.originalQty || 0);
+
+        const safeQty = Math.min(qty, originalQty);
+
+        return {
+          ...item,
+          indentQty: safeQty,
+          availableQty: originalQty - safeQty,
+        };
+      }),
     );
   };
   const handleApprovedQtyChange = (itemCode: number, value: string) => {
@@ -608,15 +697,25 @@ const IndentOrder: React.FC = () => {
       }
 
       // ============================================================
+      // I/O NUMBER
+      // ============================================================
+
+      const ioNo = Number(formData.indentNo) || 0;
+
+      // ============================================================
       // SAVE PAYLOAD
       // ============================================================
 
       const payload = {
-        ioNo: Number(formData.indentNo) || 0,
+        // Master PNo
+
+        ioNo,
 
         billed: "",
 
         ioDate: formData.date ?? "",
+
+        poValidDate: formData.date ?? "",
 
         storeCode: String(formData.store.storeId),
 
@@ -642,33 +741,69 @@ const IndentOrder: React.FC = () => {
 
         status: "IO",
 
-        items: indentItems.map((item) => ({
-          itemCode: Number(item.itemCode),
+        // ==========================================================
+        // ITEMS
+        // ==========================================================
 
-          itemName: String(item.itemName || ""),
+        items: indentItems.map((item) => {
+          const originalQty = Number(item.originalQty || 0);
 
-          ioItemQty: Number(item.indentQty || 0),
+          const indentQty = Number(item.indentQty || 0);
 
-          ioItemRate: Number(item.itemRate || 0),
+          // This is already calculated during FIFO allocation
+          // Example:
+          // PNo 1 = original 50, indent 50 => remaining 0
+          // PNo 2 = original 67, indent 50 => remaining 17
+          const remainingQty = Number(item.availableQty || 0);
 
-          unit: String(item.unitName || ""),
+          return {
+            // Source PO/PNo
+            pNo: Number(item.pNo || 0),
 
-          unitCode: Number(item.unitCode || 0),
+            // Current IO number
+            ioNo,
 
-          mainUnitConverstion: String(item.mainUnitConverstion || ""),
+            itemCode: Number(item.itemCode),
 
-          mainUnit: String(item.mainUnit || ""),
+            itemName: String(item.itemName || ""),
 
-          ioAvailableQty: Number(item.availableQty - item.indentQty),
+            // Quantity taken from this PNo
+            ioItemQty: indentQty,
 
-          ioOrginalQty: Number(item.availableQty || 0),
-        })),
+            ioItemRate: Number(item.itemRate || 0),
+
+            unit: String(item.unitName || ""),
+
+            unitCode: Number(item.unitCode || 0),
+
+            mainUnitConverstion: String(item.mainUnitConverstion || ""),
+
+            mainUnit: String(item.mainUnit || ""),
+
+            // Remaining quantity in this PNo
+            ioAvailableQty: remainingQty,
+
+            // Original quantity available in this PNo
+            ioOrginalQty: originalQty,
+
+            // Branch
+            branch_Code: String(item.branch_Code || branchCode),
+
+            // Remaining quantity
+            reamingQty: remainingQty,
+
+            // New IO approval quantity
+            approvedQty: Number(item.approvedQty || 0),
+          };
+        }),
       };
 
+      // ============================================================
+      // DEBUG PAYLOAD
+      // ============================================================
+
       console.log("========================================");
-
       console.log("SaveIndentOrder Payload:", JSON.stringify(payload, null, 2));
-
       console.log("========================================");
 
       // ============================================================
@@ -689,7 +824,7 @@ const IndentOrder: React.FC = () => {
       toast.success(response?.message || "Indent Order saved successfully.");
 
       // ============================================================
-      // GET CREATED IONO FROM SAVE RESPONSE
+      // GET CREATED IO NO FROM SAVE RESPONSE
       // ============================================================
 
       const createdIONo = Number(
@@ -704,7 +839,6 @@ const IndentOrder: React.FC = () => {
       );
 
       console.log("Created Indent Order No:", createdIONo);
-
       console.log("Branch Code:", branchCode);
 
       // ============================================================
@@ -1029,6 +1163,37 @@ const IndentOrder: React.FC = () => {
   const handleBack = () => {
     window.history.back();
   };
+
+  const mergedIndentItems = Object.values(
+    indentItems.reduce(
+      (groups, item) => {
+        const key = `${item.itemCode}-${item.itemName}-${item.unitCode}`;
+
+        if (!groups[key]) {
+          groups[key] = {
+            ...item,
+            indentQty: 0,
+            approvedQty: 0,
+            availableQty: 0,
+            ids: [] as number[],
+          };
+        }
+
+        groups[key].indentQty += Number(item.indentQty || 0);
+        groups[key].approvedQty += Number(item.approvedQty || 0);
+        groups[key].availableQty += Number(item.availableQty || 0);
+        groups[key].ids.push(item.id);
+
+        return groups;
+      },
+      {} as Record<
+        string,
+        IndentItem & {
+          ids: number[];
+        }
+      >,
+    ),
+  );
   return (
     <>
       {showPrintPreview && printData && (
@@ -1587,7 +1752,10 @@ const IndentOrder: React.FC = () => {
                       <div>
                         <label className={labelClass}>Available Qty</label>
                         <input
-                          value={selectedItemDetails.availableQty}
+                          value={itemDetailOptions.reduce(
+                            (total, item) => total + Number(item.pItemQty || 0),
+                            0,
+                          )}
                           disabled
                           className={`${inputClass} cursor-not-allowed bg-gray-100`}
                         />
@@ -1598,7 +1766,10 @@ const IndentOrder: React.FC = () => {
                         <input
                           type="number"
                           min="0"
-                          max={selectedItemDetails.availableQty}
+                          max={itemDetailOptions.reduce(
+                            (total, item) => total + Number(item.pItemQty || 0),
+                            0,
+                          )}
                           step="any"
                           value={indentQty}
                           onChange={(e) => setIndentQty(e.target.value)}
@@ -1686,7 +1857,7 @@ const IndentOrder: React.FC = () => {
                     </thead>
 
                     <tbody>
-                      {indentItems.length === 0 ? (
+                      {mergedIndentItems.length === 0 ? (
                         <tr>
                           <td
                             colSpan={editIndentOrder ? 8 : 7}
@@ -1697,19 +1868,22 @@ const IndentOrder: React.FC = () => {
                           </td>
                         </tr>
                       ) : (
-                        indentItems.map((item, index) => (
+                        mergedIndentItems.map((item, index) => (
                           <tr
-                            key={item.id}
+                            key={`${item.itemCode}-${item.itemName}-${item.unitCode}`}
                             className="border-b border-gray-100 hover:bg-gray-50"
                           >
+                            {/* S.NO */}
                             <td className="px-2 py-2 text-center text-gray-700">
                               {index + 1}
                             </td>
 
+                            {/* CODE */}
                             <td className="px-2 py-2 font-medium text-gray-700">
                               {item.itemCode}
                             </td>
 
+                            {/* NAME */}
                             <td
                               className="max-w-[250px] truncate px-2 py-2 font-medium text-gray-800"
                               title={item.itemName}
@@ -1717,59 +1891,49 @@ const IndentOrder: React.FC = () => {
                               {item.itemName}
                             </td>
 
+                            {/* RATE */}
                             <td className="px-2 py-2 text-right text-gray-700">
-                              {item.itemRate.toFixed(2)}
+                              {Number(item.itemRate || 0).toFixed(2)}
                             </td>
 
+                            {/* UNIT */}
                             <td className="px-2 py-2 text-gray-700">
                               {item.unitName || "-"}
                             </td>
 
+                            {/* MERGED INDENT QTY */}
                             <td className="px-2 py-2 text-right">
                               <input
                                 type="number"
                                 min="0"
                                 disabled={editIndentOrder}
-                                max={item.availableQty}
-                                step="any"
                                 value={
                                   item.indentQty === 0 ? "" : item.indentQty
                                 }
-                                onChange={(e) =>
-                                  handleIndentQtyChange(item.id, e.target.value)
-                                }
                                 className="h-8 w-24 rounded-md border border-blue-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                readOnly
                               />
                             </td>
 
+                            {/* MERGED APPROVED QTY */}
                             {editIndentOrder && (
                               <td className="px-2 py-2 text-right">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={item.availableQty}
-                                  step="any"
-                                  value={
-                                    approvedQtyMap[item.itemCode] !== undefined
-                                      ? approvedQtyMap[item.itemCode]
-                                      : item.approvedQty || ""
-                                  }
-                                  onChange={(e) =>
-                                    handleApprovedQtyChange(
-                                      Number(item.itemCode),
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="h-8 w-24 rounded-md border border-green-300 px-2 text-right text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
-                                />
+                                {item.approvedQty || 0}
                               </td>
                             )}
 
+                            {/* REMOVE */}
                             <td className="px-2 py-2 text-center">
                               <button
                                 type="button"
-                                onClick={() => handleRemoveIndentItem(item.id)}
-                                className="text-sm font-semibold text-red-600 hover:text-red-700"
+                                onClick={() => {
+                                  setIndentItems((prev) =>
+                                    prev.filter(
+                                      (x) => !item.ids.includes(x.id),
+                                    ),
+                                  );
+                                }}
+                                className="rounded-md bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-100"
                               >
                                 Remove
                               </button>

@@ -82,39 +82,32 @@ export default function ChangeSheetDataTable({
   setToDate,
 }: Props) {
   const [search, setSearch] = useState("");
+console.log("datafromchancesheet",data);
 
   const formatDate = (val: string) =>
     val?.includes("T") ? val.split("T")[0] : val || "--";
 
-  // REMOVE DUPLICATES
-  const uniqueData = useMemo(() => {
-    const map = new Map();
-    data.forEach((row) => {
-      const key = `${row.billNo}-${row.billTime}`;
-      if (!map.has(key)) map.set(key, row);
-    });
-    return Array.from(map.values());
-  }, [data]);
 
   // FILTER
-  const filteredData = useMemo(() => {
-    return uniqueData.filter((row) => {
-      const textMatch = Object.values(row)
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase());
 
-   const selectedOutletName =
-  outlets.find((o) => o.id === selectedOutlet)?.label;
+  // FILTER - USE ALL RECORDS
+const filteredData = useMemo(() => {
+  return data.filter((row) => {
+    const textMatch = Object.values(row)
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase());
 
-const outletMatch =
-  selectedOutlet === "All" ||
-  row.oltName === selectedOutletName;
+    const selectedOutletName =
+      outlets.find((o) => o.id === selectedOutlet)?.label;
 
-      return textMatch && outletMatch;
-    });
-  }, [uniqueData, search, selectedOutlet]);
+    const outletMatch =
+      selectedOutlet === "All" ||
+      row.oltName === selectedOutletName;
 
+    return textMatch && outletMatch;
+  });
+}, [data, search, selectedOutlet]);
   // GROUPING
   const groupedData = useMemo(() => {
     const map: Record<string, Bill[]> = {};
