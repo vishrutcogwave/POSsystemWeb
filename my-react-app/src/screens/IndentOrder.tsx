@@ -417,7 +417,7 @@ const IndentOrder: React.FC = () => {
         pItemQty: Number(data?.pItemQty ?? 0),
 
         // Use pItemQty as available quantity
-        availableQty: Number(data?.pItemQty ?? 0),
+        availableQty: Number(data?.availableQty ?? 0),
 
         pItemReturnQty: Number(data?.pItemReturnQty ?? 0),
         damageQty: Number(data?.damageQty ?? 0),
@@ -1755,7 +1755,7 @@ const IndentOrder: React.FC = () => {
                         <label className={labelClass}>Available Qty</label>
                         <input
                           value={itemDetailOptions.reduce(
-                            (total, item) => total + Number(item.pItemQty || 0),
+                            (total, item) => total + Number(item.availableQty || 0),
                             0,
                           )}
                           disabled
