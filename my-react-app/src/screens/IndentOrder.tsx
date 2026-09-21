@@ -62,6 +62,7 @@ type IndentItem = ItemIndentDetails & {
   indentQty: number;
   approvedQty: number;
   originalQty?: number;
+  ioItemQty?:number
 };
 
 const IndentOrder: React.FC = () => {
@@ -82,10 +83,8 @@ const IndentOrder: React.FC = () => {
     departmentName: "",
     enteredBy: "",
   });
-  const [approvedQtyMap, _setApprovedQtyMap] = useState<Record<number, number>>(
-    {},
-  );
 
+  const [totalApprovedQty, setTotalApprovedQty] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(false);
 
@@ -964,27 +963,63 @@ const IndentOrder: React.FC = () => {
           unitCode: Number(item?.unitCode ?? 0),
           mainUnit: String(item?.mainUnit ?? ""),
           mainUnitConverstion: String(item?.mainUnitConverstion ?? ""),
-
+           ioItemQty:Number(item?.ioItemQty ?? 0),
           // Original requested quantity
           indentQty,
           originalQty: Number(item?.ioOrginalQty ?? 0),
           // Initially approved quantity = requested quantity
-          approvedQty:
-            status === "IOA"
-              ? Number(
-                  approvedQtyMap[item.itemCode] !== undefined
-                    ? approvedQtyMap[item.itemCode]
-                    : item.approvedQty || 0,
-                )
-              : 0,
+          approvedQty: 0,
         };
       },
     );
 
     setIndentItems(mappedItems);
 
-    setIndentItems(mappedItems);
   }, [editIndentOrder, stores]);
+const handleApprovedQtyChange = (value: string) => {
+  setTotalApprovedQty(value);
+
+  if (value === "") {
+    setIndentItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        approvedQty: 0,
+      })),
+    );
+    return;
+  }
+
+  const totalApproved = Number(value);
+
+  if (!Number.isFinite(totalApproved) || totalApproved < 0) {
+    return;
+  }
+
+  let remaining = totalApproved;
+
+  setIndentItems((prev) =>
+    prev.map((item) => {
+      // FIFO uses the original IO quantity of this PNo
+      const requestedQty = Number(item.indentQty || 0);
+
+      if (remaining <= 0) {
+        return {
+          ...item,
+          approvedQty: 0,
+        };
+      }
+
+      const approved = Math.min(requestedQty, remaining);
+
+      remaining -= approved;
+
+      return {
+        ...item,
+        approvedQty: approved,
+      };
+    }),
+  );
+};
 
   const handleIndentOrderApproval = async (status: "IOA" | "IOR") => {
     try {
@@ -1000,87 +1035,110 @@ const IndentOrder: React.FC = () => {
       const master = editIndentOrder.master;
       // const details = editIndentOrder.details || [];
 
-      const payload = {
+  const payload = {
+  ioNo: Number(master.ioNo),
+  ioDate: master.ioDate,
+  poValidDate: master.poValidDate,
+
+  approvedDate: new Date().toISOString(),
+
+  supCode: 0,
+
+  billed: master.billed || "",
+  branch_Code: master.branchCode || "",
+  orderBy: master.orderBy || "",
+
+  approvedBy: approvedBy ?? "",
+
+  depCode: master.depCode || "",
+
+  cgstAmount: Number(master.cgstAmount || 0),
+  sgstAmount: Number(master.sgstAmount || 0),
+  missChargeAmount: Number(master.missChargeAmount || 0),
+  totalAmount: Number(master.totalAmount || 0),
+  taxAmount: Number(master.taxAmount || 0),
+  grossAmount: Number(master.grossAmount || 0),
+
+  storeId: String(master.storeId || ""),
+
+  status,
+
+  items: (() => {
+    let remainingApproved =
+      status === "IOA"
+        ? Number(totalApprovedQty || 0)
+        : 0;
+
+    return indentItems.map((item) => {
+      // Original requested quantity for this PNo
+      const indentQty = Number(item.indentQty || 0);
+
+      // FIFO approval
+      const approvedQty =
+        status === "IOA"
+          ? Math.min(
+              indentQty,
+              Math.max(0, remainingApproved),
+            )
+          : 0;
+
+      // Reduce remaining approval quantity
+      remainingApproved -= approvedQty;
+
+      // Quantity still remaining after approval
+      const remainingQty = Math.max(
+        0,
+         Number(item.ioItemQty || 0) - approvedQty,
+      );
+
+      return {
+        // NEW API FIELD
+        pNo: Number(item.pNo || 0),
+
         ioNo: Number(master.ioNo),
-        ioDate: master.ioDate,
-        poValidDate: master.poValidDate,
 
-        // Your API requires supCode but your response doesn't contain it.
-        // Send 0 unless your actual API provides it somewhere else.
-        supCode: 0,
+        itemCode: Number(item.itemCode || 0),
 
-        billed: master.billed || "",
-        branch_Code: master.branchCode || "",
-        orderBy: master.orderBy || "",
+        unit: item.unitName || "",
 
-        // Current logged-in user
-        approvedBy: approvedBy ?? "",
+        unitCode: Number(item.unitCode || 0),
 
-        depCode: master.depCode || "",
+        // Remaining quantity after approval
+        ioItemQty: approvedQty,
 
-        cgstAmount: Number(master.cgstAmount || 0),
-        sgstAmount: Number(master.sgstAmount || 0),
-        missChargeAmount: Number(master.missChargeAmount || 0),
-        totalAmount: Number(master.totalAmount || 0),
-        taxAmount: Number(master.taxAmount || 0),
-        grossAmount: Number(master.grossAmount || 0),
+        ioItemRate: Number(item.itemRate || 0),
 
-        storeId: String(master.storeId || ""),
+        // Approved quantity
+        approvedQty,
 
-        // IOA = Approved
-        // IOR = Rejected
-        status,
+        branchCode:
+          item.branch_Code ||
+          master.branchCode ||
+          "",
 
-        items: indentItems.map((item) => ({
-          ioNo: Number(master.ioNo),
+        mainUnitConverstion:
+          item.mainUnitConverstion || "",
 
-          itemCode: Number(item.itemCode),
-          unit: item.unitName || "",
-          unitCode: Number(item.unitCode || 0),
+        mainUnit: item.mainUnit || "",
 
-          ioItemQty:
-            status === "IOA"
-              ? Number(
-                  approvedQtyMap[item.itemCode] !== undefined
-                    ? approvedQtyMap[item.itemCode]
-                    : item.approvedQty || 0,
-                )
-              : 0,
-          ioItemRate: Number(item.itemRate || 0),
+        // Remaining quantity
+        availableQty: remainingQty,
 
-          // IMPORTANT: Take the latest value entered in Approved Qty
-          approvedQty:
-            status === "IOA"
-              ? Number(
-                  approvedQtyMap[item.itemCode] !== undefined
-                    ? approvedQtyMap[item.itemCode]
-                    : item.approvedQty || 0,
-                )
-              : 0,
+        // Original PNo quantity
+        orginalQty: Number(item.originalQty || 0),
 
-          branchCode: master.branchCode || "",
-
-          mainUnitConverstion: item.mainUnitConverstion || "",
-
-          mainUnit: item.mainUnit || "",
-
-          availableQty:
-            Number(item.indentQty || 0) -
-            Number(
-              approvedQtyMap[item.itemCode] !== undefined
-                ? approvedQtyMap[item.itemCode]
-                : item.approvedQty || 0,
-            ),
-
-          orginalQty: Number(item.originalQty || 0),
-        })),
+        // NEW API FIELD
+        indentQty,
       };
+    });
+  })(),
+};
 
       console.log(
         `${status === "IOA" ? "Approve" : "Reject"} Indent Order Payload:`,
         payload,
       );
-
+debugger
       setLoading(true);
 
       const response = await saveIndentOrderApproval(payload);
@@ -1918,7 +1976,16 @@ const IndentOrder: React.FC = () => {
                             {/* MERGED APPROVED QTY */}
                             {editIndentOrder && (
                               <td className="px-2 py-2 text-right">
-                                {item.approvedQty || 0}
+                                <input
+                                  type="number"
+                                  min="0"
+                              value={totalApprovedQty}
+onChange={(e) =>
+  handleApprovedQtyChange(e.target.value)
+}
+                                  className="h-8 w-24 rounded-md border border-blue-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                  placeholder="0"
+                                />
                               </td>
                             )}
 

@@ -7130,6 +7130,7 @@ export const saveIndentOrderApproval = async (payload: {
   ioNo: number;
   ioDate: string;
   poValidDate: string;
+  approvedDate: string;
   supCode: number;
   billed: string;
   branch_Code: string;
@@ -7146,6 +7147,7 @@ export const saveIndentOrderApproval = async (payload: {
   status: string;
 
   items: {
+    pNo: number;
     ioNo: number;
     itemCode: number;
     unit: string;
@@ -7158,7 +7160,7 @@ export const saveIndentOrderApproval = async (payload: {
     mainUnit: string;
     availableQty: number;
     orginalQty: number;
-    
+    indentQty: number;
   }[];
 }) => {
   try {
