@@ -291,56 +291,413 @@ const handleExcel = () => {
   );
 };
 
-  const handlePDF = () => {
-    const doc = new jsPDF();
+const handlePDF = () => {
+  const doc = new jsPDF("l", "mm", "a4"); // Landscape
 
-    Object.entries(groupedData).forEach(([outlet, rows], i) => {
-      const startY =
-        i === 0 ? 20 : (doc as any).lastAutoTable?.finalY + 10 || 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-      doc.text(outlet, 14, startY);
+  // ==========================
+  // TITLE
+  // ==========================
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, pageWidth / 2, 12, { align: "center" });
 
-      autoTable(doc, {
-        head: [[
-          "BillNo","Date","Time","Sale","Tax","CGST","SGST",
-          "Total","Round","Grand","Cash","Online","Status"
-        ]],
-        body: rows.map((r) => [
-          r.billNo,
-          formatDate(r.date),
-          r.billTime,
-          r.itemSale,
-          r.tax,
-          r.cgst,
-          r.sgst,
-          r.total,
-          r.roundOff,
-          r.grand,
-          r.cash,
-          r.online,
-          r.kbsRefName,
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    `From: ${fromDate}    To: ${toDate}`,
+    pageWidth / 2,
+    18,
+    { align: "center" }
+  );
+
+  let currentY = 25;
+
+  // ==========================
+  // OUTLET TABLES
+  // ==========================
+  Object.entries(groupedData).forEach(([outletName, rows]) => {
+
+    // Check if enough space for heading
+    if (currentY > 175) {
+      doc.addPage();
+      currentY = 15;
+    }
+
+    // Outlet Name
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(outletName, 14, currentY);
+
+    currentY += 4;
+
+    // Table
+    autoTable(doc, {
+      startY: currentY,
+      margin: { left: 10, right: 10 },
+
+      head: [[
+        "BillNo",
+        "Date",
+        "Time",
+        "Sale",
+        "Tax",
+        "CGST",
+        "SGST",
+        "Total",
+        "Round",
+        "Grand",
+        "Cash",
+        "Card",
+        "UPI",
+        "Online",
+        "Pluxee",
+        "Status"
+      ]],
+
+      body: [
+        ...rows.map((row) => [
+          row.billNo,
+          formatDate(row.date),
+          row.billTime,
+          Number(row.itemSale || 0).toFixed(2),
+          Number(row.tax || 0).toFixed(2),
+          Number(row.cgst || 0).toFixed(2),
+          Number(row.sgst || 0).toFixed(2),
+          Number(row.total || 0).toFixed(2),
+          Number(row.roundOff || 0).toFixed(2),
+          Number(row.grand || 0).toFixed(2),
+          Number(row.cash || 0).toFixed(2),
+          Number(row.card || 0).toFixed(2),
+          Number(row.upi || 0).toFixed(2),
+          Number(row.online || 0).toFixed(2),
+          Number(row.pluxee || 0).toFixed(2),
+          row.kbsRefName || "-"
         ]),
-        startY: startY + 5,
-      });
+
+        // ==========================
+        // OUTLET TOTAL
+        // ==========================
+        [
+          "TOTAL",
+          "",
+          "",
+          rows
+            .reduce((s, r) => s + Number(r.itemSale || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.tax || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.cgst || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.sgst || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.total || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.roundOff || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.grand || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.cash || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.card || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.upi || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.online || 0), 0)
+            .toFixed(2),
+
+          rows
+            .reduce((s, r) => s + Number(r.pluxee || 0), 0)
+            .toFixed(2),
+
+          "-"
+        ]
+      ],
+
+      theme: "grid",
+
+      styles: {
+        fontSize: 6.5,
+        cellPadding: 2,
+        valign: "middle",
+        halign: "right"
+      },
+
+      headStyles: {
+        fontSize: 6.5,
+        fontStyle: "bold",
+        halign: "center"
+      },
+
+      columnStyles: {
+        0: { halign: "left" },
+        1: { halign: "center" },
+        2: { halign: "center" },
+        3: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "right" },
+        7: { halign: "right" },
+        8: { halign: "right" },
+        9: { halign: "right" },
+        10: { halign: "right" },
+        11: { halign: "right" },
+        12: { halign: "right" },
+        13: { halign: "right" },
+        14: { halign: "right" },
+        15: { halign: "left" }
+      },
+
+      didParseCell: (data) => {
+        // Make TOTAL row green like UI
+        if (
+          data.section === "body" &&
+          data.row.index === rows.length
+        ) {
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
     });
 
-    doc.save("changesheet.pdf");
-    doc.text("Summary", 14, (doc as any).lastAutoTable?.finalY + 10 || 20);
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+  });
 
-autoTable(doc, {
-  startY: (doc as any).lastAutoTable?.finalY + 15 || 25,
-  body: [
-    ["Total", summary.total],
-    ["Grand", summary.grand],
-    ["CGST", summary.cgst],
-    ["SGST", summary.sgst],
-    ["RoundOff", summary.roundOff],
-    ["Cash", summary.cash],
-    ["Online", summary.online],
-    ["Card", summary.card],
-  ],
-});
-  };
+  // ==========================
+  // OVERALL TOTAL
+  // ==========================
+  if (currentY > 170) {
+    doc.addPage();
+    currentY = 15;
+  }
+
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Overall Total", 14, currentY);
+
+  currentY += 4;
+
+  autoTable(doc, {
+    startY: currentY,
+
+    margin: {
+      left: 14,
+      right: 14
+    },
+
+    body: [
+      [
+        "Sale",
+        filteredData
+          .reduce((s, r) => s + Number(r.itemSale || 0), 0)
+          .toFixed(2),
+
+        "Tax",
+        filteredData
+          .reduce((s, r) => s + Number(r.tax || 0), 0)
+          .toFixed(2),
+
+        "CGST",
+        filteredData
+          .reduce((s, r) => s + Number(r.cgst || 0), 0)
+          .toFixed(2),
+
+        "SGST",
+        filteredData
+          .reduce((s, r) => s + Number(r.sgst || 0), 0)
+          .toFixed(2)
+      ],
+
+      [
+        "Total",
+        filteredData
+          .reduce((s, r) => s + Number(r.total || 0), 0)
+          .toFixed(2),
+
+        "Round",
+        filteredData
+          .reduce((s, r) => s + Number(r.roundOff || 0), 0)
+          .toFixed(2),
+
+        "Grand",
+        filteredData
+          .reduce((s, r) => s + Number(r.grand || 0), 0)
+          .toFixed(2),
+
+        "Cash",
+        filteredData
+          .reduce((s, r) => s + Number(r.cash || 0), 0)
+          .toFixed(2)
+      ],
+
+      [
+        "Card",
+        filteredData
+          .reduce((s, r) => s + Number(r.card || 0), 0)
+          .toFixed(2),
+
+        "UPI",
+        filteredData
+          .reduce((s, r) => s + Number(r.upi || 0), 0)
+          .toFixed(2),
+
+        "Online",
+        filteredData
+          .reduce((s, r) => s + Number(r.online || 0), 0)
+          .toFixed(2),
+
+        "Pluxee",
+        filteredData
+          .reduce((s, r) => s + Number(r.pluxee || 0), 0)
+          .toFixed(2)
+      ]
+    ],
+
+    theme: "grid",
+
+    styles: {
+      fontSize: 8,
+      cellPadding: 3
+    },
+
+    columnStyles: {
+      0: { fontStyle: "bold" },
+      2: { fontStyle: "bold" },
+      4: { fontStyle: "bold" },
+      6: { fontStyle: "bold" }
+    }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+
+  // ==========================
+  // REMARKS SUMMARY
+  // ==========================
+  if (remarksSummary.length > 0) {
+
+    if (currentY > 175) {
+      doc.addPage();
+      currentY = 15;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Remarks Summary", 14, currentY);
+
+    currentY += 4;
+
+    autoTable(doc, {
+      startY: currentY,
+
+      head: [["Particular", "Amount"]],
+
+      body: remarksSummary.map((item) => [
+        item.particulars,
+        Number(item.amount || 0).toFixed(2)
+      ]),
+
+      theme: "grid",
+
+      styles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+
+      columnStyles: {
+        0: { halign: "left" },
+        1: { halign: "right" }
+      }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+  }
+
+  // ==========================
+  // OUTLET WISE SUMMARY
+  // ==========================
+  if (outletWiseSummary.length > 0) {
+
+    if (currentY > 175) {
+      doc.addPage();
+      currentY = 15;
+    }
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Outlet Wise Summary", 14, currentY);
+
+    currentY += 4;
+
+    autoTable(doc, {
+      startY: currentY,
+
+      head: [["Outlet", "Amount"]],
+
+      body: outletWiseSummary.map((item) => [
+        item.outletName,
+        `₹ ${Number(item.totalAmount || 0).toFixed(2)}`
+      ]),
+
+      theme: "grid",
+
+      styles: {
+        fontSize: 8,
+        cellPadding: 3
+      },
+
+      columnStyles: {
+        0: { halign: "left" },
+        1: { halign: "right" }
+      }
+    });
+  }
+
+  // ==========================
+  // PAGE NUMBER
+  // ==========================
+  const pageCount = doc.getNumberOfPages();
+
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      pageWidth - 14,
+      doc.internal.pageSize.getHeight() - 7,
+      { align: "right" }
+    );
+  }
+
+  // ==========================
+  // DOWNLOAD
+  // ==========================
+  doc.save(
+    `${title.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.pdf`
+  );
+};
 
   // PRINT
 const handlePrint = () => {
