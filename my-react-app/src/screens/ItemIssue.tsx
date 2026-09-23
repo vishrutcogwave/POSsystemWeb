@@ -5,6 +5,9 @@ import Loader from "../components/Loader";
 import {
   getStoreMasterList,
   getDepartmentList,
+  searchIndentOrder,
+  getNextIdCode,
+  getIndentOrderApprovalData,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -29,24 +32,25 @@ type ItemDetails = {
 
 type IssueItem = ItemDetails & {
   id: number;
+  approvedQty: number;
   issueQty: number;
 };
-
 const ItemIssue: React.FC = () => {
   const { appData } = useAppContext();
   const branch = appData?.user?.branch_code;
 
   const [formData, setFormData] = useState({
     transNo: "",
+    indentNo: "",
     date: new Date().toISOString().split("T")[0],
     store: null as Store | null,
     departmentCode: "",
     departmentName: "",
   });
-
   const [stores, setStores] = useState<Store[]>([]);
   const [departmentList, setDepartmentList] = useState<any[]>([]);
-
+  const [indentOrderList, setIndentOrderList] = useState<any[]>([]);
+  const [loadingIndentOrders, setLoadingIndentOrders] = useState(false);
   const [issueItems, setIssueItems] = useState<IssueItem[]>([]);
 
   const [loadingStores, setLoadingStores] = useState(false);
@@ -155,13 +159,162 @@ const ItemIssue: React.FC = () => {
     }
   };
 
+  const fetchIndentOrders = async () => {
+    if (!branch) return;
+
+    startLoading();
+    setLoadingIndentOrders(true);
+
+    try {
+      const res = await searchIndentOrder(branch);
+
+      if (res?.success && Array.isArray(res?.data)) {
+        setIndentOrderList(res.data);
+      } else {
+        setIndentOrderList([]);
+        toast.error(res?.message || "Failed to load indent orders");
+      }
+    } catch (error) {
+      console.error("Error fetching indent orders:", error);
+      setIndentOrderList([]);
+      toast.error("Failed to load indent orders");
+    } finally {
+      setLoadingIndentOrders(false);
+      stopLoading();
+    }
+  };
+
+  const fetchNextTransNo = async () => {
+    try {
+      const res = await getNextIdCode({
+        tableName: "ItemIssueMaster",
+        columnName: "TrasnsactionNo",
+        conditionName: "Branch_Code",
+        branch: branch,
+      });
+
+      if (res?.success) {
+        setFormData((prev) => ({
+          ...prev,
+          transNo: res.data.toString(),
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching next Trans No:", error);
+    }
+  };
+  const handleIndentNoChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const selectedIndentNo = e.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
+      indentNo: selectedIndentNo,
+    }));
+
+    if (!selectedIndentNo || !branch) {
+      setIssueItems([]);
+      return;
+    }
+
+    try {
+      const response = await getIndentOrderApprovalData(
+        branch,
+        Number(selectedIndentNo),
+      );
+
+      console.log("Indent Order Approval Response:", response);
+
+      if (response?.success && response?.data?.length > 0) {
+        const master = response.data[0]?.master;
+        const details = response.data[0]?.details || [];
+
+        // -----------------------------
+        // Bind Store
+        // -----------------------------
+        const storeId = Number(master?.storeId);
+
+        const selectedStore = stores.find((store) => store.storeId === storeId);
+
+        // -----------------------------
+        // Bind Department
+        // -----------------------------
+        const departmentCode = String(master?.depCode ?? "");
+
+        const selectedDepartment = departmentList.find(
+          (dept: any) => String(dept?.depCode) === departmentCode,
+        );
+
+        // -----------------------------
+        // Bind Master Form
+        // -----------------------------
+        setFormData((prev) => ({
+          ...prev,
+          indentNo: selectedIndentNo,
+
+          date: master?.ioDate ? master.ioDate.split("T")[0] : prev.date,
+
+          store: selectedStore || null,
+
+          departmentCode: departmentCode,
+
+          departmentName: selectedDepartment?.depName ?? "",
+        }));
+
+        // -----------------------------
+        // Bind Details to Item Table
+        // -----------------------------
+        const groupedItems = details.reduce(
+          (acc: Record<number, any>, item: any) => {
+            const itemCode = Number(item.itemCode);
+
+            if (!acc[itemCode]) {
+              acc[itemCode] = {
+                id: itemCode,
+                itemCode: itemCode,
+                itemName: String(item.itemName),
+                itemRate: Number(item.ioItemRate ?? 0),
+                approvedQty: Number(item.approvedQty ?? 0),
+                unitName: item.unit ?? "",
+                unitCode: Number(item.unitCode ?? 0),
+                mainUnit: item.mainUnit ?? "",
+                mainUnitConverstion: item.mainUnitConverstion ?? "",
+                issueQty: 0,
+              };
+            } else {
+              // Merge same item code
+              acc[itemCode].approvedQty += Number(item.approvedQty ?? 0);
+            }
+
+            return acc;
+          },
+          {},
+        );
+
+        const mappedItems: IssueItem[] = Object.values(groupedItems);
+
+        setIssueItems(mappedItems);
+        console.log("Mapped Item Issue Items:", mappedItems);
+      } else {
+        setIssueItems([]);
+        toast.error(response?.message || "No indent order details found");
+      }
+    } catch (error) {
+      console.error("Error fetching indent order approval data:", error);
+
+      setIssueItems([]);
+      toast.error("Failed to load indent order details");
+    }
+  };
   useEffect(() => {
     if (!branch) return;
 
     fetchStores();
     fetchDepartments();
+    fetchIndentOrders();
+    fetchNextTransNo();
   }, [branch]);
-
   // ------------------------------------------------------------
   // Transaction number
   //
@@ -321,6 +474,23 @@ const ItemIssue: React.FC = () => {
 
             <div className="p-4 md:p-5">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {/* INDENT NO */}
+                <div className="min-w-0">
+                  <label className={labelClass}>Indent No.</label>
+                  <select
+                    value={formData.indentNo}
+                    onChange={handleIndentNoChange}
+                    className={inputClass}
+                  >
+                    <option value="">Select Indent No.</option>
+
+                    {indentOrderList.map((item, index) => (
+                      <option key={index} value={item.ioNo}>
+                        {item.ioNo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {/* STORE NAME */}
                 <div className="min-w-0">
                   <label className={labelClass}>Store Name</label>
@@ -328,7 +498,7 @@ const ItemIssue: React.FC = () => {
                   <select
                     value={formData.store?.storeId ?? ""}
                     onChange={handleStoreChange}
-                    disabled={loadingStores}
+                    disabled
                     className={`${inputClass} ${
                       loadingStores ? "cursor-not-allowed bg-gray-100" : ""
                     }`}
@@ -358,6 +528,7 @@ const ItemIssue: React.FC = () => {
                         transNo: e.target.value,
                       }))
                     }
+                    disabled
                     placeholder="Trans No."
                     className={inputClass}
                   />
@@ -399,7 +570,7 @@ const ItemIssue: React.FC = () => {
                         departmentName: selectedDepartment?.depName ?? "",
                       }));
                     }}
-                    disabled={loadingDepartments}
+                    disabled
                     className={`${inputClass} ${
                       loadingDepartments ? "cursor-not-allowed bg-gray-100" : ""
                     }`}
@@ -466,14 +637,12 @@ const ItemIssue: React.FC = () => {
                         Rate
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
-                        Available Qty
+                        approved Qty
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                         Unit
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        Main Unit
-                      </th>
+
                       <th className="px-4 py-3 text-right text-xs font-semibold text-blue-700">
                         Issue Qty
                       </th>
@@ -517,15 +686,11 @@ const ItemIssue: React.FC = () => {
                           </td>
 
                           <td className="px-4 py-3 text-right font-medium text-gray-800">
-                            {item.availableQty}
+                            {item.approvedQty}
                           </td>
 
                           <td className="px-4 py-3 text-gray-700">
                             {item.unitName || "-"}
-                          </td>
-
-                          <td className="px-4 py-3 text-gray-700">
-                            {item.mainUnit || "-"}
                           </td>
 
                           <td className="px-4 py-2 text-right">

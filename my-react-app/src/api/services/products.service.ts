@@ -7049,8 +7049,8 @@ export const saveIndentOrder = async (data: {
     branch_Code: string;
     reamingQty: number;
     approvedQty: number;
-     stockReferenceNo: number,
-      stockSource: string
+    stockReferenceNo: number;
+    stockSource: string;
   }[];
 }) => {
   const token = localStorage.getItem("token");
@@ -7095,8 +7095,6 @@ export const getIndentOrderPrintList = async ({
   return response.data;
 };
 
-
-
 // ================= INDENT ORDER APPROVAL =================
 
 export const getIndentOrderList = async (branchCode: string) => {
@@ -7126,7 +7124,6 @@ export const getIndentOrderList = async (branchCode: string) => {
     throw error;
   }
 };
-
 
 export const saveIndentOrderApproval = async (payload: {
   ioNo: number;
@@ -7191,9 +7188,6 @@ export const saveIndentOrderApproval = async (payload: {
   }
 };
 
-
-
-
 export const getIndentOrderApprovalPrintList = async ({
   branchCode,
   IONo,
@@ -7225,6 +7219,53 @@ export const getIndentOrderApprovalPrintList = async ({
       error?.response?.data || error?.message || error,
     );
 
+    throw error;
+  }
+};
+
+export const searchIndentOrder = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await api.get("/api/InventoryPurchase/SearchIndentOrder", {
+      params: { BranchCode: branchCode },
+      headers: { Authorization: `Bearer ${token}`, accept: "*/*" },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error searching indent order:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+export const getIndentOrderApprovalData = async (
+  branchCode: string,
+  ioNo: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetIndentOrderApprovalData",
+      {
+        params: {
+          BranchCode: branchCode,
+          IONo: ioNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching indent order approval data:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
