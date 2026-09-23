@@ -86,7 +86,6 @@ const IndentOrder: React.FC = () => {
     enteredBy: "",
   });
 
-  const [totalApprovedQty, setTotalApprovedQty] = useState("");
   const [stores, setStores] = useState<Store[]>([]);
   const [loadingStores, setLoadingStores] = useState(false);
 
@@ -697,60 +696,33 @@ const IndentOrder: React.FC = () => {
         // ITEMS
         // ==========================================================
 
-        items: indentItems.map((item) => {
-          const originalQty = Number(item.originalQty || 0);
+        items: indentItems.map((item) => ({
+          pNo: Number(item.pNo || 0),
+          ioNo: ioNo,
+          itemCode: Number(item.itemCode || 0),
+          itemName: item.itemName || "",
+          ioItemQty: Number(item.indentQty || 0),
+          ioItemRate: Number(item.itemRate || 0),
+          unit: item.unitName || "",
+          unitCode: Number(item.unitCode || 0),
+          mainUnitConverstion: item.mainUnitConverstion || "",
+          mainUnit: item.mainUnit || "",
 
-          const indentQty = Number(item.indentQty || 0);
+          ioAvailableQty: Number(item.availableQty || 0),
+          ioOrginalQty: Number(item.originalQty || 0),
 
-          // This is already calculated during FIFO allocation
-          // Example:
-          // PNo 1 = original 50, indent 50 => remaining 0
-          // PNo 2 = original 67, indent 50 => remaining 17
-          const remainingQty = Number(item.availableQty || 0);
+          branch_Code: item.branch_Code || branchCode,
 
-          return {
-            // Source PO/PNo
-            pNo: Number(item.pNo || 0),
+          reamingQty: Math.max(0, Number(item.availableQty || 0)),
 
-            // Current IO number
-            ioNo,
+          approvedQty: 0,
 
-            itemCode: Number(item.itemCode),
+          indentQty: Number(item.indentQty || 0),
 
-            itemName: String(item.itemName || ""),
+          stockReferenceNo: Number(item.stockReferenceNo || 0),
 
-            // Quantity taken from this PNo
-            ioItemQty: indentQty,
-
-            ioItemRate: Number(item.itemRate || 0),
-
-            unit: String(item.unitName || ""),
-
-            unitCode: Number(item.unitCode || 0),
-
-            mainUnitConverstion: String(item.mainUnitConverstion || ""),
-
-            mainUnit: String(item.mainUnit || ""),
-
-            // Remaining quantity in this PNo
-            ioAvailableQty: remainingQty,
-
-            // Original quantity available in this PNo
-            ioOrginalQty: originalQty,
-
-            // Branch
-            branch_Code: String(item.branch_Code || branchCode),
-
-            // Remaining quantity
-            reamingQty: remainingQty,
-
-            // New IO approval quantity
-            approvedQty: Number(item.approvedQty || 0),
-
-            stockReferenceNo: Number(item.stockReferenceNo || 0),
-            stockSource: String(item.stockSource || ""),
-          };
-        }),
+          stockSource: item.stockSource || "",
+        })),
       };
 
       // ============================================================
@@ -931,58 +903,56 @@ const IndentOrder: React.FC = () => {
         };
       },
     );
-    const total = mappedItems.reduce(
-      (sum, item) => sum + Number(item.ioItemQty || 0),
-      0,
-    );
-    setTotalApprovedQty(String(total));
+    // const total = mappedItems.reduce(
+    //   (sum, item) => sum + Number(item.ioItemQty || 0),
+    //   0,
+    // );
+    // setTotalApprovedQty(String(total));
     setIndentItems(mappedItems);
   }, [editIndentOrder, stores]);
-  const handleApprovedQtyChange = (value: string) => {
-    setTotalApprovedQty(value);
-
+  const handleApprovedQtyChange = (itemCode: number, value: string) => {
     if (value === "") {
       setIndentItems((prev) =>
-        prev.map((item) => ({
-          ...item,
-          approvedQty: 0,
-        })),
+        prev.map((item) =>
+          Number(item.itemCode) === Number(itemCode)
+            ? {
+                ...item,
+                approvedQty: 0,
+              }
+            : item,
+        ),
       );
+
       return;
     }
 
-    const totalApproved = Number(value);
+    const approvedQty = Number(value);
 
-    if (!Number.isFinite(totalApproved) || totalApproved < 0) {
+    if (!Number.isFinite(approvedQty) || approvedQty < 0) {
       return;
     }
 
-    let remaining = totalApproved;
+    setIndentItems((prev) => {
+      let remaining = approvedQty;
 
-    setIndentItems((prev) =>
-      prev.map((item) => {
-        // FIFO uses the original IO quantity of this PNo
-        const requestedQty = Number(item.indentQty || 0);
-
-        if (remaining <= 0) {
-          return {
-            ...item,
-            approvedQty: 0,
-          };
+      return prev.map((item) => {
+        if (Number(item.itemCode) !== Number(itemCode)) {
+          return item;
         }
 
-        const approved = Math.min(requestedQty, remaining);
+        const indentQty = Number(item.indentQty || 0);
 
-        remaining -= approved;
+        const currentApprovedQty = Math.min(indentQty, Math.max(0, remaining));
+
+        remaining -= currentApprovedQty;
 
         return {
           ...item,
-          approvedQty: approved,
+          approvedQty: currentApprovedQty,
         };
-      }),
-    );
+      });
+    });
   };
-
   const handleIndentOrderApproval = async (status: "IOA" | "IOR") => {
     try {
       if (!editIndentOrder?.master) {
@@ -1025,68 +995,49 @@ const IndentOrder: React.FC = () => {
 
         status,
 
-        items: (() => {
-          let remainingApproved =
-            status === "IOA" ? Number(totalApprovedQty || 0) : 0;
+        items: indentItems.map((item) => {
+          const indentQty = Number(item.indentQty || 0);
 
-          return indentItems.map((item) => {
-            // Original requested quantity for this PNo
-            const indentQty = Number(item.indentQty || 0);
+          const approvedQty =
+            status === "IOA"
+              ? Math.min(Number(item.approvedQty || 0), indentQty)
+              : 0;
 
-            // FIFO approval
-            const approvedQty =
-              status === "IOA"
-                ? Math.min(indentQty, Math.max(0, remainingApproved))
-                : 0;
+          const remainingQty = Math.max(0, indentQty - approvedQty);
 
-            // Reduce remaining approval quantity
-            remainingApproved -= approvedQty;
+          return {
+            pNo: Number(item.pNo || 0),
 
-            // Quantity still remaining after approval
-            const remainingQty = Math.max(
-              0,
-              Number(item.ioItemQty || 0) - approvedQty,
-            );
+            ioNo: Number(master.ioNo),
 
-            return {
-              // NEW API FIELD
-              pNo: Number(item.pNo || 0),
+            itemCode: Number(item.itemCode || 0),
 
-              ioNo: Number(master.ioNo),
+            unit: item.unitName || "",
 
-              itemCode: Number(item.itemCode || 0),
+            unitCode: Number(item.unitCode || 0),
 
-              unit: item.unitName || "",
+            ioItemQty: approvedQty,
 
-              unitCode: Number(item.unitCode || 0),
+            ioItemRate: Number(item.itemRate || 0),
 
-              // Remaining quantity after approval
-              ioItemQty: approvedQty,
+            approvedQty: approvedQty,
 
-              ioItemRate: Number(item.itemRate || 0),
+            // IMPORTANT: API expects branchCode
+            branchCode: item.branch_Code || master.branchCode || "",
 
-              // Approved quantity
-              approvedQty,
+            mainUnitConverstion: item.mainUnitConverstion || "",
 
-              branchCode: item.branch_Code || master.branchCode || "",
+            mainUnit: item.mainUnit || "",
 
-              mainUnitConverstion: item.mainUnitConverstion || "",
+            // IMPORTANT: API expects availableQty
+            availableQty: remainingQty,
 
-              mainUnit: item.mainUnit || "",
+            // IMPORTANT: API expects orginalQty
+            orginalQty: Number(item.originalQty || 0),
 
-              // Remaining quantity
-              availableQty: remainingQty,
-
-              // Original PNo quantity
-              orginalQty: Number(item.originalQty || 0),
-
-              // NEW API FIELD
-              indentQty,
-              stockReferenceNo: Number(item.stockReferenceNo || 0),
-                    stockSource: item.stockSource || ""
-            };
-          });
-        })(),
+            indentQty: indentQty,
+          };
+        }),
       };
 
       console.log(
@@ -1360,9 +1311,6 @@ const IndentOrder: React.FC = () => {
                         Description
                       </th>
 
-                   
-
-                    
                       {printData?.master?.status == "IO" && (
                         <th className="border border-gray-800 px-2 py-2 text-right">
                           Available Qty
@@ -1396,8 +1344,6 @@ const IndentOrder: React.FC = () => {
                           <td className="border border-gray-800 px-2 py-2">
                             {item?.itemName || item?.description || "-"}
                           </td>
-
-                         
 
                           {printData?.master?.status == "IO" && (
                             <td className="border border-gray-800 px-2 py-2 text-right">
@@ -1744,8 +1690,6 @@ const IndentOrder: React.FC = () => {
                         />
                       </div>
 
-                      
-
                       <div>
                         <label className={labelClass}>Available Qty</label>
                         <input
@@ -1830,9 +1774,6 @@ const IndentOrder: React.FC = () => {
                           Name
                         </th>
 
-                      
-
-
                         <th className="w-32 px-2 py-2 text-right text-xs font-semibold text-blue-700">
                           Indent Qty
                         </th>
@@ -1884,9 +1825,6 @@ const IndentOrder: React.FC = () => {
                               {item.itemName}
                             </td>
 
-                          
-
-                        
                             {/* MERGED INDENT QTY */}
                             <td className="px-2 py-2 text-right">
                               <input
@@ -1907,11 +1845,19 @@ const IndentOrder: React.FC = () => {
                                 <input
                                   type="number"
                                   min="0"
-                                  value={totalApprovedQty}
-                                  onChange={(e) =>
-                                    handleApprovedQtyChange(e.target.value)
+                                  max={Number(item.indentQty || 0)}
+                                  value={
+                                    item.approvedQty === 0
+                                      ? ""
+                                      : item.approvedQty
                                   }
-                                  className="h-8 w-24 rounded-md border border-blue-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                  onChange={(e) =>
+                                    handleApprovedQtyChange(
+                                      Number(item.itemCode),
+                                      e.target.value,
+                                    )
+                                  }
+                                  className="h-8 w-24 rounded-md border border-green-300 px-2 text-right text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100"
                                   placeholder="0"
                                 />
                               </td>
