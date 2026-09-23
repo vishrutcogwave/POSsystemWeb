@@ -40,12 +40,16 @@ type IssueItem = ItemDetails & {
   branchCode: string;
   stockSource: string;
   stockReferenceNo: number;
+  reamingQty:number
   stockRows: {
     pNo: number;
     approvedQty: number;
     issueQty: number;
     stockSource: string;
     stockReferenceNo: number;
+    reamingQty:number;
+
+  
   }[];
 };
 const ItemIssue: React.FC = () => {
@@ -63,7 +67,7 @@ const ItemIssue: React.FC = () => {
   const [stores, setStores] = useState<Store[]>([]);
   const [departmentList, setDepartmentList] = useState<any[]>([]);
   const [indentOrderList, setIndentOrderList] = useState<any[]>([]);
-  const [loadingIndentOrders, setLoadingIndentOrders] = useState(false);
+  const [_loadingIndentOrders, setLoadingIndentOrders] = useState(false);
   const [issueItems, setIssueItems] = useState<IssueItem[]>([]);
 
   const [loadingStores, setLoadingStores] = useState(false);
@@ -299,6 +303,7 @@ const ItemIssue: React.FC = () => {
               issueQty: 0,
               stockSource: String(item.stockSource ?? ""),
               stockReferenceNo: Number(item.stockReferenceNo ?? 0),
+              reamingQty:Number(item.reamingQty ?? 0),
             };
 
             if (!acc[itemCode]) {
@@ -315,10 +320,12 @@ const ItemIssue: React.FC = () => {
                 unitCode: Number(item.unitCode ?? 0),
                 mainUnit: String(item.mainUnit ?? ""),
                 mainUnitConverstion: String(item.mainUnitConverstion ?? ""),
+
                 issueQty: 0,
                 branchCode: String(
                   item.branchCode ?? master?.branch_Code ?? branch ?? "",
                 ),
+                reamingQty:Number(item.reamingQty ?? 0),
                 stockSource: String(item.stockSource ?? ""),
                 stockReferenceNo: Number(item.stockReferenceNo ?? 0),
                 stockRows: [stockRow],
@@ -400,8 +407,8 @@ const ItemIssue: React.FC = () => {
     const item = issueItems.find((item) => item.id === id);
     if (!item) return;
 
-    if (requestedQty > item.approvedQty) {
-      toast.error(`Issue Qty cannot exceed approved Qty ${item.approvedQty}`);
+    if (requestedQty > item.reamingQty) {
+      toast.error(`Issue Qty cannot exceed approved Qty ${item.reamingQty}`);
       return;
     }
 
@@ -485,7 +492,7 @@ const ItemIssue: React.FC = () => {
     }
 
     const totalApprovedQty = issueItems.reduce(
-      (total, item) => total + item.approvedQty,
+      (total, item) => total + item.reamingQty,
       0,
     );
     const totalIssueQty = issueItems.reduce(
@@ -525,7 +532,7 @@ const ItemIssue: React.FC = () => {
           branch_Code: item.branchCode || branch || "",
           availableQty: Math.max(
             0,
-            Number(row.approvedQty || 0) - Number(row.issueQty || 0),
+            Number(row.reamingQty || 0) - Number(row.issueQty || 0),
           ),
           orginalQty: row.approvedQty ?? 0,
           returnQty: 0,
@@ -834,7 +841,7 @@ const ItemIssue: React.FC = () => {
                           </td>
 
                           <td className="px-4 py-3 text-right font-medium text-gray-800">
-                            {item.approvedQty}
+                            {item.reamingQty}
                           </td>
 
                           <td className="px-4 py-3 text-gray-700">
@@ -845,7 +852,7 @@ const ItemIssue: React.FC = () => {
                             <input
                               type="number"
                               min="0"
-                              max={item.approvedQty}
+                              max={item.reamingQty}
                               step="any"
                               value={item.issueQty === 0 ? "" : item.issueQty}
                               onChange={(e) =>
