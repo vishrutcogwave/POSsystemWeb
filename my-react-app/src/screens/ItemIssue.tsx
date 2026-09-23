@@ -8,6 +8,7 @@ import {
   searchIndentOrder,
   getNextIdCode,
   getIndentOrderApprovalData,
+  saveItemIssue,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 
@@ -32,8 +33,20 @@ type ItemDetails = {
 
 type IssueItem = ItemDetails & {
   id: number;
+  pNo: number;
+  ioNo: number;
   approvedQty: number;
   issueQty: number;
+  branchCode: string;
+  stockSource: string;
+  stockReferenceNo: number;
+  stockRows: {
+    pNo: number;
+    approvedQty: number;
+    issueQty: number;
+    stockSource: string;
+    stockReferenceNo: number;
+  }[];
 };
 const ItemIssue: React.FC = () => {
   const { appData } = useAppContext();
@@ -185,6 +198,9 @@ const ItemIssue: React.FC = () => {
   };
 
   const fetchNextTransNo = async () => {
+    if (!branch) return;
+
+    startLoading();
     try {
       const res = await getNextIdCode({
         tableName: "ItemIssueMaster",
@@ -201,6 +217,8 @@ const ItemIssue: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching next Trans No:", error);
+    } finally {
+      stopLoading();
     }
   };
   const handleIndentNoChange = async (
@@ -219,6 +237,8 @@ const ItemIssue: React.FC = () => {
     }
 
     try {
+      startLoading();
+
       const response = await getIndentOrderApprovalData(
         branch,
         Number(selectedIndentNo),
@@ -265,26 +285,47 @@ const ItemIssue: React.FC = () => {
         // -----------------------------
         // Bind Details to Item Table
         // -----------------------------
+        // Same itemCode is merged ONLY for display. Every original pNo is
+        // retained inside stockRows so Save can send separate detail rows.
         const groupedItems = details.reduce(
-          (acc: Record<number, any>, item: any) => {
-            const itemCode = Number(item.itemCode);
+          (acc: Record<number, IssueItem>, item: any, index: number) => {
+            const itemCode = Number(item.itemCode ?? 0);
+            const approvedQty = Number(item.approvedQty ?? 0);
+            const pNo = Number(item.pNo ?? index + 1);
+
+            const stockRow = {
+              pNo,
+              approvedQty,
+              issueQty: 0,
+              stockSource: String(item.stockSource ?? ""),
+              stockReferenceNo: Number(item.stockReferenceNo ?? 0),
+            };
 
             if (!acc[itemCode]) {
               acc[itemCode] = {
                 id: itemCode,
-                itemCode: itemCode,
-                itemName: String(item.itemName),
-                itemRate: Number(item.ioItemRate ?? 0),
-                approvedQty: Number(item.approvedQty ?? 0),
-                unitName: item.unit ?? "",
+                pNo,
+                ioNo: Number(item.ioNo ?? master?.ioNo ?? 0),
+                itemCode,
+                itemName: String(item.itemName ?? ""),
+                itemRate: Number(item.ioItemRate ?? item.itemRate ?? 0),
+                availableQty: Number(item.availableQty ?? 0),
+                approvedQty,
+                unitName: String(item.unit ?? item.unitName ?? ""),
                 unitCode: Number(item.unitCode ?? 0),
-                mainUnit: item.mainUnit ?? "",
-                mainUnitConverstion: item.mainUnitConverstion ?? "",
+                mainUnit: String(item.mainUnit ?? ""),
+                mainUnitConverstion: String(item.mainUnitConverstion ?? ""),
                 issueQty: 0,
+                branchCode: String(
+                  item.branchCode ?? master?.branch_Code ?? branch ?? "",
+                ),
+                stockSource: String(item.stockSource ?? ""),
+                stockReferenceNo: Number(item.stockReferenceNo ?? 0),
+                stockRows: [stockRow],
               };
             } else {
-              // Merge same item code
-              acc[itemCode].approvedQty += Number(item.approvedQty ?? 0);
+              acc[itemCode].approvedQty += approvedQty;
+              acc[itemCode].stockRows.push(stockRow);
             }
 
             return acc;
@@ -305,6 +346,8 @@ const ItemIssue: React.FC = () => {
 
       setIssueItems([]);
       toast.error("Failed to load indent order details");
+    } finally {
+      stopLoading();
     }
   };
   useEffect(() => {
@@ -333,23 +376,59 @@ const ItemIssue: React.FC = () => {
   const handleIssueQtyChange = (id: number, value: string) => {
     if (value === "") {
       setIssueItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, issueQty: 0 } : item)),
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                issueQty: 0,
+                stockRows: item.stockRows.map((row) => ({
+                  ...row,
+                  issueQty: 0,
+                })),
+              }
+            : item,
+        ),
       );
       return;
     }
 
-    const qty = Number(value);
+    if (!/^\d*\.?\d*$/.test(value)) return;
 
-    if (!Number.isFinite(qty) || qty < 0) return;
+    const requestedQty = Number(value);
+    if (!Number.isFinite(requestedQty)) return;
+
+    const item = issueItems.find((item) => item.id === id);
+    if (!item) return;
+
+    if (requestedQty > item.approvedQty) {
+      toast.error(`Issue Qty cannot exceed approved Qty ${item.approvedQty}`);
+      return;
+    }
+
+    // Distribute the entered Issue Qty across the original pNo rows.
+    // Example: pNo 1 approved 20, pNo 2 approved 30, entered 40 =>
+    // pNo 1 issue 20 and pNo 2 issue 20.
+    let remainingQty = requestedQty;
+
+    const updatedStockRows = item.stockRows.map((row) => {
+      const rowIssueQty = Math.min(remainingQty, row.approvedQty);
+      remainingQty -= rowIssueQty;
+
+      return {
+        ...row,
+        issueQty: rowIssueQty,
+      };
+    });
 
     setIssueItems((prev) =>
-      prev.map((item) =>
-        item.id === id
+      prev.map((currentItem) =>
+        currentItem.id === id
           ? {
-              ...item,
-              issueQty: Math.min(qty, item.availableQty),
+              ...currentItem,
+              issueQty: requestedQty,
+              stockRows: updatedStockRows,
             }
-          : item,
+          : currentItem,
       ),
     );
   };
@@ -382,7 +461,7 @@ const ItemIssue: React.FC = () => {
     toast.success("Form cleared");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.store?.storeId) {
       toast.error("Please select Store Name.");
       return;
@@ -398,46 +477,115 @@ const ItemIssue: React.FC = () => {
       return;
     }
 
-    if (issueItems.length === 0) {
-      toast.error("Please add at least one item.");
+    const itemsToSave = issueItems.filter((item) => item.issueQty > 0);
+
+    if (itemsToSave.length === 0) {
+      toast.error("Please enter Issue Qty.");
       return;
     }
 
-    const invalidItem = issueItems.find((item) => item.issueQty <= 0);
-
-    if (invalidItem) {
-      toast.error("Issue Qty must be greater than zero.");
-      return;
-    }
-
-    // Keep this payload ready for the Item Issue save API.
-    // The exact save API was not present in the available source.
-    const payload = {
-      transNo: formData.transNo,
-      date: formData.date,
-      storeId: formData.store.storeId,
-      storeName: formData.store.storeName,
-      departmentCode: formData.departmentCode,
-      departmentName: formData.departmentName,
-      branchCode: branch || "",
-      items: issueItems.map((item) => ({
-        itemCode: item.itemCode,
-        itemName: item.itemName,
-        itemRate: item.itemRate,
-        availableQty: item.availableQty,
-        unitCode: item.unitCode,
-        unitName: item.unitName,
-        mainUnit: item.mainUnit,
-        mainUnitConverstion: item.mainUnitConverstion,
-        issueQty: item.issueQty,
-      })),
-    };
-
-    console.log("Item Issue Payload:", payload);
-
-    toast.success(
-      "Item Issue data prepared. Connect the Item Issue Save API in handleSave.",
+    const totalApprovedQty = issueItems.reduce(
+      (total, item) => total + item.approvedQty,
+      0,
     );
+    const totalIssueQty = issueItems.reduce(
+      (total, item) => total + item.issueQty,
+      0,
+    );
+
+    if (totalIssueQty > totalApprovedQty) {
+      toast.error(`Issue Qty cannot exceed approved Qty ${totalApprovedQty}.`);
+      return;
+    }
+
+    const userCode = Number(
+      appData?.user?.userCode ??
+        appData?.user?.userid ??
+        appData?.user?.userId ??
+        0,
+    );
+
+    // IMPORTANT:
+    // The table is merged by itemCode, but the API payload is NOT merged.
+    // Each original pNo is saved as a separate detail row.
+    const detailItems = itemsToSave.flatMap((item) =>
+      item.stockRows
+        .filter((row) => row.issueQty > 0)
+        .map((row) => ({
+          iNo: Number(formData.transNo),
+          itemCode: item.itemCode,
+          itemName: item.itemName,
+          issueQty: row.issueQty,
+          itemRate: item.itemRate,
+          unit: item.unitName,
+          unitCode: item.unitCode,
+          pNo: row.pNo,
+          qtyPer: Number(item.mainUnitConverstion || 0),
+          noOfQty: row.issueQty,
+          branch_Code: item.branchCode || branch || "",
+          availableQty: Math.max(
+            0,
+            Number(row.approvedQty || 0) - Number(row.issueQty || 0),
+          ),
+          orginalQty: row.approvedQty ?? 0,
+          returnQty: 0,
+          mainUnit: item.mainUnit,
+          mainUnitConverstion: item.mainUnitConverstion,
+          stockSource: row.stockSource,
+          stockReferenceNo: row.stockReferenceNo,
+        })),
+    );
+
+    if (detailItems.length === 0) {
+      toast.error("Please enter Issue Qty.");
+      return;
+    }
+
+    const totalAmount = detailItems.reduce(
+      (total, item) => total + item.issueQty * item.itemRate,
+      0,
+    );
+
+    const payload = {
+      iNo: Number(formData.transNo),
+      issueDate: new Date(formData.date).toISOString(),
+      depCode: Number(formData.departmentCode),
+      totalAmount,
+      billNo: 0,
+      branch_Code: branch || "",
+      userCode,
+      pNo: 0,
+      issueType: "Issue",
+      indentNo: Number(formData.indentNo),
+      isMinibar: false,
+      storeId: String(formData.store.storeId),
+      status: "ISS",
+      items: detailItems,
+    };
+    debugger;
+    console.log("Item Issue Save Payload:", payload);
+
+    try {
+      startLoading();
+
+      const response = await saveItemIssue(payload);
+
+      if (response?.success) {
+        toast.success(response?.message || "Item Issue saved successfully");
+      } else {
+        toast.error(response?.message || "Failed to save Item Issue");
+      }
+    } catch (error: any) {
+      console.error(
+        "Error saving item issue:",
+        error?.response?.data || error?.message || error,
+      );
+      toast.error(
+        error?.response?.data?.message || "Failed to save Item Issue",
+      );
+    } finally {
+      stopLoading();
+    }
   };
 
   return (
@@ -615,7 +763,7 @@ const ItemIssue: React.FC = () => {
               </div>
 
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                {issueItems.length} Item(s)
+                {issueItems.length} Unique Item(s)
               </span>
             </div>
 
@@ -656,7 +804,7 @@ const ItemIssue: React.FC = () => {
                     {issueItems.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={9}
+                          colSpan={8}
                           className="px-4 py-10 text-center text-sm text-gray-500"
                         >
                           No items added yet. Select an item, enter Issue Qty
@@ -697,7 +845,7 @@ const ItemIssue: React.FC = () => {
                             <input
                               type="number"
                               min="0"
-                              max={item.availableQty}
+                              max={item.approvedQty}
                               step="any"
                               value={item.issueQty === 0 ? "" : item.issueQty}
                               onChange={(e) =>

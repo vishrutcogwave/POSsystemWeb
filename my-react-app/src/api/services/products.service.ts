@@ -7269,3 +7269,64 @@ export const getIndentOrderApprovalData = async (
     throw error;
   }
 };
+
+export const saveItemIssue = async (payload: {
+  iNo: number;
+  issueDate: string;
+  depCode: number;
+  totalAmount: number;
+  billNo: number;
+  branch_Code: string;
+  userCode: number;
+  pNo: number;
+  issueType: string;
+  indentNo: number;
+  isMinibar: boolean;
+  storeId: string;
+  status: string;
+
+  items: {
+    iNo: number;
+    itemCode: number;
+    itemName: string;
+    issueQty: number;
+    itemRate: number;
+    unit: string;
+    unitCode: number;
+    pNo: number;
+    qtyPer: number;
+    noOfQty: number;
+    branch_Code: string;
+    availableQty: number;
+    returnQty: number;
+    mainUnit: string;
+    mainUnitConverstion: string;
+    stockSource: string;
+    stockReferenceNo: number;
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/ItemIssueSave",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving item issue:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
