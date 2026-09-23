@@ -399,6 +399,11 @@ const DashboardHeader: React.FC = () => {
     icon: ShieldCheck,
     permissionName: "Indent Order Approval",
   },
+  {
+  name: "Item Issue",
+  icon: ShieldCheck,
+  permissionName: "Item Issue",
+},
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -454,6 +459,7 @@ const DashboardHeader: React.FC = () => {
     "Purchase Damage": "/purchase/purchasedamage",
     "Indent Order": "/purchase/indentorder",
     "Indent Order Approval": "/purchase/indentorderapproval",
+    "Item Issue": "/purchase/itemissue"
   };
 
   const handleLogout = () => {

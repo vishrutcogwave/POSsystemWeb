@@ -7049,6 +7049,8 @@ export const saveIndentOrder = async (data: {
     branch_Code: string;
     reamingQty: number;
     approvedQty: number;
+     stockReferenceNo: number,
+      stockSource: string
   }[];
 }) => {
   const token = localStorage.getItem("token");

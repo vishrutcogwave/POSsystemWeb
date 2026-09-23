@@ -56,6 +56,8 @@ type ItemIndentDetails = {
   mainUnit: string;
   mainUnitConverstion: string;
   branch_Code: string;
+  stockSource: string;
+  stockReferenceNo: number;
 };
 type IndentItem = ItemIndentDetails & {
   id: number;
@@ -431,6 +433,8 @@ const IndentOrder: React.FC = () => {
         mainUnitConverstion: String(data?.mainUnitConverstion ?? ""),
 
         branch_Code: String(data?.branch_Code ?? branchCode),
+        stockSource: String(data?.stockSource ?? ""),
+        stockReferenceNo: Number(data?.stockReferenceNo ?? 0),
       }));
 
       console.log("Mapped PNo Details:", details);
@@ -742,6 +746,9 @@ const IndentOrder: React.FC = () => {
 
             // New IO approval quantity
             approvedQty: Number(item.approvedQty || 0),
+
+            stockReferenceNo: Number(item.stockReferenceNo || 0),
+            stockSource: String(item.stockSource || ""),
           };
         }),
       };
@@ -919,6 +926,8 @@ const IndentOrder: React.FC = () => {
           originalQty: Number(item?.ioOrginalQty ?? 0),
           // Initially approved quantity = requested quantity
           approvedQty: 0,
+          stockReferenceNo: Number(item?.stockReferenceNo ?? 0),
+          stockSource: String(item?.stockSource ?? ""),
         };
       },
     );
@@ -1073,6 +1082,8 @@ const IndentOrder: React.FC = () => {
 
               // NEW API FIELD
               indentQty,
+              stockReferenceNo: Number(item.stockReferenceNo || 0),
+                    stockSource: item.stockSource || ""
             };
           });
         })(),
@@ -1349,13 +1360,9 @@ const IndentOrder: React.FC = () => {
                         Description
                       </th>
 
-                      <th className="border border-gray-800 px-2 py-2 text-center">
-                        Unit
-                      </th>
+                   
 
-                      <th className="border border-gray-800 px-2 py-2 text-right">
-                        Rate
-                      </th>
+                    
                       {printData?.master?.status == "IO" && (
                         <th className="border border-gray-800 px-2 py-2 text-right">
                           Available Qty
@@ -1390,13 +1397,8 @@ const IndentOrder: React.FC = () => {
                             {item?.itemName || item?.description || "-"}
                           </td>
 
-                          <td className="border border-gray-800 px-2 py-2 text-center">
-                            {item?.unit || "-"}
-                          </td>
+                         
 
-                          <td className="border border-gray-800 px-2 py-2 text-right">
-                            ₹ {Number(item?.ioItemRate ?? 0).toFixed(2)}
-                          </td>
                           {printData?.master?.status == "IO" && (
                             <td className="border border-gray-800 px-2 py-2 text-right">
                               {item?.availableQty ?? item?.ioAvailableQty ?? 0}
@@ -1742,20 +1744,14 @@ const IndentOrder: React.FC = () => {
                         />
                       </div>
 
-                      <div>
-                        <label className={labelClass}>Unit</label>
-                        <input
-                          value={selectedItemDetails.unitName}
-                          disabled
-                          className={`${inputClass} cursor-not-allowed bg-gray-100`}
-                        />
-                      </div>
+                      
 
                       <div>
                         <label className={labelClass}>Available Qty</label>
                         <input
                           value={itemDetailOptions.reduce(
-                            (total, item) => total + Number(item.availableQty || 0),
+                            (total, item) =>
+                              total + Number(item.availableQty || 0),
                             0,
                           )}
                           disabled
@@ -1834,13 +1830,8 @@ const IndentOrder: React.FC = () => {
                           Name
                         </th>
 
-                        <th className="w-24 px-2 py-2 text-right text-xs font-semibold text-gray-600">
-                          Rate
-                        </th>
+                      
 
-                        <th className="w-24 px-2 py-2 text-left text-xs font-semibold text-gray-600">
-                          Unit
-                        </th>
 
                         <th className="w-32 px-2 py-2 text-right text-xs font-semibold text-blue-700">
                           Indent Qty
@@ -1893,16 +1884,9 @@ const IndentOrder: React.FC = () => {
                               {item.itemName}
                             </td>
 
-                            {/* RATE */}
-                            <td className="px-2 py-2 text-right text-gray-700">
-                              {Number(item.itemRate || 0).toFixed(2)}
-                            </td>
+                          
 
-                            {/* UNIT */}
-                            <td className="px-2 py-2 text-gray-700">
-                              {item.unitName || "-"}
-                            </td>
-
+                        
                             {/* MERGED INDENT QTY */}
                             <td className="px-2 py-2 text-right">
                               <input
