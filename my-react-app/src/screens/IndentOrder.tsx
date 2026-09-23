@@ -1036,6 +1036,9 @@ const IndentOrder: React.FC = () => {
             orginalQty: Number(item.originalQty || 0),
 
             indentQty: indentQty,
+            stockReferenceNo: Number(item.stockReferenceNo || 0),
+
+            stockSource: item.stockSource || "",
           };
         }),
       };
