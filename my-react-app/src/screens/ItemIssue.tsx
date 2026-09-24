@@ -331,10 +331,11 @@ const navigate = useNavigate();
                 stockReferenceNo: Number(item.stockReferenceNo ?? 0),
                 stockRows: [stockRow],
               };
-            } else {
-              acc[itemCode].approvedQty += approvedQty;
-              acc[itemCode].stockRows.push(stockRow);
-            }
+          } else {
+  acc[itemCode].approvedQty += approvedQty;
+  acc[itemCode].reamingQty += Number(item.reamingQty ?? 0);
+  acc[itemCode].stockRows.push(stockRow);
+}
 
             return acc;
           },
@@ -459,6 +460,19 @@ const navigate = useNavigate();
  const handleClear = () => {
   navigate(-1);
 };
+
+const clearFormAfterSave = () => {
+  setFormData({
+    transNo: "",
+    indentNo: "",
+    date: new Date().toISOString().split("T")[0],
+    store: null,
+    departmentCode: "",
+    departmentName: "",
+  });
+
+  setIssueItems([]);
+};
   const handleSave = async () => {
     if (!formData.store?.storeId) {
       toast.error("Please select Store Name.");
@@ -569,9 +583,15 @@ const navigate = useNavigate();
 
       const response = await saveItemIssue(payload);
 
-      if (response?.success) {
-        toast.success(response?.message || "Item Issue saved successfully");
-      } else {
+     if (response?.success) {
+  toast.success(response?.message || "Item Issue saved successfully");
+
+  // Clear all form fields and table
+  clearFormAfterSave();
+
+  // Get a new transaction number for the next entry
+  fetchNextTransNo();
+} else {
         toast.error(response?.message || "Failed to save Item Issue");
       }
     } catch (error: any) {
