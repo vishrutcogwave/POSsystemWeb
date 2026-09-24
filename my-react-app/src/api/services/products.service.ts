@@ -7271,6 +7271,7 @@ export const getIndentOrderApprovalData = async (
 };
 
 export const saveItemIssue = async (payload: {
+  trasnsactionNo: string,
   iNo: number;
   issueDate: string;
   depCode: number;

@@ -11,6 +11,7 @@ import {
   saveItemIssue,
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
+import { useNavigate } from "react-router-dom";
 
 type Store = {
   storeId: number;
@@ -55,7 +56,7 @@ type IssueItem = ItemDetails & {
 const ItemIssue: React.FC = () => {
   const { appData } = useAppContext();
   const branch = appData?.user?.branch_code;
-
+const navigate = useNavigate();
   const [formData, setFormData] = useState({
     transNo: "",
     indentNo: "",
@@ -455,19 +456,9 @@ const ItemIssue: React.FC = () => {
     }));
   };
 
-  const handleClear = () => {
-    setFormData((prev) => ({
-      ...prev,
-      date: new Date().toISOString().split("T")[0],
-      store: stores[0] || null,
-      departmentCode: "",
-      departmentName: "",
-    }));
-    setIssueItems([]);
-
-    toast.success("Form cleared");
-  };
-
+ const handleClear = () => {
+  navigate(-1);
+};
   const handleSave = async () => {
     if (!formData.store?.storeId) {
       toast.error("Please select Store Name.");
@@ -554,6 +545,7 @@ const ItemIssue: React.FC = () => {
     );
 
     const payload = {
+      trasnsactionNo:String(formData.transNo),
       iNo: Number(formData.transNo),
       issueDate: new Date(formData.date).toISOString(),
       depCode: Number(formData.departmentCode),
@@ -889,7 +881,7 @@ const ItemIssue: React.FC = () => {
               onClick={handleClear}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
-              Clear
+              Back
             </button>
 
             <button
