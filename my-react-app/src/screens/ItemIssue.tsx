@@ -473,139 +473,255 @@ const clearFormAfterSave = () => {
 
   setIssueItems([]);
 };
-  const handleSave = async () => {
-    if (!formData.store?.storeId) {
-      toast.error("Please select Store Name.");
-      return;
-    }
+const handleSave = async () => {
+  if (!formData.store?.storeId) {
+    toast.error("Please select Store Name.");
+    return;
+  }
 
-    if (!formData.transNo.trim()) {
-      toast.error("Please enter Trans No.");
-      return;
-    }
+  if (!formData.transNo.trim()) {
+    toast.error("Please enter Trans No.");
+    return;
+  }
 
-    if (!formData.departmentCode) {
-      toast.error("Please select Department.");
-      return;
-    }
+  if (!formData.departmentCode) {
+    toast.error("Please select Department.");
+    return;
+  }
 
-    const itemsToSave = issueItems.filter((item) => item.issueQty > 0);
+  const totalIssueQty = issueItems.reduce(
+    (total, item) => total + Number(item.issueQty || 0),
+    0
+  );
 
-    if (itemsToSave.length === 0) {
-      toast.error("Please enter Issue Qty.");
-      return;
-    }
+  if (totalIssueQty <= 0) {
+    toast.error("Please enter Issue Qty.");
+    return;
+  }
 
-    const totalApprovedQty = issueItems.reduce(
-      (total, item) => total + item.reamingQty,
-      0,
+  // Calculate total remaining quantity from ALL stock rows
+  const totalRemainingQty = issueItems.reduce(
+    (total, item) => {
+      const rowTotal = (item.stockRows || []).reduce(
+        (rowTotal, row) =>
+          rowTotal + Number(row.reamingQty || 0),
+        0
+      );
+
+      return total + rowTotal;
+    },
+    0
+  );
+
+  if (totalIssueQty > totalRemainingQty) {
+    toast.error(
+      `Issue Qty cannot exceed remaining Qty ${totalRemainingQty}.`
     );
-    const totalIssueQty = issueItems.reduce(
-      (total, item) => total + item.issueQty,
-      0,
-    );
+    return;
+  }
 
-    if (totalIssueQty > totalApprovedQty) {
-      toast.error(`Issue Qty cannot exceed approved Qty ${totalApprovedQty}.`);
-      return;
-    }
+  const userCode = Number(
+    appData?.user?.userCode ??
+      appData?.user?.userid ??
+      appData?.user?.userId ??
+      0
+  );
 
-    const userCode = Number(
-      appData?.user?.userCode ??
-        appData?.user?.userid ??
-        appData?.user?.userId ??
-        0,
-    );
+  const detailItems: any[] = [];
 
-    // IMPORTANT:
-    // The table is merged by itemCode, but the API payload is NOT merged.
-    // Each original pNo is saved as a separate detail row.
-    const detailItems = itemsToSave.flatMap((item) =>
-      item.stockRows
-        .filter((row) => row.issueQty > 0)
-        .map((row) => ({
-          iNo: Number(formData.transNo),
-          itemCode: item.itemCode,
-          itemName: item.itemName,
-          issueQty: row.issueQty,
-          itemRate: item.itemRate,
-          unit: item.unitName,
-          unitCode: item.unitCode,
-          pNo: row.pNo,
-          qtyPer: Number(item.mainUnitConverstion || 0),
-          noOfQty: row.issueQty,
-          branch_Code: item.branchCode || branch || "",
-          availableQty: Math.max(
-            0,
-            Number(row.reamingQty || 0) - Number(row.issueQty || 0),
-          ),
-          orginalQty: row.approvedQty ?? 0,
-          returnQty: 0,
-          mainUnit: item.mainUnit,
-          mainUnitConverstion: item.mainUnitConverstion,
-          stockSource: row.stockSource,
-          stockReferenceNo: row.stockReferenceNo,
-        })),
-    );
+  /**
+   * Process EVERY item.
+   *
+   * For each item:
+   *   item.issueQty = quantity requested for that item
+   *
+   * Then distribute that quantity across its stockRows
+   * according to reamingQty.
+   */
+  for (const item of issueItems) {
+    let remainingIssueQty = Number(item.issueQty || 0);
 
-    if (detailItems.length === 0) {
-      toast.error("Please enter Issue Qty.");
-      return;
-    }
+    const stockRows = [...(item.stockRows || [])];
 
-    const totalAmount = detailItems.reduce(
-      (total, item) => total + item.issueQty * item.itemRate,
-      0,
-    );
+    for (const row of stockRows) {
+      const rowRemainingQty = Number(row.reamingQty || 0);
 
-    const payload = {
-      trasnsactionNo:String(formData.transNo),
-      iNo: Number(formData.transNo),
-      issueDate: new Date(formData.date).toISOString(),
-      depCode: Number(formData.departmentCode),
-      totalAmount,
-      billNo: 0,
-      branch_Code: branch || "",
-      userCode,
-      pNo: 0,
-      issueType: "Issue",
-      indentNo: Number(formData.indentNo),
-      isMinibar: false,
-      storeId: String(formData.store.storeId),
-      status: "ISS",
-      items: detailItems,
-    };
-    debugger;
-    console.log("Item Issue Save Payload:", payload);
+      let issueFromThisRow = 0;
 
-    try {
-      startLoading();
+      // If there is issue quantity remaining,
+      // take it from this row based on reamingQty.
+      if (
+        remainingIssueQty > 0 &&
+        rowRemainingQty > 0
+      ) {
+        issueFromThisRow = Math.min(
+          remainingIssueQty,
+          rowRemainingQty
+        );
 
-      const response = await saveItemIssue(payload);
-
-     if (response?.success) {
-  toast.success(response?.message || "Item Issue saved successfully");
-
-  // Clear all form fields and table
-  clearFormAfterSave();
-
-  // Get a new transaction number for the next entry
-  fetchNextTransNo();
-} else {
-        toast.error(response?.message || "Failed to save Item Issue");
+        remainingIssueQty -= issueFromThisRow;
       }
-    } catch (error: any) {
-      console.error(
-        "Error saving item issue:",
-        error?.response?.data || error?.message || error,
-      );
-      toast.error(
-        error?.response?.data?.message || "Failed to save Item Issue",
-      );
-    } finally {
-      stopLoading();
+
+      /**
+       * IMPORTANT:
+       * Add EVERY row to the payload.
+       *
+       * Even when:
+       * reamingQty = 0
+       *
+       * it will be sent with:
+       * issueQty = 0
+       */
+      detailItems.push({
+        iNo: Number(formData.transNo),
+
+        itemCode: item.itemCode,
+        itemName: item.itemName,
+
+        issueQty: issueFromThisRow,
+
+        itemRate: item.itemRate,
+
+        unit: item.unitName,
+        unitCode: item.unitCode,
+
+        pNo: row.pNo,
+
+        qtyPer: Number(
+          item.mainUnitConverstion || 0
+        ),
+
+        noOfQty: issueFromThisRow,
+
+        branch_Code:
+          item.branchCode || branch || "",
+
+        availableQty: Math.max(
+          0,
+          rowRemainingQty - issueFromThisRow
+        ),
+
+        orginalQty: row.approvedQty ?? 0,
+
+        returnQty: 0,
+
+        mainUnit: item.mainUnit,
+
+        mainUnitConverstion:
+          item.mainUnitConverstion,
+
+        stockSource: row.stockSource,
+
+        stockReferenceNo:
+          row.stockReferenceNo,
+      });
     }
+
+    // Safety check
+    if (remainingIssueQty > 0) {
+      toast.error(
+        `Insufficient remaining quantity for ${item.itemName}. Remaining: ${remainingIssueQty}`
+      );
+      return;
+    }
+  }
+
+  if (detailItems.length === 0) {
+    toast.error("No items available to save.");
+    return;
+  }
+
+  const totalAmount = detailItems.reduce(
+    (total, item) =>
+      total +
+      Number(item.issueQty || 0) *
+        Number(item.itemRate || 0),
+    0
+  );
+
+  const payload = {
+    trasnsactionNo: String(formData.transNo),
+
+    iNo: Number(formData.transNo),
+
+    issueDate: new Date(
+      formData.date
+    ).toISOString(),
+
+    depCode: Number(
+      formData.departmentCode
+    ),
+
+    totalAmount,
+
+    billNo: 0,
+
+    branch_Code: branch || "",
+
+    userCode,
+
+    pNo: 0,
+
+    issueType: "Issue",
+
+    indentNo: Number(
+      formData.indentNo
+    ),
+
+    isMinibar: false,
+
+    storeId: String(
+      formData.store.storeId
+    ),
+
+    status: "ISS",
+
+    // ALL ITEMS ARE SENT
+    items: detailItems,
   };
+
+  console.log(
+    "Item Issue Save Payload:",
+    payload
+  );
+debugger
+  try {
+    startLoading();
+
+    const response =
+      await saveItemIssue(payload);
+
+    if (response?.success) {
+      toast.success(
+        response?.message ||
+          "Item Issue saved successfully"
+      );
+
+      clearFormAfterSave();
+
+      fetchNextTransNo();
+    } else {
+      toast.error(
+        response?.message ||
+          "Failed to save Item Issue"
+      );
+    }
+  } catch (error: any) {
+    console.error(
+      "Error saving item issue:",
+      error?.response?.data ||
+        error?.message ||
+        error
+    );
+
+    toast.error(
+      error?.response?.data?.message ||
+        "Failed to save Item Issue"
+    );
+  } finally {
+    stopLoading();
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
