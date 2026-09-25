@@ -404,6 +404,11 @@ const DashboardHeader: React.FC = () => {
   icon: ShieldCheck,
   permissionName: "Item Issue",
 },
+{
+  name: "Item Return",
+  icon: Receipt,
+  permissionName: "Item Return",
+},
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -459,7 +464,8 @@ const DashboardHeader: React.FC = () => {
     "Purchase Damage": "/purchase/purchasedamage",
     "Indent Order": "/purchase/indentorder",
     "Indent Order Approval": "/purchase/indentorderapproval",
-    "Item Issue": "/purchase/itemissue"
+    "Item Issue": "/purchase/itemissue",
+    "Item Return": "/purchase/itemreturn",
   };
 
   const handleLogout = () => {

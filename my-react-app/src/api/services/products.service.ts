@@ -7331,3 +7331,63 @@ export const saveItemIssue = async (payload: {
     throw error;
   }
 };
+
+
+
+export const getItemIssueNumber = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetItemIssueNumber",
+      {
+        params: {
+          BranchCode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item issue number:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const getItemIssueData = async (
+  branchCode: string,
+  itemNo: number
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryPurchase/GetItemIssueData",
+      {
+        params: {
+          BranchCode: branchCode,
+          ItemNo: itemNo,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item issue data:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
