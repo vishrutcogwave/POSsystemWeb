@@ -7241,7 +7241,7 @@ export const searchIndentOrder = async (branchCode: string) => {
 };
 export const getIndentOrderApprovalData = async (
   branchCode: string,
-  ioNo: number
+  ioNo: number,
 ) => {
   try {
     const token = localStorage.getItem("token");
@@ -7257,21 +7257,21 @@ export const getIndentOrderApprovalData = async (
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching indent order approval data:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
 export const saveItemIssue = async (payload: {
-  trasnsactionNo: string,
+  trasnsactionNo: string;
   iNo: number;
   issueDate: string;
   depCode: number;
@@ -7332,8 +7332,6 @@ export const saveItemIssue = async (payload: {
   }
 };
 
-
-
 export const getItemIssueNumber = async (branchCode: string) => {
   try {
     const token = localStorage.getItem("token");
@@ -7348,45 +7346,93 @@ export const getItemIssueNumber = async (branchCode: string) => {
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching item issue number:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
 };
 
-export const getItemIssueData = async (
-  branchCode: string,
-  itemNo: number
-) => {
+export const getItemIssueData = async (branchCode: string, itemNo: number) => {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.get(
-      "/api/InventoryPurchase/GetItemIssueData",
-      {
-        params: {
-          BranchCode: branchCode,
-          ItemNo: itemNo,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.get("/api/InventoryPurchase/GetItemIssueData", {
+      params: {
+        BranchCode: branchCode,
+        ItemNo: itemNo,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching item issue data:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+export const itemIssueReturnSave = async (payload: {
+  iNo: number;
+  irNo: number;
+  irDate: string;
+  branchCode: string;
+  irTotalAmount: number;
+  storedId: string;
+  iType: string;
+  status: string;
+  deptCode: string;
+  items: {
+    irNo: number;
+    iNo: number;
+    itemCode: number;
+    irItemRate: number;
+    irItemQty: number;
+    irNoofQty: number;
+    returnQty: number;
+    availableQty: number;
+    originalQty: number;
+    pNo: number;
+    indentNo: number;
+    unitCode: number;
+    unit: string;
+    mainUnit: string;
+    mainUnitConverstion: string;
+    stockSource: string;
+    stockReferenceNo: number;
+    branch_Code: string;
+  }[];
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await api.post(
+      "/api/InventoryPurchase/ItemIssueReturnSave",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving item issue return:",
+      error.response?.data || error.message,
     );
     throw error;
   }
