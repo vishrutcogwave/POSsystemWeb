@@ -451,15 +451,15 @@ const ItemReturn: React.FC = () => {
 
           irItemRate: Number(item.itemRate || 0),
 
-          irItemQty: Number(item.issueQty || 0),
+          irItemQty: Number(item.returnQty || 0),
 
           irNoofQty: Number(item.noOfQty || 0),
 
           returnQty: Number(item.returnQty || 0),
 
-          availableQty: Number(item.availableQty || 0),
+          availableQty: Number(item.issueQty - item.returnQty || 0),
 
-          originalQty: Number(item.orginalQty || 0),
+          originalQty: Number(item.issueQty || 0),
 
           pNo: Number(item.pNo || 0),
 
