@@ -1,3 +1,852 @@
+// import React, { useEffect, useState } from "react";
+// import toast from "react-hot-toast";
+// import Header from "../components/Header";
+// import Loader from "../components/Loader";
+// import {
+//   getItemIssueNumber,
+//   getItemIssueData,
+//   getNextIdCode,
+//   itemIssueReturnSave,
+// } from "../api/services/products.service";
+// import { useAppContext } from "../context/AppContext";
+// import { useNavigate } from "react-router-dom";
+
+// type IssueNumber = {
+//   issueNo: number;
+//   status: string;
+// };
+
+// type IssueMaster = {
+//   iNo: number;
+//   issueDate: string;
+//   depCode: number;
+//   totalAmount: number;
+//   billNo: number;
+//   branch_Code: string;
+//   userCode: number;
+//   pNo: number;
+//   issueType: string;
+//   indentNo: number;
+//   isMinibar: boolean;
+//   storeId: string;
+//   status: string;
+//   trasnsactionNo: string;
+// };
+
+// type ReturnItem = {
+//   iNo: number;
+//   itemCode: number;
+//   itemName: string;
+//   issueQty: number;
+//   itemRate: number;
+//   unit: string;
+//   unitCode: number;
+//   pNo: number;
+//   qtyPer: number;
+//   noOfQty: number;
+//   branch_Code: string;
+//   orginalQty: number;
+//   availableQty: number;
+//   returnQty: number;
+//   mainUnit: string;
+//   mainUnitConverstion: string;
+//   storeId: string;
+//   depCode: number;
+//   stockSource: string;
+//   stockReferenceNo: number;
+//   issueType: string;
+// };
+
+// const ItemReturn: React.FC = () => {
+//   const { appData } = useAppContext();
+
+//   const branch = appData?.user?.branch_code;
+
+//   const navigate = useNavigate();
+
+//   const [formData, setFormData] = useState({
+//     issueNo: "",
+//     irNo: "",
+//     date: new Date().toISOString().split("T")[0],
+//   });
+
+//   const [issueNumbers, setIssueNumbers] = useState<IssueNumber[]>([]);
+
+//   const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
+
+//   const [issueMaster, setIssueMaster] = useState<IssueMaster | null>(null);
+
+//   const [apiLoadingCount, setApiLoadingCount] = useState(0);
+
+//   const inputClass =
+//     "h-10 w-full min-w-0 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+
+//   const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
+
+//   const startLoading = () =>
+//     setApiLoadingCount((count) => count + 1);
+
+//   const stopLoading = () =>
+//     setApiLoadingCount((count) => Math.max(0, count - 1));
+
+//   // ------------------------------------------------------------
+//   // Get IR Number
+//   // ------------------------------------------------------------
+//   const fetchTransactionNo = async () => {
+//     if (!branch) return;
+
+//     startLoading();
+
+//     try {
+//       const res = await getNextIdCode({
+//         tableName: "ItemIssueReturnMaster",
+//         columnName: "IRNo",
+//         conditionName: "Branch_Code",
+//         branch,
+//       });
+
+//       console.log("IR No Response:", res);
+
+//       if (res?.success) {
+//         setFormData((prev) => ({
+//           ...prev,
+//           irNo: String(res.data),
+//         }));
+//       } else {
+//         toast.error(res?.message || "Failed to generate IR No.");
+//       }
+//     } catch (error: any) {
+//       console.error(
+//         "Error fetching IR No:",
+//         error?.response?.data || error?.message || error,
+//       );
+
+//       toast.error("Failed to generate IR No.");
+//     } finally {
+//       stopLoading();
+//     }
+//   };
+
+//   // ------------------------------------------------------------
+//   // Get Issue Number List
+//   // ------------------------------------------------------------
+//   const fetchIssueNumbers = async () => {
+//     if (!branch) return;
+
+//     try {
+//       startLoading();
+
+//       const response = await getItemIssueNumber(branch);
+
+//       if (response?.success && Array.isArray(response?.data)) {
+//         setIssueNumbers(response.data);
+//       } else {
+//         setIssueNumbers([]);
+
+//         toast.error(
+//           response?.message || "Failed to load Issue Numbers",
+//         );
+//       }
+//     } catch (error: any) {
+//       console.error(
+//         "Error fetching issue numbers:",
+//         error?.response?.data || error?.message || error,
+//       );
+
+//       setIssueNumbers([]);
+
+//       toast.error("Failed to load Issue Numbers");
+//     } finally {
+//       stopLoading();
+//     }
+//   };
+
+//   // ------------------------------------------------------------
+//   // Get Issue Data
+//   // ------------------------------------------------------------
+//   const handleIssueNoChange = async (
+//     e: React.ChangeEvent<HTMLSelectElement>,
+//   ) => {
+//     const selectedIssueNo = e.target.value;
+
+//     setFormData((prev) => ({
+//       ...prev,
+//       issueNo: selectedIssueNo,
+//     }));
+
+//     setReturnItems([]);
+//     setIssueMaster(null);
+
+//     if (!selectedIssueNo || !branch) {
+//       return;
+//     }
+
+//     try {
+//       startLoading();
+
+//       const response = await getItemIssueData(
+//         branch,
+//         Number(selectedIssueNo),
+//       );
+
+//       console.log("Item Issue Data Response:", response);
+
+//       if (
+//         response?.success &&
+//         Array.isArray(response?.data) &&
+//         response.data.length > 0
+//       ) {
+//         const data = response.data[0];
+
+//         const master = data?.master;
+
+//         const items = Array.isArray(data?.items)
+//           ? data.items
+//           : [];
+
+//         setIssueMaster(master || null);
+
+//         const mappedItems: ReturnItem[] = items.map(
+//           (item: any) => ({
+//             iNo: Number(item?.iNo ?? 0),
+
+//             itemCode: Number(item?.itemCode ?? 0),
+
+//             itemName: String(item?.itemName ?? ""),
+
+//             issueQty: Number(item?.issueQty ?? 0),
+
+//             itemRate: Number(item?.itemRate ?? 0),
+
+//             unit: String(item?.unit ?? ""),
+
+//             unitCode: Number(item?.unitCode ?? 0),
+
+//             pNo: Number(item?.pNo ?? 0),
+
+//             qtyPer: Number(item?.qtyPer ?? 0),
+
+//             noOfQty: Number(item?.noOfQty ?? 0),
+
+//             branch_Code: String(
+//               item?.branch_Code ?? branch ?? "",
+//             ),
+
+//             orginalQty: Number(item?.orginalQty ?? 0),
+
+//             availableQty: Number(item?.availableQty ?? 0),
+
+//             returnQty: Number(item?.returnQty ?? 0),
+
+//             mainUnit: String(item?.mainUnit ?? ""),
+
+//             mainUnitConverstion: String(
+//               item?.mainUnitConverstion ?? "",
+//             ),
+
+//             storeId: String(item?.storeId ?? ""),
+
+//             depCode: Number(item?.depCode ?? 0),
+
+//             stockSource: String(item?.stockSource ?? ""),
+
+//             stockReferenceNo: Number(
+//               item?.stockReferenceNo ?? 0,
+//             ),
+
+//             issueType: String(item?.issueType ?? ""),
+//           }),
+//         );
+
+//         setReturnItems(mappedItems);
+
+//         // Bind API issue date
+//         if (
+//           master?.issueDate &&
+//           !master.issueDate.startsWith("0001")
+//         ) {
+//           setFormData((prev) => ({
+//             ...prev,
+//             date: master.issueDate.split("T")[0],
+//           }));
+//         }
+//       } else {
+//         setReturnItems([]);
+//         setIssueMaster(null);
+
+//         toast.error(
+//           response?.message ||
+//             "No item details found for this Issue No.",
+//         );
+//       }
+//     } catch (error: any) {
+//       console.error(
+//         "Error fetching item issue data:",
+//         error?.response?.data || error?.message || error,
+//       );
+
+//       setReturnItems([]);
+//       setIssueMaster(null);
+
+//       toast.error("Failed to load item issue details");
+//     } finally {
+//       stopLoading();
+//     }
+//   };
+
+//   // ------------------------------------------------------------
+//   // Return Qty Change
+//   // ------------------------------------------------------------
+//   const handleReturnQtyChange = (
+//     index: number,
+//     value: string,
+//   ) => {
+//     if (value === "") {
+//       setReturnItems((prev) =>
+//         prev.map((item, i) =>
+//           i === index
+//             ? {
+//                 ...item,
+//                 returnQty: 0,
+//               }
+//             : item,
+//         ),
+//       );
+
+//       return;
+//     }
+
+//     // Only numbers / decimal
+//     if (!/^\d*\.?\d*$/.test(value)) {
+//       return;
+//     }
+
+//     const returnQty = Number(value);
+
+//     if (!Number.isFinite(returnQty)) {
+//       return;
+//     }
+
+//     const item = returnItems[index];
+
+//     if (!item) {
+//       return;
+//     }
+
+//     if (returnQty > item.issueQty) {
+//       toast.error(
+//         `Return Qty cannot exceed Issue Qty ${item.issueQty}`,
+//       );
+
+//       return;
+//     }
+
+//     setReturnItems((prev) =>
+//       prev.map((currentItem, i) =>
+//         i === index
+//           ? {
+//               ...currentItem,
+//               returnQty,
+//             }
+//           : currentItem,
+//       ),
+//     );
+//   };
+
+//   // ------------------------------------------------------------
+//   // Clear / Back
+//   // ------------------------------------------------------------
+//   const handleClear = () => {
+//     navigate(-1);
+//   };
+
+//   // ------------------------------------------------------------
+//   // Save
+//   // ------------------------------------------------------------
+//   const handleSave = async () => {
+//     if (!formData.issueNo) {
+//       toast.error("Please select Issue No.");
+//       return;
+//     }
+
+//     if (!formData.irNo) {
+//       toast.error("IR No. is not generated.");
+//       return;
+//     }
+
+//     if (!issueMaster) {
+//       toast.error("Issue details not found.");
+//       return;
+//     }
+
+//     const itemsToReturn = returnItems.filter(
+//       (item) => Number(item.returnQty || 0) > 0,
+//     );
+
+//     if (itemsToReturn.length === 0) {
+//       toast.error("Please enter Return Qty.");
+//       return;
+//     }
+
+//     // ----------------------------------------------------------
+//     // Validate Return Qty
+//     // ----------------------------------------------------------
+//     const invalidItem = itemsToReturn.find(
+//       (item) =>
+//         Number(item.returnQty || 0) >
+//         Number(item.issueQty || 0),
+//     );
+
+//     if (invalidItem) {
+//       toast.error(
+//         `Return Qty cannot exceed Issue Qty for Item ${invalidItem.itemCode}`,
+//       );
+//       return;
+//     }
+
+//     try {
+//       startLoading();
+
+//       // --------------------------------------------------------
+//       // Calculate Total Amount
+//       // --------------------------------------------------------
+//       const irTotalAmount = itemsToReturn.reduce(
+//         (total, item) => {
+//           const rate = Number(item.itemRate || 0);
+//           const returnQty = Number(item.returnQty || 0);
+
+//           return total + rate * returnQty;
+//         },
+//         0,
+//       );
+
+//       // --------------------------------------------------------
+//       // Prepare Save Payload
+//       // --------------------------------------------------------
+//       const payload = {
+//         iNo: Number(formData.issueNo),
+
+//         irNo: Number(formData.irNo),
+
+//         irDate: new Date(formData.date).toISOString(),
+
+//         branchCode: String(branch || ""),
+
+//         irTotalAmount: Number(irTotalAmount.toFixed(2)),
+
+//         storedId: String(issueMaster.storeId || ""),
+
+//         iType: String(issueMaster.issueType || ""),
+
+//         status: "Pending",
+
+//         deptCode: String(issueMaster.depCode || ""),
+
+//         items: itemsToReturn.map((item) => ({
+//           irNo: Number(formData.irNo),
+
+//           iNo: Number(item.iNo || 0),
+
+//           itemCode: Number(item.itemCode || 0),
+
+//           irItemRate: Number(item.itemRate || 0),
+
+//           irItemQty: Number(item.returnQty || 0),
+
+//           irNoofQty: Number(item.noOfQty || 0),
+
+//           returnQty: Number(item.returnQty || 0),
+
+//           availableQty: Number(item.issueQty - item.returnQty || 0),
+
+//           originalQty: Number(item.issueQty || 0),
+
+//           pNo: Number(item.pNo || 0),
+
+//           indentNo: Number(issueMaster.indentNo || 0),
+
+//           unitCode: Number(item.unitCode || 0),
+
+//           unit: String(item.unit || ""),
+
+//           mainUnit: String(item.mainUnit || ""),
+
+//           mainUnitConverstion: String(
+//             item.mainUnitConverstion || "",
+//           ),
+
+//           stockSource: String(item.stockSource || ""),
+
+//           stockReferenceNo: Number(
+//             item.stockReferenceNo || 0,
+//           ),
+
+//           branch_Code: String(
+//             item.branch_Code || branch || "",
+//           ),
+//         })),
+//       };
+
+//       console.log(
+//         "Item Issue Return Save Payload:",
+//         payload,
+//       );
+
+//       // --------------------------------------------------------
+//       // Save API
+//       // --------------------------------------------------------
+//       const response = await itemIssueReturnSave(payload);
+
+//       console.log(
+//         "Item Issue Return Save Response:",
+//         response,
+//       );
+
+//       if (response?.success) {
+//         toast.success(
+//           response?.message ||
+//             "Item return saved successfully",
+//         );
+
+//         // ------------------------------------------------------
+//         // Clear Current Form
+//         // ------------------------------------------------------
+//         setFormData({
+//           issueNo: "",
+//           irNo: "",
+//           date: new Date()
+//             .toISOString()
+//             .split("T")[0],
+//         });
+
+//         setReturnItems([]);
+
+//         setIssueMaster(null);
+
+//         // ------------------------------------------------------
+//         // Generate next IR No.
+//         // ------------------------------------------------------
+//         await fetchTransactionNo();
+//       } else {
+//         toast.error(
+//           response?.message ||
+//             "Failed to save item return",
+//         );
+//       }
+//     } catch (error: any) {
+//       console.error(
+//         "Error saving item return:",
+//         error?.response?.data ||
+//           error?.message ||
+//           error,
+//       );
+
+//       toast.error(
+//         error?.response?.data?.message ||
+//           "Failed to save item return",
+//       );
+//     } finally {
+//       stopLoading();
+//     }
+//   };
+
+//   // ------------------------------------------------------------
+//   // Initial Load
+//   // ------------------------------------------------------------
+//   useEffect(() => {
+//     if (!branch) return;
+
+//     fetchIssueNumbers();
+
+//     // Generate IR No.
+//     fetchTransactionNo();
+//   }, [branch]);
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
+//       {apiLoadingCount > 0 && <Loader />}
+
+//       <Header />
+
+//       <div className="mx-auto w-full max-w-[1600px]">
+
+//         {/* PAGE TITLE */}
+//         <div className="mb-5 mt-2">
+//           <h1 className="text-2xl font-bold leading-tight text-gray-800">
+//             Item Return
+//           </h1>
+
+//           <p className="mt-1 text-sm text-gray-500">
+//             Enter required details for item return
+//           </p>
+//         </div>
+
+//         {/* MAIN CONTAINER */}
+//         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
+
+//           {/* MASTER DETAILS */}
+//           <section className="overflow-hidden rounded-xl border border-gray-200">
+
+//             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+//               <div>
+//                 <h2 className="text-base font-semibold text-gray-800">
+//                   Item Return
+//                 </h2>
+
+//                 <p className="mt-0.5 text-xs text-gray-500">
+//                   Select the issue number to load issued item details
+//                 </p>
+//               </div>
+//             </div>
+
+//             <div className="p-4 md:p-5">
+
+//               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+//                 {/* IR NO */}
+//                 <div className="min-w-0">
+//                   <label className={labelClass}>
+//                     IR No.
+//                   </label>
+
+//                   <input
+//                     type="text"
+//                     value={formData.irNo}
+//                     readOnly
+//                     className={`${inputClass} bg-gray-100`}
+//                   />
+//                 </div>
+
+//                 {/* ISSUE NO */}
+//                 <div className="min-w-0">
+//                   <label className={labelClass}>
+//                     Issue No.
+//                   </label>
+
+//                   <select
+//                     value={formData.issueNo}
+//                     onChange={handleIssueNoChange}
+//                     className={inputClass}
+//                   >
+//                     <option value="">
+//                       Select Issue No.
+//                     </option>
+
+//                     {issueNumbers.map((item) => (
+//                       <option
+//                         key={item.issueNo}
+//                         value={item.issueNo}
+//                       >
+//                         {item.issueNo}
+//                       </option>
+//                     ))}
+//                   </select>
+//                 </div>
+
+//                 {/* DATE */}
+//                 <div className="min-w-0">
+//                   <label className={labelClass}>
+//                     Date
+//                   </label>
+
+//                   <input
+//                     type="date"
+//                     value={formData.date}
+//                     onChange={(e) =>
+//                       setFormData((prev) => ({
+//                         ...prev,
+//                         date: e.target.value,
+//                       }))
+//                     }
+//                     className={inputClass}
+//                   />
+//                 </div>
+//               </div>
+//             </div>
+//           </section>
+
+//           {/* ITEM RETURN TABLE */}
+//           <section className="relative z-10 mt-6 overflow-visible rounded-xl border border-gray-200">
+
+//             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+//               <div>
+//                 <h2 className="text-sm font-bold text-gray-800">
+//                   Item Return Detail
+//                 </h2>
+
+//                 <p className="mt-0.5 text-xs text-gray-500">
+//                   Enter the Return Qty for the issued items.
+//                 </p>
+//               </div>
+
+//               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+//                 {returnItems.length} Item(s)
+//               </span>
+//             </div>
+
+//             <div className="p-4 md:p-5">
+
+//               <div className="overflow-x-auto rounded-lg border border-gray-200">
+
+//                 <table className="w-full min-w-[1200px] text-sm">
+
+//                   <thead className="bg-gray-100">
+//                     <tr className="border-b border-gray-200">
+
+//                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+//                         S.No.
+//                       </th>
+
+//                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+//                         Code
+//                       </th>
+
+//                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+//                         Name
+//                       </th>
+
+//                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+//                         Rate
+//                       </th>
+
+//                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+//                         Issue Qty
+//                       </th>
+
+//                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
+//                         Stock Source
+//                       </th>
+
+//                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
+//                         Return Qty
+//                       </th>
+
+//                     </tr>
+//                   </thead>
+
+//                   <tbody>
+
+//                     {returnItems.length === 0 ? (
+
+//                       <tr>
+//                         <td
+//                           colSpan={7}
+//                           className="px-4 py-10 text-center text-sm text-gray-500"
+//                         >
+//                           Select an Issue No. to load item details.
+//                         </td>
+//                       </tr>
+
+//                     ) : (
+
+//                       returnItems.map((item, index) => (
+
+//                         <tr
+//                           key={`${item.iNo}-${item.itemCode}-${item.pNo}-${index}`}
+//                           className="border-b border-gray-200 hover:bg-gray-50"
+//                         >
+
+//                           <td className="px-4 py-3 text-left text-gray-700">
+//                             {index + 1}
+//                           </td>
+
+//                           <td className="px-4 py-3 text-left font-medium text-gray-800">
+//                             {item.itemCode}
+//                           </td>
+
+//                           <td className="px-4 py-3 text-left text-gray-700">
+//                             {item.itemName}
+//                           </td>
+
+//                           <td className="px-4 py-3 text-right text-gray-700">
+//                             {item.itemRate}
+//                           </td>
+
+//                           <td className="px-4 py-3 text-right font-semibold text-gray-800">
+//                             {item.issueQty}
+//                           </td>
+
+//                           <td className="px-4 py-3 text-left text-gray-700">
+//                             {item.stockSource}
+//                           </td>
+
+//                           {/* RETURN QTY */}
+//                           <td className="px-4 py-3 text-right">
+
+//                             <div className="flex justify-end">
+
+//                               <input
+//                                 type="number"
+//                                 min={0}
+//                                 max={item.issueQty}
+//                                 step="any"
+//                                 value={
+//                                   item.returnQty === 0
+//                                     ? ""
+//                                     : item.returnQty
+//                                 }
+//                                 onChange={(e) =>
+//                                   handleReturnQtyChange(
+//                                     index,
+//                                     e.target.value,
+//                                   )
+//                                 }
+//                                 className="h-9 w-28 rounded-md border border-blue-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+//                                 placeholder="0"
+//                               />
+
+//                             </div>
+
+//                           </td>
+
+//                         </tr>
+
+//                       ))
+
+//                     )}
+
+//                   </tbody>
+
+//                 </table>
+
+//               </div>
+//             </div>
+//           </section>
+
+//           {/* ACTION BUTTONS */}
+//           <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
+
+//             <button
+//               type="button"
+//               onClick={handleClear}
+//               className="inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+//             >
+//               Back
+//             </button>
+
+//             <button
+//               type="button"
+//               onClick={handleSave}
+//               disabled={
+//                 apiLoadingCount > 0 ||
+//                 !formData.irNo
+//               }
+//               className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+//             >
+//               Save
+//             </button>
+
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ItemReturn;
+
+
+
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Header from "../components/Header";
@@ -83,8 +932,7 @@ const ItemReturn: React.FC = () => {
 
   const labelClass = "mb-1.5 block text-xs font-semibold text-gray-600";
 
-  const startLoading = () =>
-    setApiLoadingCount((count) => count + 1);
+  const startLoading = () => setApiLoadingCount((count) => count + 1);
 
   const stopLoading = () =>
     setApiLoadingCount((count) => Math.max(0, count - 1));
@@ -143,9 +991,7 @@ const ItemReturn: React.FC = () => {
       } else {
         setIssueNumbers([]);
 
-        toast.error(
-          response?.message || "Failed to load Issue Numbers",
-        );
+        toast.error(response?.message || "Failed to load Issue Numbers");
       }
     } catch (error: any) {
       console.error(
@@ -184,10 +1030,7 @@ const ItemReturn: React.FC = () => {
     try {
       startLoading();
 
-      const response = await getItemIssueData(
-        branch,
-        Number(selectedIssueNo),
-      );
+      const response = await getItemIssueData(branch, Number(selectedIssueNo));
 
       console.log("Item Issue Data Response:", response);
 
@@ -200,71 +1043,100 @@ const ItemReturn: React.FC = () => {
 
         const master = data?.master;
 
-        const items = Array.isArray(data?.items)
-          ? data.items
-          : [];
+        const items = Array.isArray(data?.items) ? data.items : [];
 
         setIssueMaster(master || null);
 
-        const mappedItems: ReturnItem[] = items.map(
-          (item: any) => ({
-            iNo: Number(item?.iNo ?? 0),
+        // --------------------------------------------------------
+        // Map API items
+        // --------------------------------------------------------
+        const mappedItems: ReturnItem[] = items.map((item: any) => ({
+          iNo: Number(item?.iNo ?? 0),
 
-            itemCode: Number(item?.itemCode ?? 0),
+          itemCode: Number(item?.itemCode ?? 0),
 
-            itemName: String(item?.itemName ?? ""),
+          itemName: String(item?.itemName ?? ""),
 
-            issueQty: Number(item?.issueQty ?? 0),
+          issueQty: Number(item?.issueQty ?? 0),
 
-            itemRate: Number(item?.itemRate ?? 0),
+          itemRate: Number(item?.itemRate ?? 0),
 
-            unit: String(item?.unit ?? ""),
+          unit: String(item?.unit ?? ""),
 
-            unitCode: Number(item?.unitCode ?? 0),
+          unitCode: Number(item?.unitCode ?? 0),
 
-            pNo: Number(item?.pNo ?? 0),
+          pNo: Number(item?.pNo ?? 0),
 
-            qtyPer: Number(item?.qtyPer ?? 0),
+          qtyPer: Number(item?.qtyPer ?? 0),
 
-            noOfQty: Number(item?.noOfQty ?? 0),
+          noOfQty: Number(item?.noOfQty ?? 0),
 
-            branch_Code: String(
-              item?.branch_Code ?? branch ?? "",
-            ),
+          branch_Code: String(item?.branch_Code ?? branch ?? ""),
 
-            orginalQty: Number(item?.orginalQty ?? 0),
+          orginalQty: Number(item?.orginalQty ?? 0),
 
-            availableQty: Number(item?.availableQty ?? 0),
+          availableQty: Number(item?.availableQty ?? 0),
 
-            returnQty: Number(item?.returnQty ?? 0),
+          returnQty: Number(item?.returnQty ?? 0),
 
-            mainUnit: String(item?.mainUnit ?? ""),
+          mainUnit: String(item?.mainUnit ?? ""),
 
-            mainUnitConverstion: String(
-              item?.mainUnitConverstion ?? "",
-            ),
+          mainUnitConverstion: String(item?.mainUnitConverstion ?? ""),
 
-            storeId: String(item?.storeId ?? ""),
+          storeId: String(item?.storeId ?? ""),
 
-            depCode: Number(item?.depCode ?? 0),
+          depCode: Number(item?.depCode ?? 0),
 
-            stockSource: String(item?.stockSource ?? ""),
+          stockSource: String(item?.stockSource ?? ""),
 
-            stockReferenceNo: Number(
-              item?.stockReferenceNo ?? 0,
-            ),
+          stockReferenceNo: Number(item?.stockReferenceNo ?? 0),
 
-            issueType: String(item?.issueType ?? ""),
-          }),
+          issueType: String(item?.issueType ?? ""),
+        }));
+
+        // --------------------------------------------------------
+        // MERGE SAME ITEM CODE
+        // --------------------------------------------------------
+        const mergedItems = Object.values(
+          mappedItems.reduce(
+            (acc: Record<number, ReturnItem>, item: ReturnItem) => {
+              const itemCode = item.itemCode;
+
+              if (!acc[itemCode]) {
+                acc[itemCode] = {
+                  ...item,
+
+                  issueQty: Number(item.issueQty || 0),
+
+                  orginalQty: Number(item.orginalQty || 0),
+
+                  availableQty: Number(item.availableQty || 0),
+
+                  returnQty: Number(item.returnQty || 0),
+                };
+              } else {
+                // Add quantities of duplicate ItemCode
+                acc[itemCode].issueQty += Number(item.issueQty || 0);
+
+                acc[itemCode].orginalQty += Number(item.orginalQty || 0);
+
+                acc[itemCode].availableQty += Number(item.availableQty || 0);
+
+                acc[itemCode].returnQty += Number(item.returnQty || 0);
+              }
+
+              return acc;
+            },
+            {},
+          ),
         );
 
-        setReturnItems(mappedItems);
+        setReturnItems(mergedItems);
 
+        // --------------------------------------------------------
         // Bind API issue date
-        if (
-          master?.issueDate &&
-          !master.issueDate.startsWith("0001")
-        ) {
+        // --------------------------------------------------------
+        if (master?.issueDate && !master.issueDate.startsWith("0001")) {
           setFormData((prev) => ({
             ...prev,
             date: master.issueDate.split("T")[0],
@@ -275,8 +1147,7 @@ const ItemReturn: React.FC = () => {
         setIssueMaster(null);
 
         toast.error(
-          response?.message ||
-            "No item details found for this Issue No.",
+          response?.message || "No item details found for this Issue No.",
         );
       }
     } catch (error: any) {
@@ -297,10 +1168,7 @@ const ItemReturn: React.FC = () => {
   // ------------------------------------------------------------
   // Return Qty Change
   // ------------------------------------------------------------
-  const handleReturnQtyChange = (
-    index: number,
-    value: string,
-  ) => {
+  const handleReturnQtyChange = (index: number, value: string) => {
     if (value === "") {
       setReturnItems((prev) =>
         prev.map((item, i) =>
@@ -334,9 +1202,7 @@ const ItemReturn: React.FC = () => {
     }
 
     if (returnQty > item.issueQty) {
-      toast.error(
-        `Return Qty cannot exceed Issue Qty ${item.issueQty}`,
-      );
+      toast.error(`Return Qty cannot exceed Issue Qty ${item.issueQty}`);
 
       return;
     }
@@ -392,15 +1258,14 @@ const ItemReturn: React.FC = () => {
     // Validate Return Qty
     // ----------------------------------------------------------
     const invalidItem = itemsToReturn.find(
-      (item) =>
-        Number(item.returnQty || 0) >
-        Number(item.issueQty || 0),
+      (item) => Number(item.returnQty || 0) > Number(item.issueQty || 0),
     );
 
     if (invalidItem) {
       toast.error(
         `Return Qty cannot exceed Issue Qty for Item ${invalidItem.itemCode}`,
       );
+
       return;
     }
 
@@ -410,15 +1275,13 @@ const ItemReturn: React.FC = () => {
       // --------------------------------------------------------
       // Calculate Total Amount
       // --------------------------------------------------------
-      const irTotalAmount = itemsToReturn.reduce(
-        (total, item) => {
-          const rate = Number(item.itemRate || 0);
-          const returnQty = Number(item.returnQty || 0);
+      const irTotalAmount = itemsToReturn.reduce((total, item) => {
+        const rate = Number(item.itemRate || 0);
 
-          return total + rate * returnQty;
-        },
-        0,
-      );
+        const returnQty = Number(item.returnQty || 0);
+
+        return total + rate * returnQty;
+      }, 0);
 
       // --------------------------------------------------------
       // Prepare Save Payload
@@ -471,42 +1334,27 @@ const ItemReturn: React.FC = () => {
 
           mainUnit: String(item.mainUnit || ""),
 
-          mainUnitConverstion: String(
-            item.mainUnitConverstion || "",
-          ),
+          mainUnitConverstion: String(item.mainUnitConverstion || ""),
 
           stockSource: String(item.stockSource || ""),
 
-          stockReferenceNo: Number(
-            item.stockReferenceNo || 0,
-          ),
+          stockReferenceNo: Number(item.stockReferenceNo || 0),
 
-          branch_Code: String(
-            item.branch_Code || branch || "",
-          ),
+          branch_Code: String(item.branch_Code || branch || ""),
         })),
       };
 
-      console.log(
-        "Item Issue Return Save Payload:",
-        payload,
-      );
+      console.log("Item Issue Return Save Payload:", payload);
 
       // --------------------------------------------------------
       // Save API
       // --------------------------------------------------------
       const response = await itemIssueReturnSave(payload);
 
-      console.log(
-        "Item Issue Return Save Response:",
-        response,
-      );
+      console.log("Item Issue Return Save Response:", response);
 
       if (response?.success) {
-        toast.success(
-          response?.message ||
-            "Item return saved successfully",
-        );
+        toast.success(response?.message || "Item return saved successfully");
 
         // ------------------------------------------------------
         // Clear Current Form
@@ -514,9 +1362,7 @@ const ItemReturn: React.FC = () => {
         setFormData({
           issueNo: "",
           irNo: "",
-          date: new Date()
-            .toISOString()
-            .split("T")[0],
+          date: new Date().toISOString().split("T")[0],
         });
 
         setReturnItems([]);
@@ -528,22 +1374,16 @@ const ItemReturn: React.FC = () => {
         // ------------------------------------------------------
         await fetchTransactionNo();
       } else {
-        toast.error(
-          response?.message ||
-            "Failed to save item return",
-        );
+        toast.error(response?.message || "Failed to save item return");
       }
     } catch (error: any) {
       console.error(
         "Error saving item return:",
-        error?.response?.data ||
-          error?.message ||
-          error,
+        error?.response?.data || error?.message || error,
       );
 
       toast.error(
-        error?.response?.data?.message ||
-          "Failed to save item return",
+        error?.response?.data?.message || "Failed to save item return",
       );
     } finally {
       stopLoading();
@@ -569,7 +1409,6 @@ const ItemReturn: React.FC = () => {
       <Header />
 
       <div className="mx-auto w-full max-w-[1600px]">
-
         {/* PAGE TITLE */}
         <div className="mb-5 mt-2">
           <h1 className="text-2xl font-bold leading-tight text-gray-800">
@@ -583,10 +1422,8 @@ const ItemReturn: React.FC = () => {
 
         {/* MAIN CONTAINER */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5 md:p-6">
-
           {/* MASTER DETAILS */}
           <section className="overflow-hidden rounded-xl border border-gray-200">
-
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
               <div>
                 <h2 className="text-base font-semibold text-gray-800">
@@ -600,14 +1437,10 @@ const ItemReturn: React.FC = () => {
             </div>
 
             <div className="p-4 md:p-5">
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
                 {/* IR NO */}
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    IR No.
-                  </label>
+                  <label className={labelClass}>IR No.</label>
 
                   <input
                     type="text"
@@ -619,24 +1452,17 @@ const ItemReturn: React.FC = () => {
 
                 {/* ISSUE NO */}
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Issue No.
-                  </label>
+                  <label className={labelClass}>Issue No.</label>
 
                   <select
                     value={formData.issueNo}
                     onChange={handleIssueNoChange}
                     className={inputClass}
                   >
-                    <option value="">
-                      Select Issue No.
-                    </option>
+                    <option value="">Select Issue No.</option>
 
                     {issueNumbers.map((item) => (
-                      <option
-                        key={item.issueNo}
-                        value={item.issueNo}
-                      >
+                      <option key={item.issueNo} value={item.issueNo}>
                         {item.issueNo}
                       </option>
                     ))}
@@ -645,9 +1471,7 @@ const ItemReturn: React.FC = () => {
 
                 {/* DATE */}
                 <div className="min-w-0">
-                  <label className={labelClass}>
-                    Date
-                  </label>
+                  <label className={labelClass}>Date</label>
 
                   <input
                     type="date"
@@ -667,7 +1491,6 @@ const ItemReturn: React.FC = () => {
 
           {/* ITEM RETURN TABLE */}
           <section className="relative z-10 mt-6 overflow-visible rounded-xl border border-gray-200">
-
             <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-800">
@@ -685,14 +1508,10 @@ const ItemReturn: React.FC = () => {
             </div>
 
             <div className="p-4 md:p-5">
-
               <div className="overflow-x-auto rounded-lg border border-gray-200">
-
                 <table className="w-full min-w-[1200px] text-sm">
-
                   <thead className="bg-gray-100">
                     <tr className="border-b border-gray-200">
-
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                         S.No.
                       </th>
@@ -713,39 +1532,28 @@ const ItemReturn: React.FC = () => {
                         Issue Qty
                       </th>
 
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
-                        Stock Source
-                      </th>
-
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600">
                         Return Qty
                       </th>
-
                     </tr>
                   </thead>
 
                   <tbody>
-
                     {returnItems.length === 0 ? (
-
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={6}
                           className="px-4 py-10 text-center text-sm text-gray-500"
                         >
                           Select an Issue No. to load item details.
                         </td>
                       </tr>
-
                     ) : (
-
                       returnItems.map((item, index) => (
-
                         <tr
-                          key={`${item.iNo}-${item.itemCode}-${item.pNo}-${index}`}
+                          key={`${item.iNo}-${item.itemCode}-${index}`}
                           className="border-b border-gray-200 hover:bg-gray-50"
                         >
-
                           <td className="px-4 py-3 text-left text-gray-700">
                             {index + 1}
                           </td>
@@ -766,56 +1574,36 @@ const ItemReturn: React.FC = () => {
                             {item.issueQty}
                           </td>
 
-                          <td className="px-4 py-3 text-left text-gray-700">
-                            {item.stockSource}
-                          </td>
-
                           {/* RETURN QTY */}
                           <td className="px-4 py-3 text-right">
-
                             <div className="flex justify-end">
-
                               <input
                                 type="number"
                                 min={0}
                                 max={item.issueQty}
                                 step="any"
                                 value={
-                                  item.returnQty === 0
-                                    ? ""
-                                    : item.returnQty
+                                  item.returnQty === 0 ? "" : item.returnQty
                                 }
                                 onChange={(e) =>
-                                  handleReturnQtyChange(
-                                    index,
-                                    e.target.value,
-                                  )
+                                  handleReturnQtyChange(index, e.target.value)
                                 }
                                 className="h-9 w-28 rounded-md border border-blue-300 px-2 text-right text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 placeholder="0"
                               />
-
                             </div>
-
                           </td>
-
                         </tr>
-
                       ))
-
                     )}
-
                   </tbody>
-
                 </table>
-
               </div>
             </div>
           </section>
 
           {/* ACTION BUTTONS */}
           <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-5">
-
             <button
               type="button"
               onClick={handleClear}
@@ -827,15 +1615,11 @@ const ItemReturn: React.FC = () => {
             <button
               type="button"
               onClick={handleSave}
-              disabled={
-                apiLoadingCount > 0 ||
-                !formData.irNo
-              }
+              disabled={apiLoadingCount > 0 || !formData.irNo}
               className="inline-flex h-10 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Save
             </button>
-
           </div>
         </div>
       </div>
