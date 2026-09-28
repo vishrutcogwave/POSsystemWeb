@@ -841,264 +841,425 @@ const DashboardHeader: React.FC = () => {
       </div>
 
       {/* MOBILE MENU */}
-      {mobileOpen && (
-        <div className="sm:hidden flex flex-col gap-3 px-4 py-3 bg-white border-t shadow-md text-sm">
-          {/* MASTER MOBILE */}
+   {/* MOBILE MENU */}
+{mobileOpen && (
+  <div className="sm:hidden bg-white border-t shadow-md">
+    <div className="px-3 py-3 space-y-1">
 
-          {/* DASHBOARD MOBILE */}
-          {hasMainMenuAccess("Dashboard") && (
-            <button
-              onClick={() => {
-                navigate("/RealDashboard");
-                setMobileOpen(false);
-                setActiveMenu(null);
-              }}
-              className="flex items-center gap-2 w-full text-left py-2"
-            >
-              <Home size={18} className="text-green-600" />
-              Dashboard
-            </button>
-          )}
-          {hasMainMenuAccess("Master") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("MASTER")}
-                className="flex justify-between w-full"
-              >
-                Master <ChevronDown size={16} />
-              </button>
+      {/* DASHBOARD */}
+      {hasMainMenuAccess("Dashboard") && (
+        <button
+          onClick={() => {
+            navigate("/RealDashboard");
+            setMobileOpen(false);
+            setActiveMenu(null);
+          }}
+          className="flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-left
+                     hover:bg-green-50 active:bg-green-100 transition-colors"
+        >
+          <Home size={18} className="text-green-600 shrink-0" />
+          <span className="flex-1">Dashboard</span>
+        </button>
+      )}
 
-              {activeMenu === "MASTER" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {masterItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
+      {/* MASTER */}
+      {hasMainMenuAccess("Master") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("MASTER")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-blue-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <Settings size={18} className="text-blue-600 shrink-0" />
+              <span>Master</span>
+            </span>
 
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "MASTER" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "MASTER" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-blue-100 space-y-1">
+              {masterItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-blue-50
+                                 hover:text-blue-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           )}
-          {/* SUB MASTER */}
-          {hasMainMenuAccess("Sub Master") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("SUB_MASTER")}
-                className="flex justify-between w-full"
-              >
-                Sub Master <ChevronDown size={16} />
-              </button>
-
-              {activeMenu === "SUB_MASTER" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {subMasterItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* <button className="flex items-center gap-2">
-            <Boxes size={16} /> Inventory
-          </button> */}
-
-          {/* POS */}
-          {hasMainMenuAccess("POS") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("POS")}
-                className="flex justify-between w-full"
-              >
-                POS <ChevronDown size={16} />
-              </button>
-
-              {activeMenu === "POS" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {posDropdownItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-          {/* POS REPORTS */}
-          {hasMainMenuAccess("POS Reports") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("POS_REPORTS")}
-                className="flex justify-between w-full"
-              >
-                POS Reports <ChevronDown size={16} />
-              </button>
-
-              {activeMenu === "POS_REPORTS" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {posReportItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* UTILITY */}
-          {hasMainMenuAccess("POS Reports") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("UTILITY")}
-                className="flex justify-between w-full"
-              >
-                Utility <ChevronDown size={16} />
-              </button>
-
-              {activeMenu === "UTILITY" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {utilityItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-          {/* INVENTORY */}
-          {hasMainMenuAccess("Inventory") && (
-            <div>
-              <button
-                onClick={() => toggleMenu("INVENTORY")}
-                className="flex justify-between w-full"
-              >
-                Inventory Master <ChevronDown size={16} />
-              </button>
-
-              {activeMenu === "INVENTORY" && (
-                <div className="ml-4 mt-2 flex flex-col gap-2">
-                  {inventoryItems
-                    .filter((item) => hasSubMenuAccess(item.permissionName))
-                    .map((item, i) => {
-                      const Icon = item.icon;
-
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => handleNavigation(item.name)}
-                          className="flex items-center gap-2"
-                        >
-                          <Icon size={16} />
-                          {item.name}
-                        </button>
-                      );
-                    })}
-                </div>
-              )}
-
-              {/* PURCHASE */}
-              {hasMainMenuAccess("Purchase") && (
-                <div>
-                  <button
-                    onClick={() => toggleMenu("PURCHASE")}
-                    className="flex justify-between w-full"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Receipt size={16} />
-                      Purchase
-                    </span>
-
-                    <ChevronDown size={16} />
-                  </button>
-
-                  {activeMenu === "PURCHASE" && (
-                    <div className="ml-4 mt-2 flex flex-col gap-2">
-                      {purchaseItems
-                        .filter((item) => hasSubMenuAccess(item.permissionName))
-                        .map((item, i) => {
-                          const Icon = item.icon;
-
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => handleNavigation(item.name)}
-                              className="flex items-center gap-2"
-                            >
-                              <Icon size={16} />
-                              {item.name}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-          {/* 
-          <button>Inventory Reports</button>
-          <button>Utility</button> */}
         </div>
       )}
+
+      {/* SUB MASTER */}
+      {hasMainMenuAccess("Sub Master") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("SUB_MASTER")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-purple-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <Database
+                size={18}
+                className="text-purple-600 shrink-0"
+              />
+              <span>Sub Master</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "SUB_MASTER" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "SUB_MASTER" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-purple-100 space-y-1">
+              {subMasterItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-purple-50
+                                 hover:text-purple-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* POS */}
+      {hasMainMenuAccess("POS") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("POS")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-orange-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <LayoutGrid
+                size={18}
+                className="text-orange-600 shrink-0"
+              />
+              <span>POS</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "POS" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "POS" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-orange-100 space-y-1">
+              {posDropdownItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-orange-50
+                                 hover:text-orange-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* POS REPORTS */}
+      {hasMainMenuAccess("POS Reports") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("POS_REPORTS")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-red-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <FileBarChart
+                size={18}
+                className="text-red-600 shrink-0"
+              />
+              <span>POS Reports</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "POS_REPORTS" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "POS_REPORTS" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-red-100 space-y-1">
+              {posReportItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-red-50
+                                 hover:text-red-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* UTILITY */}
+      {hasMainMenuAccess("POS Reports") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("UTILITY")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-teal-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <Wrench
+                size={18}
+                className="text-teal-600 shrink-0"
+              />
+              <span>Utility</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "UTILITY" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "UTILITY" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-teal-100 space-y-1">
+              {utilityItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-teal-50
+                                 hover:text-teal-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* INVENTORY */}
+      {hasMainMenuAccess("Inventory") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("INVENTORY")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-indigo-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <Boxes
+                size={18}
+                className="text-indigo-600 shrink-0"
+              />
+              <span>Inventory Master</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "INVENTORY" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "INVENTORY" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-indigo-100 space-y-1">
+              {inventoryItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-indigo-50
+                                 hover:text-indigo-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PURCHASE */}
+      {hasMainMenuAccess("Purchase") && (
+        <div>
+          <button
+            onClick={() => toggleMenu("PURCHASE")}
+            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                       hover:bg-green-50 transition-colors"
+          >
+            <span className="flex items-center gap-3">
+              <Receipt
+                size={18}
+                className="text-green-600 shrink-0"
+              />
+              <span>Purchase</span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              className={`transition-transform ${
+                activeMenu === "PURCHASE" ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {activeMenu === "PURCHASE" && (
+            <div className="ml-4 mt-1 pl-3 border-l-2 border-green-100 space-y-1">
+              {purchaseItems
+                .filter((item) =>
+                  hasSubMenuAccess(item.permissionName)
+                )
+                .map((item, i) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleNavigation(item.name)}
+                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                                 text-left text-gray-700 hover:bg-green-50
+                                 hover:text-green-600 transition-colors"
+                    >
+                      <Icon
+                        size={16}
+                        className="text-gray-500 shrink-0"
+                      />
+
+                      <span className="truncate">
+                        {item.name}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  </div>
+)}
       <DayEntryPopup
         isOpen={showDayPopup}
         onClose={() => setShowDayPopup(false)}
