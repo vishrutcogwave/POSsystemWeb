@@ -528,22 +528,43 @@ const fetchInventoryItems = async () => {
         return;
       }
 
-      const data = Array.isArray(res.data) ? res.data[0] : res.data;
+const details = Array.isArray(res.data) ? res.data : [res.data];
 
-      setDirectItemDetails({
-        itemCode: Number(data?.itemCode ?? item.itemCode ?? 0),
-        itemName: String(data?.itemName ?? item.itemName ?? ""),
-        itemRate: Number(data?.itemRate ?? data?.ioItemRate ?? item?.itemRate ?? item?.purchaseRate ?? 0),
-        availableQty: Number(data?.availableQty ?? 0),
-        unitName: String(data?.unitName ?? data?.unit ?? item?.unitName ?? ""),
-        unitCode: Number(data?.unitCode ?? 0),
-        mainUnit: String(data?.mainUnit ?? ""),
-        mainUnitConverstion: String(data?.mainUnitConverstion ?? ""),
-        pNo: Number(data?.pNo ?? 0),
-        stockSource: String(data?.stockSource ?? ""),
-        stockReferenceNo: Number(data?.stockReferenceNo ?? 0),
-        branchCode: String(data?.branch_Code ?? data?.branchCode ?? branch),
-      });
+const stockRows = details.map((data: any) => ({
+  pNo: Number(data?.pNo ?? 0),
+  approvedQty: Number(data?.availableQty ?? 0),
+  issueQty: 0,
+  stockSource: String(data?.stockSource ?? ""),
+  stockReferenceNo: Number(data?.stockReferenceNo ?? 0),
+  reamingQty: Number(data?.availableQty ?? 0),
+  itemRate: Number(data?.itemRate ?? 0),
+}));
+
+const totalAvailableQty = stockRows.reduce(
+  (total: number, row: any) =>
+    total + Number(row.reamingQty || 0),
+  0
+);
+
+const firstStock =
+  stockRows.find(
+    (row: any) => Number(row.reamingQty) > 0
+  ) || stockRows[0];
+setDirectItemDetails({
+  itemCode: Number(firstStock?.itemCode ?? details[0]?.itemCode ?? item.itemCode),
+  itemName: String(details[0]?.itemName ?? item.itemName ?? ""),
+  itemRate: Number(firstStock?.itemRate ?? details[0]?.itemRate ?? 0),
+  availableQty: totalAvailableQty,
+  unitName: String(details[0]?.unitName ?? ""),
+  unitCode: Number(details[0]?.unitCode ?? 0),
+  mainUnit: String(details[0]?.mainUnit ?? ""),
+  mainUnitConverstion: String(details[0]?.mainUnitConverstion ?? ""),
+  pNo: Number(firstStock?.pNo ?? 0),
+  stockSource: String(firstStock?.stockSource ?? ""),
+  stockReferenceNo: Number(firstStock?.stockReferenceNo ?? 0),
+  branchCode: String(details[0]?.branch_Code ?? branch),
+  stockRows,
+});
     } catch (error) {
       console.error("Error loading direct issue item details:", error);
       setDirectItemDetails(null);
@@ -602,36 +623,34 @@ const fetchInventoryItems = async () => {
         ),
       );
     } else {
-      const pNo = Number(directItemDetails.pNo || 0);
-      const newItem: IssueItem = {
-        id: Date.now(),
-        pNo,
-        ioNo: 0,
-        itemCode,
-        itemName: directItemDetails.itemName,
-        itemRate: Number(directItemDetails.itemRate || 0),
-        availableQty,
-        approvedQty: qty,
-        issueQty: qty,
-        unitName: directItemDetails.unitName || "",
-        unitCode: Number(directItemDetails.unitCode || 0),
-        mainUnit: directItemDetails.mainUnit || "",
-        mainUnitConverstion: directItemDetails.mainUnitConverstion || "",
-        branchCode: directItemDetails.branchCode || branch || "",
-        stockSource: directItemDetails.stockSource || "",
-        stockReferenceNo: Number(directItemDetails.stockReferenceNo || 0),
-        reamingQty: qty,
-        stockRows: [
-          {
-            pNo,
-            approvedQty: qty,
-            issueQty: qty,
-            stockSource: directItemDetails.stockSource || "",
-            stockReferenceNo: Number(directItemDetails.stockReferenceNo || 0),
-            reamingQty: qty,
-          },
-        ],
-      };
+  const newItem: IssueItem = {
+  id: Date.now(),
+  pNo: Number(directItemDetails.pNo || 0),
+  ioNo: 0,
+  itemCode,
+  itemName: directItemDetails.itemName,
+  itemRate: Number(directItemDetails.itemRate || 0),
+
+  // TOTAL of PNo 0 + PNo 2 + PNo 3
+  availableQty: Number(directItemDetails.availableQty || 0),
+
+  approvedQty: qty,
+  issueQty: qty,
+
+  unitName: directItemDetails.unitName || "",
+  unitCode: Number(directItemDetails.unitCode || 0),
+  mainUnit: directItemDetails.mainUnit || "",
+  mainUnitConverstion: directItemDetails.mainUnitConverstion || "",
+  branchCode: directItemDetails.branchCode || branch || "",
+
+  stockSource: directItemDetails.stockSource || "",
+  stockReferenceNo: Number(directItemDetails.stockReferenceNo || 0),
+
+  reamingQty: qty,
+
+  // KEEP ALL PURCHASE/STOCK ROWS
+  stockRows: directItemDetails.stockRows || [],
+};
 
       setIssueItems((prev) => [...prev, newItem]);
     }
@@ -762,10 +781,222 @@ const fetchInventoryItems = async () => {
     setDirectIssueQty("");
   };
 
+
+    const handleDirectIssueSave = async () => {
+  // ------------------------------------------------------------
+  // DIRECT ISSUE VALIDATION
+  // ------------------------------------------------------------
+  if (!formData.store?.storeId) {
+    toast.error("Please select Store Name.");
+    return;
+  }
+
+  if (!formData.transNo.trim()) {
+    toast.error("Please enter Trans No.");
+    return;
+  }
+
+  if (!formData.departmentCode) {
+    toast.error("Please select Department.");
+    return;
+  }
+
+  if (issueItems.length === 0) {
+    toast.error("Please add at least one item.");
+    return;
+  }
+
+  const userCode = Number(
+    appData?.user?.userCode ??
+      appData?.user?.userid ??
+      appData?.user?.userId ??
+      0
+  );
+
+  // ------------------------------------------------------------
+  // DIRECT ISSUE DETAILS
+  // ------------------------------------------------------------
+const detailItems: any[] = [];
+
+for (const item of issueItems) {
+  let remainingIssueQty = Number(item.issueQty || 0);
+
+  const stockRows = [...(item.stockRows || [])];
+
+  for (const row of stockRows) {
+    if (remainingIssueQty <= 0) break;
+
+    const availableQty = Number(row.reamingQty || 0);
+
+    // Skip zero quantity
+    if (availableQty <= 0) continue;
+
+    const issueQty = Math.min(
+      availableQty,
+      remainingIssueQty
+    );
+
+    detailItems.push({
+      iNo: Number(formData.transNo),
+
+      itemCode: Number(item.itemCode),
+
+      itemName: item.itemName,
+
+      issueQty,
+
+      // IMPORTANT:
+      // use rate from the actual PNo
+      itemRate: Number(
+        item.itemRate ?? 0
+      ),
+
+      unit: item.unitName,
+
+      unitCode: Number(item.unitCode || 0),
+
+      // ACTUAL PNo
+      pNo: Number(row.pNo || 0),
+
+      qtyPer: Number(item.mainUnitConverstion || 0),
+
+      noOfQty: issueQty,
+
+      branch_Code: item.branchCode || branch || "",
+
+      availableQty: Math.max(
+        0,
+        availableQty - issueQty
+      ),
+
+      orginalQty: issueQty,
+
+      returnQty: 0,
+
+      mainUnit: item.mainUnit,
+
+      mainUnitConverstion: item.mainUnitConverstion,
+
+      stockSource: row.stockSource || "",
+
+      stockReferenceNo: Number(
+        row.stockReferenceNo || 0
+      ),
+    });
+
+    remainingIssueQty -= issueQty;
+  }
+
+  if (remainingIssueQty > 0) {
+    toast.error(
+      `Insufficient stock for ${item.itemName}. Remaining: ${remainingIssueQty}`
+    );
+    return;
+  }
+}
+
+  if (detailItems.length === 0) {
+    toast.error("No items available to save.");
+    return;
+  }
+
+  // ------------------------------------------------------------
+  // TOTAL AMOUNT
+  // ------------------------------------------------------------
+  const totalAmount = detailItems.reduce(
+    (total, item) =>
+      total +
+      Number(item.issueQty || 0) *
+        Number(item.itemRate || 0),
+    0
+  );
+
+  // ------------------------------------------------------------
+  // DIRECT ISSUE PAYLOAD
+  // ------------------------------------------------------------
+  const payload = {
+    trasnsactionNo: String(formData.transNo),
+
+    iNo: Number(formData.transNo),
+
+    issueDate: new Date(formData.date).toISOString(),
+
+    depCode: Number(formData.departmentCode),
+
+    totalAmount,
+
+    billNo: 0,
+
+    branch_Code: branch || "",
+
+    userCode,
+
+    pNo: 0,
+
+    issueType: "Direct",
+
+    // IMPORTANT:
+    // Direct issue has no Indent No
+    indentNo: 0,
+
+    isMinibar: false,
+
+    storeId: String(formData.store.storeId),
+
+    status: "ISS",
+
+    items: detailItems,
+  };
+
+  console.log(
+    "DIRECT ISSUE SAVE PAYLOAD:",
+    JSON.stringify(payload, null, 2)
+  );
+  debugger
+
+  try {
+    startLoading();
+
+    const response = await saveItemIssue(payload);
+
+    if (response?.success) {
+      toast.success(
+        response?.message || "Direct Item Issue saved successfully"
+      );
+
+      clearFormAfterSave();
+
+      fetchNextTransNo();
+    } else {
+      toast.error(
+        response?.message || "Failed to save Direct Item Issue"
+      );
+    }
+  } catch (error: any) {
+    console.error(
+      "Error saving direct item issue:",
+      error?.response?.data ||
+        error?.message ||
+        error
+    );
+
+    toast.error(
+      error?.response?.data?.message ||
+        "Failed to save Direct Item Issue"
+    );
+  } finally {
+    stopLoading();
+  }
+};
+
   // ------------------------------------------------------------
   // SAVE
   // ------------------------------------------------------------
-  const handleSave = async () => {
+const handleSave = async () => {
+  if (directIssue) {
+    await handleDirectIssueSave();
+    return;
+  }
     if (!formData.store?.storeId) {
       toast.error("Please select Store Name.");
       return;
@@ -983,6 +1214,9 @@ const fetchInventoryItems = async () => {
       stopLoading();
     }
   };
+
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 px-3 py-4 sm:px-4 md:px-6">
@@ -1233,10 +1467,10 @@ const fetchInventoryItems = async () => {
   )}
 </div>
 
-                  <div className="min-w-0">
+                  {/* <div className="min-w-0">
                     <label className={labelClass}>Item Code</label>
                     <input value={directItemDetails?.itemCode ?? ""} disabled className={`${inputClass} bg-gray-100`} />
-                  </div>
+                  </div> */}
 
                   <div className="min-w-0">
                     <label className={labelClass}>Item Rate</label>
