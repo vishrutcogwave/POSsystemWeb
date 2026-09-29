@@ -73,7 +73,6 @@ const DashboardHeader: React.FC = () => {
       setShowLicenseAlert(false);
     }
   }, [license]);
-  const { appData } = useAppContext();
   const hasMainMenuAccess = (menuName: string) => {
     return userRights?.some(
       (menu: any) =>
@@ -479,8 +478,9 @@ const DashboardHeader: React.FC = () => {
   };
 
   const getProductKeyDetails = async () => {
+    const branchCode = localStorage.getItem("branch") || "";
     try {
-      const res = await getProductLicenceKey(appData?.user?.branch_code);
+      const res = await getProductLicenceKey(branchCode);
       console.log(res.data);
       setlicense(res.data);
     } catch (e: any) {

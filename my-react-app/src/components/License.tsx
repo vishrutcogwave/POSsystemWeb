@@ -8,9 +8,10 @@ import { getProductLicenceKey, saveProductLicenceKey } from "../api/services/pro
 import Loader from "./Loader";
 
 const License = () => {
-  // const { appData } = useAppContext();
 
   const branchCode = localStorage.getItem("branch") || "";
+  console.log(branchCode,"asdasdasd");
+  
 
   const [loading, setLoading] = useState(false);
 

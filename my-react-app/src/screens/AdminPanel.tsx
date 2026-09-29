@@ -36,14 +36,15 @@ export default function AdminPanel() {
 
   useEffect(() => {
     const loadAdminAccess = async () => {
-      if (!appData?.user?.branch_code) return;
+        const branchCode = localStorage.getItem("branch") ;
+      if (!branchCode) return;
 
       try {
         setPasswordLoading(true);
         setError("");
 
         const res = await getAdminAccessMaster(
-          appData.user.branch_code
+          branchCode
         );
 
         console.log("Admin Access Response:", res);
