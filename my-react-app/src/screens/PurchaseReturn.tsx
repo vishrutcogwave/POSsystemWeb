@@ -183,7 +183,6 @@ const PurchaseReturn: React.FC = () => {
 
       const supplierCode = master?.supCode;
       ("");
-      debugger;
       const supplierName = master?.vendorName ?? "";
 
       const supplierValue =

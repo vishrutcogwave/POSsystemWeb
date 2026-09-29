@@ -1251,7 +1251,6 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
       console.log("CreateDirectPurchase Response:", response);
 
     if (response?.success) {
-      debugger
   toast.success(response?.message || "Purchase saved successfully");
 
   console.log("CreateDirectPurchase Response:", response);

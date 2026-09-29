@@ -952,7 +952,6 @@ for (const item of issueItems) {
     "DIRECT ISSUE SAVE PAYLOAD:",
     JSON.stringify(payload, null, 2)
   );
-  debugger
 
   try {
     startLoading();
@@ -1185,7 +1184,6 @@ const handleSave = async () => {
 
     console.log("Item Issue Save Payload:", payload);
 
-    debugger;
 
     try {
       startLoading();
