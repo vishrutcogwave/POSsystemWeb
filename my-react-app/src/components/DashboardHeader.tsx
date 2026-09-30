@@ -114,6 +114,7 @@ const DashboardHeader: React.FC = () => {
   console.log("userRightsfromtheocntext", userRights);
 
   const inventoryItems = [
+    
     {
       name: "Supplier Master",
       icon: Truck,
@@ -144,6 +145,11 @@ const DashboardHeader: React.FC = () => {
       icon: Receipt,
       permissionName: "Miscellaneous",
     },
+     {
+    name: "Opening Stock",
+    icon: Package,
+    permissionName: "Opening Stock",
+  },
     //   {
     //   name: "Inventory GRN Miscellaneous",
     //   icon: Receipt,
@@ -408,6 +414,7 @@ const DashboardHeader: React.FC = () => {
   icon: Receipt,
   permissionName: "Item Return",
 },
+
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -465,6 +472,7 @@ const DashboardHeader: React.FC = () => {
     "Indent Order Approval": "/purchase/indentorderapproval",
     "Item Issue": "/purchase/itemissue",
     "Item Return": "/purchase/itemreturn",
+    "Opening Stock": "/inventory/openingstock",
   };
 
   const handleLogout = () => {

@@ -7437,3 +7437,129 @@ export const itemIssueReturnSave = async (payload: {
     throw error;
   }
 };
+export const createOpeningStock = async (payload: {
+  openingStockId: number;
+  itemCode: number;
+  storeId: number;
+  deptCode: number;
+  branch_Code: string;
+  stockDate: string;
+  openingQty: number;
+  unitCode: number;
+  unitName: string;
+  baseOpeningQty: number;
+  baseUnitCode: number;
+  baseUnitName: string;
+  closingQty: number;
+  openingRate: number;
+  isActive: boolean;
+  createdBy: number;
+  modifiedBy: number;
+  indentOrderQty: number;
+  indentApprovalQty: number;
+  issuedQty: number;
+  issuedReturnQty: number;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryPurchase/OpeningStockCreate",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error creating opening stock:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+export const updateOpeningStock = async (payload: {
+  openingStockId: number;
+  itemCode: number;
+  storeId: number;
+  deptCode: number;
+  branch_Code: string;
+  stockDate: string;
+  openingQty: number;
+  unitCode: number;
+  unitName: string;
+  baseOpeningQty: number;
+  baseUnitCode: number;
+  baseUnitName: string;
+  closingQty: number;
+  openingRate: number;
+  isActive: boolean;
+  createdBy: number;
+  modifiedBy: number;
+  indentOrderQty: number;
+  indentApprovalQty: number;
+  issuedQty: number;
+  issuedReturnQty: number;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.put(
+      "/api/InventoryPurchase/OpeningStockUpdate",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error updating opening stock:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
+
+
+
+
+export const getOpeningStockList = async (branchCode: string) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      `/api/InventoryPurchase/GetOpeningStockList?BranchCode=${branchCode}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching opening stock list:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+  }
+};
