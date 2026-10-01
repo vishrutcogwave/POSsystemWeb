@@ -86,28 +86,89 @@ console.log("datafromchancesheet",data);
 
   const formatDate = (val: string) =>
     val?.includes("T") ? val.split("T")[0] : val || "--";
+const parseDateTime = (dateValue: string, timeValue: string) => {
+  if (!dateValue) return 0;
 
+  const date = formatDate(dateValue);
+
+  let day: number;
+  let month: number;
+  let year: number;
+
+  // DD/MM/YYYY
+  if (date.includes("/")) {
+    [day, month, year] = date.split("/").map(Number);
+  }
+  // YYYY-MM-DD
+  else if (date.includes("-")) {
+    [year, month, day] = date.split("-").map(Number);
+  } else {
+    return 0;
+  }
+
+  const [hours = 0, minutes = 0, seconds = 0] = (
+    timeValue || "00:00:00"
+  )
+    .split(":")
+    .map(Number);
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    hours,
+    minutes,
+    seconds
+  ).getTime();
+};
 
   // FILTER
 
   // FILTER - USE ALL RECORDS
+// const filteredData = useMemo(() => {
+//   return data.filter((row) => {
+//     const textMatch = Object.values(row)
+//       .join(" ")
+//       .toLowerCase()
+//       .includes(search.toLowerCase());
+
+//     const selectedOutletName =
+//       outlets.find((o) => o.id === selectedOutlet)?.label;
+
+//     const outletMatch =
+//       selectedOutlet === "All" ||
+//       row.oltName === selectedOutletName;
+
+//     return textMatch && outletMatch;
+//   });
+// }, [data, search, selectedOutlet]);
+
+
 const filteredData = useMemo(() => {
-  return data.filter((row) => {
-    const textMatch = Object.values(row)
-      .join(" ")
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  return [...data]
+    .filter((row) => {
+      const textMatch = Object.values(row)
+        .join(" ")
+        .toLowerCase()
+        .includes(search.toLowerCase());
 
-    const selectedOutletName =
-      outlets.find((o) => o.id === selectedOutlet)?.label;
+      const selectedOutletName =
+        outlets.find((o) => o.id === selectedOutlet)?.label;
 
-    const outletMatch =
-      selectedOutlet === "All" ||
-      row.oltName === selectedOutletName;
+      const outletMatch =
+        selectedOutlet === "All" ||
+        row.oltName === selectedOutletName;
 
-    return textMatch && outletMatch;
-  });
-}, [data, search, selectedOutlet]);
+      return textMatch && outletMatch;
+    })
+    .sort((a, b) => {
+      const dateTimeA = parseDateTime(a.date, a.billTime);
+      const dateTimeB = parseDateTime(b.date, b.billTime);
+
+      // Latest Date + Time first
+      return dateTimeB - dateTimeA;
+    });
+}, [data, search, selectedOutlet, outlets]);
   // GROUPING
   const groupedData = useMemo(() => {
     const map: Record<string, Bill[]> = {};
