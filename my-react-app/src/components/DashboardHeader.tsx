@@ -29,6 +29,7 @@ import {
   ShieldAlert,
   XCircle,
   Truck,
+  Keyboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DayEntryPopup from "./DayEntryPopup";
@@ -114,7 +115,6 @@ const DashboardHeader: React.FC = () => {
   console.log("userRightsfromtheocntext", userRights);
 
   const inventoryItems = [
-    
     {
       name: "Supplier Master",
       icon: Truck,
@@ -145,11 +145,11 @@ const DashboardHeader: React.FC = () => {
       icon: Receipt,
       permissionName: "Miscellaneous",
     },
-     {
-    name: "Opening Stock",
-    icon: Package,
-    permissionName: "Opening Stock",
-  },
+    {
+      name: "Opening Stock",
+      icon: Package,
+      permissionName: "Opening Stock",
+    },
     //   {
     //   name: "Inventory GRN Miscellaneous",
     //   icon: Receipt,
@@ -162,6 +162,11 @@ const DashboardHeader: React.FC = () => {
       name: "Touch Screen",
       icon: Monitor,
       permissionName: "Touch Screen",
+    },
+    {
+      name: "Keyboard Screen",
+      icon: Keyboard,
+      permissionName: "Keyboard Screen",
     },
     {
       name: "Day Close",
@@ -394,27 +399,26 @@ const DashboardHeader: React.FC = () => {
       icon: FileX,
       permissionName: "Purchase Damage",
     },
-      {
-    name: "Indent Order",
-    icon: ClipboardList,
-    permissionName: "Indent Order",
-  },
     {
-    name: "Indent Order Approval",
-    icon: ShieldCheck,
-    permissionName: "Indent Order Approval",
-  },
-  {
-  name: "Item Issue",
-  icon: ShieldCheck,
-  permissionName: "Item Issue",
-},
-{
-  name: "Item Return",
-  icon: Receipt,
-  permissionName: "Item Return",
-},
-
+      name: "Indent Order",
+      icon: ClipboardList,
+      permissionName: "Indent Order",
+    },
+    {
+      name: "Indent Order Approval",
+      icon: ShieldCheck,
+      permissionName: "Indent Order Approval",
+    },
+    {
+      name: "Item Issue",
+      icon: ShieldCheck,
+      permissionName: "Item Issue",
+    },
+    {
+      name: "Item Return",
+      icon: Receipt,
+      permissionName: "Item Return",
+    },
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -422,6 +426,8 @@ const DashboardHeader: React.FC = () => {
     "Bill Modification": "/pos/BillModification",
     KotRegister: "/pos/kotregister",
     "Touch Screen": "/NewOrder",
+    "Keyboard Screen": "/KeyboardScreen",
+
     DailySales: "/pos/dailysales",
     ItemSales: "/pos/itemsales",
     ChanceSheet: "/pos/chancesheet",
@@ -849,425 +855,381 @@ const DashboardHeader: React.FC = () => {
       </div>
 
       {/* MOBILE MENU */}
-   {/* MOBILE MENU */}
-{mobileOpen && (
-  <div className="sm:hidden bg-white border-t shadow-md">
-    <div className="px-3 py-3 space-y-1">
-
-      {/* DASHBOARD */}
-      {hasMainMenuAccess("Dashboard") && (
-        <button
-          onClick={() => {
-            navigate("/RealDashboard");
-            setMobileOpen(false);
-            setActiveMenu(null);
-          }}
-          className="flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-left
+      {/* MOBILE MENU */}
+      {mobileOpen && (
+        <div className="sm:hidden bg-white border-t shadow-md">
+          <div className="px-3 py-3 space-y-1">
+            {/* DASHBOARD */}
+            {hasMainMenuAccess("Dashboard") && (
+              <button
+                onClick={() => {
+                  navigate("/RealDashboard");
+                  setMobileOpen(false);
+                  setActiveMenu(null);
+                }}
+                className="flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-left
                      hover:bg-green-50 active:bg-green-100 transition-colors"
-        >
-          <Home size={18} className="text-green-600 shrink-0" />
-          <span className="flex-1">Dashboard</span>
-        </button>
-      )}
+              >
+                <Home size={18} className="text-green-600 shrink-0" />
+                <span className="flex-1">Dashboard</span>
+              </button>
+            )}
 
-      {/* MASTER */}
-      {hasMainMenuAccess("Master") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("MASTER")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* MASTER */}
+            {hasMainMenuAccess("Master") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("MASTER")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-blue-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <Settings size={18} className="text-blue-600 shrink-0" />
-              <span>Master</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <Settings size={18} className="text-blue-600 shrink-0" />
+                    <span>Master</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "MASTER" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "MASTER" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "MASTER" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-blue-100 space-y-1">
-              {masterItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "MASTER" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-blue-100 space-y-1">
+                    {masterItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-blue-50
                                  hover:text-blue-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* SUB MASTER */}
-      {hasMainMenuAccess("Sub Master") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("SUB_MASTER")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* SUB MASTER */}
+            {hasMainMenuAccess("Sub Master") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("SUB_MASTER")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-purple-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <Database
-                size={18}
-                className="text-purple-600 shrink-0"
-              />
-              <span>Sub Master</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <Database size={18} className="text-purple-600 shrink-0" />
+                    <span>Sub Master</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "SUB_MASTER" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "SUB_MASTER" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "SUB_MASTER" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-purple-100 space-y-1">
-              {subMasterItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "SUB_MASTER" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-purple-100 space-y-1">
+                    {subMasterItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-purple-50
                                  hover:text-purple-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* POS */}
-      {hasMainMenuAccess("POS") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("POS")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* POS */}
+            {hasMainMenuAccess("POS") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("POS")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-orange-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <LayoutGrid
-                size={18}
-                className="text-orange-600 shrink-0"
-              />
-              <span>POS</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <LayoutGrid
+                      size={18}
+                      className="text-orange-600 shrink-0"
+                    />
+                    <span>POS</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "POS" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "POS" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "POS" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-orange-100 space-y-1">
-              {posDropdownItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "POS" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-orange-100 space-y-1">
+                    {posDropdownItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-orange-50
                                  hover:text-orange-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* POS REPORTS */}
-      {hasMainMenuAccess("POS Reports") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("POS_REPORTS")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* POS REPORTS */}
+            {hasMainMenuAccess("POS Reports") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("POS_REPORTS")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-red-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <FileBarChart
-                size={18}
-                className="text-red-600 shrink-0"
-              />
-              <span>POS Reports</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <FileBarChart size={18} className="text-red-600 shrink-0" />
+                    <span>POS Reports</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "POS_REPORTS" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "POS_REPORTS" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "POS_REPORTS" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-red-100 space-y-1">
-              {posReportItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "POS_REPORTS" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-red-100 space-y-1">
+                    {posReportItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-red-50
                                  hover:text-red-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* UTILITY */}
-      {hasMainMenuAccess("POS Reports") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("UTILITY")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* UTILITY */}
+            {hasMainMenuAccess("POS Reports") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("UTILITY")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-teal-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <Wrench
-                size={18}
-                className="text-teal-600 shrink-0"
-              />
-              <span>Utility</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <Wrench size={18} className="text-teal-600 shrink-0" />
+                    <span>Utility</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "UTILITY" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "UTILITY" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "UTILITY" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-teal-100 space-y-1">
-              {utilityItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "UTILITY" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-teal-100 space-y-1">
+                    {utilityItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-teal-50
                                  hover:text-teal-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* INVENTORY */}
-      {hasMainMenuAccess("Inventory") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("INVENTORY")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* INVENTORY */}
+            {hasMainMenuAccess("Inventory") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("INVENTORY")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-indigo-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <Boxes
-                size={18}
-                className="text-indigo-600 shrink-0"
-              />
-              <span>Inventory Master</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <Boxes size={18} className="text-indigo-600 shrink-0" />
+                    <span>Inventory Master</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "INVENTORY" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "INVENTORY" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "INVENTORY" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-indigo-100 space-y-1">
-              {inventoryItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "INVENTORY" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-indigo-100 space-y-1">
+                    {inventoryItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-indigo-50
                                  hover:text-indigo-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-      )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
 
-      {/* PURCHASE */}
-      {hasMainMenuAccess("Purchase") && (
-        <div>
-          <button
-            onClick={() => toggleMenu("PURCHASE")}
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+            {/* PURCHASE */}
+            {hasMainMenuAccess("Purchase") && (
+              <div>
+                <button
+                  onClick={() => toggleMenu("PURCHASE")}
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
                        hover:bg-green-50 transition-colors"
-          >
-            <span className="flex items-center gap-3">
-              <Receipt
-                size={18}
-                className="text-green-600 shrink-0"
-              />
-              <span>Purchase</span>
-            </span>
+                >
+                  <span className="flex items-center gap-3">
+                    <Receipt size={18} className="text-green-600 shrink-0" />
+                    <span>Purchase</span>
+                  </span>
 
-            <ChevronDown
-              size={18}
-              className={`transition-transform ${
-                activeMenu === "PURCHASE" ? "rotate-180" : ""
-              }`}
-            />
-          </button>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform ${
+                      activeMenu === "PURCHASE" ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
 
-          {activeMenu === "PURCHASE" && (
-            <div className="ml-4 mt-1 pl-3 border-l-2 border-green-100 space-y-1">
-              {purchaseItems
-                .filter((item) =>
-                  hasSubMenuAccess(item.permissionName)
-                )
-                .map((item, i) => {
-                  const Icon = item.icon;
+                {activeMenu === "PURCHASE" && (
+                  <div className="ml-4 mt-1 pl-3 border-l-2 border-green-100 space-y-1">
+                    {purchaseItems
+                      .filter((item) => hasSubMenuAccess(item.permissionName))
+                      .map((item, i) => {
+                        const Icon = item.icon;
 
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleNavigation(item.name)}
-                      className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => handleNavigation(item.name)}
+                            className="flex items-center w-full gap-3 px-3 py-2 rounded-md
                                  text-left text-gray-700 hover:bg-green-50
                                  hover:text-green-600 transition-colors"
-                    >
-                      <Icon
-                        size={16}
-                        className="text-gray-500 shrink-0"
-                      />
+                          >
+                            <Icon
+                              size={16}
+                              className="text-gray-500 shrink-0"
+                            />
 
-                      <span className="truncate">
-                        {item.name}
-                      </span>
-                    </button>
-                  );
-                })}
-            </div>
-          )}
+                            <span className="truncate">{item.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
-    </div>
-  </div>
-)}
       <DayEntryPopup
         isOpen={showDayPopup}
         onClose={() => setShowDayPopup(false)}

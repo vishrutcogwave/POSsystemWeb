@@ -69,6 +69,7 @@ import IndentOrderApproval from "./IndentOrderApproval";
 import ItemIssue from "./ItemIssue";
 import ItemReturn from "./ItemReturn";
 import OpeningStock from "./OpeningStock";
+import KeyboardScreen from "./KeyboardScreen";
 
 function LandingPage() {
   const location = useLocation();
@@ -277,6 +278,10 @@ function LandingPage() {
 <Route
   path="/inventory/openingstock"
   element={<OpeningStock />}
+/>
+<Route
+  path="/KeyboardScreen"
+  element={<KeyboardScreen />}
 />
       </Routes>
     </>
