@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import CategorySidebar from "../components/CategorySidebar";
 import FoodCard from "../components/FoodCard";
@@ -64,7 +64,8 @@ function OrderingBoard() {
   const [openPayment, setOpenPayment] = useState(false);
   const [openUnsettledPayment, setOpenUnsettledPayment] = useState(false);
   const [unbillData, setUnbillData] = useState<any>(null);
-
+  const barcodeBuffer = useRef("");
+  const lastBarcodeTime = useRef(0);
   const [openAddonModal, setOpenAddonModal] = useState(false);
 
   const [addonItems, setAddonItems] = useState<any[]>([]);
@@ -146,7 +147,7 @@ function OrderingBoard() {
       fastFood?: boolean;
       waiter?: string;
       waiterName?: string;
-      isBillButton?:boolean;
+      isBillButton?: boolean;
       pax?: number;
       isDirectBill?: boolean;
       isDirectKOTandBill?: boolean;
@@ -316,11 +317,11 @@ function OrderingBoard() {
       console.error("Failed to fetch NC reasons", err);
     }
   };
-    const fetchOpenDayDetails = async () => {
+  const fetchOpenDayDetails = async () => {
     try {
       const res = await getOpenDayDetails(
         appData?.user?.userCode || 0,
-        appData?.user?.branch_code || ""
+        appData?.user?.branch_code || "",
       );
 
       console.log("Open Day Details:", res);
@@ -341,7 +342,7 @@ function OrderingBoard() {
     void fetchdayDeatilsData();
     void fetchBillGenerationSettings();
     void fetchRoomServiceList();
-    void fetchOpenDayDetails()
+    void fetchOpenDayDetails();
   }, []);
 
   const fetchSubTables = async () => {
@@ -450,31 +451,34 @@ function OrderingBoard() {
       setKotLoading(false);
     }
   };
-  const fetchTotalAmount = async () => {
-    if (!session) {
+  const totalRequestId = useRef(0);
+
+  const fetchTotalAmount = async (currentCart: any[]) => {
+      const requestId = ++totalRequestId.current;
+    if (!session || currentCart.length === 0) {
       setTotalAmount(0);
       return;
     }
 
+  
+
     try {
-      const payload = buildBillPayload();
+      const payload = buildBillPayload(currentCart);
+
       if (!payload) return;
 
       const res = await getBill(payload);
 
-      // Replace this with the correct field from your API response
-      setTotalAmount(res?.grandTotal || 0);
+      // Ignore old API response
+      if (requestId !== totalRequestId.current) return;
+
+      setTotalAmount(Number(res?.grandTotal || 0));
     } catch (err) {
-      console.error(err);
-      setTotalAmount(0);
+      console.error("Failed to calculate total:", err);
     }
   };
   useEffect(() => {
-    if (cart.length > 0) {
-      fetchTotalAmount();
-    } else {
-      setTotalAmount(0);
-    }
+    fetchTotalAmount(cart);
   }, [cart]);
   const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -537,7 +541,6 @@ function OrderingBoard() {
 
   /* ---------------- MODAL CONTROL ---------------- */
   useEffect(() => {
-    
     if (tableData.fastFood) return; // 🔥 SKIP EVERYTHING
 
     if (tableData.status === "Available") {
@@ -608,40 +611,109 @@ function OrderingBoard() {
     );
   }, [items, activeCategory, searchTerm]);
   /* ---------------- CART ACTIONS ---------------- */
-const addItemToCart = (food: any, selectedCategory: any) => {
-  setCart((prev) => {
-    const existing = prev.find(
-      (i) => i.id === food.itemCode && !i.isAddon
-    );
+  const addItemToCart = (food: any, selectedCategory: any) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === food.itemCode && !i.isAddon);
 
-    // Item already exists in NEW cart
-    if (existing) {
-      return prev.map((i) =>
-        i.id === food.itemCode
-          ? { ...i, qty: i.qty + 1 }
-          : i
-      );
-    }
+      // Item already exists in NEW cart
+      if (existing) {
+        return prev.map((i) =>
+          i.id === food.itemCode ? { ...i, qty: i.qty + 1 } : i,
+        );
+      }
 
-    // NEW item added to NEW cart
-    setHasNewCartItem(true);
+      // NEW item added to NEW cart
+      setHasNewCartItem(true);
 
-    return [
-      ...prev,
-      {
-        id: food.itemCode,
-        name: food.itemName.trim(),
-        price: food.oidRate,
-        qty: 1,
-        category: selectedCategory.catCode,
-        grpCode: Number(selectedCategory.grpCode),
-        spcodes: "",
-        note: "",
-        itemDiscountAllowed: food.itemDiscountAllowed,
-      },
-    ];
-  });
-};
+      return [
+        ...prev,
+        {
+          id: food.itemCode,
+          name: food.itemName.trim(),
+          price: food.oidRate,
+          qty: 1,
+          category: selectedCategory.catCode,
+          grpCode: Number(selectedCategory.grpCode),
+          spcodes: "",
+          note: "",
+          itemDiscountAllowed: food.itemDiscountAllowed,
+        },
+      ];
+    });
+  };
+
+  useEffect(() => {
+    const handleScannerInput = (event: KeyboardEvent) => {
+      const now = Date.now();
+
+      // Scanner types very quickly
+      if (lastBarcodeTime.current > 0 && now - lastBarcodeTime.current > 100) {
+        barcodeBuffer.current = "";
+      }
+
+      lastBarcodeTime.current = now;
+
+      // Scanner sends Enter after barcode
+      if (event.key === "Enter") {
+        const barcode = barcodeBuffer.current.trim();
+
+        if (!barcode) {
+          barcodeBuffer.current = "";
+          return;
+        }
+
+        console.log("SCANNED BARCODE:", barcode);
+
+        // Find item from all categories
+        let foundFood: any = null;
+        let foundCategory: any = null;
+
+        for (const category of items) {
+          const food = category.items.find(
+            (item: any) => String(item.barcode ?? "").trim() === barcode,
+          );
+
+          if (food) {
+            foundFood = food;
+            foundCategory = category;
+            break;
+          }
+        }
+
+        if (!foundFood || !foundCategory) {
+          console.log("BARCODE ITEM NOT FOUND:", barcode);
+
+          toast.error(`Item not found: ${barcode}`);
+
+          barcodeBuffer.current = "";
+          lastBarcodeTime.current = 0;
+          return;
+        }
+
+        console.log("ITEM FOUND:", foundFood.itemName);
+        console.log("ITEM CODE:", foundFood.itemCode);
+
+        // ⭐ ADD DIRECTLY TO CART
+        addItemToCart(foundFood, foundCategory);
+
+        barcodeBuffer.current = "";
+        lastBarcodeTime.current = 0;
+
+        return;
+      }
+
+      // Collect barcode characters
+      if (event.key.length === 1) {
+        barcodeBuffer.current += event.key;
+      }
+    };
+
+    window.addEventListener("keydown", handleScannerInput);
+
+    return () => {
+      window.removeEventListener("keydown", handleScannerInput);
+    };
+  }, [items]);
   const updateQty = (id: number, qty: number) => {
     if (qty <= 0) {
       setCart((prev) => prev.filter((i) => i.id !== id));
@@ -723,21 +795,17 @@ const addItemToCart = (food: any, selectedCategory: any) => {
     );
   };
 
-const decreaseQty = (id: number) => {
-  setCart((prev) => {
-    const updatedCart = prev
-      .map((i) =>
-        i.id === id
-          ? { ...i, qty: i.qty - 1 }
-          : i
-      )
-      .filter((i) => i.qty > 0);
+  const decreaseQty = (id: number) => {
+    setCart((prev) => {
+      const updatedCart = prev
+        .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
+        .filter((i) => i.qty > 0);
 
-    setHasNewCartItem(updatedCart.length > 0);
+      setHasNewCartItem(updatedCart.length > 0);
 
-    return updatedCart;
-  });
-};
+      return updatedCart;
+    });
+  };
   const updateCartNote = (id: number, spcodes: string, note: string) => {
     setCart((prev) => {
       const item = prev.find((i) => i.id === id);
@@ -829,7 +897,6 @@ const decreaseQty = (id: number) => {
   };
 
   const handleKOT = async () => {
-    
     if (dayDetails?.openDayResponse?.success === false) {
       setAlertMsg(
         dayDetails?.openDayResponse?.message ||
@@ -840,10 +907,9 @@ const decreaseQty = (id: number) => {
       return; // 🚨 STOP KOT
     }
 
-        try {
-          
+    try {
       const validateRes = await validateDay({
-        posEntryDate: openDayDetails?.shiftDate|| "",
+        posEntryDate: openDayDetails?.shiftDate || "",
         branchcode: appData?.user?.branch_code || "",
       });
 
@@ -854,7 +920,7 @@ const decreaseQty = (id: number) => {
         // );
         return; // 🚨 Don't allow KOT
       }
-    } catch (err:any) {
+    } catch (err: any) {
       console.error("Validate Day Error:", err);
 
       return;
@@ -1554,7 +1620,7 @@ const decreaseQty = (id: number) => {
 
     return map;
   }, [masterItems]);
-  const buildBillPayload = () => {
+  const buildBillPayload = (currentCart = cart) => {
     if (!session) return null;
 
     const branch = localStorage.getItem("branch") || "";
@@ -1585,7 +1651,7 @@ const decreaseQty = (id: number) => {
       }),
     );
 
-    const newFoods = cart.map((i) => {
+    const newFoods = currentCart.map((i) => {
       const meta = categoryMap.get(i.id);
       // ✅ Collect unique discount groups
 
@@ -1735,10 +1801,14 @@ const decreaseQty = (id: number) => {
   /* ---------------- UI ---------------- */
 
   const handleBillSettlement = async (data: any) => {
-    
-    const { paymentDetails, difference, payableAmount,isTransferToRoom,selectedTransferRoom } = data;
+    const {
+      paymentDetails,
+      difference,
+      payableAmount,
+      isTransferToRoom,
+      selectedTransferRoom,
+    } = data;
     console.log(selectedTransferRoom);
-    
 
     // ❌ Amount mismatch check
     if (difference !== 0) {
@@ -1770,13 +1840,15 @@ const decreaseQty = (id: number) => {
       billId: Number(bill?.ksmId || 0),
       billNo: Number(bill?.ksmBillNo || 0),
 
-      tableNo:isTransferToRoom?selectedTransferRoom?.roomNo: bill?.ksmTblNo || "",
+      tableNo: isTransferToRoom
+        ? selectedTransferRoom?.roomNo
+        : bill?.ksmTblNo || "",
       subTableNo: bill?.ksmsubtblno || "",
       subBillType: "",
       plan: "",
-      guestCode: selectedTransferRoom?.guestCode|| "",
-        guestName: selectedTransferRoom?.guestName || "",
-        checkInNo: selectedTransferRoom?.checkinNo || "",
+      guestCode: selectedTransferRoom?.guestCode || "",
+      guestName: selectedTransferRoom?.guestName || "",
+      checkInNo: selectedTransferRoom?.checkinNo || "",
       discount: Number(bill?.ksmBillDiscount || 0),
       taxAmount: Number(bill?.ksmBillTaxAmt || 0),
       tips: Number(bill?.tips || 0),
@@ -1984,7 +2056,7 @@ const decreaseQty = (id: number) => {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
-        isBillButton={isBillButton && !hasNewCartItem}
+          isBillButton={isBillButton && !hasNewCartItem}
           onUpdateQty={updateQty}
           totalAmount={totalAmount}
           directbill={directbill}
