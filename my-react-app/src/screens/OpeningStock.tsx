@@ -1,1419 +1,500 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
-
+import { DataTable, type Column } from "../components/DataTableForMasters";
+import {
+  getOpenStocksList,
+  createOpenStocksMaster,
+  deleteOpenStocksDetails,
+  getStoreMasterList,
+} from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import toast from "react-hot-toast";
 import Loader from "../components/Loader";
+import { Printer, Save, RefreshCw } from "lucide-react";
 
-import {
-  createOpeningStock,
-  getInventoryItemStoreList,
-  getOpeningStockList,
-  updateOpeningStock,
-  GetGroupMasterList,
-} from "../api/services/products.service";
-
-interface InventoryItem {
-  itemCode: number;
-  itemName: string;
-  storeid: string | number | number[];
-  unitCode: number;
-  unitName: string;
-  itemRate: number;
-
-  // Group ID coming from Inventory Item Store
-  grpCode: number;
-}
-
-interface Group {
-  groupCode: number;
-  groupName: string;
-}
-
-interface OpeningStock {
-  openingStockId: number;
-  itemCode: number;
-  itemName?: string;
-  storeId: number;
-
-  // Backend field
-  deptCode: number;
-
-  branch_Code: string;
-  stockDate: string;
-  openingQty: number;
-  unitCode: number;
-  unitName: string;
-  baseOpeningQty: number;
-  baseUnitCode: number;
-  baseUnitName: string;
-  closingQty: number;
-  openingRate: number;
-  isActive: boolean;
-  createdBy: number;
-  modifiedBy: number | null;
-  indentOrderQty: number | null;
-  indentApprovalQty: number | null;
-  issuedQty: number | null;
-  issuedReturnQty: number | null;
-}
-
-interface OpeningStockForm {
+type OpeningStockItem = {
+  id: number;
   openingStockId: number;
   itemCode: number;
   itemName: string;
-  storeId: number;
-
-  // UI Group
-  groupCode: number;
-  groupName: string;
-
-  // Backend field
-  deptCode: number;
-
+  storeId: string;
+  deptCode: string;
   branch_Code: string;
   stockDate: string;
   openingQty: number;
-  unitCode: number;
+  unitCode: string;
   unitName: string;
-  baseOpeningQty: number;
-  baseUnitCode: number;
-  baseUnitName: string;
   closingQty: number;
   openingRate: number;
   isActive: boolean;
-  createdBy: number;
-  modifiedBy: number;
   indentOrderQty: number;
   indentApprovalQty: number;
   issuedQty: number;
   issuedReturnQty: number;
-}
+  userCode: string;
+};
+type StoreMasterModel = {
+  id: number;
+  storeId: number;
+  storeName: string;
+  storeLocation: string;
+  storeIncharge: string;
+  branch_Code: string;
+};
 
-const OpeningStock = () => {
+const toNumber = (value: unknown): number => {
+  const numberValue = Number(value ?? 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+export default function OpeningStock() {
   const { appData } = useAppContext();
-
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [openingStocks, setOpeningStocks] = useState<
-    OpeningStock[]
-  >([]);
-
-  const [loading, setLoading] = useState(false);
-  const [itemsLoading, setItemsLoading] =
-    useState(false);
-  const [editMode, setEditMode] = useState(false);
-
-  const branchCode =
-    appData?.user?.branch_code || "";
-
-  const userCode = Number(
-    appData?.user?.userCode || 0
+  const branchCode = String(appData?.user?.branch_code ?? "");
+  const userCode = String(appData?.user?.userCode ?? "");
+  const [stockDate, setStockDate] = useState(
+    new Date().toISOString().split("T")[0],
   );
+  const [data, setData] = useState<OpeningStockItem[]>([]);
+  const [originalData, setOriginalData] = useState<OpeningStockItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
-  const [form, setForm] =
-    useState<OpeningStockForm>({
-      openingStockId: 0,
+  const [stores, setStores] = useState<StoreMasterModel[]>([]);
+  const [selectedStore, setSelectedStore] = useState("");
 
-      itemCode: 0,
-      itemName: "",
-
-      storeId: 0,
-
-      groupCode: 0,
-      groupName: "",
-
-      deptCode: 0,
-
-      branch_Code: "",
-
-      stockDate: new Date()
-        .toISOString()
-        .split("T")[0],
-
-      openingQty: 0,
-
-      unitCode: 0,
-      unitName: "",
-
-      baseOpeningQty: 0,
-
-      baseUnitCode: 0,
-      baseUnitName: "",
-
-      closingQty: 0,
-
-      openingRate: 0,
-
-      isActive: true,
-
-      createdBy: 0,
-      modifiedBy: 0,
-
-      indentOrderQty: 0,
-      indentApprovalQty: 0,
-      issuedQty: 0,
-      issuedReturnQty: 0,
-    });
-
-  // =====================================================
-  // FETCH INVENTORY ITEMS
-  // =====================================================
-
-  const fetchItems = async () => {
-    if (!branchCode) return;
-
+  const fetchStores = useCallback(async () => {
     try {
-      setItemsLoading(true);
+      setLoading(true);
 
-      const res =
-        await getInventoryItemStoreList(
-          branchCode
-        );
-
-      console.log(
-        "Inventory Item Store List:",
-        res
-      );
+      const res = await getStoreMasterList(appData?.user?.branch_code);
 
       if (res?.success) {
-        const formattedItems: InventoryItem[] = (
-          res.data || []
-        ).map((item: any) => ({
-          itemCode:
-            Number(item.itemCode) || 0,
-
-          itemName:
-            item.itemName || "",
-
-          storeid:
-            item.storeid ??
-            item.storeId ??
-            "",
-
-          unitCode:
-            Number(item.unitCode) || 0,
-
-          unitName:
-            item.unitName || "",
-
-          itemRate:
-            Number(item.itemRate) || 0,
-
-          /*
-           * GROUP ID FROM INVENTORY ITEM STORE
-           *
-           * Your Inventory Item Store uses grpCode.
-           */
-          grpCode: Number(
-            item.grpCode ??
-              item.groupCode ??
-              item.groupId ??
-              item.groupID ??
-              0
-          ),
-        }));
-
-        console.log(
-          "Formatted Items:",
-          formattedItems
+        const formattedData: StoreMasterModel[] = (res.data || []).map(
+          (item: any) => ({
+            id: item.storeId,
+            storeId: item.storeId,
+            storeName: item.storeName,
+            storeLocation: item.storeLocation,
+            storeIncharge: item.storeIncharge,
+            branch_Code: item.branch_Code,
+          }),
         );
 
-        setItems(formattedItems);
-      }
-    } catch (error: any) {
-      console.error(
-        "Error fetching inventory items:",
-        error.response?.data ||
-          error.message
-      );
+        setStores(formattedData);
 
-      toast.error(
-        "Failed to load items"
-      );
-    } finally {
-      setItemsLoading(false);
-    }
-  };
-
-  // =====================================================
-  // FETCH GROUP MASTER
-  // =====================================================
-
-  const fetchGroups = async () => {
-    try {
-      const res =
-        await GetGroupMasterList(
-          branchCode
+        // Select the first store initially
+        setSelectedStore(
+          formattedData.length > 0 ? String(formattedData[0].storeId) : "",
         );
-
-      console.log(
-        res,
-        "groups"
-      );
-
-      if (res?.success) {
-        const formattedGroups: Group[] = (
-          res.data || []
-        ).map((group: any) => ({
-          groupCode: Number(
-            group.groupCode ??
-              group.groupId ??
-              group.id ??
-              0
-          ),
-
-          groupName:
-            group.groupName ??
-            group.group_Name ??
-            group.name ??
-            "",
-        }));
-
-        console.log(
-          "Formatted Groups:",
-          formattedGroups
-        );
-
-        setGroups(
-          formattedGroups
-        );
+      } else {
+        setStores([]);
+        setSelectedStore("");
+        toast.error(res?.message || "Failed to load stores");
       }
     } catch (error) {
-      console.error(error);
-
-      toast.error(
-        "Failed to fetch groups"
-      );
+      console.error("Error loading stores:", error);
+      toast.error("Error loading stores");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [appData?.user?.branch_code]);
 
-  // =====================================================
-  // FETCH OPENING STOCK
-  // =====================================================
+  const handleDelete = async () => {
+    try {
+      setLoading(true);
+if (!selectedStore) {
+  toast.error("Please select a store");
+  return;
+}
 
-  const fetchOpeningStocks =
-    async () => {
-      if (!branchCode) return;
+const res = await deleteOpenStocksDetails(
+  selectedStore,
+  branchCode,
+);
 
-      try {
-        setLoading(true);
-
-        const res =
-          await getOpeningStockList(
-            branchCode
-          );
-
-        console.log(
-          "Opening Stock List:",
-          res
-        );
-
-        const data = res?.data;
-
-        /*
-         * API returns one object in data
-         */
-        if (data) {
-          setOpeningStocks([
-            data,
-          ]);
-        } else {
-          setOpeningStocks([]);
-        }
-      } catch (error: any) {
-        console.error(
-          "Error fetching opening stock:",
-          error.response?.data ||
-            error.message
-        );
-
-        toast.error(
-          "Failed to load opening stock"
-        );
-      } finally {
-        setLoading(false);
+      if (res?.success) {
+        toast.success(res.message || "Opening stocks deleted successfully");
+        await fetchOpenStocks();
+      } else {
+        toast.error(res?.message || "Failed to delete opening stocks");
       }
-    };
-
-  // =====================================================
-  // INITIAL LOAD
-  // =====================================================
-
-  useEffect(() => {
-    if (!branchCode) return;
-
-    fetchItems();
-    fetchGroups();
-    fetchOpeningStocks();
-  }, [branchCode]);
-
-  // =====================================================
-  // GET STORE ID
-  // =====================================================
-
-  const getStoreId = (
-    storeid: any
-  ): number => {
-    if (Array.isArray(storeid)) {
-      return (
-        Number(storeid[0]) || 0
+    } catch (error: any) {
+      console.error("Error deleting opening stocks:", error);
+      toast.error(
+        error?.response?.data?.message || "Error deleting opening stocks",
       );
+    } finally {
+      setLoading(false);
     }
-
-    if (
-      typeof storeid === "string"
-    ) {
-      const stores = storeid
-        .split(",")
-        .map((value) =>
-          Number(value.trim())
-        )
-        .filter(
-          (value) => value > 0
-        );
-
-      return stores[0] || 0;
-    }
-
-    return Number(storeid) || 0;
   };
-
-  // =====================================================
-  // ITEM CHANGE
-  // =====================================================
-
-  const handleItemChange = (
-    itemCode: number
-  ) => {
-    const selectedItem =
-      items.find(
-        (item) =>
-          Number(item.itemCode) ===
-          Number(itemCode)
-      );
-
-    // -----------------------------------------------
-    // CLEAR FORM IF NO ITEM
-    // -----------------------------------------------
-
-    if (!selectedItem) {
-      setForm((prev) => ({
-        ...prev,
-
-        itemCode: 0,
-        itemName: "",
-
-        storeId: 0,
-
-        groupCode: 0,
-        groupName: "",
-
-        deptCode: 0,
-
-        unitCode: 0,
-        unitName: "",
-
-        baseUnitCode: 0,
-        baseUnitName: "",
-
-        openingRate: 0,
-      }));
-
+  const fetchOpenStocks = useCallback(async () => {
+    if (!branchCode || !selectedStore) {
+      setData([]);
+      setOriginalData([]);
       return;
     }
 
-    // -----------------------------------------------
-    // STORE
-    // -----------------------------------------------
+    try {
+      setLoading(true);
 
-    const storeId =
-      getStoreId(
-        selectedItem.storeid
+      const response = await getOpenStocksList(selectedStore, branchCode);
+
+      const rows = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.result)
+            ? response.result
+            : [];
+
+      const mapped: OpeningStockItem[] = rows.map(
+        (item: any, index: number) => ({
+          id:
+            toNumber(item.openingStockId) ||
+            toNumber(item.itemCode) ||
+            index + 1,
+          openingStockId: toNumber(item.openingStockId),
+          itemCode: toNumber(item.itemCode),
+          itemName: String(item.itemName ?? item.description ?? ""),
+          storeId: String(item.storeId ?? selectedStore),
+          deptCode: String(item.deptCode ?? ""),
+          branch_Code: String(
+            item.branch_Code ?? item.branchCode ?? branchCode,
+          ),
+          stockDate: String(item.stockDate ?? new Date().toISOString()),
+          openingQty: toNumber(item.openingQty),
+          unitCode: String(item.unitCode ?? ""),
+          unitName: String(item.unitName ?? ""),
+          closingQty: toNumber(item.closingQty),
+          openingRate: toNumber(item.openingRate),
+          isActive: item.isActive ?? true,
+          indentOrderQty: toNumber(item.indentOrderQty),
+          indentApprovalQty: toNumber(item.indentApprovalQty),
+          issuedQty: toNumber(item.issuedQty),
+          issuedReturnQty: toNumber(item.issuedReturnQty),
+          userCode: String(item.userCode ?? userCode),
+        }),
       );
 
-    // -----------------------------------------------
-    // GROUP ID FROM ITEM
-    // -----------------------------------------------
-
-    const itemGroupId =
-      Number(
-        selectedItem.grpCode
-      ) || 0;
-
-    // -----------------------------------------------
-    // FIND GROUP FROM GROUP MASTER
-    // -----------------------------------------------
-
-    const selectedGroup =
-      groups.find(
-        (group) =>
-          Number(
-            group.groupCode
-          ) === itemGroupId
-      );
-
-    console.log(
-      "Selected Item:",
-      selectedItem
-    );
-
-    console.log(
-      "Group ID from Item:",
-      itemGroupId
-    );
-
-    console.log(
-      "Matched Group:",
-      selectedGroup
-    );
-
-    // -----------------------------------------------
-    // SET FORM
-    // -----------------------------------------------
-
-    setForm((prev) => ({
-      ...prev,
-
-      itemCode:
-        Number(
-          selectedItem.itemCode
-        ),
-
-      itemName:
-        selectedItem.itemName,
-
-      storeId,
-
-      // UI GROUP
-      groupCode:
-        selectedGroup?.groupCode ||
-        itemGroupId ||
-        0,
-
-      groupName:
-        selectedGroup?.groupName ||
-        "",
-
-      /*
-       * Backend Opening Stock API expects deptCode.
-       * Group Code is sent through this field.
-       */
-      deptCode:
-        selectedGroup?.groupCode ||
-        itemGroupId ||
-        0,
-
-      unitCode:
-        Number(
-          selectedItem.unitCode
-        ) || 0,
-
-      unitName:
-        selectedItem.unitName || "",
-
-      baseUnitCode:
-        Number(
-          selectedItem.unitCode
-        ) || 0,
-
-      baseUnitName:
-        selectedItem.unitName || "",
-
-      openingRate:
-        Number(
-          selectedItem.itemRate
-        ) || 0,
-    }));
-  };
-
-  // =====================================================
-  // INPUT CHANGE
-  // =====================================================
-
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement
-    >
-  ) => {
-    const {
-      name,
-      value,
-    } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-
-      [name]:
-        name ===
-          "openingQty" ||
-        name ===
-          "closingQty" ||
-        name ===
-          "openingRate"
-          ? Number(value)
-          : value,
-    }));
-  };
-
-  // =====================================================
-  // RESET FORM
-  // =====================================================
-
-  const resetForm = () => {
-    setForm({
-      openingStockId: 0,
-
-      itemCode: 0,
-      itemName: "",
-
-      storeId: 0,
-
-      groupCode: 0,
-      groupName: "",
-
-      deptCode: 0,
-
-      branch_Code:
-        branchCode,
-
-      stockDate:
-        new Date()
-          .toISOString()
-          .split("T")[0],
-
-      openingQty: 0,
-
-      unitCode: 0,
-      unitName: "",
-
-      baseOpeningQty: 0,
-
-      baseUnitCode: 0,
-      baseUnitName: "",
-
-      closingQty: 0,
-
-      openingRate: 0,
-
-      isActive: true,
-
-      createdBy:
-        userCode,
-
-      modifiedBy:
-        userCode,
-
-      indentOrderQty: 0,
-      indentApprovalQty: 0,
-      issuedQty: 0,
-      issuedReturnQty: 0,
-    });
-
-    setEditMode(false);
-  };
-
-  // =====================================================
-  // VALIDATION
-  // =====================================================
-
-  const validateForm = () => {
-    if (!form.itemCode) {
-      toast.error(
-        "Please select an item"
-      );
-      return false;
-    }
-
-    if (!form.storeId) {
-      toast.error(
-        "Store is not available for selected item"
-      );
-      return false;
-    }
-
-    if (!form.groupCode) {
-      toast.error(
-        "Group is not available for selected item"
-      );
-      return false;
-    }
-
-    if (
-      form.openingQty < 0
-    ) {
-      toast.error(
-        "Opening quantity cannot be negative"
-      );
-      return false;
-    }
-
-    if (
-      form.openingRate < 0
-    ) {
-      toast.error(
-        "Opening rate cannot be negative"
-      );
-      return false;
-    }
-
-    return true;
-  };
-
-  // =====================================================
-  // SAVE
-  // =====================================================
-
-  const handleSave =
-    async () => {
-      if (!validateForm())
-        return;
-
-      try {
-        setLoading(true);
-
-        const payload = {
-          openingStockId:
-            editMode
-              ? form.openingStockId
-              : 0,
-
-          itemCode:
-            Number(
-              form.itemCode
-            ),
-
-          storeId:
-            Number(
-              form.storeId
-            ),
-
-          /*
-           * Group Code goes to deptCode
-           * because Opening Stock API
-           * expects deptCode.
-           */
-          deptCode:
-            Number(
-              form.groupCode
-            ),
-
-          branch_Code:
-            branchCode,
-
-          stockDate:
-            new Date(
-              form.stockDate
-            ).toISOString(),
-
-          openingQty:
-            Number(
-              form.openingQty
-            ),
-
-          unitCode:
-            Number(
-              form.unitCode
-            ),
-
-          unitName:
-            form.unitName,
-
-          baseOpeningQty:
-            Number(
-              form.openingQty
-            ),
-
-          baseUnitCode:
-            Number(
-              form.baseUnitCode
-            ),
-
-          baseUnitName:
-            form.baseUnitName,
-
-          closingQty:
-            Number(
-              form.closingQty
-            ),
-
-          openingRate:
-            Number(
-              form.openingRate
-            ),
-
-          isActive: true,
-
-          createdBy:
-            editMode
-              ? form.createdBy
-              : userCode,
-
-          modifiedBy:
-            userCode,
-
-          indentOrderQty:
-            Number(
-              form.indentOrderQty
-            ),
-
-          indentApprovalQty:
-            Number(
-              form.indentApprovalQty
-            ),
-
-          issuedQty:
-            Number(
-              form.issuedQty
-            ),
-
-          issuedReturnQty:
-            Number(
-              form.issuedReturnQty
-            ),
-        };
-
-        console.log(
-          "Opening Stock Payload:",
-          payload
-        );
-
-        if (editMode) {
-          await updateOpeningStock(
-            payload
-          );
-
-          toast.success(
-            "Opening stock updated successfully"
-          );
-        } else {
-          await createOpeningStock(
-            payload
-          );
-
-          toast.success(
-            "Opening stock created successfully"
-          );
-        }
-
-        resetForm();
-
-        await fetchOpeningStocks();
-      } catch (error: any) {
-        console.error(
-          "Error saving opening stock:",
-          error.response?.data ||
-            error.message
-        );
-
-        toast.error(
-          error.response?.data
-            ?.message ||
-            "Failed to save opening stock"
-        );
-      } finally {
-        setLoading(false);
+      setData(mapped);
+      setOriginalData(mapped.map((item) => ({ ...item })));
+
+      if (mapped.length === 0) {
+        toast("No opening stock items found");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching opening stocks:", error);
+      toast.error("Error fetching opening stocks");
+    } finally {
+      setLoading(false);
+    }
+  }, [branchCode, userCode, selectedStore]);
 
-  // =====================================================
-  // EDIT
-  // =====================================================
+  // Fetch stores when the branch changes
+  useEffect(() => {
+    void fetchStores();
+  }, [fetchStores]);
 
-  const handleEdit = (
-    row: OpeningStock
+  // Fetch opening stocks whenever the selected store changes
+  useEffect(() => {
+    void fetchOpenStocks();
+  }, [fetchOpenStocks]);
+
+  const handleFieldChange = (
+    id: number,
+    field: "openingQty" | "openingRate",
+    value: string,
   ) => {
-    const selectedGroup =
-      groups.find(
-        (group) =>
-          Number(
-            group.groupCode
-          ) ===
-          Number(row.deptCode)
+    setData((previous) =>
+      previous.map((item) =>
+        item.id === id
+          ? { ...item, [field]: value === "" ? 0 : toNumber(value) }
+          : item,
+      ),
+    );
+  };
+
+  const columns: Column<OpeningStockItem>[] = [
+    { header: "Item Code", accessor: "itemCode" },
+    { header: "Item Name", accessor: "itemName" },
+    // { header: "Store", accessor: "storeId" },
+    { header: "Unit", accessor: "unitName" },
+    {
+      header: "Opening Qty",
+      accessor: "openingQty",
+      cell: (row) => (
+        <input
+          type="number"
+          min="0"
+          step="any"
+          value={row.openingQty}
+          onChange={(event) =>
+            handleFieldChange(row.id, "openingQty", event.target.value)
+          }
+          className="w-[110px] rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          aria-label={`Opening quantity for ${row.itemName}`}
+        />
+      ),
+    },
+    {
+      header: "Opening Rate",
+      accessor: "openingRate",
+      cell: (row) => (
+        <input
+          type="number"
+          min="0"
+          step="any"
+          value={row.openingRate}
+          onChange={(event) =>
+            handleFieldChange(row.id, "openingRate", event.target.value)
+          }
+          className="w-[110px] rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          aria-label={`Opening rate for ${row.itemName}`}
+        />
+      ),
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return data;
+    return data.filter((item) =>
+      [
+        item.itemCode,
+        item.itemName,
+        item.storeId,
+        item.deptCode,
+        item.unitName,
+      ].some((value) =>
+        String(value ?? "")
+          .toLowerCase()
+          .includes(term),
+      ),
+    );
+  }, [data, search]);
+
+  const handleSave = async () => {
+    debugger;
+    if (!branchCode) {
+      toast.error("Branch code is missing");
+      return;
+    }
+
+    const changedItems = data.filter((item) => {
+      const original = originalData.find((oldItem) => oldItem.id === item.id);
+      return (
+        !original ||
+        original.openingQty !== item.openingQty ||
+        original.openingRate !== item.openingRate
       );
+    });
 
-    setEditMode(true);
+    if (changedItems.length === 0) {
+      toast.error("Please enter or change Opening Qty or Opening Rate");
+      return;
+    }
 
-    setForm({
-      openingStockId:
-        Number(
-          row.openingStockId
-        ) || 0,
+    try {
+      setLoading(true);
+      const payload = changedItems.map((item) => ({
+        openingStockId: item.openingStockId,
+        itemCode: item.itemCode,
+        itemName: item.itemName,
+        storeId: selectedStore,
 
-      itemCode:
-        Number(
-          row.itemCode
-        ) || 0,
-
-      itemName:
-        row.itemName ||
-        items.find(
-          (item) =>
-            Number(
-              item.itemCode
-            ) ===
-            Number(
-              row.itemCode
-            )
-        )?.itemName ||
-        "",
-
-      storeId:
-        Number(
-          row.storeId
-        ) || 0,
-
-      groupCode:
-        Number(
-          row.deptCode
-        ) || 0,
-
-      groupName:
-        selectedGroup
-          ?.groupName || "",
-
-      deptCode:
-        Number(
-          row.deptCode
-        ) || 0,
-
-      branch_Code:
-        row.branch_Code ||
-        branchCode,
-
-      stockDate:
-        row.stockDate
-          ? row.stockDate.split(
-              "T"
-            )[0]
-          : new Date()
-              .toISOString()
-              .split("T")[0],
-
-      openingQty:
-        Number(
-          row.openingQty
-        ) || 0,
-
-      unitCode:
-        Number(
-          row.unitCode
-        ) || 0,
-
-      unitName:
-        row.unitName || "",
-
-      baseOpeningQty:
-        Number(
-          row.baseOpeningQty
-        ) || 0,
-
-      baseUnitCode:
-        Number(
-          row.baseUnitCode
-        ) || 0,
-
-      baseUnitName:
-        row.baseUnitName || "",
-
-      closingQty:
-        Number(
-          row.closingQty
-        ) || 0,
-
-      openingRate:
-        Number(
-          row.openingRate
-        ) || 0,
-
-      isActive:
-        row.isActive,
-
-      createdBy:
-        Number(
-          row.createdBy
-        ) || 0,
-
-      modifiedBy:
+        deptCode: item.deptCode,
+        branch_Code: branchCode,
+        stockDate: new Date(`${stockDate}T00:00:00`).toISOString(),
+        openingQty: toNumber(item.openingQty),
+        unitCode: item.unitCode,
+        unitName: item.unitName,
+        closingQty: toNumber(item.closingQty),
+        openingRate: toNumber(item.openingRate),
+        isActive: item.isActive,
+        indentOrderQty: toNumber(item.indentOrderQty),
+        indentApprovalQty: toNumber(item.indentApprovalQty),
+        issuedQty: toNumber(item.issuedQty),
+        issuedReturnQty: toNumber(item.issuedReturnQty),
         userCode,
+      }));
 
-      indentOrderQty:
-        Number(
-          row.indentOrderQty
-        ) || 0,
+      console.log("CreateOpenStocksMaster payload:", payload);
+      const response = await createOpenStocksMaster(payload);
+      if (response?.success === false) {
+        toast.error(response?.message || "Failed to save opening stocks");
+        return;
+      }
 
-      indentApprovalQty:
-        Number(
-          row.indentApprovalQty
-        ) || 0,
+      toast.success(response?.message || "Opening stocks saved successfully");
+      await fetchOpenStocks();
+    } catch (error: any) {
+      console.error("Error saving opening stocks:", error);
+      toast.error(
+        error?.response?.data?.message || "Error saving opening stocks",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      issuedQty:
-        Number(
-          row.issuedQty
-        ) || 0,
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      toast.error("Please allow pop-ups to print");
+      return;
+    }
 
-      issuedReturnQty:
-        Number(
-          row.issuedReturnQty
-        ) || 0,
-    });
+    const escapeHtml = (value: unknown) =>
+      String(value ?? "").replace(/[&<>"']/g, (character) => {
+        const entities: Record<string, string> = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        };
+        return entities[character];
+      });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    const rows = filteredData
+      .map(
+        (item) => `<tr>
+          <td>${escapeHtml(item.itemCode)}</td>
+          <td>${escapeHtml(item.itemName)}</td>
+          <td>${escapeHtml(item.storeId)}</td>
+          <td>${escapeHtml(item.deptCode)}</td>
+          <td>${escapeHtml(item.unitName)}</td>
+          <td>${escapeHtml(item.openingQty)}</td>
+          <td>${escapeHtml(item.openingRate)}</td>
+        </tr>`,
+      )
+      .join("");
+
+    printWindow.document
+      .write(`<!doctype html><html><head><title>Opening Stock</title>
+      <style>body{font-family:Arial,sans-serif;padding:20px}h2{text-align:center}
+      table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:12px}
+      th{background:#f3f3f3}</style></head><body><h2>Opening Stock Details</h2>
+      <table><thead><tr><th>Item Code</th><th>Item Name</th><th>Store</th><th>Department</th><th>Unit</th><th>Opening Qty</th><th>Opening Rate</th></tr></thead>
+      <tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <Header showNeworderButton={false} />
 
-      <Header
-        showNeworderButton={false}
-      />
+      <div className="h-[calc(100vh-100px)] overflow-y-auto bg-gray-50 p-3 sm:p-4 md:p-6">
+        {loading && <Loader />}
 
-      <div className="h-[calc(100vh-100px)] overflow-y-auto p-4 md:p-6 space-y-6">
-
-        {/* =================================================
-            FORM
-        ================================================= */}
-
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-
-          <div className="mb-5 flex items-center justify-between">
-
-            <h2 className="text-xl font-semibold text-gray-800">
-              {editMode
-                ? "Update Opening Stock"
-                : "Opening Stock"}
-            </h2>
-
-            {editMode && (
-              <button
-                type="button"
-                onClick={
-                  resetForm
-                }
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-            )}
-
+        <div className="mt-3 rounded-xl bg-white p-4 shadow sm:mt-4 sm:p-5">
+          {/* Page Header */}
+          <div className="mb-5 border-b border-gray-200 pb-4">
+            <h1 className="text-xl font-semibold text-gray-800">
+              Opening Stock
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Enter Opening Qty and Opening Rate for each item.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Top Controls */}
+          <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            {/* Left: Stock Date and Search */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:shrink-0 xl:items-end">
+              <div className="flex w-full flex-col gap-1.5 sm:w-[155px]">
+                <label className="text-sm font-medium text-gray-600">
+                  Stock Date
+                </label>
+                <input
+                  type="date"
+                  value={stockDate}
+                  onChange={(e) => setStockDate(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-gray-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+              <div className="flex w-full flex-col gap-1.5 sm:w-[180px]">
+                <label className="text-sm font-medium text-gray-600">
+                  Store
+                </label>
+                <select
+                  value={selectedStore}
+                  onChange={(e) => setSelectedStore(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  {stores.length === 0 && (
+                    <option value="">No stores available</option>
+                  )}
 
-            {/* ITEM CODE */}
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Item Code{" "}
-                <span className="text-red-500">
-                  *
-                </span>
-              </label>
-
-              <select
-                value={
-                  form.itemCode ||
-                  ""
-                }
-                onChange={(e) =>
-                  handleItemChange(
-                    Number(
-                      e.target
-                        .value
-                    )
-                  )
-                }
-                disabled={
-                  itemsLoading ||
-                  editMode
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
-              >
-                <option value="">
-                  {itemsLoading
-                    ? "Loading items..."
-                    : "Select Item"}
-                </option>
-
-                {items.map(
-                  (item) => (
-                    <option
-                      key={
-                        item.itemCode
-                      }
-                      value={
-                        item.itemCode
-                      }
-                    >
-                      {
-                        item.itemCode
-                      }{" "}
-                      -{" "}
-                      {
-                        item.itemName
-                      }
+                  {stores.map((store) => (
+                    <option key={store.id} value={String(store.storeId)}>
+                      {store.storeName}
                     </option>
-                  )
-                )}
-              </select>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex w-full flex-col gap-1.5 sm:w-[180px]">
+                <label className="text-sm font-medium text-gray-600">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
             </div>
 
-            {/* ITEM NAME */}
+            {/* Right: Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 xl:ml-auto xl:justify-end">
+              <button
+                onClick={() => void fetchOpenStocks()}
+                disabled={loading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-600 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700 disabled:opacity-50"
+              >
+                <RefreshCw size={17} />
+                Refresh
+              </button>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Item Name
-              </label>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-green-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-green-600 disabled:opacity-50"
+              >
+                <Save size={17} />
+                Save
+              </button>
 
-              <input
-                type="text"
-                value={
-                  form.itemName
-                }
-                readOnly
-                className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm"
-              />
+              <button
+                onClick={handlePrint}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-blue-600"
+              >
+                <Printer size={17} />
+                Print
+              </button>
+
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-red-500 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50"
+              >
+                <RefreshCw size={17} />
+                Clear All Stocks
+              </button>
             </div>
-
-            {/* STORE */}
-
-    
-
-          
-
-            {/* STOCK DATE */}
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Stock Date
-              </label>
-
-              <input
-                type="date"
-                name="stockDate"
-                value={
-                  form.stockDate
-                }
-                onChange={
-                  handleChange
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* OPENING QTY */}
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Opening Qty
-              </label>
-
-              <input
-                type="number"
-                name="openingQty"
-                min="0"
-                value={
-                  form.openingQty
-                }
-                onChange={
-                  handleChange
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* UNIT */}
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Unit
-              </label>
-
-              <input
-                type="text"
-                value={
-                  form.unitName
-                    ? `${form.unitCode} - ${form.unitName}`
-                    : ""
-                }
-                readOnly
-                className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* OPENING RATE */}
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Opening Rate
-              </label>
-
-              <input
-                type="number"
-                name="openingRate"
-                min="0"
-                value={
-                  form.openingRate
-                }
-                onChange={
-                  handleChange
-                }
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-
-     
           </div>
 
-          {/* BUTTONS */}
-
-          <div className="mt-6 flex justify-end gap-3">
-
-            <button
-              type="button"
-              onClick={
-                resetForm
-              }
-              className="rounded-md border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-            >
-              Clear
-            </button>
-
-            <button
-              type="button"
-              onClick={
-                handleSave
-              }
-              disabled={
-                loading
-              }
-              className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading
-                ? "Saving..."
-                : editMode
-                ? "Update"
-                : "Save"}
-            </button>
-
+          {/* Opening Stock Table */}
+          <div className="w-full min-w-0 overflow-x-auto">
+            <DataTable search={false} columns={columns} data={filteredData} />
           </div>
-
         </div>
-
-        {/* =================================================
-            TABLE
-        ================================================= */}
-
-        <div className="rounded-xl bg-white shadow-sm">
-
-          <div className="border-b border-gray-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Opening Stock List
-            </h2>
-          </div>
-
-          <div className="overflow-x-auto">
-
-            <table className="min-w-full divide-y divide-gray-200">
-
-              <thead className="bg-gray-50">
-
-                <tr>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Item Code
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Item Name
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Store
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Group
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Stock Date
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600">
-                    Opening Qty
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">
-                    Unit
-                  </th>
-
-                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600">
-                    Rate
-                  </th>
-
-                  
-
-                  <th className="whitespace-nowrap px-4 py-3 text-center text-xs font-semibold uppercase text-gray-600">
-                    Action
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody className="divide-y divide-gray-200 bg-white">
-
-                {loading &&
-                openingStocks.length ===
-                  0 ? (
-                  <tr>
-                    <td
-                      colSpan={12}
-                      className="px-4 py-10 text-center"
-                    >
-                      <Loader />
-                    </td>
-                  </tr>
-                ) : openingStocks.length ===
-                  0 ? (
-                  <tr>
-                    <td
-                      colSpan={12}
-                      className="px-4 py-10 text-center text-sm text-gray-500"
-                    >
-                      No opening stock records found
-                    </td>
-                  </tr>
-                ) : (
-                  openingStocks.map(
-                    (
-                      row,
-                      index
-                    ) => {
-                      const itemName =
-                        row.itemName ||
-                        items.find(
-                          (item) =>
-                            Number(
-                              item.itemCode
-                            ) ===
-                            Number(
-                              row.itemCode
-                            )
-                        )?.itemName ||
-                        "";
-
-                      const group =
-                        groups.find(
-                          (group) =>
-                            Number(
-                              group.groupCode
-                            ) ===
-                            Number(
-                              row.deptCode
-                            )
-                        );
-
-                      return (
-                        <tr
-                          key={
-                            row.openingStockId ||
-                            index
-                          }
-                          className="transition-colors hover:bg-gray-50"
-                        >
-
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                            {
-                              row.itemCode
-                            }
-                          </td>
-
-                          <td className="px-4 py-3 text-sm text-gray-700">
-                            {
-                              itemName
-                            }
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                            {
-                              row.storeId
-                            }
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                            {group
-                              ? `${group.groupCode} - ${group.groupName}`
-                              : row.deptCode ||
-                                "-"}
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                            {row.stockDate
-                              ? new Date(
-                                  row.stockDate
-                                ).toLocaleDateString()
-                              : "-"}
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">
-                            {
-                              row.openingQty
-                            }
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                            {row.unitName
-                              ? `${row.unitCode} - ${row.unitName}`
-                              : row.unitCode ||
-                                "-"}
-                          </td>
-
-                          <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">
-                            {
-                              row.openingRate
-                            }
-                          </td>
-
-
-                          <td className="whitespace-nowrap px-4 py-3 text-center">
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleEdit(
-                                  row
-                                )
-                              }
-                              className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-blue-700"
-                            >
-                              Edit
-                            </button>
-
-                          </td>
-
-                        </tr>
-                      );
-                    }
-                  )
-                )}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </div>
-
       </div>
-
-    </div>
+    </>
   );
-};
-
-export default OpeningStock;
+}

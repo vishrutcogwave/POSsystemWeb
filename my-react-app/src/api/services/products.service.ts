@@ -7563,3 +7563,60 @@ export const getOpeningStockList = async (branchCode: string) => {
     throw error;
   }
 };
+
+
+export const getOpenStocksList = async (
+  storeId: string | number,
+  branchcode: string,
+) => {
+  const response = await api.get(
+    "/api/InventoryMaster/GetOpenStocksList",
+    {
+      params: {
+        StoreId: storeId,
+        branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};
+
+
+export const createOpenStocksMaster = async (data: any[]) => {
+  const response = await api.post(
+    "/api/InventoryMaster/CreateOpenStocksMaster",
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  return response.data;
+};  
+
+export const deleteOpenStocksDetails = async (
+  storeId: string | number,
+  branchcode: string,
+) => {
+  const response = await api.delete(
+    "/api/InventoryMaster/DeleteOpenStocksDetails",
+    {
+      params: {
+        StoreId: storeId,
+        Branchcode: branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};
