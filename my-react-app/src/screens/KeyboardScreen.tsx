@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
-
 import toast from "react-hot-toast";
 
 import { useItems } from "../context/ItemContext";
-
 import { useActiveOLT } from "../context/ActiveOLTContext";
-
 import { useAppContext } from "../context/AppContext";
 
 import {
@@ -20,6 +17,7 @@ import {
   getBillGenerationSettings,
   getTaxSettings,
   getOpenDayDetails,
+  getNCKOT,
   validateDay,
 } from "../api/services/products.service";
 
@@ -27,67 +25,56 @@ import { printKOT, printBill } from "../api/services/printer";
 
 type Table = {
   tableNumber: string;
-
   status: string;
-
   kotStatus?: string;
-
   peopleCount?: number;
-
   BillNo: number;
 };
 
 type Outlet = {
   oltCode: number;
-
   oltName: string;
-
   oltIsRoomService: boolean;
-
   isDirectKOTandBill: boolean;
-
   isDirectPaxandStw: boolean;
-
   isDirectBill: boolean;
-
   tables: {
     tblNo: string;
-
     tableStatus: string;
-
     kotStatus: string;
-
     billNo: number;
-
     billAmount?: number;
   }[];
 };
 
 type Steward = {
   stwCode: number;
-
   stwName: string;
 };
 
 type CartItem = {
   id: number;
-
   name: string;
-
   price: number;
-
   qty: number;
   unit?: string;
-
   category: number;
-
   grpCode: number;
-
   spcodes: string;
-
   note: string;
-
   itemDiscountAllowed?: boolean;
+};
+
+// Ordered item (grouped by item code) while voiding.
+type VoidItem = {
+  id: number;
+  name: string;
+  price: number;
+  qty: number; // remaining qty after void
+  origQty: number; // qty originally ordered
+  category: number;
+  grpCode: number;
+  itemDiscountAllowed: boolean;
 };
 
 type FocusField =
@@ -101,7 +88,34 @@ type FocusField =
   | "cart"
   | "action";
 
+// Mobile / tablet (< lg) shows one panel at a time, switched by tabs.
+type MobileTab = "setup" | "order" | "running";
+
+// Outlet tables -> screen tables (skips rows without a table number, e.g. room service).
+const formatTables = (outlet: Outlet): Table[] =>
+  (outlet.tables || [])
+    .filter((t) => t.tblNo)
+    .map((t) => ({
+      tableNumber: t.tblNo,
+      status: t.tableStatus || "",
+      kotStatus: t.kotStatus,
+      peopleCount: 0,
+      BillNo: t.billNo,
+    }));
+
 const paxOptions = Array.from({ length: 10 }, (_, i) => i + 1);
+
+// Shared responsive column widths so header table and body table line up.
+// Code column is hidden below `sm`; qty column is wider on touch to fit +/- buttons.
+const CartCols = () => (
+  <colgroup>
+    <col className="hidden sm:table-column sm:w-[70px]" />
+    <col />
+    <col className="w-[112px] lg:w-[70px]" />
+    <col className="w-[60px] sm:w-[100px]" />
+    <col className="w-[76px] sm:w-[110px]" />
+  </colgroup>
+);
 
 export default function KeyboardScreen() {
   // ============================================================
@@ -119,53 +133,34 @@ export default function KeyboardScreen() {
   // 10. UI                 -> render only; business flow stays above
   // ============================================================
 
-
   const { items, masterItems, loading } = useItems();
-
   const { activeOltName, setActiveOLT } = useActiveOLT();
-
   const { appData } = useAppContext();
 
   const [outlets, setOutlets] = useState<Outlet[]>([]);
-
   const [activeOutlet, setActiveOutlet] = useState<Outlet | null>(null);
-
   const [tables, setTables] = useState<Table[]>([]);
-
-  const [tableIndex, setTableIndex] = useState(0);
-
+  const [tableIndex, setTableIndex] = useState(-1);
   const [stewards, setStewards] = useState<Steward[]>([]);
-
-  const [stewardIndex, setStewardIndex] = useState(0);
-
-  const [pax, setPax] = useState(1);
-
-  const [_paxIndex, setPaxIndex] = useState(0);
-
+  const [stewardIndex, setStewardIndex] = useState(-1);
+  const [pax, setPax] = useState<number | "">("");
+  const [_paxIndex, setPaxIndex] = useState(-1);
   const [tableNumber, setTableNumber] = useState("");
-
   const [selectedSubTable, setSelectedSubTable] = useState("A");
 
   const [session, setSession] = useState<{
     pax: number;
-
     waiterCode: string;
-
     waiterName: string;
   } | null>(null);
 
   const [cart, setCart] = useState<CartItem[]>([]);
-
   const [oldCartData, setOldCartData] = useState<any[]>([]);
-
   const [subTables, setSubTables] = useState<any[]>([]);
 
   const [code, setCode] = useState("");
-
   const [search, setSearch] = useState("");
-
   const [focusField, setFocusField] = useState<FocusField>("outlet");
-
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const [selectedFoodIndex, setSelectedFoodIndex] = useState(0);
@@ -174,24 +169,35 @@ export default function KeyboardScreen() {
   const [quantity, setQuantity] = useState("1");
 
   const [loadingData, setLoadingData] = useState(false);
-
   const [processing, setProcessing] = useState(false);
-
   const [totalAmount, setTotalAmount] = useState(0);
-
   const [billData, setBillData] = useState<any>(null);
-
   const [isNC, setIsNC] = useState(false);
+
+  // NC flow: NC -> pick NC department + reason -> NC KOT API call.
+  const [ncReasons, setNcReasons] = useState<any[]>([]);
+  const [ncModalOpen, setNcModalOpen] = useState(false);
+  const [ncCode, setNcCode] = useState<number | "">("");
+  const [ncRemarks, setNcRemarks] = useState("");
+  const ncRemarksRef = useRef<HTMLInputElement>(null);
+
+  // Void flow: F12 -> reason -> pick items (- / Delete) -> Enter to confirm.
+  const [voidMode, setVoidMode] = useState(false);
+  const [voidReasonOpen, setVoidReasonOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const [voidItems, setVoidItems] = useState<VoidItem[]>([]);
+  const [voidIndex, setVoidIndex] = useState(0);
 
   const [billGenerationSettings, setBillGenerationSettings] = useState({
     billingType: "",
-
     subBillingType: "",
   });
 
   const [taxSettings, setTaxSettings] = useState<any>(null);
-
   const [openDayDetails, setOpenDayDetails] = useState<any>(null);
+
+  // Responsive: active panel on small screens.
+  const [mobileTab, setMobileTab] = useState<MobileTab>("order");
 
   const outletRef = useRef<HTMLSelectElement>(null);
   const tableRef = useRef<HTMLSelectElement>(null);
@@ -199,14 +205,12 @@ export default function KeyboardScreen() {
   const stewardRef = useRef<HTMLSelectElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
-
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const branch = localStorage.getItem("branch") || "";
 
   // ============================================================
   // CONTROLLER 01: INITIAL DATA FLOW
-  // Outlet -> tables -> initial selection
   // ============================================================
 
   const loadData = async () => {
@@ -215,7 +219,6 @@ export default function KeyboardScreen() {
 
       const data: Outlet[] = await getCombinedOutletAndTableMasterList(
         appData?.user?.branch_code || "",
-
         appData?.user?.userCode,
       );
 
@@ -223,24 +226,44 @@ export default function KeyboardScreen() {
 
       if (!data?.length) return;
 
-      const savedOutlet = localStorage.getItem("activeOltCode");
-
-      const outlet =
-        data.find((o) => String(o.oltCode) === savedOutlet) || data[0];
-
-     selectOutlet(outlet);
+      // Nothing is pre-selected: the user picks Outlet -> Table -> Pax -> Steward.
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to load outlets");
     } finally {
       setLoadingData(false);
     }
   };
 
+  // Re-fetch outlets + table statuses (after KOT / NC / Void / Bill, or Ctrl+R).
+  // Keeps the current outlet and table selection; only the data is refreshed.
+  const refreshOutlets = async () => {
+    try {
+      const data: Outlet[] = await getCombinedOutletAndTableMasterList(
+        appData?.user?.branch_code || "",
+        appData?.user?.userCode,
+      );
+
+      setOutlets(data || []);
+
+      const current = (data || []).find(
+        (o) => String(o.oltCode) === String(activeOutlet?.oltCode),
+      );
+
+      if (current) {
+        const fresh = formatTables(current);
+        setActiveOutlet(current);
+        setTables(fresh);
+        setTableIndex(fresh.findIndex((t) => t.tableNumber === tableNumber));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to refresh tables");
+    }
+  };
+
   // ============================================================
   // CONTROLLER 02: OUTLET / TABLE FLOW
-  // Outlet -> active OLT -> tables -> table focus
   // ============================================================
 
   const selectOutlet = (outlet: Outlet) => {
@@ -250,27 +273,14 @@ export default function KeyboardScreen() {
 
     localStorage.setItem("activeOltCode", String(outlet.oltCode));
 
-    const formatted: Table[] = (outlet.tables || []).map((t) => ({
-      tableNumber: t.tblNo,
-
-      status: t.tableStatus,
-
-      kotStatus: t.kotStatus,
-
-      peopleCount: 0,
-
-      BillNo: t.billNo,
-    }));
+    const formatted = formatTables(outlet);
 
     setTables(formatted);
-
-    setTableIndex(0);
-
-    if (formatted.length) {
-      setTableNumber(formatted[0].tableNumber);
-    } else {
-      setTableNumber("");
-    }
+    setTableIndex(-1);
+    setTableNumber("");
+    setSubTables([]);
+    setOldCartData([]);
+    setSession(null);
   };
 
   // ============================================================
@@ -280,13 +290,10 @@ export default function KeyboardScreen() {
   const loadStewards = async () => {
     try {
       const data = await getStewardList(branch);
-
       setStewards(data || []);
-
-      setStewardIndex(0);
+      setStewardIndex(-1);
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to load steward list");
     }
   };
@@ -295,14 +302,12 @@ export default function KeyboardScreen() {
     try {
       const [billSettings, tax] = await Promise.all([
         getBillGenerationSettings(branch),
-
         getTaxSettings(branch),
       ]);
 
       if (billSettings?.success && billSettings?.data?.length) {
         setBillGenerationSettings({
           billingType: billSettings.data[0].billingType,
-
           subBillingType: billSettings.data[0].subBillingType,
         });
       }
@@ -315,19 +320,20 @@ export default function KeyboardScreen() {
 
   useEffect(() => {
     void loadData();
-
     void loadStewards();
-
     void loadSettings();
 
     // Same open-day validation used by OrderingBoard.
-
     void getOpenDayDetails(
       appData?.user?.userCode || 0,
-
       appData?.user?.branch_code || "",
     )
       .then(setOpenDayDetails)
+      .catch(console.error);
+
+    // NC departments (same list as OrderingBoard).
+    void getNCKOT(appData?.user?.branch_code)
+      .then((d: any) => setNcReasons(d || []))
       .catch(console.error);
   }, []);
 
@@ -336,7 +342,7 @@ export default function KeyboardScreen() {
     focusOutlet();
   }, [outlets.length]);
 
-  /**\*** ---------------- FOOD LOOKUP ---------------- **\\\***/
+  /* ---------------- FOOD LOOKUP ---------------- */
 
   const allFoods = useMemo(() => {
     const map = new Map<number, any>();
@@ -346,9 +352,7 @@ export default function KeyboardScreen() {
         if (!map.has(food.itemCode)) {
           map.set(food.itemCode, {
             ...food,
-
             category: category.catCode,
-
             grpCode: Number(category.grpCode || 0),
           });
         }
@@ -364,7 +368,6 @@ export default function KeyboardScreen() {
     if (!q) return allFoods.slice(0, 30);
 
     return allFoods
-
       .filter(
         (f: any) =>
           String(f.itemCode).includes(q) ||
@@ -373,7 +376,6 @@ export default function KeyboardScreen() {
             .includes(q) ||
           String(f.barcode || "").includes(q),
       )
-
       .slice(0, 30);
   }, [allFoods, search]);
 
@@ -388,11 +390,10 @@ export default function KeyboardScreen() {
     row?.scrollIntoView({ block: "nearest" });
   }, [selectedFoodIndex, focusField, dropdownOpen]);
 
-  /**\\\*** ---------------- CART ---------------- **\\\***/
+  /* ---------------- CART ---------------- */
 
   // ============================================================
   // CONTROLLER 04: CART FLOW
-  // Search result -> add -> quantity -> total
   // ============================================================
 
   const addFood = (food: any, unit: string, qtyValue: number) => {
@@ -452,9 +453,7 @@ export default function KeyboardScreen() {
   const decreaseQty = (id: number) => {
     setCart((prev) =>
       prev
-
         .map((i) => (i.id === id ? { ...i, qty: i.qty - 1 } : i))
-
         .filter((i) => i.qty > 0),
     );
   };
@@ -462,7 +461,6 @@ export default function KeyboardScreen() {
   const updateQty = (id: number, qty: number) => {
     if (qty <= 0) {
       setCart((prev) => prev.filter((i) => i.id !== id));
-
       return;
     }
 
@@ -471,20 +469,23 @@ export default function KeyboardScreen() {
 
   // ============================================================
   // CONTROLLER 05: EXISTING ORDER / TABLE FLOW
-  // Table -> sub-table -> old cart -> session
   // ============================================================
 
-  const loadExistingTable = async (table: string) => {
-    if (!table || !activeOutlet) return;
+  const loadExistingTable = async (
+    table: string,
+    subOverride?: string,
+    outletOverride?: Outlet,
+  ) => {
+    const outlet = outletOverride || activeOutlet;
+
+    if (!table || !outlet) return;
 
     try {
       setProcessing(true);
 
       const data = await getSubTables(
-        String(activeOutlet.oltCode),
-
+        String(outlet.oltCode),
         table,
-
         appData?.user?.branch_code,
       );
 
@@ -494,88 +495,93 @@ export default function KeyboardScreen() {
         (x: any) => x.tableStatus !== "Available",
       );
 
-      const sub = occupied?.subTable || "A";
+      const sub = subOverride || occupied?.subTable || "A";
 
       setSelectedSubTable(sub);
 
       const old = await getOldCart(
         table,
-
-        String(activeOutlet.oltCode),
-
+        String(outlet.oltCode),
         sub,
-
         appData?.user?.branch_code,
       );
 
       setOldCartData(old || []);
+      setIsNC(
+        (outlet.tables || []).find((t) => t.tblNo === table)?.kotStatus ===
+          "NCKOT",
+      );
 
       if (old?.length) {
         const first = old[0];
 
         setSession({
           pax: Number(first.pax || 1),
-
           waiterCode: String(first.waiter || ""),
-
           waiterName: first.waiterName || "",
         });
 
+        // Bind Pax + Steward selects to the running order.
+        const paxVal = Number(first.pax || 1);
+        setPax(paxVal);
+        setPaxIndex(paxOptions.indexOf(paxVal));
+        setStewardIndex(
+          stewards.findIndex((s) => String(s.stwCode) === String(first.waiter)),
+        );
+
         // Existing items stay in oldCartData.
-
         // New items added from the keyboard go into cart.
-
         setCart([]);
 
         toast.success(`Loaded table ${table}`);
       } else {
         setSession(null);
-
         setCart([]);
       }
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to load table");
     } finally {
       setProcessing(false);
-
       setFocusField("code");
-
       setTimeout(() => codeRef.current?.focus(), 0);
     }
   };
 
   // ============================================================
   // CONTROLLER 06: NEW SESSION FLOW
-  // Table + steward + pax -> session -> ready for items
   // ============================================================
 
   const startSession = () => {
     if (!tableNumber) {
       toast.error("Select table");
-
       return;
     }
 
     if (!stewards.length) {
       toast.error("No steward available");
+      return;
+    }
 
+    if (!pax) {
+      toast.error("Select pax");
       return;
     }
 
     const steward = stewards[stewardIndex];
 
+    if (!steward) {
+      toast.error("Select steward");
+      return;
+    }
+
     setSession({
-      pax,
-
+      pax: Number(pax),
       waiterCode: String(steward.stwCode),
-
       waiterName: steward.stwName,
     });
 
     setCart([]);
-
     setOldCartData([]);
 
     setSelectedSubTable(
@@ -585,11 +591,16 @@ export default function KeyboardScreen() {
     toast.success(`New session started for table ${tableNumber}`);
 
     setFocusField("code");
-
     setTimeout(() => codeRef.current?.focus(), 0);
   };
 
-  /**\\\*** ---------------- BILL PAYLOAD ---------------- **\\\***/
+  // Touch-friendly wrapper: start the session, then jump to the Order tab.
+  const startSessionAndShowOrder = () => {
+    startSession();
+    if (tableNumber && stewards.length) setMobileTab("order");
+  };
+
+  /* ---------------- BILL PAYLOAD ---------------- */
 
   const categoryMap = useMemo(() => {
     const map = new Map<number, { catCode: number; grpCode: number }>();
@@ -598,7 +609,6 @@ export default function KeyboardScreen() {
       cat.items.forEach((item: any) => {
         map.set(item.itemCode, {
           catCode: Number(cat.catCode || 0),
-
           grpCode: Number(cat.grpCode || 0),
         });
       });
@@ -607,12 +617,8 @@ export default function KeyboardScreen() {
     return map;
   }, [masterItems]);
 
-  // ------------------------------------------------------------
-  // SHARED BILL PAYLOAD BUILDER
-  // Used by both KOT and BILL controllers
-  // ------------------------------------------------------------
-
-  const buildBillPayload = () => {
+  // Shared by both KOT and BILL controllers.
+  const buildBillPayload = (nc?: { code: number; remarks: string }) => {
     if (!session) return null;
 
     const oldFoods = oldCartData.flatMap((order: any) =>
@@ -621,23 +627,14 @@ export default function KeyboardScreen() {
 
         return {
           id: Number(f.itemCode || f.id),
-
           food: f.food,
-
           code: String(f.itemCode || f.id),
-
           price: Number(f.price || 0),
-
           qty: Number(f.qty || 0),
-
           comment: f.comment || "",
-
           category: meta?.catCode || 0,
-
           grpCode: meta?.grpCode || 0,
-
           origQty: Number(f.origQty ?? f.qty ?? 0),
-
           itemDiscountAllowed: f.itemDiscountAllowed ?? true,
         };
       }),
@@ -645,23 +642,14 @@ export default function KeyboardScreen() {
 
     const newFoods = cart.map((i) => ({
       id: i.id,
-
       food: i.name,
-
       code: String(i.id),
-
       price: i.price,
-
       qty: i.qty,
-
       comment: i.spcodes || "",
-
       category: i.category || categoryMap.get(i.id)?.catCode || 0,
-
       grpCode: i.grpCode || categoryMap.get(i.id)?.grpCode || 0,
-
       origQty: i.qty,
-
       itemDiscountAllowed: i.itemDiscountAllowed ?? true,
     }));
 
@@ -669,106 +657,62 @@ export default function KeyboardScreen() {
 
     return {
       userCode: appData?.user?.userCode || 0,
-
       table: tableNumber,
-
       subTable: selectedSubTable || "A",
-
       outlet: String(activeOutlet?.oltCode || ""),
-
       outletName: activeOltName,
-
       waiter: session.waiterCode,
-
       waiterName: session.waiterName,
-
       pax: session.pax,
-
       food,
-
       total: food.reduce((s, i) => s + i.price * i.qty, 0),
-
       totQty: food.reduce((s, i) => s + i.qty, 0),
-
       branch,
-
-      type: isNC ? "N" : "K",
-
-      ncCode: 0,
-
-      ncRemarks: "",
-
+      type: nc || isNC ? "N" : "K",
+      ncCode: nc?.code || 0,
+      ncRemarks: nc?.remarks || "",
       discount: 0,
-
       discountType: "",
-
       discountIn: "amt",
-
       discountRemarks: "",
-
       vRemarks: "1",
-
       mode: "ADD",
-
       subBillType: billGenerationSettings.subBillingType,
-
       discountGroups: [""],
-
       plan: "",
-
       guestName: "",
-
       guestCode: "",
-
       checkInNo: "",
-
       kotMobileNo: "",
-
       kotMinTimer: 0,
-
       taxType: taxSettings?.taxType || "normaltax",
-
       homeDelivary: {
         guestCode: 0,
-
         titleGn1: 0,
-
         guestName: "",
-
         dob: new Date().toISOString(),
-
         address: "",
-
         city: "",
-
         phone: "",
-
         email: "",
-
         remarks: "",
-
         lastModify: new Date().toISOString(),
-
         discount: 0,
-
         branch_code: branch,
-
         isUpdate: 0,
       },
     };
   };
 
-  /**\\\*** ---------------- KOT ---------------- **\\\***/
+  /* ---------------- KOT ---------------- */
 
   // ============================================================
   // CONTROLLER 07: KOT FLOW
-  // Validate -> payload -> create order -> printer -> reset
   // ============================================================
 
-  const handleKOT = async () => {
+  const handleKOT = async (nc?: { code: number; remarks: string }) => {
     if (!session || !cart.length) {
       toast.error("Select session and add items");
-
       return;
     }
 
@@ -777,44 +721,38 @@ export default function KeyboardScreen() {
 
       const validateRes = await validateDay({
         posEntryDate: openDayDetails?.shiftDate || "",
-
         branchcode: appData?.user?.branch_code || "",
       });
 
       if (!validateRes?.success) {
         toast.error(validateRes?.message || "Please open the day first");
-
         return;
       }
 
-      const payload = buildBillPayload();
+      const payload = buildBillPayload(nc);
 
       if (!payload) return;
 
       const res = await createOrder(payload);
 
       const printers = res?.printers || [];
-
       const foodItems = res?.food || [];
 
       const generateContent = (printItems: any[]) => ({
-        title: isNC ? "NC KOT" : "KOT",
+        title: nc ? "NC KOT" : "KOT",
 
+        ncDepName:
+          ncReasons.find((x: any) => x.ncDepCode === nc?.code)?.ncDepName ||
+          res?.ncDepName ||
+          "",
         kotId: res?.kotId || res?.kotID || res?.kotNo || "",
-
         table: tableNumber,
-
         subTable: selectedSubTable || "A",
-
         waiter: session.waiterName,
-
         pax: session.pax,
-
         items: printItems.map((item: any) => ({
           qty: item.origQty,
-
           name: item.food,
-
           instructions: item.comment ? item.comment.split(",") : [],
         })),
       });
@@ -831,11 +769,8 @@ export default function KeyboardScreen() {
 
           const result = await printKOT(
             printer.printerName || null,
-
             generateContent(printItems),
-
             printer.ipAddress || "",
-
             true,
           );
 
@@ -849,37 +784,37 @@ export default function KeyboardScreen() {
         }
       }
 
-      toast.success("KOT created & printed successfully");
+      toast.success(
+        nc
+          ? "NC KOT created & printed successfully"
+          : "KOT created & printed successfully",
+      );
 
       setCart([]);
-
       setOldCartData([]);
+      setNcCode("");
+      setNcRemarks("");
 
-      setIsNC(false);
+      await refreshOutlets();
     } catch (error) {
       console.error(error);
-
       toast.error("Failed to create KOT");
     } finally {
       setProcessing(false);
-
       setFocusField("code");
-
       setTimeout(() => codeRef.current?.focus(), 0);
     }
   };
 
-  /**\\\*** ---------------- BILL ---------------- **\\\***/
+  /* ---------------- BILL ---------------- */
 
   // ============================================================
   // CONTROLLER 08: BILL FLOW
-  // Validate -> payload -> bill -> post -> print -> reset
   // ============================================================
 
   const handleBill = async () => {
     if (!session || (!cart.length && !oldCartData.length)) {
       toast.error("No items to bill");
-
       return;
     }
 
@@ -894,33 +829,24 @@ export default function KeyboardScreen() {
 
       const finalBill = {
         cart: { ...payload },
-
         tax: {
           ...tax,
-
           taxList: tax?.taxList || [],
-
           taxType: taxSettings?.taxType,
         },
-
         billingType: billGenerationSettings.billingType,
-
         subBillingType: billGenerationSettings.subBillingType,
       };
 
       setBillData(finalBill);
-
       setTotalAmount(Number(tax?.grandTotal || 0));
 
       const res = await postBill(finalBill);
 
       const printRes = await printBill(
         finalBill,
-
         res,
-
         null,
-
         res?.ipAddress || "",
       );
 
@@ -931,22 +857,20 @@ export default function KeyboardScreen() {
       toast.success("Bill printed successfully");
 
       setCart([]);
-
       setOldCartData([]);
+
+      await refreshOutlets();
     } catch (error: any) {
       console.error(error);
-
       toast.error(error?.message || "Bill failed");
     } finally {
       setProcessing(false);
-
       setFocusField("code");
-
       setTimeout(() => codeRef.current?.focus(), 0);
     }
   };
 
-  /**\\\*** ---------------- KEYBOARD ---------------- **\\\***/
+  /* ---------------- KEYBOARD ---------------- */
 
   const focusKeyboardField = (field: FocusField) => {
     setFocusField(field);
@@ -970,160 +894,541 @@ export default function KeyboardScreen() {
   const focusSteward = () => focusKeyboardField("steward");
   const focusCode = () => focusKeyboardField("code");
 
+  // Switching to a free table: drop any running-order data of the previous one.
+  const clearTableOrder = () => {
+    setIsNC(false);
+    setCart([]);
+    setOldCartData([]);
+    setSubTables([]);
+    setSession(null);
+    setSelectedSubTable("A");
+    setPax("");
+    setPaxIndex(-1);
+    setStewardIndex(-1);
+  };
+
   const resetNewOrder = () => {
     setCart([]);
-
     setOldCartData([]);
-
     setSubTables([]);
-
     setSession(null);
-
     setSelectedSubTable("A");
-
     setCode("");
-
     setSearch("");
-
     setIsNC(false);
-
+    setActiveOutlet(null);
+    setTables([]);
+    setTableIndex(-1);
+    setTableNumber("");
+    setPax("");
+    setPaxIndex(-1);
+    setStewardIndex(-1);
+    setSelectedFood(null);
+    resetVoid();
+    setNcModalOpen(false);
+    setNcCode("");
+    setNcRemarks("");
+    setMobileTab("setup");
     focusOutlet();
+  };
+
+  /* ---------------- NC ---------------- */
+
+  // Step 1: NC pressed -> ask NC department + reason (no API call yet).
+  const openNcModal = () => {
+    if (!session || !cart.length) {
+      toast.error("Select session and add items");
+      return;
+    }
+
+    if (!ncReasons.length) {
+      toast.error("No NC departments available");
+      return;
+    }
+
+    setNcCode("");
+    setNcRemarks("");
+    setNcModalOpen(true);
+  };
+
+  // Step 2: both entered -> create the NC KOT (same flow as KOT).
+  const confirmNc = () => {
+    if (!ncCode) {
+      toast.error("Please select NC department");
+      return;
+    }
+
+    if (!ncRemarks.trim()) {
+      toast.error("Please enter reason / remarks");
+      return;
+    }
+
+    setNcModalOpen(false);
+    void handleKOT({ code: Number(ncCode), remarks: ncRemarks.trim() });
+  };
+
+  const cancelNc = () => {
+    setNcModalOpen(false);
+    setNcCode("");
+    setNcRemarks("");
+    focusCode();
+  };
+
+  /* ---------------- VOID ---------------- */
+
+  const resetVoid = () => {
+    setVoidMode(false);
+    setVoidReasonOpen(false);
+    setVoidReason("");
+    setVoidItems([]);
+    setVoidIndex(0);
+  };
+
+  const cancelVoid = () => {
+    resetVoid();
+    focusCode();
+  };
+
+  // Step 1: ask for the reason.
+  const startVoid = () => {
+    if (!session || !oldCartData.length) {
+      toast.error("No ordered items to void");
+      return;
+    }
+    setVoidReason("");
+    setVoidReasonOpen(true);
+  };
+
+  // Step 2: reason entered -> list ordered items (grouped by item code).
+  const confirmVoidReason = () => {
+    if (!voidReason.trim()) {
+      toast.error("Enter void reason");
+      return;
+    }
+
+    const grouped = new Map<number, VoidItem>();
+
+    oldCartData.forEach((order: any) =>
+      (order.food || []).forEach((f: any) => {
+        const id = Number(f.itemCode || f.id);
+        const qty = Number(f.qty || 0);
+        const existing = grouped.get(id);
+
+        if (existing) {
+          existing.qty += qty;
+          existing.origQty += qty;
+        } else {
+          const meta = categoryMap.get(id);
+          grouped.set(id, {
+            id,
+            name: String(f.food || "").trim(),
+            price: Number(f.price || 0),
+            qty,
+            origQty: qty,
+            category: meta?.catCode || 0,
+            grpCode: meta?.grpCode || 0,
+            itemDiscountAllowed: f.itemDiscountAllowed ?? true,
+          });
+        }
+      }),
+    );
+
+    setVoidItems(Array.from(grouped.values()));
+    setVoidIndex(0);
+    setVoidReasonOpen(false);
+    setVoidMode(true);
+    setMobileTab("order");
+    setDropdownOpen(false);
+    setFocusField("cart");
+    codeRef.current?.blur();
+  };
+
+  const voidOne = (index: number) =>
+    setVoidItems((prev) =>
+      prev.map((it, i) =>
+        i === index ? { ...it, qty: Math.max(0, it.qty - 1) } : it,
+      ),
+    );
+
+  const voidAll = (index: number) =>
+    setVoidItems((prev) =>
+      prev.map((it, i) => (i === index ? { ...it, qty: 0 } : it)),
+    );
+
+  const undoVoidOne = (index: number) =>
+    setVoidItems((prev) =>
+      prev.map((it, i) =>
+        i === index ? { ...it, qty: Math.min(it.origQty, it.qty + 1) } : it,
+      ),
+    );
+
+  // Step 3: same API + print flow as OrderingBoard.handleVoid.
+  const submitVoid = async () => {
+    if (!session) return;
+
+    const changed = voidItems.filter((i) => i.qty < i.origQty);
+
+    if (!changed.length) {
+      toast.error("Select item(s) to void: use - or Delete");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      const payload = {
+        userCode: appData?.user?.userCode || 0,
+        table: tableNumber,
+        subTable: selectedSubTable || "A",
+        outlet: String(activeOutlet?.oltCode || ""),
+        outletName: activeOltName,
+        waiter: session.waiterCode,
+        waiterName: session.waiterName,
+        pax: session.pax,
+
+        // Same as OrderingBoard: every ordered item that still has qty left
+        // (untouched ones included). Fully voided items are left out.
+        food: voidItems
+          .filter((i) => i.qty > 0)
+          .map((i) => ({
+          id: i.id,
+          food: i.name,
+          code: i.id.toString(),
+          price: i.price,
+          qty: i.qty,
+          comment: "",
+          category: i.category || 0,
+          origQty: i.origQty,
+          itemDiscountAllowed: i.itemDiscountAllowed ?? true,
+        })),
+
+        total: voidItems.reduce(
+          (sum, i) => sum + i.price * (i.origQty - i.qty),
+          0,
+        ),
+        totQty: voidItems.reduce((sum, i) => sum + (i.origQty - i.qty), 0),
+
+        branch,
+        type: isNC ? "N" : "K",
+        ncCode: 0,
+        ncRemarks: "",
+
+        discount: 0,
+        discountType: "",
+        discountRemarks: "",
+        vRemarks: "1",
+        voidReason: voidReason.trim(), // extra field: reason typed by the user
+        discountGroups: [""],
+        mode: "VOID",
+        subBillType: billGenerationSettings.subBillingType,
+        plan: "",
+        guestName: "adc",
+        guestCode: "234",
+        checkInNo: "",
+        kotMobileNo: "3456789021",
+
+        homeDelivary: {
+          guestCode: 0,
+          titleGn1: 0,
+          guestName: "",
+          dob: new Date().toISOString(),
+          address: "",
+          city: "",
+          phone: "",
+          email: "",
+          remarks: "",
+          lastModify: new Date().toISOString(),
+          discount: 0,
+          branch_code: branch,
+          isUpdate: 0,
+        },
+      };
+
+      const res = await createOrder(payload);
+
+      /* ---------------- PRINT (same as OrderingBoard) ---------------- */
+
+      const printers = res?.printers || [];
+      const foodItems = res?.food || [];
+
+      const printerItemMap: Record<string, any[]> = {};
+
+      printers.forEach((printer: any) => {
+        const categoryIds = printer.categoryIds ?? [];
+
+        const matchedItems = foodItems.filter((item: any) =>
+          categoryIds.includes(Number(item.category)),
+        );
+
+        if (matchedItems.length > 0) {
+          printerItemMap[printer.printerName || "default"] = matchedItems;
+        }
+      });
+
+      const generateContent = (printItems: any[]) => ({
+        title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
+        kotId: res?.kotId || res?.kotID || res?.kotNo || "",
+        table: tableNumber,
+        subTable: selectedSubTable || "A",
+        waiter: session.waiterName,
+        pax: session.pax,
+        items: printItems.map((item: any) => ({
+          qty: item.origQty || item.qty || 0,
+          name: item.food,
+          instructions: item.comment ? item.comment.split(",") : [],
+        })),
+      });
+
+      const thermalKeywords = [
+        "pos",
+        "thermal",
+        "epson tm",
+        "tm-",
+        "xp-",
+        "tsp",
+        "58mm",
+        "80mm",
+        "receipt",
+        "usb printer",
+        "rp",
+        "gp",
+      ];
+
+      // No category mapping -> print everything to first configured printer
+      if (Object.keys(printerItemMap).length === 0) {
+        const defaultPrinter = printers[0];
+
+        const result = await printKOT(
+          defaultPrinter?.printerName || null,
+          generateContent(foodItems),
+          defaultPrinter?.ipAddress || "",
+          true,
+        );
+
+        if (!result?.success) {
+          toast.error(
+            `${defaultPrinter?.printerName ?? "Default Printer"}: ${
+              result?.message || "Print failed"
+            }`,
+          );
+        }
+      } else {
+        for (const printer of printers) {
+          const key = printer.printerName?.trim() || "default";
+
+          const printerItems = printerItemMap[key];
+
+          if (!printerItems) continue;
+
+          const printerName = printer.printerName?.trim() || null;
+
+          const isThermal = thermalKeywords.some((keyword) =>
+            (printerName || "").toLowerCase().includes(keyword),
+          );
+
+          const result = await printKOT(
+            printerName,
+            generateContent(printerItems),
+            printer.ipAddress || "",
+            isThermal,
+          );
+
+          if (!result?.success) {
+            toast.error(
+              `${printerName ?? "Default Printer"}: ${
+                result?.message || "Print failed"
+              }`,
+            );
+          }
+        }
+      }
+
+      toast.success("Items voided & printed successfully");
+
+      resetVoid();
+
+      // Refresh table statuses, then the running order so voided items disappear.
+      await refreshOutlets();
+      await loadExistingTable(tableNumber, selectedSubTable || undefined);
+    } catch (error) {
+      console.error("Void failed:", error);
+      toast.error("Void failed");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Item chosen (Enter key or tap): move to quantity entry.
+  const chooseFood = (food: any) => {
+    const defaultUnit = String(food.unitName || food.mainUnit || "").trim();
+
+    setSelectedFood(food);
+    setSelectedUnit(defaultUnit);
+    setQuantity("1");
+    setFocusField("quantity");
+    setDropdownOpen(true);
+    setTimeout(() => {
+      quantityRef.current?.focus();
+      quantityRef.current?.select();
+    }, 0);
+  };
+
+  const confirmQuantity = () => {
+    if (!selectedFood) return;
+
+    const qtyValue = Number(quantity);
+    if (!Number.isFinite(qtyValue) || qtyValue <= 0) {
+      toast.error("Enter a valid quantity");
+      quantityRef.current?.focus();
+      return;
+    }
+    addFood(selectedFood, selectedUnit, qtyValue);
+  };
+
+  const closeDropdown = () => {
+    setDropdownOpen(false);
+    setSelectedFood(null);
+    focusCode();
   };
 
   // ============================================================
   // CONTROLLER 09: KEYBOARD FLOW
-  // Shortcuts -> field focus -> dropdown navigation -> selection
   // ============================================================
 
   const handleGlobalKeyDown = (e: KeyboardEvent) => {
     if (processing) return;
 
-    // F11 = New Order
+    // NC dialog open: Esc cancels; Enter/arrows are handled by the fields.
+    if (ncModalOpen) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancelNc();
+      }
+      return;
+    }
 
+    // Void reason dialog open: only Escape is handled here (Enter is on the input).
+    if (voidReasonOpen) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setVoidReasonOpen(false);
+        focusCode();
+      }
+      return;
+    }
+
+    // Void mode: pick ordered items. F11 (new order) still works.
+    if (voidMode && e.key !== "F11") {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setVoidIndex((i) => Math.min(i + 1, voidItems.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setVoidIndex((i) => Math.max(i - 1, 0));
+      } else if (e.key === "-") {
+        e.preventDefault();
+        voidOne(voidIndex);
+      } else if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        undoVoidOne(voidIndex);
+      } else if (e.key === "Delete") {
+        e.preventDefault();
+        voidAll(voidIndex);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        void submitVoid();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelVoid();
+      }
+      return;
+    }
+
+    // F11 = New Order
     if (e.key === "F11") {
       e.preventDefault();
-
       resetNewOrder();
-
       return;
     }
 
     // F12 = Normal Void screen
-
     if (e.key === "F12") {
       e.preventDefault();
-
-      toast(
-        "Normal VOID selected. Use the old ordered-item list to select an item.",
-      );
-
+      if (!voidMode) startVoid();
       return;
     }
 
     // F9 = NC Void
-
     if (e.key === "F9") {
       e.preventDefault();
-
-      setIsNC(true);
-
-      toast("NC mode enabled");
-
+      openNcModal();
       return;
     }
 
     // Ctrl + R = refresh
-
     if (e.ctrlKey && e.key.toLowerCase() === "r") {
       e.preventDefault();
-
-      void loadData();
-
-      void loadStewards();
-
+      void refreshOutlets();
       return;
     }
 
     // Ctrl + N = new order
-
     if (e.ctrlKey && e.key.toLowerCase() === "n") {
       e.preventDefault();
-
       resetNewOrder();
-
       return;
     }
 
     // Ctrl + K = KOT
-
     if (e.ctrlKey && e.key.toLowerCase() === "k") {
       e.preventDefault();
-
       void handleKOT();
-
       return;
     }
 
     // Ctrl + B = Bill
-
     if (e.ctrlKey && e.key.toLowerCase() === "b") {
       e.preventDefault();
-
       void handleBill();
-
       return;
     }
 
     // Alt + first character opens a field/list.
-
     if (e.altKey) {
       const key = e.key.toLowerCase();
 
       if (key === "o") {
         e.preventDefault();
-
-        setFocusField("outlet");
-
-        setDropdownOpen(true);
-
+        setMobileTab("setup");
+        focusOutlet();
         return;
       }
 
       if (key === "t") {
         e.preventDefault();
-
-        setFocusField("table");
-
-        setDropdownOpen(true);
-
+        setMobileTab("setup");
+        focusTable();
         return;
       }
 
       if (key === "p") {
         e.preventDefault();
-
-        setFocusField("pax");
-
-        setDropdownOpen(true);
-
+        setMobileTab("setup");
+        focusPax();
         return;
       }
 
       if (key === "s") {
         e.preventDefault();
-
-        setFocusField("steward");
-
-        setDropdownOpen(true);
-
+        setMobileTab("setup");
+        focusSteward();
         return;
       }
 
       if (key === "c") {
         e.preventDefault();
-
+        setMobileTab("order");
         focusCode();
-
         return;
       }
 
@@ -1132,9 +1437,7 @@ export default function KeyboardScreen() {
 
     if (e.key === "Escape") {
       setDropdownOpen(false);
-
       focusCode();
-
       return;
     }
 
@@ -1144,7 +1447,6 @@ export default function KeyboardScreen() {
 
         const index = Math.max(
           0,
-
           outlets.findIndex((o) => o.oltCode === activeOutlet?.oltCode) + 1,
         );
 
@@ -1167,6 +1469,10 @@ export default function KeyboardScreen() {
 
       if (e.key === "Enter") {
         e.preventDefault();
+        if (!activeOutlet) {
+          toast.error("Select outlet");
+          return;
+        }
         focusTable();
       }
 
@@ -1179,9 +1485,7 @@ export default function KeyboardScreen() {
 
         setTableIndex((i) => {
           const next = Math.min(i + 1, tables.length - 1);
-
           setTableNumber(tables[next]?.tableNumber || "");
-
           return next;
         });
       }
@@ -1191,9 +1495,7 @@ export default function KeyboardScreen() {
 
         setTableIndex((i) => {
           const next = Math.max(i - 1, 0);
-
           setTableNumber(tables[next]?.tableNumber || "");
-
           return next;
         });
       }
@@ -1201,9 +1503,14 @@ export default function KeyboardScreen() {
       if (e.key === "Enter") {
         e.preventDefault();
 
-        setDropdownOpen(false);
-
         const selected = tables[tableIndex];
+
+        if (!selected) {
+          toast.error("Select table");
+          return;
+        }
+
+        setDropdownOpen(false);
 
         if (
           selected?.status === "Occupied" ||
@@ -1211,6 +1518,7 @@ export default function KeyboardScreen() {
         ) {
           void loadExistingTable(selected.tableNumber);
         } else {
+          clearTableOrder();
           focusPax();
         }
       }
@@ -1224,9 +1532,7 @@ export default function KeyboardScreen() {
 
         setPaxIndex((i) => {
           const next = Math.min(i + 1, paxOptions.length - 1);
-
           setPax(paxOptions[next]);
-
           return next;
         });
       }
@@ -1236,15 +1542,17 @@ export default function KeyboardScreen() {
 
         setPaxIndex((i) => {
           const next = Math.max(i - 1, 0);
-
           setPax(paxOptions[next]);
-
           return next;
         });
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
+        if (!pax) {
+          toast.error("Select pax");
+          return;
+        }
         focusSteward();
       }
 
@@ -1254,29 +1562,28 @@ export default function KeyboardScreen() {
     if (focusField === "steward" && dropdownOpen) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-
         setStewardIndex((i) => Math.min(i + 1, stewards.length - 1));
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
-
         setStewardIndex((i) => Math.max(i - 1, 0));
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
-
+        if (stewardIndex < 0) {
+          toast.error("Select steward");
+          return;
+        }
         setDropdownOpen(false);
-
-        startSession();
+        startSessionAndShowOrder();
       }
 
       return;
     }
 
     // Food dropdown keyboard control.
-
     if (focusField === "foodDropdown" && dropdownOpen) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -1297,19 +1604,9 @@ export default function KeyboardScreen() {
         const food = filteredFoods[selectedFoodIndex];
         if (!food) return;
 
-        // Item selected. Keep the item dropdown open so ArrowUp/ArrowDown
-        // can still be used to choose another item. Move keyboard focus to Qty.
-        const defaultUnit = String(food.unitName || food.mainUnit || "").trim();
-
-        setSelectedFood(food);
-        setSelectedUnit(defaultUnit);
-        setQuantity("1");
-        setFocusField("quantity");
-        setDropdownOpen(true);
-        setTimeout(() => {
-          quantityRef.current?.focus();
-          quantityRef.current?.select();
-        }, 0);
+        // Keep the item dropdown open so ArrowUp/ArrowDown can still be used
+        // to choose another item. Move keyboard focus to Qty.
+        chooseFood(food);
         return;
       }
       return;
@@ -1319,70 +1616,49 @@ export default function KeyboardScreen() {
     if (focusField === "quantity" && dropdownOpen && selectedFood) {
       if (e.key === "Enter") {
         e.preventDefault();
-        const qtyValue = Number(quantity);
-        if (!Number.isFinite(qtyValue) || qtyValue <= 0) {
-          toast.error("Enter a valid quantity");
-          quantityRef.current?.focus();
-          return;
-        }
-        addFood(selectedFood, selectedUnit, qtyValue);
+        confirmQuantity();
         return;
       }
       return;
     }
 
     // Cart keyboard control.
-
     if (focusField === "cart" && cart.length) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-
         setSelectedCartIndex((i) => Math.min(i + 1, cart.length - 1));
-
         return;
       }
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
-
         setSelectedCartIndex((i) => Math.max(i - 1, 0));
-
         return;
       }
 
       if (e.key === "+") {
         e.preventDefault();
-
         const item = cart[selectedCartIndex];
-
         if (item) increaseQty(item.id);
-
         return;
       }
 
       if (e.key === "-") {
         e.preventDefault();
-
         const item = cart[selectedCartIndex];
-
         if (item) decreaseQty(item.id);
-
         return;
       }
 
       if (e.key === "Delete") {
         e.preventDefault();
-
         const item = cart[selectedCartIndex];
-
         if (item) updateQty(item.id, 0);
-
         return;
       }
 
       if (e.key === "Enter") {
         e.preventDefault();
-
         focusCode();
       }
     }
@@ -1392,30 +1668,22 @@ export default function KeyboardScreen() {
 
   useEffect(() => {
     window.addEventListener("keydown", handleGlobalKeyDown);
-
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   });
 
-  /* Barcode scanner / item code input */
+  /* Barcode scanner / item code input (Enter key or Search button) */
 
-  const handleCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter") return;
-
-    e.preventDefault();
-
+  const runCodeSearch = () => {
     const value = code.trim();
 
     if (!value) return;
 
+    const searchValue = value.toLowerCase();
+
     const results = allFoods
-
       .filter((f: any) => {
-        const searchValue = value.toLowerCase();
-
         const itemCode = String(f.itemCode || "").toLowerCase();
-
         const itemName = String(f.itemName || "").toLowerCase();
-
         const barcode = String(f.barcode || "").toLowerCase();
 
         return (
@@ -1424,23 +1692,18 @@ export default function KeyboardScreen() {
           barcode.includes(searchValue)
         );
       })
-
       .slice(0, 30);
 
     if (!results.length) {
       toast.error(`Item not found: ${value}`);
-
       return;
     }
 
-    // Show dropdown only after ENTER.
-
+    // Show dropdown only after ENTER / Search tap.
     setSearch(value);
-
     setSelectedFoodIndex(0);
-
+    setSelectedFood(null);
     setDropdownOpen(true);
-
     setFocusField("foodDropdown");
 
     setTimeout(() => {
@@ -1448,126 +1711,249 @@ export default function KeyboardScreen() {
     }, 0);
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const handleCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    runCodeSearch();
+  };
 
-  /**\\\*** ---------------- UI ---------------- **\\\***/
+  // Occupied / Unsettled tables of ALL outlets.
+  const occupiedTables = outlets.flatMap((o) =>
+    formatTables(o)
+      .filter((t) => t.status === "Occupied" || t.status === "Unsettled")
+      .map((t) => ({ ...t, outlet: o })),
+  );
+
+  const showFoodList =
+    dropdownOpen && (focusField === "foodDropdown" || focusField === "quantity");
+
+  // Items already ordered on this table (from GetOldCart), flattened across KOTs.
+  const oldRows = oldCartData.flatMap((order: any) =>
+    (order.food || []).map((f: any) => ({ ...f, kotId: order.kotId })),
+  );
+
+  const total =
+    cart.reduce((sum, item) => sum + item.price * item.qty, 0) +
+    oldRows.reduce(
+      (sum: number, f: any) => sum + Number(f.price || 0) * Number(f.qty || 0),
+      0,
+    );
+  const totalQty =
+    cart.reduce((s, i) => s + i.qty, 0) +
+    oldRows.reduce((s: number, f: any) => s + Number(f.qty || 0), 0);
+
+  const paxList =
+    pax && !paxOptions.includes(Number(pax))
+      ? [...paxOptions, Number(pax)]
+      : paxOptions;
+
+  const tabClass = (tab: MobileTab) =>
+    `py-3 text-xs font-bold uppercase tracking-wide border-b-4 ${
+      mobileTab === tab
+        ? "bg-[#DDEFEF] text-[#0B4F4A] border-yellow-400"
+        : "bg-[#0B4F4A] text-white border-transparent"
+    }`;
+
+  const panel = (tab: MobileTab) => (mobileTab === tab ? "flex" : "hidden");
+
+  // Shared control sizing: big touch targets on small screens, compact on desktop.
+  const fieldClass = "w-full border h-11 lg:h-8 px-2 lg:px-1 text-base lg:text-sm bg-white";
+
+  /* ---------------- UI ---------------- */
 
   return (
-    <div className="h-screen bg-[#E9E9E9] text-sm font-sans overflow-hidden">
-      <div className="h-10 bg-[#0B4F4A] text-white flex items-center px-4 font-bold">
-        KITCHEN ORDER TRACKING
-        <span className="ml-auto text-yellow-300 text-xs">
+    <div className="h-[100dvh] flex flex-col bg-[#E9E9E9] text-sm font-sans overflow-hidden">
+      {/* Title bar */}
+      <div className="min-h-10 shrink-0 bg-[#0B4F4A] text-white flex items-center gap-2 px-3 lg:px-4 font-bold">
+        <span className="truncate">KITCHEN ORDER TRACKING</span>
+
+        {/* Desktop shortcut hints */}
+        <span className="ml-auto text-yellow-300 text-xs hidden xl:inline whitespace-nowrap">
           F11 NEW ORDER &nbsp; | &nbsp; F12 NORMAL VOID &nbsp; | &nbsp; F9 NC
           VOID
         </span>
+
+        {/* Mobile summary */}
+        <span className="ml-auto lg:hidden text-yellow-300 text-xs whitespace-nowrap">
+          T: {tableNumber || "-"}
+          {isNC && <span className="ml-2 bg-orange-500 text-white px-1">NC</span>}
+        </span>
       </div>
 
-      <div className="h-[calc(100vh-40px)] grid grid-cols-[260px_1fr_260px] gap-1 p-1">
-        <section className="bg-[#DDEFEF] border border-gray-500 p-2 flex flex-col gap-2">
+      {/* Mobile / tablet tabs */}
+      <nav className="lg:hidden shrink-0 grid grid-cols-3">
+        <button className={tabClass("setup")} onClick={() => setMobileTab("setup")}>
+          Setup
+        </button>
+        <button className={tabClass("order")} onClick={() => setMobileTab("order")}>
+          Order{cart.length || oldRows.length ? ` (${totalQty})` : ""}
+        </button>
+        <button
+          className={tabClass("running")}
+          onClick={() => setMobileTab("running")}
+        >
+          Details
+        </button>
+      </nav>
+
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] gap-1 p-1">
+        {/* ============ SETUP PANEL ============ */}
+        <section
+          className={`${panel(
+            "setup",
+          )} lg:flex bg-[#DDEFEF] border border-gray-500 p-2 flex-col gap-2 min-h-0 overflow-y-auto`}
+        >
           <div className="text-center font-bold text-[#0B4F4A] text-lg">
             KEYBOARD BILLING
           </div>
 
-          <label className="font-bold">
-            Outlet
-            <select
-              ref={outletRef}
-              value={activeOutlet?.oltCode || ""}
-              onFocus={() => setFocusField("outlet")}
-              onChange={(e) => {
-                const outlet = outlets.find(
-                  (o) => String(o.oltCode) === e.target.value,
-                );
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+            <label className="font-bold col-span-2 lg:col-span-1">
+              Outlet
+              <select
+                ref={outletRef}
+                value={activeOutlet?.oltCode || ""}
+                onFocus={() => {
+                  setFocusField("outlet");
+                  setDropdownOpen(true);
+                }}
+                onChange={(e) => {
+                  const outlet = outlets.find(
+                    (o) => String(o.oltCode) === e.target.value,
+                  );
 
-                if (outlet) selectOutlet(outlet);
-              }}
-              className="w-full border h-8 px-1"
-            >
-              {outlets.map((o) => (
-                <option key={o.oltCode} value={o.oltCode}>
-                  {o.oltName.trim()}
+                  if (outlet) selectOutlet(outlet);
+                }}
+                className={fieldClass}
+              >
+                <option value="" disabled>
+                  Select outlet
                 </option>
-              ))}
-            </select>
-          </label>
+                {outlets.map((o) => (
+                  <option key={o.oltCode} value={o.oltCode}>
+                    {o.oltName.trim()}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="font-bold">
-            Table
-            <select
-              ref={tableRef}
-              value={tableNumber}
-              onFocus={() => setFocusField("table")}
-              onChange={(e) => {
-                const index = tables.findIndex(
-                  (t) => t.tableNumber === e.target.value,
-                );
+            <label className="font-bold col-span-2 lg:col-span-1">
+              Table
+              <select
+                ref={tableRef}
+                value={tableNumber}
+                onFocus={() => {
+                  setFocusField("table");
+                  setDropdownOpen(true);
+                }}
+                onChange={(e) => {
+                  const index = tables.findIndex(
+                    (t) => t.tableNumber === e.target.value,
+                  );
 
-                setTableIndex(Math.max(index, 0));
+                  setTableIndex(Math.max(index, 0));
+                  setTableNumber(e.target.value);
 
-                setTableNumber(e.target.value);
-              }}
-              className="w-full border h-8 px-1"
-            >
-              {tables.map((t) => (
-                <option key={t.tableNumber} value={t.tableNumber}>
-                  {t.tableNumber} - {t.status}
+                  // Touch users have no Enter key: load running orders on pick.
+                  const picked = tables[index];
+                  if (
+                    picked?.status === "Occupied" ||
+                    picked?.status === "Unsettled"
+                  ) {
+                    void loadExistingTable(picked.tableNumber);
+                  } else {
+                    clearTableOrder();
+                  }
+                }}
+                className={fieldClass}
+              >
+                <option value="" disabled>
+                  {activeOutlet ? "Select table" : "Select outlet first"}
                 </option>
-              ))}
-            </select>
-          </label>
+                {tables.map((t) => (
+                  <option key={t.tableNumber} value={t.tableNumber}>
+                    {t.tableNumber} - {t.status}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="font-bold">
-            Pax
-            <select
-              ref={paxRef}
-              value={pax}
-              onFocus={() => setFocusField("pax")}
-              onChange={(e) => setPax(Number(e.target.value))}
-              className="w-full border h-8 px-1"
-            >
-              {paxOptions.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+            <label className="font-bold">
+              Pax
+              <select
+                ref={paxRef}
+                value={pax}
+                onFocus={() => {
+                  setFocusField("pax");
+                  setDropdownOpen(true);
+                }}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setPax(v);
+                  setPaxIndex(paxOptions.indexOf(v));
+                }}
+                className={fieldClass}
+              >
+                <option value="" disabled>
+                  Select pax
                 </option>
-              ))}
-            </select>
-          </label>
+                {paxList.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label className="font-bold">
-            Steward
-            <select
-              ref={stewardRef}
-              value={stewards[stewardIndex]?.stwCode || ""}
-              onFocus={() => setFocusField("steward")}
-              onChange={(e) =>
-                setStewardIndex(
-                  Math.max(
-                    0,
-
-                    stewards.findIndex(
-                      (s) => String(s.stwCode) === e.target.value,
+            <label className="font-bold">
+              Steward
+              <select
+                ref={stewardRef}
+                value={
+                  stewardIndex >= 0
+                    ? stewards[stewardIndex]?.stwCode ?? ""
+                    : session?.waiterCode ?? ""
+                }
+                onFocus={() => {
+                  setFocusField("steward");
+                  setDropdownOpen(true);
+                }}
+                onChange={(e) =>
+                  setStewardIndex(
+                    Math.max(
+                      0,
+                      stewards.findIndex(
+                        (s) => String(s.stwCode) === e.target.value,
+                      ),
                     ),
-                  ),
-                )
-              }
-              className="w-full border h-8 px-1"
-            >
-              {stewards.map((s) => (
-                <option key={s.stwCode} value={s.stwCode}>
-                  {s.stwName}
+                  )
+                }
+                className={fieldClass}
+              >
+                <option value="" disabled>
+                  Select steward
                 </option>
-              ))}
-            </select>
-          </label>
+                {session?.waiterCode && stewardIndex < 0 && (
+                  <option value={session.waiterCode}>{session.waiterName}</option>
+                )}
+                {stewards.map((s) => (
+                  <option key={s.stwCode} value={s.stwCode}>
+                    {s.stwName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           <button
-            onClick={startSession}
-            className="bg-[#0B4F4A] text-white font-bold py-2 border border-black"
+            onClick={startSessionAndShowOrder}
+            className="bg-[#0B4F4A] text-white font-bold py-3 lg:py-2 border border-black"
           >
-            ENTER - START SESSION
+            <span className="hidden lg:inline">ENTER - </span>START SESSION
           </button>
 
-          <div className="grid grid-cols-2 gap-1 mt-1">
+          {/* Desktop action buttons (mobile uses the bottom bar) */}
+          <div className="hidden lg:grid grid-cols-2 gap-1 mt-1">
             <button
               onClick={resetNewOrder}
               className="bg-yellow-300 border border-black py-2 font-bold"
@@ -1590,76 +1976,216 @@ export default function KeyboardScreen() {
             </button>
 
             <button
-              onClick={() => setIsNC((v) => !v)}
+              onClick={openNcModal}
               className={`border border-black py-2 font-bold ${
                 isNC ? "bg-orange-500 text-white" : "bg-white"
               }`}
             >
               F9 NC
             </button>
+
+            <button
+              onClick={startVoid}
+              className="col-span-2 bg-red-600 text-white border border-black py-2 font-bold"
+            >
+              F12 VOID
+            </button>
           </div>
 
-          <div className="mt-auto border border-black bg-yellow-100">
+          <div className="lg:mt-auto border border-black bg-yellow-100">
             <div className="flex justify-between px-2 py-1">
               <b>Total Qty</b>
-
-              <b>{cart.reduce((s, i) => s + i.qty, 0)}</b>
+              <b>{totalQty}</b>
             </div>
 
             <div className="flex justify-between px-2 py-2 text-lg">
               <b>Grand Total</b>
-
               <b>₹{(totalAmount || total).toFixed(2)}</b>
             </div>
           </div>
         </section>
 
-        <section className="bg-white border border-gray-500 min-w-0 flex flex-col">
-          <table className="w-full border-collapse table-fixed">
-            <colgroup>
-              <col className="w-[70px]" />
-              <col />
-              <col className="w-[70px]" />
-              <col className="w-[100px]" />
-              <col className="w-[110px]" />
-            </colgroup>
+        {/* ============ ORDER PANEL ============ */}
+        <section
+          className={`${panel(
+            "order",
+          )} lg:flex bg-white border border-gray-500 min-w-0 min-h-0 flex-col`}
+        >
+          <table className="w-full border-collapse table-fixed shrink-0">
+            <CartCols />
             <thead>
               <tr className="bg-[#E4AE12] border-b border-gray-700 font-bold text-center">
-                <th className="border px-2 py-1 text-left">Code</th>
+                <th className="border px-2 py-1 text-left hidden sm:table-cell">
+                  Code
+                </th>
                 <th className="border px-2 py-1 text-left">Name</th>
-                <th className="border px-2 py-1">Qty</th>
-                <th className="border px-2 py-1 text-right">Rate</th>
-                <th className="border px-2 py-1 text-right">Amount</th>
+                <th className="border px-1 sm:px-2 py-1">Qty</th>
+                <th className="border px-1 sm:px-2 py-1 text-right">Rate</th>
+                <th className="border px-1 sm:px-2 py-1 text-right">Amount</th>
               </tr>
             </thead>
           </table>
 
-          <div className="border-b p-1">
+          {voidMode && (
+            <div className="shrink-0 bg-red-100 border-b border-red-500 px-2 py-1 text-xs">
+              <div className="font-bold text-red-700">
+                VOID MODE — Reason: {voidReason}
+              </div>
+              <div className="hidden lg:block text-red-700">
+                ↑↓ Select &nbsp;|&nbsp; − Void 1 &nbsp;|&nbsp; + Undo &nbsp;|&nbsp;
+                DELETE Void full item &nbsp;|&nbsp; ENTER Confirm &nbsp;|&nbsp; ESC
+                Cancel
+              </div>
+              <div className="lg:hidden flex gap-1 mt-1">
+                <button
+                  onClick={() => void submitVoid()}
+                  className="flex-1 bg-red-600 text-white font-bold py-2 border border-black"
+                >
+                  CONFIRM VOID
+                </button>
+                <button
+                  onClick={cancelVoid}
+                  className="flex-1 bg-white font-bold py-2 border border-black"
+                >
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="border-b p-1 flex gap-1 shrink-0">
             <input
               ref={codeRef}
               value={code}
               onChange={(e) => {
                 setCode(e.target.value);
               }}
-              onFocus={() => setFocusField("code")}
+              onFocus={() => {
+                setFocusField("code");
+                setDropdownOpen(false);
+              }}
               onKeyDown={handleCodeKeyDown}
-              placeholder="Type Item Code / Name and press ENTER"
-              className="w-full h-9 border border-[#0B4F4A] px-2 outline-none"
+              enterKeyHint="search"
+              autoComplete="off"
+              disabled={voidMode}
+              placeholder="Item Code / Name, then ENTER"
+              className="flex-1 min-w-0 h-11 lg:h-9 border border-[#0B4F4A] px-2 outline-none text-base lg:text-sm"
             />
+
+            <button
+              onClick={runCodeSearch}
+              className="lg:hidden px-4 bg-[#0B4F4A] text-white font-bold border border-black"
+            >
+              Find
+            </button>
+
+            {showFoodList && (
+              <button
+                onClick={closeDropdown}
+                aria-label="Close item list"
+                className="lg:hidden px-3 bg-white border border-black font-bold"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className="flex-1 min-h-[120px] overflow-auto">
             <table className="w-full border-collapse table-fixed">
-              <colgroup>
-                <col className="w-[70px]" />
-                <col />
-                <col className="w-[70px]" />
-                <col className="w-[100px]" />
-                <col className="w-[110px]" />
-              </colgroup>
+              <CartCols />
 
               <tbody>
-                {cart.map((item, index) => (
+                {voidMode &&
+                  voidItems.map((it, index) => {
+                    const voided = it.origQty - it.qty;
+                    return (
+                      <tr
+                        key={`void-${it.id}`}
+                        onClick={() => setVoidIndex(index)}
+                        className={`cursor-pointer ${
+                          index === voidIndex
+                            ? "bg-gray-500 text-white"
+                            : it.qty === 0
+                              ? "bg-red-50 text-red-600 line-through"
+                              : voided > 0
+                                ? "bg-white text-red-600"
+                                : "bg-white"
+                        }`}
+                      >
+                        <td className="border px-2 py-1 hidden sm:table-cell">
+                          {it.id}
+                        </td>
+                        <td className="border px-2 py-1 break-words">
+                          {it.name}
+                          {voided > 0 && (
+                            <span className="ml-1 text-[10px] font-bold">
+                              VOID {voided}
+                            </span>
+                          )}
+                        </td>
+                        <td className="border px-1 py-1 text-center">
+                          <div className="flex items-center justify-center gap-1 lg:hidden">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                voidOne(index);
+                              }}
+                              aria-label="Void one"
+                              className="w-8 h-8 border border-black bg-white text-black font-bold"
+                            >
+                              −
+                            </button>
+                            <span className="min-w-[1.25rem] font-bold">
+                              {it.qty}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                voidAll(index);
+                              }}
+                              aria-label="Void full item"
+                              className="w-8 h-8 border border-black bg-red-600 text-white font-bold"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <span className="hidden lg:inline">{it.qty}</span>
+                        </td>
+                        <td className="border px-1 sm:px-2 py-1 text-right">
+                          {it.price}
+                        </td>
+                        <td className="border px-1 sm:px-2 py-1 text-right">
+                          {(it.price * it.qty).toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                {!voidMode && oldRows.map((f: any, i: number) => (
+                  <tr
+                    key={`old-${f.kotId}-${f.itemCode}-${i}`}
+                    className="bg-[#EAF3F3] text-gray-700"
+                  >
+                    <td className="border px-2 py-1 hidden sm:table-cell">
+                      {f.itemCode}
+                    </td>
+                    <td className="border px-2 py-1 break-words">
+                      {String(f.food || "").trim()}
+                      <span className="ml-1 text-[10px] text-gray-500">
+                        KOT {f.kotId}
+                      </span>
+                    </td>
+                    <td className="border px-1 py-1 text-center">{f.qty}</td>
+                    <td className="border px-1 sm:px-2 py-1 text-right">
+                      {f.price}
+                    </td>
+                    <td className="border px-1 sm:px-2 py-1 text-right">
+                      {(Number(f.price || 0) * Number(f.qty || 0)).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+
+                {!voidMode && cart.map((item, index) => (
                   <tr
                     key={`${item.id}-${index}`}
                     onClick={() => setSelectedCartIndex(index)}
@@ -1669,27 +2195,57 @@ export default function KeyboardScreen() {
                         : "bg-white"
                     }
                   >
-                    <td className="border px-2 py-1 w-[70px]">{item.id}</td>
-
-                    <td className="border px-2 py-1">{item.name}</td>
-
-                    <td className="border px-2 py-1 text-center w-[70px]">
-                      {item.qty}
+                    <td className="border px-2 py-1 hidden sm:table-cell">
+                      {item.id}
                     </td>
 
-                    <td className="border px-2 py-1 text-right w-[100px]">
+                    <td className="border px-2 py-1 break-words">
+                      {item.name}
+                    </td>
+
+                    <td className="border px-1 py-1 text-center">
+                      {/* Touch controls on small screens */}
+                      <div className="flex items-center justify-center gap-1 lg:hidden">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            decreaseQty(item.id);
+                          }}
+                          aria-label="Decrease quantity"
+                          className="w-8 h-8 border border-black bg-white text-black font-bold"
+                        >
+                          −
+                        </button>
+                        <span className="min-w-[1.25rem] font-bold">
+                          {item.qty}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            increaseQty(item.id);
+                          }}
+                          aria-label="Increase quantity"
+                          className="w-8 h-8 border border-black bg-white text-black font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="hidden lg:inline">{item.qty}</span>
+                    </td>
+
+                    <td className="border px-1 sm:px-2 py-1 text-right">
                       {item.price}
                     </td>
 
-                    <td className="border px-2 py-1 text-right w-[110px]">
+                    <td className="border px-1 sm:px-2 py-1 text-right">
                       {(item.price * item.qty).toFixed(2)}
                     </td>
                   </tr>
                 ))}
 
-                {!cart.length && (
+                {!cart.length && !oldRows.length && !voidMode && (
                   <tr>
-                    <td colSpan={6} className="h-40 text-center text-gray-400">
+                    <td colSpan={5} className="h-40 text-center text-gray-400">
                       Scan/type item code and press ENTER
                     </td>
                   </tr>
@@ -1698,19 +2254,19 @@ export default function KeyboardScreen() {
             </table>
           </div>
 
-          {dropdownOpen && filteredFoods.length > 0 && (
+          {showFoodList && filteredFoods.length > 0 && (
             <div
               ref={dropdownRef}
               tabIndex={-1}
-              className="border-t bg-white h-40 outline-none flex flex-col"
+              className="border-t bg-white h-44 sm:h-52 lg:h-40 outline-none flex flex-col shrink-0"
             >
               {/* Header - fixed */}
               <div className="shrink-0 bg-[#E4AE12]">
                 <table className="w-full table-fixed border-collapse text-sm">
                   <colgroup>
-                    <col className="w-[80px]" />
+                    <col className="w-[64px] sm:w-[80px]" />
                     <col />
-                    <col className="w-[120px]" />
+                    <col className="w-[80px] sm:w-[120px]" />
                   </colgroup>
 
                   <thead>
@@ -1733,9 +2289,9 @@ export default function KeyboardScreen() {
               <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 <table className="w-full table-fixed border-collapse text-sm">
                   <colgroup>
-                    <col className="w-[80px]" />
+                    <col className="w-[64px] sm:w-[80px]" />
                     <col />
-                    <col className="w-[120px]" />
+                    <col className="w-[80px] sm:w-[120px]" />
                   </colgroup>
 
                   <tbody>
@@ -1743,21 +2299,25 @@ export default function KeyboardScreen() {
                       <tr
                         key={food.itemCode}
                         data-food-index={index}
-                        className={
+                        onClick={() => {
+                          setSelectedFoodIndex(index);
+                          chooseFood(food);
+                        }}
+                        className={`cursor-pointer ${
                           index === selectedFoodIndex
                             ? "bg-gray-500 text-white font-bold"
                             : "bg-[#FFFF66] text-black"
-                        }
+                        }`}
                       >
-                        <td className="border border-gray-400 px-2 py-1 text-left">
+                        <td className="border border-gray-400 px-2 py-2 lg:py-1 text-left">
                           {food.itemCode}
                         </td>
 
-                        <td className="border border-gray-400 px-2 py-1 text-left truncate">
+                        <td className="border border-gray-400 px-2 py-2 lg:py-1 text-left truncate">
                           {String(food.itemName || "").trim()}
                         </td>
 
-                        <td className="border border-gray-400 px-2 py-1 text-left">
+                        <td className="border border-gray-400 px-2 py-2 lg:py-1 text-left">
                           {food.oidRate}
                         </td>
                       </tr>
@@ -1768,12 +2328,17 @@ export default function KeyboardScreen() {
             </div>
           )}
 
-          {dropdownOpen && selectedFood && (
-            <div className="border-t bg-[#D7F0F0] p-2 flex items-center justify-end gap-2">
+          {showFoodList && selectedFood && (
+            <div className="border-t bg-[#D7F0F0] p-2 flex flex-wrap items-center justify-end gap-2 shrink-0">
+              <span className="mr-auto font-bold truncate max-w-[50%] lg:hidden">
+                {String(selectedFood.itemName || "").trim()}
+              </span>
+
               <label className="font-bold whitespace-nowrap">Qty</label>
               <input
                 ref={quantityRef}
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
@@ -1785,24 +2350,43 @@ export default function KeyboardScreen() {
                     setFocusField("foodDropdown");
                   }
                 }}
-                className="w-20 h-8 border border-[#0B4F4A] px-2 outline-none"
+                className="w-20 h-11 lg:h-8 border border-[#0B4F4A] px-2 outline-none text-base lg:text-sm"
               />
+
+              <button
+                onClick={confirmQuantity}
+                className="lg:hidden h-11 px-5 bg-[#0B4F4A] text-white font-bold border border-black"
+              >
+                ADD
+              </button>
             </div>
           )}
 
-          <div className="border-t bg-[#0B4F4A] text-white px-3 py-1 text-xs">
+          <div className="hidden lg:block border-t bg-[#0B4F4A] text-white px-3 py-1 text-xs shrink-0">
             ALT+O Outlet | ALT+T Table | ALT+P Pax | ALT+S Steward | ALT+C Code
             &nbsp; | &nbsp; ↑↓ Navigate &nbsp; | &nbsp; ENTER Open/Select &nbsp;
             | &nbsp; +/- Qty &nbsp; | &nbsp; DELETE Remove
           </div>
         </section>
 
-        <section className="bg-white border border-gray-500 flex flex-col">
-          <div className="bg-white border-b px-2 py-2 font-bold">
-            Running Order Detail [Ctrl+R]
+        {/* ============ RUNNING ORDER PANEL ============ */}
+        <section
+          className={`${panel(
+            "running",
+          )} lg:flex bg-white border border-gray-500 flex-col min-h-0 overflow-y-auto lg:overflow-visible`}
+        >
+          <div className="bg-white border-b px-2 py-2 font-bold shrink-0">
+            Running Order Detail{" "}
+            <button
+              onClick={() => void refreshOutlets()}
+              className="lg:hidden ml-2 px-2 py-1 border border-black text-xs bg-yellow-100"
+            >
+              Refresh
+            </button>
+            <span className="hidden lg:inline">[Ctrl+R]</span>
           </div>
 
-          <div className="p-2 border-b">
+          <div className="p-2 border-b shrink-0">
             <div className="text-red-600 font-bold mb-1">
               TABLE: {tableNumber || "-"}
             </div>
@@ -1810,83 +2394,309 @@ export default function KeyboardScreen() {
             <div className="grid grid-cols-2 gap-1 text-xs">
               <div className="border p-1">
                 <b>Outlet</b>
-
                 <br />
-
                 {activeOutlet?.oltName || "-"}
               </div>
 
               <div className="border p-1">
                 <b>Status</b>
-
                 <br />
-
                 {tables[tableIndex]?.status || "-"}
               </div>
 
               <div className="border p-1">
                 <b>Pax</b>
-
                 <br />
-
-                {session?.pax || pax}
+                {session?.pax || pax || "-"}
               </div>
 
               <div className="border p-1">
                 <b>Steward</b>
-
                 <br />
-
                 {session?.waiterName || stewards[stewardIndex]?.stwName || "-"}
               </div>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 lg:overflow-auto min-h-[80px]">
+            {/* Occupied tables of all outlets */}
+            <div className="bg-gray-100 border-b px-2 py-1 text-xs font-bold flex justify-between">
+              <span>Occupied Tables</span>
+              <span>{occupiedTables.length}</span>
+            </div>
+
+            {occupiedTables.map((t) => {
+              const isCurrent =
+                String(t.outlet.oltCode) === String(activeOutlet?.oltCode) &&
+                t.tableNumber === tableNumber;
+
+              return (
+                <div
+                  key={`${t.outlet.oltCode}-${t.tableNumber}`}
+                  onClick={() => {
+                    // Switch outlet first when the table belongs to another one.
+                    if (String(t.outlet.oltCode) !== String(activeOutlet?.oltCode)) {
+                      selectOutlet(t.outlet);
+                    }
+                    setTableIndex(
+                      formatTables(t.outlet).findIndex(
+                        (x) => x.tableNumber === t.tableNumber,
+                      ),
+                    );
+                    setTableNumber(t.tableNumber);
+                    void loadExistingTable(t.tableNumber, undefined, t.outlet);
+                    setMobileTab("order");
+                  }}
+                  className={`flex justify-between items-center border-b px-2 py-2 cursor-pointer ${
+                    isCurrent ? "bg-gray-300 font-bold" : ""
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div>{t.tableNumber}</div>
+                    <div className="text-[11px] text-gray-500 truncate">
+                      {t.outlet.oltName.trim()}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs">
+                    <div>{t.status}</div>
+                    <div
+                      className={
+                        t.kotStatus === "NCKOT"
+                          ? "text-orange-600 font-bold"
+                          : ""
+                      }
+                    >
+                      {t.kotStatus === "NCKOT" ? "NC" : "KOT"}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {subTables.length > 0 && (
+              <div className="bg-gray-100 border-b px-2 py-1 text-xs font-bold">
+                Sub tables
+              </div>
+            )}
+
             {subTables.map((sub: any, index: number) => (
               <div
                 key={`${sub.subTable}-${index}`}
-                className={`grid grid-cols-3 border-b px-2 py-2 ${
+                onClick={() => {
+                  if (sub.tableStatus !== "Available") {
+                    void loadExistingTable(tableNumber, sub.subTable);
+                  }
+                }}
+                className={`grid grid-cols-3 border-b px-2 py-2 cursor-pointer ${
                   sub.subTable === selectedSubTable
                     ? "bg-gray-300 font-bold"
                     : ""
                 }`}
               >
                 <span>{sub.subTable}</span>
-
                 <span>{sub.tableStatus}</span>
-
                 <span>{sub.billNo || "-"}</span>
               </div>
             ))}
 
-            {!subTables.length && (
-              <div className="p-3 text-gray-400">No running orders loaded.</div>
+            {!subTables.length && !occupiedTables.length && (
+              <div className="p-3 text-gray-400">No occupied tables.</div>
             )}
           </div>
 
-          <div className="border-t p-2 text-xs">
+          <div className="border-t p-2 text-xs shrink-0">
             <div className="font-bold text-red-600">Transfer Table</div>
 
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="hidden lg:block text-xs text-gray-500 mt-1">
               Keyboard mode: use Alt shortcuts, arrows and Enter. Mouse/touch is
               optional.
             </div>
 
             <div className="mt-2 grid grid-cols-2 gap-1">
               <div className="border p-2">Outlet</div>
-
               <div className="border p-2">Table</div>
             </div>
           </div>
 
           {billData && (
-            <div className="border-t bg-yellow-100 p-2 text-xs">
+            <div className="border-t bg-yellow-100 p-2 text-xs shrink-0">
               Bill Total: ₹{Number(billData?.tax?.grandTotal || 0).toFixed(2)}
             </div>
           )}
         </section>
       </div>
+
+      {/* Mobile / tablet sticky action bar */}
+      <div className="lg:hidden shrink-0 bg-[#0B4F4A] text-white border-t border-black pb-[env(safe-area-inset-bottom)]">
+        <div className="flex justify-between px-3 pt-1 text-xs">
+          <span>
+            Qty: <b>{totalQty}</b>
+          </span>
+          <span className="text-sm">
+            Total: <b>₹{(totalAmount || total).toFixed(2)}</b>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-5 gap-1 p-1">
+          <button
+            onClick={resetNewOrder}
+            className="bg-yellow-300 text-black border border-black py-3 font-bold text-xs"
+          >
+            NEW
+          </button>
+
+          <button
+            onClick={openNcModal}
+            className={`border border-black py-3 font-bold text-xs ${
+              isNC ? "bg-orange-500 text-white" : "bg-white text-black"
+            }`}
+          >
+            NC
+          </button>
+
+          <button
+            onClick={() => void handleKOT()}
+            className="bg-green-500 text-white border border-black py-3 font-bold text-xs"
+          >
+            KOT
+          </button>
+
+          <button
+            onClick={() => void handleBill()}
+            className="bg-blue-600 text-white border border-black py-3 font-bold text-xs"
+          >
+            BILL
+          </button>
+
+          <button
+            onClick={startVoid}
+            className="bg-red-600 text-white border border-black py-3 font-bold text-xs"
+          >
+            VOID
+          </button>
+        </div>
+      </div>
+
+      {ncModalOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-3">
+          <div className="bg-white w-full max-w-sm border border-black p-3 flex flex-col gap-2">
+            <div className="font-bold text-orange-600">
+              NC (Non Chargeable)
+            </div>
+
+            <label className="font-bold text-xs">
+              NC Department
+              <select
+                autoFocus
+                value={ncCode}
+                onChange={(e) =>
+                  setNcCode(e.target.value ? Number(e.target.value) : "")
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (!ncCode) {
+                      toast.error("Please select NC department");
+                      return;
+                    }
+                    ncRemarksRef.current?.focus();
+                  }
+                }}
+                className="w-full border border-orange-500 h-11 lg:h-9 px-2 text-base lg:text-sm bg-white"
+              >
+                <option value="" disabled>
+                  Select NC department
+                </option>
+                {ncReasons.map((r: any) => (
+                  <option key={r.ncDepCode} value={r.ncDepCode}>
+                    {r.ncDepName}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="font-bold text-xs">
+              Reason / Remarks
+              <input
+                ref={ncRemarksRef}
+                value={ncRemarks}
+                onChange={(e) => setNcRemarks(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    confirmNc();
+                  }
+                }}
+                placeholder="Enter reason / remarks"
+                className="w-full border border-orange-500 h-11 lg:h-9 px-2 outline-none text-base lg:text-sm"
+              />
+            </label>
+
+            <div className="hidden lg:block text-xs text-gray-500">
+              ENTER next / confirm &nbsp;|&nbsp; ESC cancel
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={cancelNc}
+                className="px-4 py-2 border border-black bg-white font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmNc}
+                className="px-4 py-2 border border-black bg-orange-500 text-white font-bold"
+              >
+                Confirm NC KOT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {voidReasonOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-3">
+          <div className="bg-white w-full max-w-sm border border-black p-3 flex flex-col gap-2">
+            <div className="font-bold text-red-600">VOID — enter reason</div>
+
+            <input
+              autoFocus
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  confirmVoidReason();
+                }
+              }}
+              placeholder="Reason for void"
+              className="w-full h-11 lg:h-9 border border-red-600 px-2 outline-none text-base lg:text-sm"
+            />
+
+            <div className="hidden lg:block text-xs text-gray-500">
+              ENTER continue &nbsp;|&nbsp; ESC cancel
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setVoidReasonOpen(false);
+                  focusCode();
+                }}
+                className="px-4 py-2 border border-black bg-white font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmVoidReason}
+                className="px-4 py-2 border border-black bg-red-600 text-white font-bold"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {(loading || loadingData || processing) && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
