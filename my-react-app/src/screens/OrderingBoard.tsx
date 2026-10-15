@@ -95,7 +95,7 @@ function OrderingBoard() {
       setRoomServiceList(res || []);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to fetch room service list");
+      // toast.error("Failed to fetch room service list");
     } finally {
       setKotLoading(false);
     }
