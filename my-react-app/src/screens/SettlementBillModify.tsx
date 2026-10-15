@@ -135,7 +135,11 @@ export default function SettlementBillModify() {
       setLoading(true);
 
 
-      const payload = {
+const isTransferToRoom = paymentData?.isTransferToRoom;
+
+const selectedRoom = paymentData?.selectedTransferRoom;
+
+const payload = {
   oltCode: Number(selectedOutlet),
 
   outletName:
@@ -148,7 +152,10 @@ export default function SettlementBillModify() {
 
   billNo: selectedBill?.ksmBillNo || 0,
 
-  tableNo: selectedBill?.ksmTblNo || "",
+  // Selected room number for Transfer To Room; otherwise existing table
+  tableNo: isTransferToRoom
+    ? selectedRoom?.roomNo || ""
+    : selectedBill?.ksmTblNo || "",
 
   subTableNo: selectedBill?.subTableNo || "",
 
@@ -170,11 +177,18 @@ export default function SettlementBillModify() {
 
   branchCode: appData?.user?.branch_code,
 
-  guestCode: "", // or selected guest code
+  // Send guest details only for room transfers
+  guestCode: isTransferToRoom
+    ? selectedRoom?.guestCode || ""
+    : "",
 
-  guestName: "", // or selected guest name
+  guestName: isTransferToRoom
+    ? selectedRoom?.guestName || ""
+    : "",
 
-  checkInNo: "", // or selected check-in number
+  checkInNo: isTransferToRoom
+    ? selectedRoom?.checkinNo || ""
+    : "",
 
   paymentDetails:
     paymentData?.paymentDetails?.map((p: any) => ({
@@ -256,7 +270,7 @@ export default function SettlementBillModify() {
       //       })) || [],
       //   },
       // };
-
+debugger
       console.log("Settlement Modify Payload", payload);
 
       const res = await settlementBillModify(payload);
@@ -286,6 +300,7 @@ export default function SettlementBillModify() {
       ); // or appData?.user?.oltcode
 
       const res = await getTableListForRoomService(oltCode, branchCode);
+console.log(res,"asdasds");
 
       // Store response.data
       setRoomServiceList(res || []);
@@ -311,11 +326,9 @@ fetchRoomServiceList()
     }
   }, [selectedOutlet, fromDate, toDate]);
   const handlePaymentSubmit = async (data: any) => {
-    
-    setPaymentData(data);
-
-    setOpenPayment(false);
-  };
+  setPaymentData(data);
+  setOpenPayment(false);
+};
 
   return (
     <>
