@@ -113,7 +113,7 @@ export default function SettlementBillModify() {
   // ================= MODIFY SETTLEMENT =================
 
   const handleSettlementModify = async () => {
-    
+    debugger;
     if (!paymentData?.paymentDetails?.length) {
       toast.error("Select payment mode");
 
@@ -134,72 +134,77 @@ export default function SettlementBillModify() {
     try {
       setLoading(true);
 
+      const isTransferToRoom = paymentData?.isTransferToRoom;
 
-const isTransferToRoom = paymentData?.isTransferToRoom;
+      const selectedRoom = paymentData?.selectedTransferRoom;
+   
+const roomList: any[] = Array.isArray(roomServiceList)
+  ? roomServiceList
+  : (roomServiceList as any)?.data || [];
 
-const selectedRoom = paymentData?.selectedTransferRoom;
+const oldRoom = roomList.find(
+  (room: any) =>
+    String(room.roomNo).trim() ===
+    String(selectedBill?.ksmTblNo ?? "").trim()
+);
+      const payload = {
+        oltCode: Number(selectedOutlet),
 
-const payload = {
-  oltCode: Number(selectedOutlet),
+        outletName:
+          outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
+            ?.oltName || "",
 
-  outletName:
-    outlets.find((o: any) => o.oltCode === Number(selectedOutlet))
-      ?.oltName || "",
+        userCode: appData?.user?.userCode,
 
-  userCode: appData?.user?.userCode,
+        billId: selectedBill?.ksmId || 0,
 
-  billId: selectedBill?.ksmId || 0,
+        billNo: selectedBill?.ksmBillNo || 0,
 
-  billNo: selectedBill?.ksmBillNo || 0,
+        // Selected room number for Transfer To Room; otherwise existing table
+        tableNo: isTransferToRoom
+          ? selectedRoom?.roomNo || ""
+          : selectedBill?.ksmTblNo || "",
 
-  // Selected room number for Transfer To Room; otherwise existing table
-  tableNo: isTransferToRoom
-    ? selectedRoom?.roomNo || ""
-    : selectedBill?.ksmTblNo || "",
+        oldTableNo:  isTransferToRoom? selectedBill?.ksmTblNo || "" :"",
+        oldCheckInNo:  oldRoom?.checkinNo || "" ,
 
-  subTableNo: selectedBill?.subTableNo || "",
+        oldGuestCode:  oldRoom?.guestCode || "" ,
 
-  discount: selectedBill?.ksmBillDiscount || 0,
+        subTableNo: selectedBill?.subTableNo || "",
 
-  taxAmount: selectedBill?.ksmBillTaxAmt || 0,
+        discount: selectedBill?.ksmBillDiscount || 0,
 
-  tips: 0,
+        taxAmount: selectedBill?.ksmBillTaxAmt || 0,
 
-  changeAmount: 0,
+        tips: 0,
 
-  grandAmount: selectedBill?.ksmBillAmount || 0,
+        changeAmount: 0,
 
-  refNo: "",
+        grandAmount: selectedBill?.ksmBillAmount || 0,
 
-  cardName: "",
+        refNo: "",
 
-  billDate: selectedBill?.ksmBillDate,
+        cardName: "",
 
-  branchCode: appData?.user?.branch_code,
+        billDate: selectedBill?.ksmBillDate,
 
-  // Send guest details only for room transfers
-  guestCode: isTransferToRoom
-    ? selectedRoom?.guestCode || ""
-    : "",
+        branchCode: appData?.user?.branch_code,
 
-  guestName: isTransferToRoom
-    ? selectedRoom?.guestName || ""
-    : "",
+        // Send guest details only for room transfers
+        guestCode: isTransferToRoom ? selectedRoom?.guestCode || "" : "",
 
-  checkInNo: isTransferToRoom
-    ? selectedRoom?.checkinNo || ""
-    : "",
+        guestName: isTransferToRoom ? selectedRoom?.guestName || "" : "",
 
-  paymentDetails:
-    paymentData?.paymentDetails?.map((p: any) => ({
-      mode: p.mode,
-      subMode: p.subMode,
-      amount: Number(p.amount || 0),
-      remarks: reason,
-    })) || [],
-};
+        checkInNo: isTransferToRoom ? selectedRoom?.checkinNo || "" : "",
 
-
+        paymentDetails:
+          paymentData?.paymentDetails?.map((p: any) => ({
+            mode: p.mode,
+            subMode: p.subMode,
+            amount: Number(p.amount || 0),
+            remarks: reason,
+          })) || [],
+      };
 
       // const payload = {
       //   branch: appData?.user?.branch_code,
@@ -270,7 +275,7 @@ const payload = {
       //       })) || [],
       //   },
       // };
-debugger
+
       console.log("Settlement Modify Payload", payload);
 
       const res = await settlementBillModify(payload);
@@ -300,7 +305,7 @@ debugger
       ); // or appData?.user?.oltcode
 
       const res = await getTableListForRoomService(oltCode, branchCode);
-console.log(res,"asdasds");
+      console.log(res, "asdasds");
 
       // Store response.data
       setRoomServiceList(res || []);
@@ -315,7 +320,7 @@ console.log(res,"asdasds");
 
   useEffect(() => {
     fetchOutlets();
-fetchRoomServiceList()
+    fetchRoomServiceList();
     fetchPaymentModes();
   }, []);
   // ================= AUTO FETCH =================
@@ -326,9 +331,9 @@ fetchRoomServiceList()
     }
   }, [selectedOutlet, fromDate, toDate]);
   const handlePaymentSubmit = async (data: any) => {
-  setPaymentData(data);
-  setOpenPayment(false);
-};
+    setPaymentData(data);
+    setOpenPayment(false);
+  };
 
   return (
     <>
@@ -414,7 +419,7 @@ fetchRoomServiceList()
 
                   <th className="border px-3 py-2">Bill Date</th>
 
-                   <th className="border px-3 py-2">Payment Status</th>
+                  <th className="border px-3 py-2">Payment Status</th>
                 </tr>
               </thead>
 
@@ -437,34 +442,38 @@ fetchRoomServiceList()
                             setOpenPayment(true);
                           }}
                         /> */}
-            <input
-  type="radio"
-  checked={selectedBill?.ksmBillNo === item?.ksmBillNo}
-  onChange={async () => {
-    try {
-      if (
-        item?.paymentStatus?.toLowerCase() === "room transfer"
-      ) {
-        const res = await getRoomInActive(item?.ksmTblNo, item?.ksmBillNo);
+                        <input
+                          type="radio"
+                          checked={selectedBill?.ksmBillNo === item?.ksmBillNo}
+                          onChange={async () => {
+                            try {
+                              if (
+                                item?.paymentStatus?.toLowerCase() ===
+                                "room transfer"
+                              ) {
+                                const res = await getRoomInActive(
+                                  item?.ksmTblNo,
+                                  item?.ksmBillNo,
+                                );
 
-        if (res.success && res.data === false) {
-          setSelectedBill(item);
-          setOpenPayment(true);
-        } else {
-          toast.error(res.message);
-          return;
-        }
-      } else {
-        // For all other payment statuses
-        setSelectedBill(item);
-        setOpenPayment(true);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong");
-    }
-  }}
-/>
+                                if (res.success && res.data === false) {
+                                  setSelectedBill(item);
+                                  setOpenPayment(true);
+                                } else {
+                                  toast.error(res.message);
+                                  return;
+                                }
+                              } else {
+                                // For all other payment statuses
+                                setSelectedBill(item);
+                                setOpenPayment(true);
+                              }
+                            } catch (error) {
+                              console.error(error);
+                              toast.error("Something went wrong");
+                            }
+                          }}
+                        />
                       </td>
 
                       <td className="border px-3 py-2">{item?.ksmBillNo}</td>
@@ -495,10 +504,9 @@ fetchRoomServiceList()
                         {item?.ksmBillDate?.split("T")[0]}
                       </td>
 
-                             <td className="border px-3 py-2">
+                      <td className="border px-3 py-2">
                         {item?.paymentStatus}
                       </td>
-
                     </tr>
                   ))
                 ) : (
@@ -539,8 +547,8 @@ fetchRoomServiceList()
           </div>
         </div>
         <PaymentModal
-           roomServiceList={roomServiceList}
-        billNo={selectedBill?.ksmBillNo}
+          roomServiceList={roomServiceList}
+          billNo={selectedBill?.ksmBillNo}
           isOpen={openPayment}
           onClose={() => {
             setOpenPayment(false);
