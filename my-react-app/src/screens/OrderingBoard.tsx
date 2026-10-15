@@ -163,6 +163,8 @@ function OrderingBoard() {
   const IsDirectBill = tableData.isDirectBill ?? false;
   console.log("isBillButton", tableData.isBillButton);
   const isBillButton = tableData.isBillButton || false;
+  console.log();
+  
 
   console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {

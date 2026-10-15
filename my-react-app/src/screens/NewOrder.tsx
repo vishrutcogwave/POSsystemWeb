@@ -410,6 +410,7 @@ if (roomServiceOutlet) {
                           isDirectPaxandStw:
                             selectedOutlet?.isDirectPaxandStw ?? false,
                           isDirectBill: selectedOutlet?.isDirectBill ?? false,
+                           isBillButton: room?.tableStatus === "Occupied" ? true : false
                         },
                       });
                     }}
