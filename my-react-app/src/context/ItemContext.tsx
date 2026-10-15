@@ -40,8 +40,8 @@ const ItemContext = createContext<ItemContextType>({
   items: [],
   masterItems: [],
   loading: true,
-  activeGroup: 1,
-  setActiveGroup: () => {},
+activeGroup: 0,
+setActiveGroup: () => {},
 });
 
 /* ---------------- PROVIDER ---------------- */
@@ -50,14 +50,14 @@ export const ItemProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [items, setItems] = useState<CategoryItem[]>([]);
   const [masterItems, setMasterItems] = useState<CategoryItem[]>([]); // ✅ NEW
   const [loading, setLoading] = useState(true);
-  const [activeGroup, setActiveGroup] = useState<number>(1);
+ const [activeGroup, setActiveGroup] = useState<number>(0);
 
   const { activeOltCode } = useActiveOLT();
   const branch = localStorage.getItem("branch") || "";
 
 useEffect(() => {
   const fetchItems = async () => {
-    if (!activeOltCode) return;
+   if (!activeOltCode || activeGroup === 0) return;
 
     try {
       const data = await getCombinedOltItemList(
@@ -92,7 +92,9 @@ useEffect(() => {
 
     try {
       const groups = await getItemGroupList(branch);
-
+if (groups?.length > 0) {
+  setActiveGroup(Number(groups[0].grpCode));
+}
       const results = await Promise.all(
         groups.map((g: any) =>
           getCombinedOltItemList(
