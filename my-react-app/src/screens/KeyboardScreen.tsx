@@ -156,6 +156,10 @@ export default function KeyboardScreen() {
   const [unbillData, setUnbillData] = useState<any>(null);
   const [paymentModes, setPaymentModes] = useState<any[]>([]);
   const [settlementLoading, setSettlementLoading] = useState(false);
+  const [settlementListOpen, setSettlementListOpen] = useState(false);
+  const [unsettledTables, setUnsettledTables] = useState<any[]>([]);
+  const [settlementOpenedFromList, setSettlementOpenedFromList] = useState(false);
+  const settlementListRef = useRef<HTMLDivElement>(null);
 
   const [code, setCode] = useState("");
   const [search, setSearch] = useState("");
@@ -1355,15 +1359,7 @@ export default function KeyboardScreen() {
     focusPax();
   };
 
-  const continueExistingOrder = async () => {
-    const table = pendingTable;
-    const outlet = pendingOutlet;
-    setTableChoiceOpen(false);
-    if (table && outlet) {
-      await loadExistingTable(table, undefined, outlet);
-      setMobileTab("order");
-    }
-  };
+
 
   const getNextSubTable = (list: any[]) => {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1448,6 +1444,7 @@ export default function KeyboardScreen() {
         branch,
       );
       setUnbillData(data);
+      setSettlementOpenedFromList(false);
 
       const modes = await getPaymentModeMaster(branch);
       setPaymentModes(modes || []);
@@ -1455,6 +1452,99 @@ export default function KeyboardScreen() {
       setOpenSettlementPayment(true);
     } catch (error) {
       console.error("Failed to load unsettled bill:", error);
+      toast.error("Failed to load settlement details");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Ctrl+D / Settlement button: call GetSubTables for every table in every outlet,
+  // then list each subtable whose API status is Unsettled.
+  const openSettlementList = async () => {
+    if (isSettlementAccessDisabled) {
+      toast.error("You do not have permission to settle bills");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      const branchCode = appData?.user?.branch_code || localStorage.getItem("branch") || "";
+      const tableRequests = outlets.flatMap((outlet) =>
+        (outlet.tables || [])
+          .filter((table) => Boolean(table.tblNo))
+          .map(async (table) => {
+            const subTables = await getSubTables(
+              String(outlet.oltCode),
+              table.tblNo,
+              branchCode,
+            );
+            return (Array.isArray(subTables) ? subTables : [])
+              .filter((sub: any) => String(sub.tableStatus || "").toLowerCase() === "unsettled")
+              .map((sub: any) => ({
+                outlet,
+                tableNumber: String(sub.kotTblNo || table.tblNo),
+                subTable: String(sub.subTable || ""),
+                status: String(sub.tableStatus || ""),
+                BillNo: Number(sub.billNo || 0),
+                billAmount: Number(sub.billAmount || 0),
+                kotTime: sub.kotTime || "",
+              }));
+          }),
+      );
+      const results = await Promise.all(tableRequests);
+      const rows = results.flat();
+      setUnsettledTables(rows);
+      setSettlementListOpen(true);
+      requestAnimationFrame(() => {
+        settlementListRef.current
+          ?.querySelector<HTMLButtonElement>("button:not(:disabled)")
+          ?.focus();
+      });
+    } catch (error) {
+      console.error("Failed to load unsettled subtables:", error);
+      toast.error("Failed to load unsettled tables. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const openUnsettledTableFromList = async (row: any) => {
+    const outlet: Outlet = row.outlet;
+    const table: Table = row;
+    if (!outlet || !table.BillNo) {
+      toast.error("Bill number not found for this table");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setPendingTable(table.tableNumber);
+      setPendingOutlet(outlet);
+      setTableNumber(table.tableNumber);
+      setActiveOutlet(outlet);
+      setActiveOLT(String(outlet.oltCode), outlet.oltName.trim());
+      localStorage.setItem("activeOltCode", String(outlet.oltCode));
+
+      const branchCode = localStorage.getItem("branch") || appData?.user?.branch_code || "";
+      const details = await getUnbillDetails(
+        table.BillNo,
+        table.tableNumber,
+        String(outlet.oltCode),
+        branchCode,
+      );
+      if (!details || !Array.isArray(details) || !details.length) {
+        toast.error("No unsettled bill details found");
+        return;
+      }
+      setUnbillData(details);
+      setSettlementOpenedFromList(true);
+      const modes = await getPaymentModeMaster(branchCode);
+      setPaymentModes(modes || []);
+      setSettlementListOpen(false);
+      setTableChoiceOpen(false);
+      setOpenSettlementPayment(true);
+    } catch (error) {
+      console.error("Failed to open settlement:", error);
       toast.error("Failed to load settlement details");
     } finally {
       setProcessing(false);
@@ -1517,6 +1607,11 @@ export default function KeyboardScreen() {
       setOpenSettlementPayment(false);
       setUnbillData(null);
       await refreshOutlets();
+      if (settlementOpenedFromList) {
+        setSettlementListOpen(true);
+        setSettlementOpenedFromList(false);
+        return;
+      }
       const refreshed = await getSubTables(
         String(pendingOutlet?.oltCode || activeOutlet?.oltCode || ""),
         pendingTable || tableNumber,
@@ -1538,6 +1633,14 @@ export default function KeyboardScreen() {
 
   const handleGlobalKeyDown = (e: KeyboardEvent) => {
     if (processing || openSettlementPayment) return;
+
+    if (settlementListOpen) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSettlementListOpen(false);
+      }
+      return;
+    }
 
     // Table choice dialog: Escape closes without changing the current order.
     if (tableChoiceOpen) {
@@ -1642,6 +1745,13 @@ export default function KeyboardScreen() {
     if (e.ctrlKey && e.key.toLowerCase() === "b") {
       e.preventDefault();
       void handleBill();
+      return;
+    }
+
+    // Ctrl + D = open all unsettled tables for settlement.
+    if (e.ctrlKey && e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      openSettlementList();
       return;
     }
 
@@ -1967,6 +2077,7 @@ export default function KeyboardScreen() {
       .map((t) => ({ ...t, outlet: o })),
   );
 
+
   const showFoodList =
     dropdownOpen && (focusField === "foodDropdown" || focusField === "quantity");
 
@@ -2006,6 +2117,7 @@ export default function KeyboardScreen() {
 
   return (
     <div className="h-[100dvh] flex flex-col bg-[#E9E9E9] text-sm font-sans overflow-hidden">
+
       {/* Title bar */}
       <div className="min-h-10 shrink-0 bg-[#0B4F4A] text-white flex items-center gap-2 px-3 lg:px-4 font-bold">
         <span className="truncate">KITCHEN ORDER TRACKING</span>
@@ -2220,6 +2332,16 @@ export default function KeyboardScreen() {
             >
               F12 VOID
             </button>
+                 
+
+                 <button
+  onClick={openSettlementList}
+  className="col-span-2 bg-blue-600 text-white border border-black py-2 font-bold"
+>
+  SETTLEMENT (Ctrl+D)
+</button>
+     
+            
           </div>
 
           <div className="lg:mt-auto border border-black bg-yellow-100">
@@ -2928,6 +3050,74 @@ export default function KeyboardScreen() {
         </div>
       )}
 
+      {settlementListOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-3">
+          <div
+            ref={settlementListRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settlement-list-title"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setSettlementListOpen(false);
+                return;
+              }
+              const dialog = settlementListRef.current;
+              if (!dialog) return;
+              const buttons = Array.from(
+                dialog.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+              );
+              const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                e.preventDefault();
+                buttons[(index + 1 + buttons.length) % buttons.length]?.focus();
+              } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                buttons[(index - 1 + buttons.length) % buttons.length]?.focus();
+              }
+            }}
+            className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl outline-none"
+          >
+            <div className="flex items-center justify-between bg-[#0576B2] px-5 py-4 text-white">
+              <div>
+                <h2 id="settlement-list-title" className="text-lg font-bold">Settlement — Unsettled Tables</h2>
+                <p className="text-xs text-blue-100">Select any unsettled table to open its payment window.</p>
+              </div>
+              <button type="button" onClick={() => setSettlementListOpen(false)} aria-label="Close settlement list" className="text-2xl font-bold">×</button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              <div className="mb-2 grid grid-cols-[1fr_1fr_1fr_auto] gap-3 border-b pb-2 text-xs font-bold uppercase text-gray-500">
+                <span>Outlet</span><span>Table</span><span>Bill No.</span><span>Action</span>
+              </div>
+              {unsettledTables.length ? (
+                <div className="space-y-2">
+                  {unsettledTables.map((row: any, index: number) => (
+                    <div key={`${row.outlet.oltCode}-${row.tableNumber}-${row.BillNo}-${index}`} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <span className="font-medium">{row.outlet.oltName}</span>
+                      <span className="font-bold">{row.tableNumber}-{row.subTable || "A"}</span>
+                      <span>#{row.BillNo || "—"}<span className="ml-2 text-xs text-gray-600">₹{Number(row.billAmount || 0).toFixed(2)}</span></span>
+                      <button
+                        type="button"
+                        disabled={!row.BillNo || processing}
+                        onClick={() => void openUnsettledTableFromList(row)}
+                        className="rounded bg-amber-600 px-3 py-2 font-bold text-white hover:bg-amber-700 disabled:opacity-40"
+                      >Select & Pay</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-10 text-center text-gray-500">No unsettled tables found.</p>
+              )}
+            </div>
+            <div className="flex justify-end border-t bg-gray-50 p-3">
+              <button type="button" onClick={() => setSettlementListOpen(false)} className="rounded border px-4 py-2 font-semibold">Close (Esc)</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {tableChoiceOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3">
           <div
@@ -3060,7 +3250,12 @@ export default function KeyboardScreen() {
         onClose={() => {
           setOpenSettlementPayment(false);
           setUnbillData(null);
-          setTableChoiceOpen(true);
+          if (settlementOpenedFromList) {
+            setSettlementListOpen(true);
+            setSettlementOpenedFromList(false);
+          } else {
+            setTableChoiceOpen(true);
+          }
         }}
         onPay={handleBillSettlement}
       />
