@@ -7620,3 +7620,61 @@ export const deleteOpenStocksDetails = async (
 
   return response.data;
 };
+
+
+
+
+
+
+export const getSuppliedBills = async (
+  supplierCode: number,
+  branchCode: string,
+) => {
+  try {
+    const response = await api.get(
+      "/api/InventoryPurchase/GetSuppliedbills",
+      {
+        params: {
+          SupplierCode: supplierCode,
+          branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching supplier bills:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+export const saveSuppliedSettlement = async (payload: any) => {
+  try {
+    const response = await api.post(
+      "/api/InventoryPurchase/SaveSuppliedSettlement",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error saving supplier settlement:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

@@ -419,6 +419,11 @@ const DashboardHeader: React.FC = () => {
       icon: Receipt,
       permissionName: "Item Return",
     },
+    {
+  name: "Supplier Settlement",
+  icon: CreditCard,
+  permissionName: "Supplier Settlement",
+},
   ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -427,7 +432,7 @@ const DashboardHeader: React.FC = () => {
     KotRegister: "/pos/kotregister",
     "Touch Screen": "/NewOrder",
     "Keyboard Screen": "/KeyboardScreen",
-
+"Supplier Settlement": "/purchase/suppliersettlement",
     DailySales: "/pos/dailysales",
     ItemSales: "/pos/itemsales",
     ChanceSheet: "/pos/chancesheet",
