@@ -19,9 +19,13 @@ import {
   getOpenDayDetails,
   getNCKOT,
   validateDay,
+  getUnbillDetails,
+  getPaymentModeMaster,
+  settleBill,
 } from "../api/services/products.service";
 
 import { printKOT, printBill } from "../api/services/printer";
+import PaymentModal from "../components/PaymentModal";
 
 type Table = {
   tableNumber: string;
@@ -118,24 +122,11 @@ const CartCols = () => (
 );
 
 export default function KeyboardScreen() {
-  // ============================================================
-  // KEYBOARD SCREEN CONTROLLER FLOW
-  // ============================================================
-  // 01. Initial Data       -> loadData / loadStewards / loadSettings
-  // 02. Outlet & Table     -> selectOutlet / loadExistingTable
-  // 03. Steward & Settings -> loadStewards / loadSettings
-  // 04. Cart               -> addFood / increase / decrease / update
-  // 05. Existing Order     -> loadExistingTable / old cart
-  // 06. Session            -> startSession / resetNewOrder
-  // 07. KOT                -> validate -> payload -> create -> print
-  // 08. Bill               -> validate -> payload -> bill -> print
-  // 09. Keyboard           -> shortcuts -> focus -> dropdown -> select
-  // 10. UI                 -> render only; business flow stays above
-  // ============================================================
+
 
   const { items, masterItems, loading } = useItems();
   const { activeOltName, setActiveOLT } = useActiveOLT();
-  const { appData } = useAppContext();
+  const { appData, userRights } = useAppContext();
 
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [activeOutlet, setActiveOutlet] = useState<Outlet | null>(null);
@@ -157,6 +148,14 @@ export default function KeyboardScreen() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [oldCartData, setOldCartData] = useState<any[]>([]);
   const [subTables, setSubTables] = useState<any[]>([]);
+  const [tableChoiceOpen, setTableChoiceOpen] = useState(false);
+  const tableChoiceDialogRef = useRef<HTMLDivElement>(null);
+  const [pendingTable, setPendingTable] = useState("");
+  const [pendingOutlet, setPendingOutlet] = useState<Outlet | null>(null);
+  const [openSettlementPayment, setOpenSettlementPayment] = useState(false);
+  const [unbillData, setUnbillData] = useState<any>(null);
+  const [paymentModes, setPaymentModes] = useState<any[]>([]);
+  const [settlementLoading, setSettlementLoading] = useState(false);
 
   const [code, setCode] = useState("");
   const [search, setSearch] = useState("");
@@ -584,9 +583,7 @@ export default function KeyboardScreen() {
     setCart([]);
     setOldCartData([]);
 
-    setSelectedSubTable(
-      subTables.length ? subTables[subTables.length - 1]?.subTable || "A" : "A",
-    );
+    // Preserve the subtable selected for this new order (A, B, C, etc.).
 
     toast.success(`New session started for table ${tableNumber}`);
 
@@ -1291,12 +1288,267 @@ export default function KeyboardScreen() {
     focusCode();
   };
 
+  // Keep keyboard focus inside the Table Bills & Settlement dialog while it is open.
+  useEffect(() => {
+    if (!tableChoiceOpen) return;
+
+    const focusFirstAction = () => {
+      const dialog = tableChoiceDialogRef.current;
+      if (!dialog) return;
+      const firstAction = dialog.querySelector<HTMLButtonElement>(
+        'button:not(:disabled):not([aria-label="Close table bills"])',
+      );
+      (firstAction || dialog).focus();
+    };
+
+    // Wait until the dialog has been painted before focusing its first action.
+    requestAnimationFrame(focusFirstAction);
+  }, [tableChoiceOpen, subTables.length]);
+
+  const isSettlementAccessDisabled =
+    userRights
+      ?.flatMap((menu: any) => menu.subMenus || [])
+      ?.find((subMenu: any) => subMenu.subMenuName === "IsSettlementAccess")
+      ?.isPermission === false;
+
+  // Occupied / unsettled tables open one Table Bills window, like OrderingBoard.
+  const handleTableSelection = async (
+    table: Table,
+    outlet: Outlet | null = activeOutlet,
+  ) => {
+    if (!outlet) {
+      toast.error("Select outlet first");
+      return;
+    }
+
+    setTableNumber(table.tableNumber);
+    setTableIndex(
+      formatTables(outlet).findIndex((t) => t.tableNumber === table.tableNumber),
+    );
+
+    if (table.status === "Occupied" || table.status === "Unsettled") {
+      setPendingTable(table.tableNumber);
+      setPendingOutlet(outlet);
+      try {
+        setProcessing(true);
+        const data = await getSubTables(
+          String(outlet.oltCode),
+          table.tableNumber,
+          appData?.user?.branch_code,
+        );
+        setSubTables(data || []);
+      } catch (error) {
+        console.error("Failed to load table bills:", error);
+        toast.error("Failed to load table bills");
+        return;
+      } finally {
+        setProcessing(false);
+      }
+      setTableChoiceOpen(true);
+      return;
+    }
+
+    setPendingTable("");
+    setPendingOutlet(null);
+    clearTableOrder();
+    setSelectedSubTable("A");
+    focusPax();
+  };
+
+  const continueExistingOrder = async () => {
+    const table = pendingTable;
+    const outlet = pendingOutlet;
+    setTableChoiceOpen(false);
+    if (table && outlet) {
+      await loadExistingTable(table, undefined, outlet);
+      setMobileTab("order");
+    }
+  };
+
+  const getNextSubTable = (list: any[]) => {
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const used = (list || [])
+      .filter((item: any) => String(item.tableStatus || "").toLowerCase() !== "available")
+      .map((item: any) => String(item.subTable || "").trim().toUpperCase())
+      .filter((value: string) => /^[A-Z]$/.test(value))
+      .sort((a: string, b: string) => a.localeCompare(b));
+
+    if (!used.length) return "A";
+    const last = used[used.length - 1];
+    const index = alphabet.indexOf(last);
+    return index < 0 || index === alphabet.length - 1 ? last : alphabet[index + 1];
+  };
+
+  const startNewSubTableOrder = async () => {
+    if (!pendingTable || !pendingOutlet) return;
+
+    try {
+      setProcessing(true);
+      const loadedSubTables = subTables.length
+        ? subTables
+        : (await getSubTables(
+            String(pendingOutlet.oltCode),
+            pendingTable,
+            appData?.user?.branch_code,
+          )) || [];
+      setSubTables(loadedSubTables);
+
+      // Match OrderingBoard's New Bill behavior: ignore Available rows and use
+      // the next subtable letter after the occupied / unsettled subtables.
+      const nextSubTable = getNextSubTable(loadedSubTables);
+
+      setActiveOutlet(pendingOutlet);
+      setActiveOLT(String(pendingOutlet.oltCode), pendingOutlet.oltName.trim());
+      localStorage.setItem("activeOltCode", String(pendingOutlet.oltCode));
+      setTables(formatTables(pendingOutlet));
+      setTableNumber(pendingTable);
+      setTableIndex(
+        formatTables(pendingOutlet).findIndex((t) => t.tableNumber === pendingTable),
+      );
+      setSelectedSubTable(nextSubTable);
+      setOldCartData([]);
+      setCart([]);
+      setSession(null);
+      setIsNC(false);
+      setPax("");
+      setPaxIndex(-1);
+      setStewardIndex(-1);
+      setPendingTable("");
+      setPendingOutlet(null);
+      setTableChoiceOpen(false);
+      setMobileTab("setup");
+      setFocusField("pax");
+      setDropdownOpen(true);
+      setTimeout(() => paxRef.current?.focus(), 0);
+      toast.success(`New order selected: Table ${pendingTable}-${nextSubTable}`);
+    } catch (error) {
+      console.error("Failed to load subtables:", error);
+      toast.error("Failed to load subtables");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUnsettledSubTable = async (item: any) => {
+    if (isSettlementAccessDisabled) {
+      toast.error("You do not have permission to settle bills");
+      return;
+    }
+    if (!pendingTable || !pendingOutlet) return;
+
+    try {
+      setProcessing(true);
+      const branch = localStorage.getItem("branch") || appData?.user?.branch_code || "";
+      const outletCode = String(pendingOutlet.oltCode);
+      localStorage.setItem("activeOltCode", outletCode);
+      const data = await getUnbillDetails(
+        item.billNo,
+        pendingTable,
+        outletCode,
+        branch,
+      );
+      setUnbillData(data);
+
+      const modes = await getPaymentModeMaster(branch);
+      setPaymentModes(modes || []);
+      setTableChoiceOpen(false);
+      setOpenSettlementPayment(true);
+    } catch (error) {
+      console.error("Failed to load unsettled bill:", error);
+      toast.error("Failed to load settlement details");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleBillSettlement = async (data: any) => {
+    const { paymentDetails, difference, payableAmount, isTransferToRoom, selectedTransferRoom } = data;
+    if (difference !== 0) {
+      toast.error(`Amount must match ₹${payableAmount}`);
+      return;
+    }
+    for (const payment of paymentDetails || []) {
+      const mode = paymentModes.find((m: any) => m.modeType === payment.mode);
+      if (mode && mode.subModes?.length > 0 && !payment.subMode) {
+        toast.error(`Select sub mode for ${payment.mode}`);
+        return;
+      }
+      if (!payment.amount || payment.amount <= 0) {
+        toast.error(`Enter valid amount for ${payment.mode}`);
+        return;
+      }
+    }
+
+    const bill = unbillData?.[0] || {};
+    const payload = {
+      oltCode: Number(bill?.oltCode || pendingOutlet?.oltCode || 0),
+      userCode: Number(bill?.userCode || appData?.user?.userCode || 0),
+      billId: Number(bill?.ksmId || 0),
+      billNo: Number(bill?.ksmBillNo || 0),
+      tableNo: isTransferToRoom ? selectedTransferRoom?.roomNo : bill?.ksmTblNo || pendingTable || "",
+      subTableNo: bill?.ksmsubtblno || "",
+      subBillType: "",
+      plan: "",
+      guestCode: selectedTransferRoom?.guestCode || "",
+      guestName: selectedTransferRoom?.guestName || "",
+      checkInNo: selectedTransferRoom?.checkinNo || "",
+      discount: Number(bill?.ksmBillDiscount || 0),
+      taxAmount: Number(bill?.ksmBillTaxAmt || 0),
+      tips: Number(bill?.tips || 0),
+      changeAmount: 0,
+      grandAmount: payableAmount,
+      billDate: new Date().toISOString(),
+      branchCode: bill?.branch_Code || localStorage.getItem("branch") || appData?.user?.branch_code || "",
+      paymentDetails: (paymentDetails || []).map((payment: any) => ({
+        mode: payment.mode,
+        subMode:
+          payment.mode?.toLowerCase() === "cash" ? "Cash" :
+          payment.mode?.toLowerCase() === "pluxee" ? "Pluxee" :
+          payment.mode?.toLowerCase() === "neft" ? "neft" : (payment.subMode || "").trim(),
+        amount: Number(payment.amount),
+        remarks: (payment.remarks || "").trim(),
+      })),
+    };
+
+    try {
+      setSettlementLoading(true);
+      await settleBill(payload);
+      toast.success("Bill settled successfully");
+      setOpenSettlementPayment(false);
+      setUnbillData(null);
+      await refreshOutlets();
+      const refreshed = await getSubTables(
+        String(pendingOutlet?.oltCode || activeOutlet?.oltCode || ""),
+        pendingTable || tableNumber,
+        appData?.user?.branch_code,
+      );
+      setSubTables(refreshed || []);
+      setTableChoiceOpen(true);
+    } catch (error) {
+      console.error("Settlement failed:", error);
+      toast.error("Settlement failed");
+    } finally {
+      setSettlementLoading(false);
+    }
+  };
+
   // ============================================================
   // CONTROLLER 09: KEYBOARD FLOW
   // ============================================================
 
   const handleGlobalKeyDown = (e: KeyboardEvent) => {
-    if (processing) return;
+    if (processing || openSettlementPayment) return;
+
+    // Table choice dialog: Escape closes without changing the current order.
+    if (tableChoiceOpen) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setTableChoiceOpen(false);
+        setPendingTable("");
+        setPendingOutlet(null);
+      }
+      return;
+    }
 
     // NC dialog open: Esc cancels; Enter/arrows are handled by the fields.
     if (ncModalOpen) {
@@ -1511,16 +1763,7 @@ export default function KeyboardScreen() {
         }
 
         setDropdownOpen(false);
-
-        if (
-          selected?.status === "Occupied" ||
-          selected?.status === "Unsettled"
-        ) {
-          void loadExistingTable(selected.tableNumber);
-        } else {
-          clearTableOrder();
-          focusPax();
-        }
+        handleTableSelection(selected);
       }
 
       return;
@@ -1847,23 +2090,10 @@ export default function KeyboardScreen() {
                   setDropdownOpen(true);
                 }}
                 onChange={(e) => {
-                  const index = tables.findIndex(
+                  const picked = tables.find(
                     (t) => t.tableNumber === e.target.value,
                   );
-
-                  setTableIndex(Math.max(index, 0));
-                  setTableNumber(e.target.value);
-
-                  // Touch users have no Enter key: load running orders on pick.
-                  const picked = tables[index];
-                  if (
-                    picked?.status === "Occupied" ||
-                    picked?.status === "Unsettled"
-                  ) {
-                    void loadExistingTable(picked.tableNumber);
-                  } else {
-                    clearTableOrder();
-                  }
+                  if (picked) handleTableSelection(picked);
                 }}
                 className={fieldClass}
               >
@@ -2444,8 +2674,8 @@ export default function KeyboardScreen() {
                       ),
                     );
                     setTableNumber(t.tableNumber);
-                    void loadExistingTable(t.tableNumber, undefined, t.outlet);
-                    setMobileTab("order");
+                    handleTableSelection(t, t.outlet);
+                    setMobileTab("setup");
                   }}
                   className={`flex justify-between items-center border-b px-2 py-2 cursor-pointer ${
                     isCurrent ? "bg-gray-300 font-bold" : ""
@@ -2697,6 +2927,143 @@ export default function KeyboardScreen() {
           </div>
         </div>
       )}
+
+      {tableChoiceOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3">
+          <div
+            ref={tableChoiceDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="table-choice-title"
+            tabIndex={-1}
+            onKeyDown={(e) => {
+              const dialog = tableChoiceDialogRef.current;
+              if (!dialog) return;
+              const actions: HTMLButtonElement[] = Array.from(
+                dialog.querySelectorAll<HTMLButtonElement>(
+                  'button:not(:disabled):not([tabindex="-1"])',
+                ),
+              );
+              if (!actions.length) return;
+              const currentIndex = actions.indexOf(document.activeElement as HTMLButtonElement);
+
+              // Arrow keys move through the available next-step actions.
+              if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+                e.preventDefault();
+                actions[(currentIndex + 1 + actions.length) % actions.length].focus();
+              } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+                e.preventDefault();
+                actions[(currentIndex - 1 + actions.length) % actions.length].focus();
+              } else if (e.key === "Tab") {
+                if (e.shiftKey && currentIndex <= 0) {
+                  e.preventDefault();
+                  actions[actions.length - 1].focus();
+                } else if (!e.shiftKey && currentIndex === actions.length - 1) {
+                  e.preventDefault();
+                  actions[0].focus();
+                }
+              }
+            }}
+            className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-gray-300 bg-white shadow-xl outline-none"
+          >
+            <div className="flex items-center justify-between bg-[#0576B2] px-5 py-3 text-white">
+              <div>
+                <h2 id="table-choice-title" className="text-lg font-bold">
+                  Table {pendingTable} — Bills & Settlement
+                </h2>
+                <p className="text-xs text-blue-100">
+                  {pendingOutlet?.oltName?.trim()} · Select an occupied bill, settle an unsettled bill, or start a new table order.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close table bills"
+                onClick={() => {
+                  setTableChoiceOpen(false);
+                  setPendingTable("");
+                  setPendingOutlet(null);
+                }}
+                className="text-2xl font-bold"
+              >×</button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-3 grid grid-cols-[1fr_1fr_auto] gap-2 border-b pb-2 text-xs font-bold uppercase text-gray-500">
+                <span>Subtable / Bill</span><span>Status</span><span>Action</span>
+              </div>
+              <div className="space-y-2">
+                {subTables.filter((sub: any) => String(sub.tableStatus || "").toLowerCase() !== "available").map((sub: any, index: number) => {
+                  const unsettled = String(sub.tableStatus || "").toLowerCase() === "unsettled";
+                  const disabled = unsettled && isSettlementAccessDisabled;
+                  return (
+                    <div key={`${sub.subTable}-${sub.billNo || index}`} className={`grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-lg border p-3 ${unsettled ? "border-amber-300 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+                      <div>
+                        <div className="font-bold text-gray-900">{pendingTable}-{sub.subTable}</div>
+                        <div className="text-xs text-gray-500">Bill #{sub.billNo || "—"}</div>
+                      </div>
+                      <span className={`text-sm font-semibold ${unsettled ? "text-amber-700" : "text-red-700"}`}>{sub.tableStatus}</span>
+                      {unsettled ? (
+                        <button
+                          type="button"
+                          disabled={disabled || settlementLoading}
+                          onClick={() => void handleUnsettledSubTable(sub)}
+                          className="rounded bg-amber-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                        >{disabled ? "No Access" : "Settle"}</button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTableChoiceOpen(false);
+                            setSelectedSubTable(String(sub.subTable || "A"));
+                            void loadExistingTable(pendingTable, String(sub.subTable || "A"), pendingOutlet || undefined);
+                            setMobileTab("order");
+                          }}
+                          className="rounded bg-green-600 px-3 py-2 text-sm font-bold text-white"
+                        >Continue</button>
+                      )}
+                    </div>
+                  );
+                })}
+                {!subTables.some((sub: any) => String(sub.tableStatus || "").toLowerCase() !== "available") && (
+                  <p className="py-6 text-center text-sm text-gray-500">No occupied or unsettled bills for this table.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 border-t bg-gray-50 p-4 sm:flex-row sm:justify-between">
+              <button
+                type="button"
+                onClick={() => void startNewSubTableOrder()}
+                className="rounded-lg border-2 border-dashed border-[#0576B2] bg-white px-4 py-3 font-bold text-[#0576B2]"
+              >＋ New Table / New Bill</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTableChoiceOpen(false);
+                  setPendingTable("");
+                  setPendingOutlet(null);
+                }}
+                className="rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700"
+              >Close</button>
+            </div>
+            <p className="px-4 pb-3 text-xs text-gray-500">Press Esc to close this window.</p>
+          </div>
+        </div>
+      )}
+
+      <PaymentModal
+        isOpen={openSettlementPayment}
+        paymentModes={paymentModes}
+        unbillData={unbillData}
+        billNo={unbillData?.[0]?.ksmBillNo || 0}
+        roomServiceList={{ data: [] }}
+        onClose={() => {
+          setOpenSettlementPayment(false);
+          setUnbillData(null);
+          setTableChoiceOpen(true);
+        }}
+        onPay={handleBillSettlement}
+      />
 
       {(loading || loadingData || processing) && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
