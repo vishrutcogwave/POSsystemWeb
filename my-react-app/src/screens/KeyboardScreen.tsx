@@ -121,9 +121,148 @@ const CartCols = () => (
   </colgroup>
 );
 
+type SearchOption = { value: string; label: string };
+
+function SearchableDropdown({
+  inputRef,
+  options,
+  selectedValue,
+  placeholder,
+  onSelect,
+  onFocus,
+  onEnter,
+  className,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  options: SearchOption[];
+  selectedValue: string;
+  placeholder: string;
+  onSelect: (value: string) => void;
+  onFocus: () => void;
+  onEnter?: (value: string) => void;
+  className: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const selectedLabel =
+    options.find((o) => o.value === selectedValue)?.label || "";
+  const filtered = options.filter((o) =>
+    o.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (!open) setQuery(selectedLabel);
+  }, [selectedLabel, open]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    const onOutside = (event: MouseEvent) => {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+        setQuery(selectedLabel);
+      }
+    };
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [selectedLabel]);
+
+  const choose = (option: SearchOption) => {
+    onSelect(option.value);
+    setQuery(option.label);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <input
+        ref={inputRef}
+        value={open ? query : selectedLabel}
+        placeholder={placeholder}
+        autoComplete="off"
+        className={className}
+        role="combobox"
+        aria-expanded={open}
+        onFocus={() => {
+          onFocus();
+          setQuery("");
+          setActiveIndex(0);
+          setOpen(true);
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setActiveIndex(0);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(true);
+            setActiveIndex((i) =>
+              Math.min(i + 1, Math.max(filtered.length - 1, 0)),
+            );
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveIndex((i) => Math.max(i - 1, 0));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            if (filtered[activeIndex]) {
+              const option = filtered[activeIndex];
+              choose(option);
+              onEnter?.(option.value);
+            }
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen(false);
+            setQuery(selectedLabel);
+          }
+        }}
+        onBlur={() => {
+          // The option's onMouseDown prevents blur before it can be selected.
+          window.setTimeout(() => {
+            if (!wrapperRef.current?.contains(document.activeElement)) {
+              setOpen(false);
+              setQuery(selectedLabel);
+            }
+          }, 0);
+        }}
+      />
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 max-h-56 overflow-y-auto border border-gray-500 bg-white shadow-lg">
+          {filtered.length ? (
+            filtered.map((option, index) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`block w-full px-2 py-2 text-left text-sm ${index === activeIndex ? "bg-[#0B4F4A] text-white" : "hover:bg-[#DDEFEF]"}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => choose(option)}
+                onMouseEnter={() => setActiveIndex(index)}
+              >
+                {option.label}
+              </button>
+            ))
+          ) : (
+            <div className="px-2 py-2 text-gray-500">No matching options</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function KeyboardScreen() {
-
-
   const { items, masterItems, loading } = useItems();
   const { activeOltName, setActiveOLT } = useActiveOLT();
   const { appData, userRights } = useAppContext();
@@ -158,7 +297,8 @@ export default function KeyboardScreen() {
   const [settlementLoading, setSettlementLoading] = useState(false);
   const [settlementListOpen, setSettlementListOpen] = useState(false);
   const [unsettledTables, setUnsettledTables] = useState<any[]>([]);
-  const [settlementOpenedFromList, setSettlementOpenedFromList] = useState(false);
+  const [settlementOpenedFromList, setSettlementOpenedFromList] =
+    useState(false);
   const settlementListRef = useRef<HTMLDivElement>(null);
 
   const [code, setCode] = useState("");
@@ -202,10 +342,10 @@ export default function KeyboardScreen() {
   // Responsive: active panel on small screens.
   const [mobileTab, setMobileTab] = useState<MobileTab>("order");
 
-  const outletRef = useRef<HTMLSelectElement>(null);
-  const tableRef = useRef<HTMLSelectElement>(null);
-  const paxRef = useRef<HTMLSelectElement>(null);
-  const stewardRef = useRef<HTMLSelectElement>(null);
+  const outletRef = useRef<HTMLInputElement>(null);
+  const tableRef = useRef<HTMLInputElement>(null);
+  const paxRef = useRef<HTMLInputElement>(null);
+  const stewardRef = useRef<HTMLInputElement>(null);
   const codeRef = useRef<HTMLInputElement>(null);
   const quantityRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -368,18 +508,17 @@ export default function KeyboardScreen() {
   const filteredFoods = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    if (!q) return allFoods.slice(0, 30);
+    if (!q) return allFoods;
 
-    return allFoods
-      .filter(
-        (f: any) =>
-          String(f.itemCode).includes(q) ||
-          String(f.itemName || "")
-            .toLowerCase()
-            .includes(q) ||
-          String(f.barcode || "").includes(q),
-      )
-      .slice(0, 30);
+    return allFoods.filter((f: any) => {
+      const itemCode = String(f.itemCode || "").toLowerCase();
+      const itemName = String(f.itemName || "").toLowerCase();
+      const barcode = String(f.barcode || "").toLowerCase();
+
+      return (
+        itemCode.includes(q) || itemName.includes(q) || barcode.includes(q)
+      );
+    });
   }, [allFoods, search]);
 
   // Keep the keyboard-selected item visible while using ArrowUp / ArrowDown.
@@ -619,7 +758,10 @@ export default function KeyboardScreen() {
   }, [masterItems]);
 
   // Shared by both KOT and BILL controllers.
-  const buildBillPayload = (nc?: { code: number; remarks: string }) => {
+  const buildBillPayload = (
+    nc?: { code: number; remarks: string },
+    newItemsOnly = false,
+  ) => {
     if (!session) return null;
 
     const oldFoods = oldCartData.flatMap((order: any) =>
@@ -654,7 +796,8 @@ export default function KeyboardScreen() {
       itemDiscountAllowed: i.itemDiscountAllowed ?? true,
     }));
 
-    const food = [...oldFoods, ...newFoods];
+    // KOT sends only the newly-added cart rows. BILL still includes old + new rows.
+    const food = newItemsOnly ? newFoods : [...oldFoods, ...newFoods];
 
     return {
       userCode: appData?.user?.userCode || 0,
@@ -730,14 +873,18 @@ export default function KeyboardScreen() {
         return;
       }
 
-      const payload = buildBillPayload(nc);
+      // Do not resend previously-fired KOT items when continuing an occupied table.
+      const payload = buildBillPayload(nc, true);
 
       if (!payload) return;
 
+      // Submit only the newly added items for this KOT.
+      // Use the same submitted items for printing instead of res.food, because
+      // some API responses may include the table's previously ordered items too.
       const res = await createOrder(payload);
 
       const printers = res?.printers || [];
-      const foodItems = res?.food || [];
+      const foodItems = Array.isArray(payload.food) ? payload.food : [];
 
       const generateContent = (printItems: any[]) => ({
         title: nc ? "NC KOT" : "KOT",
@@ -792,11 +939,17 @@ export default function KeyboardScreen() {
       );
 
       setCart([]);
-      setOldCartData([]);
       setNcCode("");
       setNcRemarks("");
 
       await refreshOutlets();
+      // Reload the table after KOT so previously ordered items remain visible
+      // for billing, without being included in the next KOT payload.
+      await loadExistingTable(
+        tableNumber,
+        selectedSubTable || "A",
+        activeOutlet || undefined,
+      );
     } catch (error) {
       console.error(error);
       toast.error("Failed to create KOT");
@@ -1092,16 +1245,16 @@ export default function KeyboardScreen() {
         food: voidItems
           .filter((i) => i.qty > 0)
           .map((i) => ({
-          id: i.id,
-          food: i.name,
-          code: i.id.toString(),
-          price: i.price,
-          qty: i.qty,
-          comment: "",
-          category: i.category || 0,
-          origQty: i.origQty,
-          itemDiscountAllowed: i.itemDiscountAllowed ?? true,
-        })),
+            id: i.id,
+            food: i.name,
+            code: i.id.toString(),
+            price: i.price,
+            qty: i.qty,
+            comment: "",
+            category: i.category || 0,
+            origQty: i.origQty,
+            itemDiscountAllowed: i.itemDiscountAllowed ?? true,
+          })),
 
         total: voidItems.reduce(
           (sum, i) => sum + i.price * (i.origQty - i.qty),
@@ -1327,7 +1480,9 @@ export default function KeyboardScreen() {
 
     setTableNumber(table.tableNumber);
     setTableIndex(
-      formatTables(outlet).findIndex((t) => t.tableNumber === table.tableNumber),
+      formatTables(outlet).findIndex(
+        (t) => t.tableNumber === table.tableNumber,
+      ),
     );
 
     if (table.status === "Occupied" || table.status === "Unsettled") {
@@ -1359,20 +1514,27 @@ export default function KeyboardScreen() {
     focusPax();
   };
 
-
-
   const getNextSubTable = (list: any[]) => {
     const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const used = (list || [])
-      .filter((item: any) => String(item.tableStatus || "").toLowerCase() !== "available")
-      .map((item: any) => String(item.subTable || "").trim().toUpperCase())
+      .filter(
+        (item: any) =>
+          String(item.tableStatus || "").toLowerCase() !== "available",
+      )
+      .map((item: any) =>
+        String(item.subTable || "")
+          .trim()
+          .toUpperCase(),
+      )
       .filter((value: string) => /^[A-Z]$/.test(value))
       .sort((a: string, b: string) => a.localeCompare(b));
 
     if (!used.length) return "A";
     const last = used[used.length - 1];
     const index = alphabet.indexOf(last);
-    return index < 0 || index === alphabet.length - 1 ? last : alphabet[index + 1];
+    return index < 0 || index === alphabet.length - 1
+      ? last
+      : alphabet[index + 1];
   };
 
   const startNewSubTableOrder = async () => {
@@ -1399,7 +1561,9 @@ export default function KeyboardScreen() {
       setTables(formatTables(pendingOutlet));
       setTableNumber(pendingTable);
       setTableIndex(
-        formatTables(pendingOutlet).findIndex((t) => t.tableNumber === pendingTable),
+        formatTables(pendingOutlet).findIndex(
+          (t) => t.tableNumber === pendingTable,
+        ),
       );
       setSelectedSubTable(nextSubTable);
       setOldCartData([]);
@@ -1416,7 +1580,9 @@ export default function KeyboardScreen() {
       setFocusField("pax");
       setDropdownOpen(true);
       setTimeout(() => paxRef.current?.focus(), 0);
-      toast.success(`New order selected: Table ${pendingTable}-${nextSubTable}`);
+      toast.success(
+        `New order selected: Table ${pendingTable}-${nextSubTable}`,
+      );
     } catch (error) {
       console.error("Failed to load subtables:", error);
       toast.error("Failed to load subtables");
@@ -1434,7 +1600,8 @@ export default function KeyboardScreen() {
 
     try {
       setProcessing(true);
-      const branch = localStorage.getItem("branch") || appData?.user?.branch_code || "";
+      const branch =
+        localStorage.getItem("branch") || appData?.user?.branch_code || "";
       const outletCode = String(pendingOutlet.oltCode);
       localStorage.setItem("activeOltCode", outletCode);
       const data = await getUnbillDetails(
@@ -1468,7 +1635,8 @@ export default function KeyboardScreen() {
 
     try {
       setProcessing(true);
-      const branchCode = appData?.user?.branch_code || localStorage.getItem("branch") || "";
+      const branchCode =
+        appData?.user?.branch_code || localStorage.getItem("branch") || "";
       const tableRequests = outlets.flatMap((outlet) =>
         (outlet.tables || [])
           .filter((table) => Boolean(table.tblNo))
@@ -1479,7 +1647,10 @@ export default function KeyboardScreen() {
               branchCode,
             );
             return (Array.isArray(subTables) ? subTables : [])
-              .filter((sub: any) => String(sub.tableStatus || "").toLowerCase() === "unsettled")
+              .filter(
+                (sub: any) =>
+                  String(sub.tableStatus || "").toLowerCase() === "unsettled",
+              )
               .map((sub: any) => ({
                 outlet,
                 tableNumber: String(sub.kotTblNo || table.tblNo),
@@ -1525,7 +1696,8 @@ export default function KeyboardScreen() {
       setActiveOLT(String(outlet.oltCode), outlet.oltName.trim());
       localStorage.setItem("activeOltCode", String(outlet.oltCode));
 
-      const branchCode = localStorage.getItem("branch") || appData?.user?.branch_code || "";
+      const branchCode =
+        localStorage.getItem("branch") || appData?.user?.branch_code || "";
       const details = await getUnbillDetails(
         table.BillNo,
         table.tableNumber,
@@ -1552,7 +1724,13 @@ export default function KeyboardScreen() {
   };
 
   const handleBillSettlement = async (data: any) => {
-    const { paymentDetails, difference, payableAmount, isTransferToRoom, selectedTransferRoom } = data;
+    const {
+      paymentDetails,
+      difference,
+      payableAmount,
+      isTransferToRoom,
+      selectedTransferRoom,
+    } = data;
     if (difference !== 0) {
       toast.error(`Amount must match ₹${payableAmount}`);
       return;
@@ -1575,7 +1753,9 @@ export default function KeyboardScreen() {
       userCode: Number(bill?.userCode || appData?.user?.userCode || 0),
       billId: Number(bill?.ksmId || 0),
       billNo: Number(bill?.ksmBillNo || 0),
-      tableNo: isTransferToRoom ? selectedTransferRoom?.roomNo : bill?.ksmTblNo || pendingTable || "",
+      tableNo: isTransferToRoom
+        ? selectedTransferRoom?.roomNo
+        : bill?.ksmTblNo || pendingTable || "",
       subTableNo: bill?.ksmsubtblno || "",
       subBillType: "",
       plan: "",
@@ -1588,13 +1768,21 @@ export default function KeyboardScreen() {
       changeAmount: 0,
       grandAmount: payableAmount,
       billDate: new Date().toISOString(),
-      branchCode: bill?.branch_Code || localStorage.getItem("branch") || appData?.user?.branch_code || "",
+      branchCode:
+        bill?.branch_Code ||
+        localStorage.getItem("branch") ||
+        appData?.user?.branch_code ||
+        "",
       paymentDetails: (paymentDetails || []).map((payment: any) => ({
         mode: payment.mode,
         subMode:
-          payment.mode?.toLowerCase() === "cash" ? "Cash" :
-          payment.mode?.toLowerCase() === "pluxee" ? "Pluxee" :
-          payment.mode?.toLowerCase() === "neft" ? "neft" : (payment.subMode || "").trim(),
+          payment.mode?.toLowerCase() === "cash"
+            ? "Cash"
+            : payment.mode?.toLowerCase() === "pluxee"
+              ? "Pluxee"
+              : payment.mode?.toLowerCase() === "neft"
+                ? "neft"
+                : (payment.subMode || "").trim(),
         amount: Number(payment.amount),
         remarks: (payment.remarks || "").trim(),
       })),
@@ -2028,46 +2216,34 @@ export default function KeyboardScreen() {
 
   const runCodeSearch = () => {
     const value = code.trim();
-
-    if (!value) return;
-
-    const searchValue = value.toLowerCase();
-
-    const results = allFoods
-      .filter((f: any) => {
-        const itemCode = String(f.itemCode || "").toLowerCase();
-        const itemName = String(f.itemName || "").toLowerCase();
-        const barcode = String(f.barcode || "").toLowerCase();
-
-        return (
-          itemCode.includes(searchValue) ||
-          itemName.includes(searchValue) ||
-          barcode.includes(searchValue)
-        );
-      })
-      .slice(0, 30);
-
-    if (!results.length) {
-      toast.error(`Item not found: ${value}`);
-      return;
-    }
-
-    // Show dropdown only after ENTER / Search tap.
     setSearch(value);
     setSelectedFoodIndex(0);
     setSelectedFood(null);
     setDropdownOpen(true);
     setFocusField("foodDropdown");
 
-    setTimeout(() => {
-      dropdownRef.current?.focus();
-    }, 0);
+    if (
+      value &&
+      !allFoods.some((f: any) => {
+        const itemCode = String(f.itemCode || "").toLowerCase();
+        const itemName = String(f.itemName || "").toLowerCase();
+        const barcode = String(f.barcode || "").toLowerCase();
+        const q = value.toLowerCase();
+        return (
+          itemCode.includes(q) || itemName.includes(q) || barcode.includes(q)
+        );
+      })
+    ) {
+      toast.error(`Item not found: ${value}`);
+      return;
+    }
+
+    setTimeout(() => dropdownRef.current?.focus(), 0);
   };
 
   const handleCodeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== "Enter") return;
-    e.preventDefault();
-    runCodeSearch();
+    // The global keyboard handler selects the highlighted item on Enter.
+    if (e.key === "Enter") e.preventDefault();
   };
 
   // Occupied / Unsettled tables of ALL outlets.
@@ -2077,14 +2253,73 @@ export default function KeyboardScreen() {
       .map((t) => ({ ...t, outlet: o })),
   );
 
-
   const showFoodList =
-    dropdownOpen && (focusField === "foodDropdown" || focusField === "quantity");
+    dropdownOpen &&
+    (focusField === "foodDropdown" || focusField === "quantity");
 
   // Items already ordered on this table (from GetOldCart), flattened across KOTs.
   const oldRows = oldCartData.flatMap((order: any) =>
     (order.food || []).map((f: any) => ({ ...f, kotId: order.kotId })),
   );
+
+  // Display-only grouping: combine the same item across previous KOTs and
+  // newly added cart rows. The API payloads remain separate for KOT and billing.
+  const mergedDisplayRows = (() => {
+    const grouped = new Map<
+      number,
+      {
+        id: number;
+        name: string;
+        price: number;
+        oldQty: number;
+        newQty: number;
+        cartIndex: number;
+        kotIds: string[];
+      }
+    >();
+
+    oldRows.forEach((f: any) => {
+      const id = Number(f.itemCode || f.id);
+      if (!Number.isFinite(id)) return;
+      const existing = grouped.get(id);
+      if (existing) {
+        existing.oldQty += Number(f.qty || 0);
+        if (f.kotId != null && !existing.kotIds.includes(String(f.kotId))) {
+          existing.kotIds.push(String(f.kotId));
+        }
+      } else {
+        grouped.set(id, {
+          id,
+          name: String(f.food || f.name || "").trim(),
+          price: Number(f.price || 0),
+          oldQty: Number(f.qty || 0),
+          newQty: 0,
+          cartIndex: -1,
+          kotIds: f.kotId == null ? [] : [String(f.kotId)],
+        });
+      }
+    });
+
+    cart.forEach((item, index) => {
+      const existing = grouped.get(Number(item.id));
+      if (existing) {
+        existing.newQty += Number(item.qty || 0);
+        existing.cartIndex = index;
+      } else {
+        grouped.set(Number(item.id), {
+          id: Number(item.id),
+          name: String(item.name || "").trim(),
+          price: Number(item.price || 0),
+          oldQty: 0,
+          newQty: Number(item.qty || 0),
+          cartIndex: index,
+          kotIds: [],
+        });
+      }
+    });
+
+    return Array.from(grouped.values());
+  })();
 
   const total =
     cart.reduce((sum, item) => sum + item.price * item.qty, 0) +
@@ -2111,13 +2346,13 @@ export default function KeyboardScreen() {
   const panel = (tab: MobileTab) => (mobileTab === tab ? "flex" : "hidden");
 
   // Shared control sizing: big touch targets on small screens, compact on desktop.
-  const fieldClass = "w-full border h-11 lg:h-8 px-2 lg:px-1 text-base lg:text-sm bg-white";
+  const fieldClass =
+    "w-full border h-11 lg:h-8 px-2 lg:px-1 text-base lg:text-sm bg-white";
 
   /* ---------------- UI ---------------- */
 
   return (
     <div className="h-[100dvh] flex flex-col bg-[#E9E9E9] text-sm font-sans overflow-hidden">
-
       {/* Title bar */}
       <div className="min-h-10 shrink-0 bg-[#0B4F4A] text-white flex items-center gap-2 px-3 lg:px-4 font-bold">
         <span className="truncate">KITCHEN ORDER TRACKING</span>
@@ -2131,16 +2366,24 @@ export default function KeyboardScreen() {
         {/* Mobile summary */}
         <span className="ml-auto lg:hidden text-yellow-300 text-xs whitespace-nowrap">
           T: {tableNumber || "-"}
-          {isNC && <span className="ml-2 bg-orange-500 text-white px-1">NC</span>}
+          {isNC && (
+            <span className="ml-2 bg-orange-500 text-white px-1">NC</span>
+          )}
         </span>
       </div>
 
       {/* Mobile / tablet tabs */}
       <nav className="lg:hidden shrink-0 grid grid-cols-3">
-        <button className={tabClass("setup")} onClick={() => setMobileTab("setup")}>
+        <button
+          className={tabClass("setup")}
+          onClick={() => setMobileTab("setup")}
+        >
           Setup
         </button>
-        <button className={tabClass("order")} onClick={() => setMobileTab("order")}>
+        <button
+          className={tabClass("order")}
+          onClick={() => setMobileTab("order")}
+        >
           Order{cart.length || oldRows.length ? ` (${totalQty})` : ""}
         </button>
         <button
@@ -2165,125 +2408,120 @@ export default function KeyboardScreen() {
           <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
             <label className="font-bold col-span-2 lg:col-span-1">
               Outlet
-              <select
-                ref={outletRef}
-                value={activeOutlet?.oltCode || ""}
+              <SearchableDropdown
+                inputRef={outletRef}
+                selectedValue={activeOutlet ? String(activeOutlet.oltCode) : ""}
+                placeholder="Type outlet name..."
+                options={outlets.map((o) => ({
+                  value: String(o.oltCode),
+                  label: o.oltName.trim(),
+                }))}
                 onFocus={() => {
                   setFocusField("outlet");
                   setDropdownOpen(true);
                 }}
-                onChange={(e) => {
+                onSelect={(value) => {
                   const outlet = outlets.find(
-                    (o) => String(o.oltCode) === e.target.value,
+                    (o) => String(o.oltCode) === value,
                   );
-
                   if (outlet) selectOutlet(outlet);
                 }}
+                onEnter={() => focusTable()}
                 className={fieldClass}
-              >
-                <option value="" disabled>
-                  Select outlet
-                </option>
-                {outlets.map((o) => (
-                  <option key={o.oltCode} value={o.oltCode}>
-                    {o.oltName.trim()}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="font-bold col-span-2 lg:col-span-1">
               Table
-              <select
-                ref={tableRef}
-                value={tableNumber}
+              <SearchableDropdown
+                inputRef={tableRef}
+                selectedValue={tableNumber}
+                placeholder={
+                  activeOutlet
+                    ? "Type table number or status..."
+                    : "Select outlet first"
+                }
+                options={tables.map((t) => ({
+                  value: t.tableNumber,
+                  label: `${t.tableNumber} - ${t.status}`,
+                }))}
                 onFocus={() => {
                   setFocusField("table");
                   setDropdownOpen(true);
                 }}
-                onChange={(e) => {
-                  const picked = tables.find(
-                    (t) => t.tableNumber === e.target.value,
-                  );
-                  if (picked) handleTableSelection(picked);
+                onSelect={(value) => {
+                  const picked = tables.find((t) => t.tableNumber === value);
+                  if (picked) void handleTableSelection(picked);
                 }}
                 className={fieldClass}
-              >
-                <option value="" disabled>
-                  {activeOutlet ? "Select table" : "Select outlet first"}
-                </option>
-                {tables.map((t) => (
-                  <option key={t.tableNumber} value={t.tableNumber}>
-                    {t.tableNumber} - {t.status}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="font-bold">
               Pax
-              <select
-                ref={paxRef}
-                value={pax}
+              <SearchableDropdown
+                inputRef={paxRef}
+                selectedValue={pax === "" ? "" : String(pax)}
+                placeholder="Type pax..."
+                options={paxList.map((p) => ({
+                  value: String(p),
+                  label: String(p),
+                }))}
                 onFocus={() => {
                   setFocusField("pax");
                   setDropdownOpen(true);
                 }}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
+                onSelect={(value) => {
+                  const v = Number(value);
                   setPax(v);
                   setPaxIndex(paxOptions.indexOf(v));
                 }}
+                onEnter={() => focusSteward()}
                 className={fieldClass}
-              >
-                <option value="" disabled>
-                  Select pax
-                </option>
-                {paxList.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
 
             <label className="font-bold">
               Steward
-              <select
-                ref={stewardRef}
-                value={
+              <SearchableDropdown
+                inputRef={stewardRef}
+                selectedValue={
                   stewardIndex >= 0
-                    ? stewards[stewardIndex]?.stwCode ?? ""
-                    : session?.waiterCode ?? ""
+                    ? String(stewards[stewardIndex]?.stwCode ?? "")
+                    : String(session?.waiterCode ?? "")
                 }
+                placeholder="Type steward name..."
+                options={[
+                  ...(session?.waiterCode && stewardIndex < 0
+                    ? [
+                        {
+                          value: String(session.waiterCode),
+                          label: session.waiterName,
+                        },
+                      ]
+                    : []),
+                  ...stewards.map((steward) => ({
+                    value: String(steward.stwCode),
+                    label: steward.stwName,
+                  })),
+                ].filter(
+                  (option, index, all) =>
+                    all.findIndex((x) => x.value === option.value) === index,
+                )}
                 onFocus={() => {
                   setFocusField("steward");
                   setDropdownOpen(true);
                 }}
-                onChange={(e) =>
+                onSelect={(value) =>
                   setStewardIndex(
-                    Math.max(
-                      0,
-                      stewards.findIndex(
-                        (s) => String(s.stwCode) === e.target.value,
-                      ),
+                    stewards.findIndex(
+                      (steward) => String(steward.stwCode) === value,
                     ),
                   )
                 }
+                onEnter={() => setTimeout(() => startSessionAndShowOrder(), 0)}
                 className={fieldClass}
-              >
-                <option value="" disabled>
-                  Select steward
-                </option>
-                {session?.waiterCode && stewardIndex < 0 && (
-                  <option value={session.waiterCode}>{session.waiterName}</option>
-                )}
-                {stewards.map((s) => (
-                  <option key={s.stwCode} value={s.stwCode}>
-                    {s.stwName}
-                  </option>
-                ))}
-              </select>
+              />
             </label>
           </div>
 
@@ -2332,16 +2570,15 @@ export default function KeyboardScreen() {
             >
               F12 VOID
             </button>
-                 
 
-                 <button
-  onClick={openSettlementList}
-  className="col-span-2 bg-blue-600 text-white border border-black py-2 font-bold"
->
-  SETTLEMENT (Ctrl+D)
-</button>
-     
-            
+            <button
+              type="button"
+              onClick={openSettlementList}
+              disabled={isSettlementAccessDisabled}
+              className="col-span-2 bg-amber-600 text-white border border-black py-2 font-bold hover:bg-amber-700 disabled:opacity-40"
+            >
+              Settlement (Ctrl+D)
+            </button>
           </div>
 
           <div className="lg:mt-auto border border-black bg-yellow-100">
@@ -2384,9 +2621,9 @@ export default function KeyboardScreen() {
                 VOID MODE — Reason: {voidReason}
               </div>
               <div className="hidden lg:block text-red-700">
-                ↑↓ Select &nbsp;|&nbsp; − Void 1 &nbsp;|&nbsp; + Undo &nbsp;|&nbsp;
-                DELETE Void full item &nbsp;|&nbsp; ENTER Confirm &nbsp;|&nbsp; ESC
-                Cancel
+                ↑↓ Select &nbsp;|&nbsp; − Void 1 &nbsp;|&nbsp; + Undo
+                &nbsp;|&nbsp; DELETE Void full item &nbsp;|&nbsp; ENTER Confirm
+                &nbsp;|&nbsp; ESC Cancel
               </div>
               <div className="lg:hidden flex gap-1 mt-1">
                 <button
@@ -2410,17 +2647,25 @@ export default function KeyboardScreen() {
               ref={codeRef}
               value={code}
               onChange={(e) => {
-                setCode(e.target.value);
+                const value = e.target.value;
+                setCode(value);
+                setSearch(value);
+                setSelectedFoodIndex(0);
+                setSelectedFood(null);
+                setDropdownOpen(true);
+                setFocusField("foodDropdown");
               }}
               onFocus={() => {
-                setFocusField("code");
-                setDropdownOpen(false);
+                setSearch(code);
+                setSelectedFoodIndex(0);
+                setDropdownOpen(true);
+                setFocusField("foodDropdown");
               }}
               onKeyDown={handleCodeKeyDown}
               enterKeyHint="search"
               autoComplete="off"
               disabled={voidMode}
-              placeholder="Item Code / Name, then ENTER"
+              placeholder="Type item code / name to search"
               className="flex-1 min-w-0 h-11 lg:h-9 border border-[#0B4F4A] px-2 outline-none text-base lg:text-sm"
             />
 
@@ -2513,95 +2758,141 @@ export default function KeyboardScreen() {
                     );
                   })}
 
-                {!voidMode && oldRows.map((f: any, i: number) => (
-                  <tr
-                    key={`old-${f.kotId}-${f.itemCode}-${i}`}
-                    className="bg-[#EAF3F3] text-gray-700"
-                  >
-                    <td className="border px-2 py-1 hidden sm:table-cell">
-                      {f.itemCode}
+                {!voidMode &&
+                  mergedDisplayRows.map((item) => (
+                    <tr
+                      key={`merged-${item.id}`}
+                      onClick={() => {
+                        if (item.cartIndex >= 0)
+                          setSelectedCartIndex(item.cartIndex);
+                      }}
+                      className={
+                        item.newQty > 0
+                          ? "bg-white"
+                          : "bg-[#EAF3F3] text-gray-700"
+                      }
+                    >
+                      <td className="border px-2 py-1 hidden sm:table-cell">
+                        {item.id}
+                      </td>
+                      <td className="border px-2 py-1 break-words">
+                        {item.name}
+                        {item.kotIds.length > 0 && (
+                          <span className="ml-1 text-[10px] text-gray-500">
+                            KOT {item.kotIds.join(", ")}
+                          </span>
+                        )}
+                        {item.newQty > 0 && (
+                          <span className="ml-1 text-[10px] font-bold text-[#0B4F4A]">
+                            + NEW
+                          </span>
+                        )}
+                      </td>
+                      <td className="border px-1 py-1 text-center">
+                        <div className="flex items-center justify-center gap-1 lg:hidden">
+                          {item.cartIndex >= 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                decreaseQty(item.id);
+                              }}
+                              aria-label="Decrease newly added quantity"
+                              className="w-8 h-8 border border-black bg-white text-black font-bold"
+                            >
+                              −
+                            </button>
+                          )}
+                          <span className="min-w-[1.25rem] font-bold">
+                            {item.oldQty + item.newQty}
+                          </span>
+                          {item.cartIndex >= 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                increaseQty(item.id);
+                              }}
+                              aria-label="Increase newly added quantity"
+                              className="w-8 h-8 border border-black bg-white text-black font-bold"
+                            >
+                              +
+                            </button>
+                          )}
+                        </div>
+                        <span className="hidden lg:inline">
+                          {item.oldQty + item.newQty}
+                        </span>
+                      </td>
+                      <td className="border px-1 sm:px-2 py-1 text-right">
+                        {item.price.toFixed(2)}
+                      </td>
+                      <td className="border px-1 sm:px-2 py-1 text-right">
+                        {(item.price * (item.oldQty + item.newQty)).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+
+                {!voidMode && selectedFood && focusField === "quantity" && (
+                  <tr className="bg-[#D7F0F0] font-semibold">
+                    <td className="border px-2 py-2 hidden sm:table-cell">
+                      {selectedFood.itemCode}
                     </td>
-                    <td className="border px-2 py-1 break-words">
-                      {String(f.food || "").trim()}
-                      <span className="ml-1 text-[10px] text-gray-500">
-                        KOT {f.kotId}
+                    <td className="border px-2 py-2 break-words">
+                      {String(selectedFood.itemName || "").trim()}
+                      <span className="ml-2 text-xs text-[#0B4F4A]">
+                        NEW ITEM
                       </span>
                     </td>
-                    <td className="border px-1 py-1 text-center">{f.qty}</td>
-                    <td className="border px-1 sm:px-2 py-1 text-right">
-                      {f.price}
-                    </td>
-                    <td className="border px-1 sm:px-2 py-1 text-right">
-                      {(Number(f.price || 0) * Number(f.qty || 0)).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-
-                {!voidMode && cart.map((item, index) => (
-                  <tr
-                    key={`${item.id}-${index}`}
-                    onClick={() => setSelectedCartIndex(index)}
-                    className={
-                      index === selectedCartIndex
-                        ? "bg-gray-500 text-white"
-                        : "bg-white"
-                    }
-                  >
-                    <td className="border px-2 py-1 hidden sm:table-cell">
-                      {item.id}
-                    </td>
-
-                    <td className="border px-2 py-1 break-words">
-                      {item.name}
-                    </td>
-
                     <td className="border px-1 py-1 text-center">
-                      {/* Touch controls on small screens */}
-                      <div className="flex items-center justify-center gap-1 lg:hidden">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            decreaseQty(item.id);
-                          }}
-                          aria-label="Decrease quantity"
-                          className="w-8 h-8 border border-black bg-white text-black font-bold"
-                        >
-                          −
-                        </button>
-                        <span className="min-w-[1.25rem] font-bold">
-                          {item.qty}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            increaseQty(item.id);
-                          }}
-                          aria-label="Increase quantity"
-                          className="w-8 h-8 border border-black bg-white text-black font-bold"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span className="hidden lg:inline">{item.qty}</span>
+                      <input
+                        ref={quantityRef}
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value)}
+                        onFocus={() => setFocusField("quantity")}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                            e.preventDefault();
+                            dropdownRef.current?.focus();
+                            setFocusField("foodDropdown");
+                          }
+                        }}
+                        className="w-16 sm:w-20 h-9 border border-[#0B4F4A] bg-white px-1 text-center outline-none"
+                        aria-label={`Quantity for ${String(selectedFood.itemName || "item")}`}
+                      />
                     </td>
-
-                    <td className="border px-1 sm:px-2 py-1 text-right">
-                      {item.price}
+                    <td className="border px-1 sm:px-2 py-2 text-right">
+                      {Number(selectedFood.oidRate || 0).toFixed(2)}
                     </td>
-
-                    <td className="border px-1 sm:px-2 py-1 text-right">
-                      {(item.price * item.qty).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-
-                {!cart.length && !oldRows.length && !voidMode && (
-                  <tr>
-                    <td colSpan={5} className="h-40 text-center text-gray-400">
-                      Scan/type item code and press ENTER
+                    <td className="border px-1 sm:px-2 py-2 text-right">
+                      {(
+                        Number(selectedFood.oidRate || 0) *
+                        (Number(quantity) || 0)
+                      ).toFixed(2)}
+                      <button
+                        onClick={confirmQuantity}
+                        className="ml-2 px-2 py-1 bg-[#0B4F4A] text-white text-xs font-bold border border-black"
+                      >
+                        ADD
+                      </button>
                     </td>
                   </tr>
                 )}
+
+                {!cart.length &&
+                  !oldRows.length &&
+                  !selectedFood &&
+                  !voidMode && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="h-40 text-center text-gray-400"
+                      >
+                        Type item code / name and select an item
+                      </td>
+                    </tr>
+                  )}
               </tbody>
             </table>
           </div>
@@ -2680,40 +2971,6 @@ export default function KeyboardScreen() {
             </div>
           )}
 
-          {showFoodList && selectedFood && (
-            <div className="border-t bg-[#D7F0F0] p-2 flex flex-wrap items-center justify-end gap-2 shrink-0">
-              <span className="mr-auto font-bold truncate max-w-[50%] lg:hidden">
-                {String(selectedFood.itemName || "").trim()}
-              </span>
-
-              <label className="font-bold whitespace-nowrap">Qty</label>
-              <input
-                ref={quantityRef}
-                type="number"
-                inputMode="numeric"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                onFocus={() => setFocusField("quantity")}
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                    e.preventDefault();
-                    dropdownRef.current?.focus();
-                    setFocusField("foodDropdown");
-                  }
-                }}
-                className="w-20 h-11 lg:h-8 border border-[#0B4F4A] px-2 outline-none text-base lg:text-sm"
-              />
-
-              <button
-                onClick={confirmQuantity}
-                className="lg:hidden h-11 px-5 bg-[#0B4F4A] text-white font-bold border border-black"
-              >
-                ADD
-              </button>
-            </div>
-          )}
-
           <div className="hidden lg:block border-t bg-[#0B4F4A] text-white px-3 py-1 text-xs shrink-0">
             ALT+O Outlet | ALT+T Table | ALT+P Pax | ALT+S Steward | ALT+C Code
             &nbsp; | &nbsp; ↑↓ Navigate &nbsp; | &nbsp; ENTER Open/Select &nbsp;
@@ -2787,7 +3044,9 @@ export default function KeyboardScreen() {
                   key={`${t.outlet.oltCode}-${t.tableNumber}`}
                   onClick={() => {
                     // Switch outlet first when the table belongs to another one.
-                    if (String(t.outlet.oltCode) !== String(activeOutlet?.oltCode)) {
+                    if (
+                      String(t.outlet.oltCode) !== String(activeOutlet?.oltCode)
+                    ) {
                       selectOutlet(t.outlet);
                     }
                     setTableIndex(
@@ -2927,14 +3186,24 @@ export default function KeyboardScreen() {
             VOID
           </button>
         </div>
+
+        {/* Settlement button directly below VOID in the mobile action bar */}
+        <div className="grid grid-cols-5 gap-1 px-1 pb-1">
+          <button
+            type="button"
+            onClick={openSettlementList}
+            disabled={isSettlementAccessDisabled || processing}
+            className="col-start-5 border border-black bg-amber-500 py-2 font-bold text-xs text-black disabled:opacity-40"
+          >
+            SETTLEMENT
+          </button>
+        </div>
       </div>
 
       {ncModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-3">
           <div className="bg-white w-full max-w-sm border border-black p-3 flex flex-col gap-2">
-            <div className="font-bold text-orange-600">
-              NC (Non Chargeable)
-            </div>
+            <div className="font-bold text-orange-600">NC (Non Chargeable)</div>
 
             <label className="font-bold text-xs">
               NC Department
@@ -3067,9 +3336,13 @@ export default function KeyboardScreen() {
               const dialog = settlementListRef.current;
               if (!dialog) return;
               const buttons = Array.from(
-                dialog.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"),
+                dialog.querySelectorAll<HTMLButtonElement>(
+                  "button:not(:disabled)",
+                ),
               );
-              const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+              const index = buttons.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
               if (e.key === "ArrowDown" || e.key === "ArrowRight") {
                 e.preventDefault();
                 buttons[(index + 1 + buttons.length) % buttons.length]?.focus();
@@ -3082,37 +3355,71 @@ export default function KeyboardScreen() {
           >
             <div className="flex items-center justify-between bg-[#0576B2] px-5 py-4 text-white">
               <div>
-                <h2 id="settlement-list-title" className="text-lg font-bold">Settlement — Unsettled Tables</h2>
-                <p className="text-xs text-blue-100">Select any unsettled table to open its payment window.</p>
+                <h2 id="settlement-list-title" className="text-lg font-bold">
+                  Settlement — Unsettled Tables
+                </h2>
+                <p className="text-xs text-blue-100">
+                  Select any unsettled table to open its payment window.
+                </p>
               </div>
-              <button type="button" onClick={() => setSettlementListOpen(false)} aria-label="Close settlement list" className="text-2xl font-bold">×</button>
+              <button
+                type="button"
+                onClick={() => setSettlementListOpen(false)}
+                aria-label="Close settlement list"
+                className="text-2xl font-bold"
+              >
+                ×
+              </button>
             </div>
             <div className="overflow-y-auto p-4">
               <div className="mb-2 grid grid-cols-[1fr_1fr_1fr_auto] gap-3 border-b pb-2 text-xs font-bold uppercase text-gray-500">
-                <span>Outlet</span><span>Table</span><span>Bill No.</span><span>Action</span>
+                <span>Outlet</span>
+                <span>Table</span>
+                <span>Bill No.</span>
+                <span>Action</span>
               </div>
               {unsettledTables.length ? (
                 <div className="space-y-2">
                   {unsettledTables.map((row: any, index: number) => (
-                    <div key={`${row.outlet.oltCode}-${row.tableNumber}-${row.BillNo}-${index}`} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <div
+                      key={`${row.outlet.oltCode}-${row.tableNumber}-${row.BillNo}-${index}`}
+                      className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3"
+                    >
                       <span className="font-medium">{row.outlet.oltName}</span>
-                      <span className="font-bold">{row.tableNumber}-{row.subTable || "A"}</span>
-                      <span>#{row.BillNo || "—"}<span className="ml-2 text-xs text-gray-600">₹{Number(row.billAmount || 0).toFixed(2)}</span></span>
+                      <span className="font-bold">
+                        {row.tableNumber}-{row.subTable || "A"}
+                      </span>
+                      <span>
+                        #{row.BillNo || "—"}
+                        <span className="ml-2 text-xs text-gray-600">
+                          ₹{Number(row.billAmount || 0).toFixed(2)}
+                        </span>
+                      </span>
                       <button
                         type="button"
                         disabled={!row.BillNo || processing}
                         onClick={() => void openUnsettledTableFromList(row)}
                         className="rounded bg-amber-600 px-3 py-2 font-bold text-white hover:bg-amber-700 disabled:opacity-40"
-                      >Select & Pay</button>
+                      >
+                        Select & Pay
+                      </button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="py-10 text-center text-gray-500">No unsettled tables found.</p>
+                <p className="py-10 text-center text-gray-500">
+                  No unsettled tables found.
+                </p>
               )}
             </div>
             <div className="flex justify-end border-t bg-gray-50 p-3">
-              <button type="button" onClick={() => setSettlementListOpen(false)} className="rounded border px-4 py-2 font-semibold">Close (Esc)</button>
+              <button
+                type="button"
+                onClick={() => setSettlementListOpen(false)}
+                className="rounded border px-4 py-2 font-semibold"
+              >
+                Close (Esc)
+              </button>
             </div>
           </div>
         </div>
@@ -3135,15 +3442,21 @@ export default function KeyboardScreen() {
                 ),
               );
               if (!actions.length) return;
-              const currentIndex = actions.indexOf(document.activeElement as HTMLButtonElement);
+              const currentIndex = actions.indexOf(
+                document.activeElement as HTMLButtonElement,
+              );
 
               // Arrow keys move through the available next-step actions.
               if (e.key === "ArrowDown" || e.key === "ArrowRight") {
                 e.preventDefault();
-                actions[(currentIndex + 1 + actions.length) % actions.length].focus();
+                actions[
+                  (currentIndex + 1 + actions.length) % actions.length
+                ].focus();
               } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
                 e.preventDefault();
-                actions[(currentIndex - 1 + actions.length) % actions.length].focus();
+                actions[
+                  (currentIndex - 1 + actions.length) % actions.length
+                ].focus();
               } else if (e.key === "Tab") {
                 if (e.shiftKey && currentIndex <= 0) {
                   e.preventDefault();
@@ -3162,7 +3475,8 @@ export default function KeyboardScreen() {
                   Table {pendingTable} — Bills & Settlement
                 </h2>
                 <p className="text-xs text-blue-100">
-                  {pendingOutlet?.oltName?.trim()} · Select an occupied bill, settle an unsettled bill, or start a new table order.
+                  {pendingOutlet?.oltName?.trim()} · Select an occupied bill,
+                  settle an unsettled bill, or start a new table order.
                 </p>
               </div>
               <button
@@ -3174,48 +3488,84 @@ export default function KeyboardScreen() {
                   setPendingOutlet(null);
                 }}
                 className="text-2xl font-bold"
-              >×</button>
+              >
+                ×
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
               <div className="mb-3 grid grid-cols-[1fr_1fr_auto] gap-2 border-b pb-2 text-xs font-bold uppercase text-gray-500">
-                <span>Subtable / Bill</span><span>Status</span><span>Action</span>
+                <span>Subtable / Bill</span>
+                <span>Status</span>
+                <span>Action</span>
               </div>
               <div className="space-y-2">
-                {subTables.filter((sub: any) => String(sub.tableStatus || "").toLowerCase() !== "available").map((sub: any, index: number) => {
-                  const unsettled = String(sub.tableStatus || "").toLowerCase() === "unsettled";
-                  const disabled = unsettled && isSettlementAccessDisabled;
-                  return (
-                    <div key={`${sub.subTable}-${sub.billNo || index}`} className={`grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-lg border p-3 ${unsettled ? "border-amber-300 bg-amber-50" : "border-red-200 bg-red-50"}`}>
-                      <div>
-                        <div className="font-bold text-gray-900">{pendingTable}-{sub.subTable}</div>
-                        <div className="text-xs text-gray-500">Bill #{sub.billNo || "—"}</div>
+                {subTables
+                  .filter(
+                    (sub: any) =>
+                      String(sub.tableStatus || "").toLowerCase() !==
+                      "available",
+                  )
+                  .map((sub: any, index: number) => {
+                    const unsettled =
+                      String(sub.tableStatus || "").toLowerCase() ===
+                      "unsettled";
+                    const disabled = unsettled && isSettlementAccessDisabled;
+                    return (
+                      <div
+                        key={`${sub.subTable}-${sub.billNo || index}`}
+                        className={`grid grid-cols-[1fr_1fr_auto] items-center gap-2 rounded-lg border p-3 ${unsettled ? "border-amber-300 bg-amber-50" : "border-red-200 bg-red-50"}`}
+                      >
+                        <div>
+                          <div className="font-bold text-gray-900">
+                            {pendingTable}-{sub.subTable}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Bill #{sub.billNo || "—"}
+                          </div>
+                        </div>
+                        <span
+                          className={`text-sm font-semibold ${unsettled ? "text-amber-700" : "text-red-700"}`}
+                        >
+                          {sub.tableStatus}
+                        </span>
+                        {unsettled ? (
+                          <button
+                            type="button"
+                            disabled={disabled || settlementLoading}
+                            onClick={() => void handleUnsettledSubTable(sub)}
+                            className="rounded bg-amber-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {disabled ? "No Access" : "Settle"}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTableChoiceOpen(false);
+                              setSelectedSubTable(String(sub.subTable || "A"));
+                              void loadExistingTable(
+                                pendingTable,
+                                String(sub.subTable || "A"),
+                                pendingOutlet || undefined,
+                              );
+                              setMobileTab("order");
+                            }}
+                            className="rounded bg-green-600 px-3 py-2 text-sm font-bold text-white"
+                          >
+                            Continue
+                          </button>
+                        )}
                       </div>
-                      <span className={`text-sm font-semibold ${unsettled ? "text-amber-700" : "text-red-700"}`}>{sub.tableStatus}</span>
-                      {unsettled ? (
-                        <button
-                          type="button"
-                          disabled={disabled || settlementLoading}
-                          onClick={() => void handleUnsettledSubTable(sub)}
-                          className="rounded bg-amber-600 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                        >{disabled ? "No Access" : "Settle"}</button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTableChoiceOpen(false);
-                            setSelectedSubTable(String(sub.subTable || "A"));
-                            void loadExistingTable(pendingTable, String(sub.subTable || "A"), pendingOutlet || undefined);
-                            setMobileTab("order");
-                          }}
-                          className="rounded bg-green-600 px-3 py-2 text-sm font-bold text-white"
-                        >Continue</button>
-                      )}
-                    </div>
-                  );
-                })}
-                {!subTables.some((sub: any) => String(sub.tableStatus || "").toLowerCase() !== "available") && (
-                  <p className="py-6 text-center text-sm text-gray-500">No occupied or unsettled bills for this table.</p>
+                    );
+                  })}
+                {!subTables.some(
+                  (sub: any) =>
+                    String(sub.tableStatus || "").toLowerCase() !== "available",
+                ) && (
+                  <p className="py-6 text-center text-sm text-gray-500">
+                    No occupied or unsettled bills for this table.
+                  </p>
                 )}
               </div>
             </div>
@@ -3225,7 +3575,9 @@ export default function KeyboardScreen() {
                 type="button"
                 onClick={() => void startNewSubTableOrder()}
                 className="rounded-lg border-2 border-dashed border-[#0576B2] bg-white px-4 py-3 font-bold text-[#0576B2]"
-              >＋ New Table / New Bill</button>
+              >
+                ＋ New Table / New Bill
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -3234,9 +3586,13 @@ export default function KeyboardScreen() {
                   setPendingOutlet(null);
                 }}
                 className="rounded-lg border border-gray-300 px-4 py-3 font-semibold text-gray-700"
-              >Close</button>
+              >
+                Close
+              </button>
             </div>
-            <p className="px-4 pb-3 text-xs text-gray-500">Press Esc to close this window.</p>
+            <p className="px-4 pb-3 text-xs text-gray-500">
+              Press Esc to close this window.
+            </p>
           </div>
         </div>
       )}
