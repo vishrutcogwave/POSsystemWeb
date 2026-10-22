@@ -146,7 +146,12 @@ const fetchSuppliers = async () => {
         paidAmount: Number(data.paidAmount ?? normalizedBills.reduce((sum, bill) => sum + Number(bill.paidAmount || 0), 0)),
         balanceAmount: Number(data.balanceAmount ?? normalizedBills.reduce((sum, bill) => sum + Number(bill.balanceAmount || 0), 0)),
       });
-      setBills(normalizedBills);
+    // Show only bills that have a pending balance
+const pendingBills = normalizedBills.filter(
+  (bill) => Number(bill.balanceAmount || 0) > 0
+);
+
+setBills(pendingBills);
       setSelectedBill(null);
       setPaymentData(null);
     } catch (error) {

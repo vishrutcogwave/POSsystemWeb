@@ -532,59 +532,7 @@ export default function KeyboardScreen() {
     row?.scrollIntoView({ block: "nearest" });
   }, [selectedFoodIndex, focusField, dropdownOpen]);
 
-  /* ---------------- CART ---------------- */
 
-  // ============================================================
-  // CONTROLLER 04: CART FLOW
-  // ============================================================
-
-  const addFood = (food: any, unit: string, qtyValue: number) => {
-    if (!session) {
-      toast.error("Select Pax and Steward, then press Enter to start");
-      return;
-    }
-
-    const safeQty = Math.max(1, Number(qtyValue) || 1);
-
-    setCart((prev) => {
-      const existing = prev.find(
-        (i) => i.id === food.itemCode && (i.unit || "") === unit,
-      );
-
-      if (existing) {
-        return prev.map((i) =>
-          i.id === food.itemCode && (i.unit || "") === unit
-            ? { ...i, qty: i.qty + safeQty }
-            : i,
-        );
-      }
-
-      return [
-        ...prev,
-        {
-          id: food.itemCode,
-          name: String(food.itemName || "").trim(),
-          price: Number(food.oidRate || 0),
-          qty: safeQty,
-          unit,
-          category: Number(food.category || 0),
-          grpCode: Number(food.grpCode || 0),
-          spcodes: "",
-          note: "",
-          itemDiscountAllowed: food.itemDiscountAllowed ?? true,
-        },
-      ];
-    });
-
-    setCode("");
-    setSearch("");
-    setSelectedFood(null);
-    setSelectedUnit("");
-    setQuantity("1");
-    setDropdownOpen(false);
-    setFocusField("code");
-    setTimeout(() => codeRef.current?.focus(), 0);
-  };
 
   const increaseQty = (id: number) => {
     setCart((prev) =>
@@ -758,10 +706,11 @@ export default function KeyboardScreen() {
   }, [masterItems]);
 
   // Shared by both KOT and BILL controllers.
-  const buildBillPayload = (
-    nc?: { code: number; remarks: string },
-    newItemsOnly = false,
-  ) => {
+ const buildBillPayload = (
+  nc?: { code: number; remarks: string },
+  newItemsOnly = false,
+  cartOverride: CartItem[] = cart,
+) => {
     if (!session) return null;
 
     const oldFoods = oldCartData.flatMap((order: any) =>
@@ -783,18 +732,18 @@ export default function KeyboardScreen() {
       }),
     );
 
-    const newFoods = cart.map((i) => ({
-      id: i.id,
-      food: i.name,
-      code: String(i.id),
-      price: i.price,
-      qty: i.qty,
-      comment: i.spcodes || "",
-      category: i.category || categoryMap.get(i.id)?.catCode || 0,
-      grpCode: i.grpCode || categoryMap.get(i.id)?.grpCode || 0,
-      origQty: i.qty,
-      itemDiscountAllowed: i.itemDiscountAllowed ?? true,
-    }));
+ const newFoods = cartOverride.map((i) => ({
+  id: i.id,
+  food: i.name,
+  code: String(i.id),
+  price: i.price,
+  qty: i.qty,
+  comment: i.spcodes || "",
+  category: i.category || categoryMap.get(i.id)?.catCode || 0,
+  grpCode: i.grpCode || categoryMap.get(i.id)?.grpCode || 0,
+  origQty: i.qty,
+  itemDiscountAllowed: i.itemDiscountAllowed ?? true,
+}));
 
     // KOT sends only the newly-added cart rows. BILL still includes old + new rows.
     const food = newItemsOnly ? newFoods : [...oldFoods, ...newFoods];
@@ -854,12 +803,14 @@ export default function KeyboardScreen() {
   // CONTROLLER 07: KOT FLOW
   // ============================================================
 
-  const handleKOT = async (nc?: { code: number; remarks: string }) => {
-    if (!session || !cart.length) {
-      toast.error("Select session and add items");
-      return;
-    }
-
+const handleKOT = async (
+  nc?: { code: number; remarks: string },
+  cartOverride: CartItem[] = cart,
+) => {
+  if (!session || !cartOverride.length) {
+    toast.error("Select session and add items");
+    return;
+  }
     try {
       setProcessing(true);
 
@@ -874,7 +825,7 @@ export default function KeyboardScreen() {
       }
 
       // Do not resend previously-fired KOT items when continuing an occupied table.
-      const payload = buildBillPayload(nc, true);
+    const payload = buildBillPayload(nc, true, cartOverride);
 
       if (!payload) return;
 
@@ -1427,18 +1378,67 @@ export default function KeyboardScreen() {
     }, 0);
   };
 
-  const confirmQuantity = () => {
-    if (!selectedFood) return;
+const confirmQuantity = () => {
+  if (!selectedFood) return;
 
-    const qtyValue = Number(quantity);
-    if (!Number.isFinite(qtyValue) || qtyValue <= 0) {
-      toast.error("Enter a valid quantity");
-      quantityRef.current?.focus();
-      return;
-    }
-    addFood(selectedFood, selectedUnit, qtyValue);
+  const qtyValue = Number(quantity);
+
+  if (!Number.isFinite(qtyValue) || qtyValue <= 0) {
+    toast.error("Enter a valid quantity");
+    quantityRef.current?.focus();
+    return;
+  }
+
+  if (!session) {
+    toast.error("Start a session before adding items");
+    return;
+  }
+
+  const food = selectedFood;
+  const unit = selectedUnit;
+
+  const newItem: CartItem = {
+    id: Number(food.itemCode),
+    name: String(food.itemName || "").trim(),
+    price: Number(food.oidRate || 0),
+    qty: qtyValue,
+    unit,
+    category: Number(food.category || 0),
+    grpCode: Number(food.grpCode || 0),
+    spcodes: "",
+    note: "",
+    itemDiscountAllowed: food.itemDiscountAllowed ?? true,
   };
 
+  const existingIndex = cart.findIndex(
+    (item) => item.id === newItem.id && (item.unit || "") === unit,
+  );
+
+  const updatedCart =
+    existingIndex >= 0
+      ? cart.map((item, index) =>
+          index === existingIndex
+            ? { ...item, qty: item.qty + qtyValue }
+            : item,
+        )
+      : [...cart, newItem];
+
+  // Update the UI with the new cart.
+  setCart(updatedCart);
+
+  setCode("");
+  setSearch("");
+  setSelectedFood(null);
+  setSelectedUnit("");
+  setQuantity("1");
+  setDropdownOpen(false);
+  setFocusField("code");
+
+  // Send the updated cart directly; don't wait for React state.
+  // Add item to cart only. Do not create KOT yet.
+setFocusField("code");
+setTimeout(() => codeRef.current?.focus(), 0);
+};
   const closeDropdown = () => {
     setDropdownOpen(false);
     setSelectedFood(null);
@@ -2253,9 +2253,10 @@ export default function KeyboardScreen() {
       .map((t) => ({ ...t, outlet: o })),
   );
 
-  const showFoodList =
-    dropdownOpen &&
-    (focusField === "foodDropdown" || focusField === "quantity");
+const showFoodList =
+  dropdownOpen &&
+  search.trim().length > 0 &&
+  (focusField === "foodDropdown" || focusField === "quantity");
 
   // Items already ordered on this table (from GetOldCart), flattened across KOTs.
   const oldRows = oldCartData.flatMap((order: any) =>
@@ -2646,21 +2647,35 @@ export default function KeyboardScreen() {
             <input
               ref={codeRef}
               value={code}
-              onChange={(e) => {
-                const value = e.target.value;
-                setCode(value);
-                setSearch(value);
-                setSelectedFoodIndex(0);
-                setSelectedFood(null);
-                setDropdownOpen(true);
-                setFocusField("foodDropdown");
-              }}
-              onFocus={() => {
-                setSearch(code);
-                setSelectedFoodIndex(0);
-                setDropdownOpen(true);
-                setFocusField("foodDropdown");
-              }}
+             onChange={(e) => {
+  const value = e.target.value;
+
+  setCode(value);
+  setSearch(value);
+  setSelectedFoodIndex(0);
+  setSelectedFood(null);
+
+  if (value.trim()) {
+    setDropdownOpen(true);
+    setFocusField("foodDropdown");
+  } else {
+    setDropdownOpen(false);
+    setFocusField("code");
+  }
+}}
+onFocus={() => {
+  setFocusField("code");
+
+  if (code.trim()) {
+    setSearch(code);
+    setSelectedFoodIndex(0);
+    setDropdownOpen(true);
+    setFocusField("foodDropdown");
+  } else {
+    setSearch("");
+    setDropdownOpen(false);
+  }
+}}
               onKeyDown={handleCodeKeyDown}
               enterKeyHint="search"
               autoComplete="off"
