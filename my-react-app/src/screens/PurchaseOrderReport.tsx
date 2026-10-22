@@ -1,7 +1,13 @@
-
 import { useEffect, useMemo, useState } from "react";
 import Header from "../components/Header";
-import { Search, FileBarChart, Printer, FileSpreadsheet, FileDown, ChevronDown } from "lucide-react";
+import {
+  Search,
+  FileBarChart,
+  Printer,
+  FileSpreadsheet,
+  FileDown,
+  ChevronDown,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getPurchaseOrderReport } from "../api/services/products.service";
@@ -39,6 +45,7 @@ export default function PurchaseOrderReport() {
   const [selectedItem, setSelectedItem] = useState("");
   const [search, setSearch] = useState("");
   const [data, setData] = useState<ReportRow[]>([]);
+  const [summaries, setSummaries] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -47,6 +54,7 @@ export default function PurchaseOrderReport() {
   useEffect(() => {
     if (!fromDate || !toDate || fromDate > toDate) {
       setData([]);
+      setSummaries([]);
       setLoading(false);
       return;
     }
@@ -68,20 +76,31 @@ export default function PurchaseOrderReport() {
         const response = await getPurchaseOrderReport(
           formatDateForApi(fromDate),
           formatDateForApi(toDate),
-          branchcode
+          branchcode,
         );
 
         if (cancelled) return;
 
         // The latest API returns { details: [...], summaries: [...] }.
         // Support common Axios/nested response wrappers as well as the old array response.
-        const payloadCandidates = [response, response?.data, response?.data?.data];
+        const payloadCandidates = [
+          response,
+          response?.data,
+          response?.data?.data,
+        ];
         const reportPayload = payloadCandidates.find(
-          (candidate) => candidate && Array.isArray(candidate.details)
+          (candidate) => candidate && Array.isArray(candidate.details),
         );
 
-        // Keep the complete detail rows. Regular Report derives one PO row
-        // from these details; it does not use the separate summaries array.
+        // Keep detail rows and the PO-level summaries separately. documentNo matches poNo.
+        const summaryRows: ReportRow[] = Array.isArray(reportPayload?.summaries)
+          ? reportPayload.summaries
+          : Array.isArray(response?.data?.summaries)
+            ? response.data.summaries
+            : Array.isArray(response?.data?.data?.summaries)
+              ? response.data.data.summaries
+              : [];
+        setSummaries(summaryRows);
         const rows: ReportRow[] = Array.isArray(reportPayload?.details)
           ? reportPayload.details
           : Array.isArray(response)
@@ -93,12 +112,14 @@ export default function PurchaseOrderReport() {
                 : [];
 
         setData(rows);
+        setSummaries(summaryRows);
         setSelectedSupplier("");
         setSelectedItem("");
       } catch (err) {
         if (!cancelled) {
           console.error("Failed to fetch Purchase Order Report:", err);
           setData([]);
+          setSummaries([]);
           setError("Failed to load the report. Please try changing the dates.");
         }
       } finally {
@@ -154,20 +175,20 @@ export default function PurchaseOrderReport() {
     let rows = [...data];
 
     if (reportType === "Supplier Wise" && selectedSupplier) {
-      rows = rows.filter(
-        (row) => getText(row.supCode) === selectedSupplier
-      );
+      rows = rows.filter((row) => getText(row.supCode) === selectedSupplier);
     }
 
     if (reportType === "Item Wise" && selectedItem) {
-      rows = rows.filter(
-        (row) => getText(row.itemCode) === selectedItem
-      );
+      rows = rows.filter((row) => getText(row.itemCode) === selectedItem);
     }
 
     if (reportType === "Supplier Wise") {
       rows.sort((a, b) => {
-        const supplierCompare = getText(a.supplier).localeCompare(getText(b.supplier), undefined, { sensitivity: "base" });
+        const supplierCompare = getText(a.supplier).localeCompare(
+          getText(b.supplier),
+          undefined,
+          { sensitivity: "base" },
+        );
         if (supplierCompare !== 0) return supplierCompare;
         return Number(a.poNo) - Number(b.poNo);
       });
@@ -176,7 +197,7 @@ export default function PurchaseOrderReport() {
         const itemCompare = getText(a.itemName).localeCompare(
           getText(b.itemName),
           undefined,
-          { sensitivity: "base" }
+          { sensitivity: "base" },
         );
         if (itemCompare !== 0) return itemCompare;
         return Number(a.poNo) - Number(b.poNo);
@@ -200,49 +221,58 @@ export default function PurchaseOrderReport() {
     ]);
 
     return filteredRows
-      .map((row) =>
-        Object.fromEntries(
-          Object.entries(row).filter(([key]) => !poTotalFields.has(key))
-        ) as ReportRow
+      .map(
+        (row) =>
+          Object.fromEntries(
+            Object.entries(row).filter(([key]) => !poTotalFields.has(key)),
+          ) as ReportRow,
       )
       .sort((a, b) => {
         const itemCompare = getText(a.itemName).localeCompare(
           getText(b.itemName),
           undefined,
-          { sensitivity: "base" }
+          { sensitivity: "base" },
         );
         if (itemCompare !== 0) return itemCompare;
         return Number(a.poNo) - Number(b.poNo);
       });
   }, [filteredRows]);
 
-  // Regular Report is based on Detailed rows, but shows only one row per PO
-  // and excludes item-specific columns. Use the totals on the first detail
-  // row for each PO; do not use the separate summaries array.
+  // Regular Report shows one row per PO. PO-level totals come from summaries,
+  // where summaries.documentNo matches details.poNo.
   const regularReportRows = useMemo(() => {
-    const byPurchaseOrder = new Map<string, ReportRow>();
-
+    const detailsByPo = new Map<string, ReportRow>();
     data.forEach((row) => {
       const poNo = getText(row.poNo);
-      if (!poNo || byPurchaseOrder.has(poNo)) return;
-
-      byPurchaseOrder.set(poNo, {
-        poNo: row.poNo,
-        poDate: row.poDate,
-        supCode: row.supCode,
-        supplier: row.supplier,
-        orderBy: row.orderBy,
-        gsTno: row.gsTno,
-        totalamount: row.totalamount ?? row.totalAmount,
-        totalTaxAmount: row.totalTaxAmount ?? row.taxAmount,
-        grossAmount: row.grossAmount,
-      });
+      if (poNo && !detailsByPo.has(poNo)) detailsByPo.set(poNo, row);
     });
 
-    return Array.from(byPurchaseOrder.values()).sort(
-      (a, b) => Number(a.poNo) - Number(b.poNo)
-    );
-  }, [data]);
+    const summaryByPo = new Map<string, ReportRow>();
+    summaries.forEach((summary) => {
+      const poNo = getText(summary.documentNo);
+      if (poNo) summaryByPo.set(poNo, summary);
+    });
+
+    return Array.from(detailsByPo.entries())
+      .map(([poNo, row]) => {
+        const summary = summaryByPo.get(poNo);
+        return {
+          poNo: row.poNo,
+          poDate: row.poDate,
+          supCode: row.supCode,
+          supplier: row.supplier,
+          orderBy: row.orderBy,
+          gsTno: row.gsTno,
+          totalamount:
+            summary?.totalAmount ?? row.totalamount ?? row.totalAmount,
+          totalTaxAmount:
+            summary?.totalTaxAmount ?? row.totalTaxAmount ?? row.taxAmount,
+          missChargeAmount: summary?.missChargeAmount ?? row.missChargeAmount,
+          grossAmount: summary?.grossAmount ?? row.grossAmount,
+        } as ReportRow;
+      })
+      .sort((a, b) => Number(a.poNo) - Number(b.poNo));
+  }, [data, summaries]);
 
   // Keep PO-level totals out of item-detail reports; they belong in Regular Report.
   const detailReportRows = useMemo(() => {
@@ -254,10 +284,11 @@ export default function PurchaseOrderReport() {
       "grossAmount",
     ]);
 
-    return filteredRows.map((row) =>
-      Object.fromEntries(
-        Object.entries(row).filter(([key]) => !poTotalFields.has(key))
-      ) as ReportRow
+    return filteredRows.map(
+      (row) =>
+        Object.fromEntries(
+          Object.entries(row).filter(([key]) => !poTotalFields.has(key)),
+        ) as ReportRow,
     );
   }, [filteredRows]);
 
@@ -276,8 +307,8 @@ export default function PurchaseOrderReport() {
 
     return reportRows.filter((row) =>
       Object.values(row).some((value) =>
-        getText(value).toLowerCase().includes(query)
-      )
+        getText(value).toLowerCase().includes(query),
+      ),
     );
   }, [reportRows, search]);
 
@@ -286,10 +317,15 @@ export default function PurchaseOrderReport() {
     () =>
       displayedRows.length
         ? Object.keys(displayedRows[0]).filter(
-            (column) => column !== "itemCode" && column !== "supCode"
+            (column) =>
+              column !== "itemCode" &&
+              column !== "supCode" &&
+              column !== "billed" &&
+              column !== "orderStatus" &&
+              column !== "storeId",
           )
         : [],
-    [displayedRows]
+    [displayedRows],
   );
 
   // Detailed keeps the existing merged PO cells. Supplier Wise shows every
@@ -305,13 +341,17 @@ export default function PurchaseOrderReport() {
       "gsTno",
     ]);
 
-    if (reportType !== "Detailed") return { spans, mergedColumns: new Set<string>() };
+    if (reportType !== "Detailed")
+      return { spans, mergedColumns: new Set<string>() };
 
     let index = 0;
     while (index < displayedRows.length) {
       const poNumber = getText(displayedRows[index].poNo);
       let end = index + 1;
-      while (end < displayedRows.length && getText(displayedRows[end].poNo) === poNumber) {
+      while (
+        end < displayedRows.length &&
+        getText(displayedRows[end].poNo) === poNumber
+      ) {
         end++;
       }
       spans[index] = end - index;
@@ -336,24 +376,72 @@ export default function PurchaseOrderReport() {
 
     const sourceRows = filteredRows.filter((row) => {
       const query = search.trim().toLowerCase();
-      return !query || Object.values(row).some((value) => getText(value).toLowerCase().includes(query));
+      return (
+        !query ||
+        Object.values(row).some((value) =>
+          getText(value).toLowerCase().includes(query),
+        )
+      );
     });
     const money = (value: unknown) => {
       const amount = Number(value);
       return Number.isFinite(amount) ? formatAmount(amount) : "-";
     };
+    const summaryByPo = new Map<string, ReportRow>(
+      summaries.map((summary) => [getText(summary.documentNo), summary]),
+    );
+    const getPoSummary = (poNo: unknown, fallback?: ReportRow) => {
+      const summary = summaryByPo.get(getText(poNo));
+      return {
+        purchase:
+          Number(
+            summary?.totalAmount ??
+              fallback?.totalamount ??
+              fallback?.totalAmount,
+          ) || 0,
+        tax:
+          Number(
+            summary?.totalTaxAmount ??
+              fallback?.totalTaxAmount ??
+              fallback?.taxAmount,
+          ) || 0,
+        misc:
+          Number(summary?.missChargeAmount ?? fallback?.missChargeAmount) || 0,
+        gross: Number(summary?.grossAmount ?? fallback?.grossAmount) || 0,
+      };
+    };
     const date = (value: unknown) => {
       if (!value) return "-";
       const parsed = new Date(String(value));
-      return Number.isNaN(parsed.getTime()) ? getText(value) : parsed.toLocaleDateString("en-GB");
+      return Number.isNaN(parsed.getTime())
+        ? getText(value)
+        : parsed.toLocaleDateString("en-GB");
     };
 
     // Each row has a kind so the same grouping/subtotal rows can be styled in both exports.
-    const output: Array<{ kind: "header" | "group" | "meta" | "column" | "data" | "subtotal" | "total"; cells: string[] }> = [];
+    const output: Array<{
+      kind:
+        | "header"
+        | "group"
+        | "meta"
+        | "column"
+        | "data"
+        | "subtotal"
+        | "total";
+      cells: string[];
+    }> = [];
     const add = (kind: (typeof output)[number]["kind"], ...cells: unknown[]) =>
-      output.push({ kind, cells: cells.map((value) => value == null || value === "" ? "-" : String(value)) });
+      output.push({
+        kind,
+        cells: cells.map((value) =>
+          value == null || value === "" ? "-" : String(value),
+        ),
+      });
 
-    add("header", `Regular Purchase Report${reportType === "Regular Report" ? "" : ` (${reportType})`}`);
+    add(
+      "header",
+      `Regular Purchase Report${reportType === "Regular Report" ? "" : ` (${reportType})`}`,
+    );
     add("meta", `From ${fromDate} To ${toDate}`);
 
     if (reportType === "Regular Report") {
@@ -362,18 +450,62 @@ export default function PurchaseOrderReport() {
         const key = getText(row.poNo);
         if (key && !poMap.has(key)) poMap.set(key, row);
       });
-      add("column", "PO No.", "PO Date", "Supplier", "Order By", "GST No.", "Tax Amount", "Purchase Amount", "Gross Amount");
-      let taxTotal = 0, purchaseTotal = 0, grossTotal = 0;
-      Array.from(poMap.values()).sort((a, b) => Number(a.poNo) - Number(b.poNo)).forEach((row) => {
-        const tax = Number(row.totalTaxAmount ?? row.taxAmount) || 0;
-        const purchase = Number(row.totalamount ?? row.totalAmount) || 0;
-        const gross = Number(row.grossAmount) || 0;
-        taxTotal += tax; purchaseTotal += purchase; grossTotal += gross;
-        add("data", row.poNo, date(row.poDate), row.supplier, row.orderBy, row.gsTno, money(tax), money(purchase), money(gross));
-      });
-      add("total", "GRAND TOTAL", "", "", "", "", money(taxTotal), money(purchaseTotal), money(grossTotal));
+      add(
+        "column",
+        "PO No.",
+        "PO Date",
+        "Supplier",
+        "Order By",
+        "GST No.",
+        "Tax Amount",
+        "Purchase Amount",
+        "Gross Amount",
+      );
+      let taxTotal = 0,
+        purchaseTotal = 0,
+        grossTotal = 0;
+      Array.from(poMap.values())
+        .sort((a, b) => Number(a.poNo) - Number(b.poNo))
+        .forEach((row) => {
+          const totals = getPoSummary(row.poNo, row);
+          taxTotal += totals.tax;
+          purchaseTotal += totals.purchase;
+          grossTotal += totals.gross;
+          add(
+            "data",
+            row.poNo,
+            date(row.poDate),
+            row.supplier,
+            row.orderBy,
+            row.gsTno,
+            money(totals.tax),
+            money(totals.purchase),
+            money(totals.gross),
+          );
+        });
+      add(
+        "total",
+        "GRAND TOTAL",
+        "",
+        "",
+        "",
+        "",
+        money(taxTotal),
+        money(purchaseTotal),
+        money(grossTotal),
+      );
     } else if (reportType === "Item Wise") {
-      add("column", "Purchase No.", "Purchase Date", "Supplier", "Order/Pur", "Item Qty", "Unit", "Item Rate", "Amount");
+      add(
+        "column",
+        "Purchase No.",
+        "Purchase Date",
+        "Supplier",
+        "Order/Pur",
+        "Item Qty",
+        "Unit",
+        "Item Rate",
+        "Amount",
+      );
       const groups = new Map<string, ReportRow[]>();
       sourceRows.forEach((row) => {
         const key = `${getText(row.itemCode)}|${getText(row.itemName)}`;
@@ -381,42 +513,97 @@ export default function PurchaseOrderReport() {
         groups.get(key)!.push(row);
       });
       let grandTotal = 0;
-      Array.from(groups.entries()).sort((a, b) => getText(a[1][0]?.itemName).localeCompare(getText(b[1][0]?.itemName))).forEach(([, rows]) => {
-        const first = rows[0];
-        add("group", `(${getText(first.itemCode)}) ${getText(first.itemName)}`);
-        let subtotal = 0;
-        rows.forEach((row) => {
-          const amount = (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
-          subtotal += amount;
-          add("data", row.poNo, date(row.poDate), row.supplier, row.orderBy, row.pItemQty, row.unit, money(row.poItemRate), money(amount));
+      Array.from(groups.entries())
+        .sort((a, b) =>
+          getText(a[1][0]?.itemName).localeCompare(getText(b[1][0]?.itemName)),
+        )
+        .forEach(([, rows]) => {
+          const first = rows[0];
+          add(
+            "group",
+            `(${getText(first.itemCode)}) ${getText(first.itemName)}`,
+          );
+          let subtotal = 0;
+          rows.forEach((row) => {
+            const amount =
+              (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
+            subtotal += amount;
+            add(
+              "data",
+              row.poNo,
+              date(row.poDate),
+              row.supplier,
+              row.orderBy,
+              row.pItemQty,
+              row.unit,
+              money(row.poItemRate),
+              money(amount),
+            );
+          });
+          grandTotal += subtotal;
+          add("subtotal", "SUB TOTAL", "", "", "", "", "", money(subtotal));
         });
-        grandTotal += subtotal;
-        add("subtotal", "SUB TOTAL", "", "", "", "", "", money(subtotal));
-      });
       add("total", "GRAND TOTAL", "", "", "", "", "", money(grandTotal));
     } else {
       const groupMap = new Map<string, ReportRow[]>();
       sourceRows.forEach((row) => {
-        const key = reportType === "Supplier Wise" ? getText(row.supplier) || "Unknown Supplier" : getText(row.poNo) || "Unknown PO";
+        const key =
+          reportType === "Supplier Wise"
+            ? `${getText(row.supplier) || "Unknown Supplier"}|${getText(row.poNo) || "Unknown PO"}`
+            : getText(row.poNo) || "Unknown PO";
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key)!.push(row);
       });
-      add("column", "Item Code", "Item Name", "Order Qty", "Unit", "Rate", "CGST Amount", "SGST Amount", "Amount");
+      add(
+        "column",
+        "Item Code",
+        "Item Name",
+        "Order Qty",
+        "Unit",
+        "Rate",
+        "CGST Amount",
+        "SGST Amount",
+        "Amount",
+      );
       let grandTotal = 0;
-      Array.from(groupMap.entries()).forEach(([groupName, rows]) => {
+      Array.from(groupMap.entries()).forEach(([_groupName, rows]) => {
         const first = rows[0];
-        add("group", reportType === "Supplier Wise" ? `SUPPLIER: ${groupName}` : `PURCHASE NO: ${getText(first.poNo)} | PURCHASE DATE: ${date(first.poDate)} | SUPPLIER: ${getText(first.supplier)}`);
-        add("meta", reportType === "Supplier Wise"
-          ? `PO No: ${getText(first.poNo)} | Date: ${date(first.poDate)} | GST No: ${getText(first.gsTno)}`
-          : `Order By: ${getText(first.orderBy)} | GST No: ${getText(first.gsTno)}`);
+        add(
+          "group",
+          reportType === "Supplier Wise"
+            ? `SUPPLIER: ${getText(first.supplier)}`
+            : `PURCHASE NO: ${getText(first.poNo)} | PURCHASE DATE: ${date(first.poDate)} | SUPPLIER: ${getText(first.supplier)}`,
+        );
+        add(
+          "meta",
+          reportType === "Supplier Wise"
+            ? `PO No: ${getText(first.poNo)} | Date: ${date(first.poDate)} | GST No: ${getText(first.gsTno)}`
+            : `Order By: ${getText(first.orderBy)} | GST No: ${getText(first.gsTno)}`,
+        );
+        const seenPo = new Set<string>();
         let subtotal = 0;
         rows.forEach((row) => {
-          const amount = (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
-          subtotal += amount;
-          add("data", row.itemCode, row.itemName, row.pItemQty, row.unit, money(row.poItemRate), money(row.cgsT_Amount), money(row.sgsT_Amount), money(amount));
+          const amount =
+            (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
+          add(
+            "data",
+            row.itemCode,
+            row.itemName,
+            row.pItemQty,
+            row.unit,
+            money(row.poItemRate),
+            money(row.cgsT_Amount),
+            money(row.sgsT_Amount),
+            money(amount),
+          );
+          const poKey = getText(row.poNo);
+          if (poKey && !seenPo.has(poKey)) {
+            seenPo.add(poKey);
+            subtotal += getPoSummary(poKey, row).gross;
+          }
         });
         grandTotal += subtotal;
-        add("subtotal", "SUB TOTAL", "", "", "", "", "", money(subtotal));
+        add("subtotal", "PO TOTAL", "", "", "", "", "", money(subtotal));
       });
       add("total", "GRAND TOTAL", "", "", "", "", "", money(grandTotal));
     }
@@ -427,25 +614,32 @@ export default function PurchaseOrderReport() {
   const handleExportExcel = () => {
     const { output, escapeHtml } = buildExportRows();
     const columnCount = Math.max(...output.map((row) => row.cells.length), 1);
-    const rowsHtml = output.map(({ kind, cells }) => {
-      const style = kind === "header"
-        ? 'style="font-size:16pt;font-weight:bold;text-align:center;background:#ffffff"'
-        : kind === "group"
-          ? 'style="font-weight:bold;color:#28763a;background:#f5f5f5"'
-          : kind === "meta"
-            ? 'style="color:#28763a"'
-            : kind === "column"
-              ? 'style="font-weight:bold;color:#6e3030;background:#dedede"'
-              : kind === "subtotal" || kind === "total"
-                ? 'style="font-weight:bold;color:#7f3030;border-top:1px solid #555"'
-                : "";
-      const fullRow = ["header", "group", "meta"].includes(kind);
-      return `<tr ${style}>${fullRow
-        ? `<td colspan="${columnCount}">${escapeHtml(cells.join(" "))}</td>`
-        : cells.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`;
-    }).join("");
+    const rowsHtml = output
+      .map(({ kind, cells }) => {
+        const style =
+          kind === "header"
+            ? 'style="font-size:16pt;font-weight:bold;text-align:center;background:#ffffff"'
+            : kind === "group"
+              ? 'style="font-weight:bold;color:#28763a;background:#f5f5f5"'
+              : kind === "meta"
+                ? 'style="color:#28763a"'
+                : kind === "column"
+                  ? 'style="font-weight:bold;color:#6e3030;background:#dedede"'
+                  : kind === "subtotal" || kind === "total"
+                    ? 'style="font-weight:bold;color:#7f3030;border-top:1px solid #555"'
+                    : "";
+        const fullRow = ["header", "group", "meta"].includes(kind);
+        return `<tr ${style}>${
+          fullRow
+            ? `<td colspan="${columnCount}">${escapeHtml(cells.join(" "))}</td>`
+            : cells.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")
+        }</tr>`;
+      })
+      .join("");
     const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body><table border="1" style="border-collapse:collapse;font-family:Arial;font-size:10pt">${rowsHtml}</table></body></html>`;
-    const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const blob = new Blob(["\ufeff", workbook], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -460,17 +654,42 @@ export default function PurchaseOrderReport() {
   // Download a PDF with the same grouped rows and subtotals used by Print.
   const handleExportPdf = () => {
     const { output } = buildExportRows();
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const body: Array<{ content: string; colSpan?: number; styles?: Record<string, unknown> }[]> = [];
+    const pdf = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
+    const body: Array<
+      { content: string; colSpan?: number; styles?: Record<string, unknown> }[]
+    > = [];
     let header: string[] = [];
     output.forEach(({ kind, cells }) => {
       if (kind === "header" || kind === "meta") return;
       if (kind === "column") {
         header = cells;
       } else if (kind === "group") {
-        body.push([{ content: cells.join(" "), colSpan: Math.max(header.length, cells.length, 1), styles: { fontStyle: "bold", textColor: [40, 118, 58], fillColor: [245, 245, 245] } }]);
+        body.push([
+          {
+            content: cells.join(" "),
+            colSpan: Math.max(header.length, cells.length, 1),
+            styles: {
+              fontStyle: "bold",
+              textColor: [40, 118, 58],
+              fillColor: [245, 245, 245],
+            },
+          },
+        ]);
       } else if (kind === "subtotal" || kind === "total") {
-        body.push(cells.map((content, index) => ({ content, styles: { fontStyle: "bold", textColor: [127, 48, 48], halign: index === 0 ? "left" : "right" } })));
+        body.push(
+          cells.map((content, index) => ({
+            content,
+            styles: {
+              fontStyle: "bold",
+              textColor: [127, 48, 48],
+              halign: index === 0 ? "left" : "right",
+            },
+          })),
+        );
       } else {
         body.push(cells.map((content) => ({ content })));
       }
@@ -486,15 +705,28 @@ export default function PurchaseOrderReport() {
       startY: 23,
       head: header.length ? [header] : [],
       body: body as any,
-      styles: { fontSize: 7, cellPadding: 2, overflow: "linebreak", lineColor: [187, 187, 187], lineWidth: 0.1 },
-      headStyles: { fillColor: [222, 222, 222], textColor: [110, 48, 48], fontStyle: "bold" },
+      styles: {
+        fontSize: 7,
+        cellPadding: 2,
+        overflow: "linebreak",
+        lineColor: [187, 187, 187],
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [222, 222, 222],
+        textColor: [110, 48, 48],
+        fontStyle: "bold",
+      },
       margin: { left: 10, right: 10 },
       didParseCell: (data: any) => {
         const rowKind = output[data.row.index + 2]?.kind;
-        if (rowKind === "subtotal" || rowKind === "total") data.cell.styles.fontStyle = "bold";
+        if (rowKind === "subtotal" || rowKind === "total")
+          data.cell.styles.fontStyle = "bold";
       },
     });
-    pdf.save(`Purchase_Order_${reportType.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.pdf`);
+    pdf.save(
+      `Purchase_Order_${reportType.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.pdf`,
+    );
     setExportMenuOpen(false);
   };
 
@@ -525,16 +757,46 @@ export default function PurchaseOrderReport() {
     };
     const cell = (value: unknown, className = "") =>
       `<td class="${className}">${escapeHtml(value == null || value === "" ? "-" : value)}</td>`;
-    const moneyCell = (value: unknown) => `<td class="number">${money(value)}</td>`;
+    const moneyCell = (value: unknown) =>
+      `<td class="number">${money(value)}</td>`;
 
     const sourceRows = filteredRows.filter((row) => {
       const query = search.trim().toLowerCase();
-      return !query || Object.values(row).some((value) => getText(value).toLowerCase().includes(query));
+      return (
+        !query ||
+        Object.values(row).some((value) =>
+          getText(value).toLowerCase().includes(query),
+        )
+      );
     });
+    const summaryByPo = new Map<string, ReportRow>(
+      summaries.map((summary) => [getText(summary.documentNo), summary]),
+    );
+    const getPoSummary = (poNo: unknown, fallback?: ReportRow) => {
+      const summary = summaryByPo.get(getText(poNo));
+      return {
+        purchase:
+          Number(
+            summary?.totalAmount ??
+              fallback?.totalamount ??
+              fallback?.totalAmount,
+          ) || 0,
+        tax:
+          Number(
+            summary?.totalTaxAmount ??
+              fallback?.totalTaxAmount ??
+              fallback?.taxAmount,
+          ) || 0,
+        misc:
+          Number(summary?.missChargeAmount ?? fallback?.missChargeAmount) || 0,
+        gross: Number(summary?.grossAmount ?? fallback?.grossAmount) || 0,
+      };
+    };
 
-    const pageTitle = reportType === "Regular Report"
-      ? "Regular Purchase Report"
-      : `Regular Purchase Report (${reportType})`;
+    const pageTitle =
+      reportType === "Regular Report"
+        ? "Regular Purchase Report"
+        : `Regular Purchase Report (${reportType})`;
 
     let tableContent = "";
     let grandTotal = 0;
@@ -545,11 +807,29 @@ export default function PurchaseOrderReport() {
         const key = getText(row.poNo);
         if (key && !poMap.has(key)) poMap.set(key, row);
       });
-      const rows = Array.from(poMap.values()).sort((a, b) => Number(a.poNo) - Number(b.poNo));
-      const totalAmount = rows.reduce((sum, row) => sum + (Number(row.totalamount ?? row.totalAmount) || 0), 0);
-      const totalTax = rows.reduce((sum, row) => sum + (Number(row.totalTaxAmount ?? row.taxAmount) || 0), 0);
-      const totalGross = rows.reduce((sum, row) => sum + (Number(row.grossAmount) || 0), 0);
-      tableContent = `<table><thead><tr><th>PO No.</th><th>PO Date</th><th>Supplier</th><th>Order By</th><th>GST No.</th><th>Tax Amount</th><th>Purchase Amount</th><th>Gross Amount</th></tr></thead><tbody>${rows.map((row) => `<tr>${cell(row.poNo)}${cell(dateValue(row.poDate))}${cell(row.supplier)}${cell(row.orderBy)}${cell(row.gsTno)}${moneyCell(row.totalTaxAmount ?? row.taxAmount)}${moneyCell(row.totalamount ?? row.totalAmount)}${moneyCell(row.grossAmount)}</tr>`).join("")}<tr class="total"><td colspan="5">GRAND TOTAL</td>${moneyCell(totalTax)}${moneyCell(totalAmount)}${moneyCell(totalGross)}</tr></tbody></table>`;
+      const rows = Array.from(poMap.values()).sort(
+        (a, b) => Number(a.poNo) - Number(b.poNo),
+      );
+      const totalAmount = rows.reduce(
+        (sum, row) => sum + getPoSummary(row.poNo, row).purchase,
+        0,
+      );
+      const totalTax = rows.reduce(
+        (sum, row) => sum + getPoSummary(row.poNo, row).tax,
+        0,
+      );
+      const totalGross = rows.reduce(
+        (sum, row) => sum + getPoSummary(row.poNo, row).gross,
+        0,
+      );
+      tableContent = `<table><thead><tr><th>PO No.</th><th>PO Date</th><th>Supplier</th><th>Order By</th><th>GST No.</th><th>Tax Amount</th><th>Purchase Amount</th><th>Gross Amount</th></tr></thead><tbody>${rows
+        .map((row) => {
+          const totals = getPoSummary(row.poNo, row);
+          return `<tr>${cell(row.poNo)}${cell(dateValue(row.poDate))}${cell(row.supplier)}${cell(row.orderBy)}${cell(row.gsTno)}${moneyCell(totals.tax)}${moneyCell(totals.purchase)}${moneyCell(totals.gross)}</tr>`;
+        })
+        .join(
+          "",
+        )}<tr class="total"><td colspan="5">GRAND TOTAL</td>${moneyCell(totalTax)}${moneyCell(totalAmount)}${moneyCell(totalGross)}</tr></tbody></table>`;
     } else if (reportType === "Item Wise") {
       const groups = new Map<string, ReportRow[]>();
       sourceRows.forEach((row) => {
@@ -557,31 +837,58 @@ export default function PurchaseOrderReport() {
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key)!.push(row);
       });
-      tableContent = `<table><thead><tr><th>Purchase No.</th><th>Purchase Date</th><th>Supplier</th><th>Order/Pur</th><th>Item Qty</th><th>Unit</th><th>Item Rate</th><th>Amount</th></tr></thead><tbody>${Array.from(groups.entries()).sort((a,b) => getText(a[1][0]?.itemName).localeCompare(getText(b[1][0]?.itemName))).map(([, rows]) => {
-        const first = rows[0];
-        const subtotal = rows.reduce((sum, row) => sum + (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0), 0);
-        grandTotal += subtotal;
-        return `<tr class="group"><td colspan="8">(${escapeHtml(first.itemCode)}) &nbsp; ${escapeHtml(first.itemName)}</td></tr>${rows.map((row) => `<tr>${cell(row.poNo)}${cell(dateValue(row.poDate))}${cell(row.supplier)}${cell(row.orderBy)}${cell(row.pItemQty, "number")}${cell(row.unit)}${moneyCell(row.poItemRate)}${moneyCell((Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0))}</tr>`).join("")}<tr class="subtotal"><td colspan="7">SUB TOTAL</td>${moneyCell(subtotal)}</tr>`;
-      }).join("")}<tr class="total"><td colspan="7">GRAND TOTAL</td>${moneyCell(grandTotal)}</tr></tbody></table>`;
+      tableContent = `<table><thead><tr><th>Purchase No.</th><th>Purchase Date</th><th>Supplier</th><th>Order/Pur</th><th>Item Qty</th><th>Unit</th><th>Item Rate</th><th>Amount</th></tr></thead><tbody>${Array.from(
+        groups.entries(),
+      )
+        .sort((a, b) =>
+          getText(a[1][0]?.itemName).localeCompare(getText(b[1][0]?.itemName)),
+        )
+        .map(([, rows]) => {
+          const first = rows[0];
+          const subtotal = rows.reduce(
+            (sum, row) =>
+              sum + (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0),
+            0,
+          );
+          grandTotal += subtotal;
+          return `<tr class="group"><td colspan="8">(${escapeHtml(first.itemCode)}) &nbsp; ${escapeHtml(first.itemName)}</td></tr>${rows.map((row) => `<tr>${cell(row.poNo)}${cell(dateValue(row.poDate))}${cell(row.supplier)}${cell(row.orderBy)}${cell(row.pItemQty, "number")}${cell(row.unit)}${moneyCell(row.poItemRate)}${moneyCell((Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0))}</tr>`).join("")}<tr class="subtotal"><td colspan="7">SUB TOTAL</td>${moneyCell(subtotal)}</tr>`;
+        })
+        .join(
+          "",
+        )}<tr class="total"><td colspan="7">GRAND TOTAL</td>${moneyCell(grandTotal)}</tr></tbody></table>`;
     } else {
       // Detailed and Supplier Wise retain each API detail row and group by PO/supplier respectively.
       const groupMap = new Map<string, ReportRow[]>();
       sourceRows.forEach((row) => {
-        const key = reportType === "Supplier Wise"
-          ? getText(row.supplier) || "Unknown Supplier"
-          : getText(row.poNo) || "Unknown PO";
+        const key =
+          reportType === "Supplier Wise"
+            ? `${getText(row.supplier) || "Unknown Supplier"}|${getText(row.poNo) || "Unknown PO"}`
+            : getText(row.poNo) || "Unknown PO";
         if (!groupMap.has(key)) groupMap.set(key, []);
         groupMap.get(key)!.push(row);
       });
-      tableContent = Array.from(groupMap.entries()).map(([groupName, rows]) => {
-        const first = rows[0];
-        const subtotal = rows.reduce((sum, row) => sum + (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0), 0);
-        grandTotal += subtotal;
-        const sectionTitle = reportType === "Supplier Wise"
-          ? `SUPPLIER: ${escapeHtml(groupName)}`
-          : `PURCHASE NO: ${escapeHtml(first.poNo)} &nbsp;&nbsp; PURCHASE DATE: ${dateValue(first.poDate)} &nbsp;&nbsp; SUPPLIER: ${escapeHtml(first.supplier)}`;
-        return `<tr class="group"><td colspan="8">${sectionTitle}</td></tr><tr class="meta"><td colspan="8">${reportType === "Supplier Wise" ? `PO No: ${escapeHtml(first.poNo)} &nbsp;&nbsp; Date: ${dateValue(first.poDate)} &nbsp;&nbsp; GST No: ${escapeHtml(first.gsTno)}` : `Order By: ${escapeHtml(first.orderBy)} &nbsp;&nbsp; GST No: ${escapeHtml(first.gsTno)}`}</td></tr><tr class="subhead"><th>Item Code</th><th>Item Name</th><th>Order Qty</th><th>Unit</th><th>Rate</th><th>CGST</th><th>SGST</th><th>Amount</th></tr>${rows.map((row) => `<tr>${cell(row.itemCode)}${cell(row.itemName)}${cell(row.pItemQty, "number")}${cell(row.unit)}${moneyCell(row.poItemRate)}${moneyCell(row.cgsT_Amount)}${moneyCell(row.sgsT_Amount)}${moneyCell((Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0))}</tr>`).join("")}<tr class="subtotal"><td colspan="7">SUB TOTAL</td>${moneyCell(subtotal)}</tr>`;
-      }).join("") + `<tr class="total"><td colspan="7">GRAND TOTAL</td>${moneyCell(grandTotal)}</tr>`;
+      tableContent =
+        Array.from(groupMap.entries())
+          .map(([groupName, rows]) => {
+            const first = rows[0];
+            const uniquePoRows = new Map<string, ReportRow>();
+            rows.forEach((row) => {
+              const key = getText(row.poNo);
+              if (key && !uniquePoRows.has(key)) uniquePoRows.set(key, row);
+            });
+            const subtotal = Array.from(uniquePoRows.values()).reduce(
+              (sum, row) => sum + getPoSummary(row.poNo, row).gross,
+              0,
+            );
+            grandTotal += subtotal;
+            const sectionTitle =
+              reportType === "Supplier Wise"
+                ? `SUPPLIER: ${escapeHtml(groupName)}`
+                : `PURCHASE NO: ${escapeHtml(first.poNo)} &nbsp;&nbsp; PURCHASE DATE: ${dateValue(first.poDate)} &nbsp;&nbsp; SUPPLIER: ${escapeHtml(first.supplier)}`;
+            return `<tr class="group"><td colspan="8">${sectionTitle}</td></tr><tr class="meta"><td colspan="8">${reportType === "Supplier Wise" ? `PO No: ${escapeHtml(first.poNo)} &nbsp;&nbsp; Date: ${dateValue(first.poDate)} &nbsp;&nbsp; GST No: ${escapeHtml(first.gsTno)}` : `Order By: ${escapeHtml(first.orderBy)} &nbsp;&nbsp; GST No: ${escapeHtml(first.gsTno)}`}</td></tr><tr class="subhead"><th>Item Code</th><th>Item Name</th><th>Order Qty</th><th>Unit</th><th>Rate</th><th>CGST</th><th>SGST</th><th>Amount</th></tr>${rows.map((row) => `<tr>${cell(row.itemCode)}${cell(row.itemName)}${cell(row.pItemQty, "number")}${cell(row.unit)}${moneyCell(row.poItemRate)}${moneyCell(row.cgsT_Amount)}${moneyCell(row.sgsT_Amount)}${moneyCell((Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0))}</tr>`).join("")}<tr class="subtotal"><td colspan="7">PO TOTAL</td>${moneyCell(subtotal)}</tr>`;
+          })
+          .join("") +
+        `<tr class="total"><td colspan="7">GRAND TOTAL</td>${moneyCell(grandTotal)}</tr>`;
       tableContent = `<table><thead><tr><th colspan="8">${reportType === "Detailed" ? "Purchase Details" : "Supplier Purchase Details"}</th></tr></thead><tbody>${tableContent}</tbody></table>`;
     }
 
@@ -592,7 +899,8 @@ export default function PurchaseOrderReport() {
     }
 
     printWindow.document.open();
-    printWindow.document.write(`<!doctype html><html><head><title>${pageTitle}</title><meta charset="utf-8" /><style>
+    printWindow.document
+      .write(`<!doctype html><html><head><title>${pageTitle}</title><meta charset="utf-8" /><style>
       @page { size: A4 landscape; margin: 12mm; }
       * { box-sizing: border-box; }
       body { font-family: Arial, sans-serif; color: #111; font-size: 10px; }
@@ -727,9 +1035,7 @@ export default function PurchaseOrderReport() {
 
           {/* Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4">
-            <h2 className="font-semibold text-gray-800">
-              {reportType} Report
-            </h2>
+            <h2 className="font-semibold text-gray-800">{reportType} Report</h2>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
@@ -763,7 +1069,10 @@ export default function PurchaseOrderReport() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => { handleExportExcel(); setExportMenuOpen(false); }}
+                      onClick={() => {
+                        handleExportExcel();
+                        setExportMenuOpen(false);
+                      }}
                       className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <FileSpreadsheet size={15} /> Excel
@@ -772,17 +1081,17 @@ export default function PurchaseOrderReport() {
                 )}
               </div>
               <div className="relative w-full sm:w-72">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search report..."
-                className="w-full rounded border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-500"
-              />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search report..."
+                  className="w-full rounded border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-indigo-500"
+                />
               </div>
             </div>
           </div>
@@ -862,7 +1171,9 @@ export default function PurchaseOrderReport() {
                           ].includes(column)
                             ? formatAmount(value)
                             : column === "poDate" && value
-                              ? new Date(String(value)).toLocaleDateString("en-IN")
+                              ? new Date(String(value)).toLocaleDateString(
+                                  "en-IN",
+                                )
                               : value == null
                                 ? "-"
                                 : String(value);
@@ -901,12 +1212,16 @@ export default function PurchaseOrderReport() {
             <span className="text-gray-600">
               Total Records: {displayedRows.length}
             </span>
-            <span className="font-semibold text-gray-700">
-              {reportType}
-            </span>
+            <span className="font-semibold text-gray-700">{reportType}</span>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
