@@ -797,6 +797,47 @@ export default function KeyboardScreen() {
     };
   };
 
+  const totalRequestId = useRef(0);
+
+useEffect(() => {
+  const requestId = ++totalRequestId.current;
+
+  if (!session || (!cart.length && !oldCartData.length)) {
+    setTotalAmount(0);
+    return;
+  }
+
+  const fetchTotalAmount = async () => {
+    try {
+      const payload = buildBillPayload(undefined, false, cart);
+
+      if (!payload) return;
+
+      const res = await getBill(payload);
+
+      // Ignore an older response if the cart has changed.
+      if (requestId !== totalRequestId.current) return;
+
+      setTotalAmount(Number(res?.grandTotal ?? 0));
+    } catch (error) {
+      console.error("Failed to calculate Grand Total:", error);
+    }
+  };
+
+  void fetchTotalAmount();
+
+  return () => {
+    totalRequestId.current++;
+  };
+}, [
+  cart,
+  oldCartData,
+  session,
+  tableNumber,
+  selectedSubTable,
+  activeOutlet,
+]);
+
   /* ---------------- KOT ---------------- */
 
   // ============================================================
@@ -2322,12 +2363,7 @@ const showFoodList =
     return Array.from(grouped.values());
   })();
 
-  const total =
-    cart.reduce((sum, item) => sum + item.price * item.qty, 0) +
-    oldRows.reduce(
-      (sum: number, f: any) => sum + Number(f.price || 0) * Number(f.qty || 0),
-      0,
-    );
+ 
   const totalQty =
     cart.reduce((s, i) => s + i.qty, 0) +
     oldRows.reduce((s: number, f: any) => s + Number(f.qty || 0), 0);
@@ -2590,7 +2626,7 @@ const showFoodList =
 
             <div className="flex justify-between px-2 py-2 text-lg">
               <b>Grand Total</b>
-              <b>₹{(totalAmount || total).toFixed(2)}</b>
+             <b>₹{totalAmount.toFixed(2)}</b>
             </div>
           </div>
         </section>
@@ -3159,7 +3195,7 @@ onFocus={() => {
             Qty: <b>{totalQty}</b>
           </span>
           <span className="text-sm">
-            Total: <b>₹{(totalAmount || total).toFixed(2)}</b>
+          Total: <b>₹{totalAmount.toFixed(2)}</b>
           </span>
         </div>
 
