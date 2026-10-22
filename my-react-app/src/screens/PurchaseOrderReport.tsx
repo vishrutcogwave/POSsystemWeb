@@ -323,49 +323,129 @@ export default function PurchaseOrderReport() {
 
   const spanData = poRowSpans;
 
-  // Export the currently selected report and filters to an Excel-compatible workbook.
-  // The exported columns follow the selected report's on-screen data, with code fields hidden.
-  const handleExportExcel = () => {
+  // Build the same grouped report structure for both PDF and Excel exports.
+  // Uses API details only; repeated PO totals are counted once per purchase order.
+  const buildExportRows = () => {
     const escapeHtml = (value: unknown) =>
       getText(value)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
+        .replace(/\"/g, "&quot;")
         .replace(/'/g, "&#39;");
 
-    const exportColumns = displayedRows.length
-      ? Object.keys(displayedRows[0]).filter(
-          (column) => column !== "itemCode" && column !== "supCode"
-        )
-      : [];
-
-    const excelValue = (column: string, value: unknown) => {
-      if (value == null || value === "") return "";
-      if (column === "poDate") {
-        const parsed = new Date(String(value));
-        return Number.isNaN(parsed.getTime())
-          ? escapeHtml(value)
-          : parsed.toLocaleDateString("en-GB");
-      }
-      if (typeof value === "number" && /amount|rate|gross|tax/i.test(column)) {
-        return value.toFixed(2);
-      }
-      return escapeHtml(value);
+    const sourceRows = filteredRows.filter((row) => {
+      const query = search.trim().toLowerCase();
+      return !query || Object.values(row).some((value) => getText(value).toLowerCase().includes(query));
+    });
+    const money = (value: unknown) => {
+      const amount = Number(value);
+      return Number.isFinite(amount) ? formatAmount(amount) : "-";
+    };
+    const date = (value: unknown) => {
+      if (!value) return "-";
+      const parsed = new Date(String(value));
+      return Number.isNaN(parsed.getTime()) ? getText(value) : parsed.toLocaleDateString("en-GB");
     };
 
-    const table = `
-      <table border="1">
-        <tr><th colspan="${Math.max(exportColumns.length, 1)}">Purchase Order Report - ${escapeHtml(reportType)}</th></tr>
-        <tr><td colspan="${Math.max(exportColumns.length, 1)}">From: ${escapeHtml(fromDate)} &nbsp; To: ${escapeHtml(toDate)}</td></tr>
-        <tr>${exportColumns.map((column) => `<th>${escapeHtml(formatHeader(column))}</th>`).join("")}</tr>
-        ${displayedRows.map((row) => `<tr>${exportColumns.map((column) => `<td>${excelValue(column, row[column])}</td>`).join("")}</tr>`).join("")}
-      </table>`;
+    // Each row has a kind so the same grouping/subtotal rows can be styled in both exports.
+    const output: Array<{ kind: "header" | "group" | "meta" | "column" | "data" | "subtotal" | "total"; cells: string[] }> = [];
+    const add = (kind: (typeof output)[number]["kind"], ...cells: unknown[]) =>
+      output.push({ kind, cells: cells.map((value) => value == null || value === "" ? "-" : String(value)) });
 
-    const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body>${table}</body></html>`;
-    const blob = new Blob(["\ufeff", workbook], {
-      type: "application/vnd.ms-excel;charset=utf-8;",
-    });
+    add("header", `Regular Purchase Report${reportType === "Regular Report" ? "" : ` (${reportType})`}`);
+    add("meta", `From ${fromDate} To ${toDate}`);
+
+    if (reportType === "Regular Report") {
+      const poMap = new Map<string, ReportRow>();
+      sourceRows.forEach((row) => {
+        const key = getText(row.poNo);
+        if (key && !poMap.has(key)) poMap.set(key, row);
+      });
+      add("column", "PO No.", "PO Date", "Supplier", "Order By", "GST No.", "Tax Amount", "Purchase Amount", "Gross Amount");
+      let taxTotal = 0, purchaseTotal = 0, grossTotal = 0;
+      Array.from(poMap.values()).sort((a, b) => Number(a.poNo) - Number(b.poNo)).forEach((row) => {
+        const tax = Number(row.totalTaxAmount ?? row.taxAmount) || 0;
+        const purchase = Number(row.totalamount ?? row.totalAmount) || 0;
+        const gross = Number(row.grossAmount) || 0;
+        taxTotal += tax; purchaseTotal += purchase; grossTotal += gross;
+        add("data", row.poNo, date(row.poDate), row.supplier, row.orderBy, row.gsTno, money(tax), money(purchase), money(gross));
+      });
+      add("total", "GRAND TOTAL", "", "", "", "", money(taxTotal), money(purchaseTotal), money(grossTotal));
+    } else if (reportType === "Item Wise") {
+      add("column", "Purchase No.", "Purchase Date", "Supplier", "Order/Pur", "Item Qty", "Unit", "Item Rate", "Amount");
+      const groups = new Map<string, ReportRow[]>();
+      sourceRows.forEach((row) => {
+        const key = `${getText(row.itemCode)}|${getText(row.itemName)}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(row);
+      });
+      let grandTotal = 0;
+      Array.from(groups.entries()).sort((a, b) => getText(a[1][0]?.itemName).localeCompare(getText(b[1][0]?.itemName))).forEach(([, rows]) => {
+        const first = rows[0];
+        add("group", `(${getText(first.itemCode)}) ${getText(first.itemName)}`);
+        let subtotal = 0;
+        rows.forEach((row) => {
+          const amount = (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
+          subtotal += amount;
+          add("data", row.poNo, date(row.poDate), row.supplier, row.orderBy, row.pItemQty, row.unit, money(row.poItemRate), money(amount));
+        });
+        grandTotal += subtotal;
+        add("subtotal", "SUB TOTAL", "", "", "", "", "", money(subtotal));
+      });
+      add("total", "GRAND TOTAL", "", "", "", "", "", money(grandTotal));
+    } else {
+      const groupMap = new Map<string, ReportRow[]>();
+      sourceRows.forEach((row) => {
+        const key = reportType === "Supplier Wise" ? getText(row.supplier) || "Unknown Supplier" : getText(row.poNo) || "Unknown PO";
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key)!.push(row);
+      });
+      add("column", "Item Code", "Item Name", "Order Qty", "Unit", "Rate", "CGST Amount", "SGST Amount", "Amount");
+      let grandTotal = 0;
+      Array.from(groupMap.entries()).forEach(([groupName, rows]) => {
+        const first = rows[0];
+        add("group", reportType === "Supplier Wise" ? `SUPPLIER: ${groupName}` : `PURCHASE NO: ${getText(first.poNo)} | PURCHASE DATE: ${date(first.poDate)} | SUPPLIER: ${getText(first.supplier)}`);
+        add("meta", reportType === "Supplier Wise"
+          ? `PO No: ${getText(first.poNo)} | Date: ${date(first.poDate)} | GST No: ${getText(first.gsTno)}`
+          : `Order By: ${getText(first.orderBy)} | GST No: ${getText(first.gsTno)}`);
+        let subtotal = 0;
+        rows.forEach((row) => {
+          const amount = (Number(row.pItemQty) || 0) * (Number(row.poItemRate) || 0);
+          subtotal += amount;
+          add("data", row.itemCode, row.itemName, row.pItemQty, row.unit, money(row.poItemRate), money(row.cgsT_Amount), money(row.sgsT_Amount), money(amount));
+        });
+        grandTotal += subtotal;
+        add("subtotal", "SUB TOTAL", "", "", "", "", "", money(subtotal));
+      });
+      add("total", "GRAND TOTAL", "", "", "", "", "", money(grandTotal));
+    }
+    return { output, escapeHtml };
+  };
+
+  // Export Excel using the same report grouping, section headings, subtotals, and totals as Print.
+  const handleExportExcel = () => {
+    const { output, escapeHtml } = buildExportRows();
+    const columnCount = Math.max(...output.map((row) => row.cells.length), 1);
+    const rowsHtml = output.map(({ kind, cells }) => {
+      const style = kind === "header"
+        ? 'style="font-size:16pt;font-weight:bold;text-align:center;background:#ffffff"'
+        : kind === "group"
+          ? 'style="font-weight:bold;color:#28763a;background:#f5f5f5"'
+          : kind === "meta"
+            ? 'style="color:#28763a"'
+            : kind === "column"
+              ? 'style="font-weight:bold;color:#6e3030;background:#dedede"'
+              : kind === "subtotal" || kind === "total"
+                ? 'style="font-weight:bold;color:#7f3030;border-top:1px solid #555"'
+                : "";
+      const fullRow = ["header", "group", "meta"].includes(kind);
+      return `<tr ${style}>${fullRow
+        ? `<td colspan="${columnCount}">${escapeHtml(cells.join(" "))}</td>`
+        : cells.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`;
+    }).join("");
+    const workbook = `<!doctype html><html><head><meta charset="utf-8"></head><body><table border="1" style="border-collapse:collapse;font-family:Arial;font-size:10pt">${rowsHtml}</table></body></html>`;
+    const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -374,44 +454,45 @@ export default function PurchaseOrderReport() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    setExportMenuOpen(false);
   };
 
-  // Download a PDF directly (does not open or change the Print button behavior).
+  // Download a PDF with the same grouped rows and subtotals used by Print.
   const handleExportPdf = () => {
+    const { output } = buildExportRows();
     const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-    const exportColumns = displayedRows.length
-      ? Object.keys(displayedRows[0]).filter((column) => column !== "itemCode" && column !== "supCode")
-      : [];
-    const dateLabel = (value: unknown) => {
-      if (value == null || value === "") return "-";
-      if (typeof value === "string" && value.includes("T")) {
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleDateString("en-GB");
+    const body: Array<{ content: string; colSpan?: number; styles?: Record<string, unknown> }[]> = [];
+    let header: string[] = [];
+    output.forEach(({ kind, cells }) => {
+      if (kind === "header" || kind === "meta") return;
+      if (kind === "column") {
+        header = cells;
+      } else if (kind === "group") {
+        body.push([{ content: cells.join(" "), colSpan: Math.max(header.length, cells.length, 1), styles: { fontStyle: "bold", textColor: [40, 118, 58], fillColor: [245, 245, 245] } }]);
+      } else if (kind === "subtotal" || kind === "total") {
+        body.push(cells.map((content, index) => ({ content, styles: { fontStyle: "bold", textColor: [127, 48, 48], halign: index === 0 ? "left" : "right" } })));
+      } else {
+        body.push(cells.map((content) => ({ content })));
       }
-      return String(value);
-    };
-    const rows = displayedRows.map((row) =>
-      exportColumns.map((column) => {
-        const value = row[column];
-        if (column === "poDate") return dateLabel(value);
-        if (typeof value === "number" && /amount|rate|gross|tax/i.test(column)) return formatAmount(value);
-        return value == null || value === "" ? "-" : String(value);
-      })
-    );
-
+    });
+    const title = `Regular Purchase Report${reportType === "Regular Report" ? "" : ` (${reportType})`}`;
+    pdf.setFont("helvetica", "bold");
     pdf.setFontSize(14);
-    pdf.text(`Purchase Order Report - ${reportType}`, 14, 14);
+    pdf.text(title, 14, 13);
+    pdf.setFont("helvetica", "normal");
     pdf.setFontSize(9);
-    pdf.text(`From: ${fromDate}   To: ${toDate}`, 14, 21);
+    pdf.text(`From ${fromDate} To ${toDate}`, 14, 19);
     autoTable(pdf, {
-      startY: 27,
-      head: [exportColumns.map(formatHeader)],
-      body: rows,
-      styles: { fontSize: 7, cellPadding: 2, overflow: "linebreak" },
-      headStyles: { fillColor: [79, 70, 229] },
+      startY: 23,
+      head: header.length ? [header] : [],
+      body: body as any,
+      styles: { fontSize: 7, cellPadding: 2, overflow: "linebreak", lineColor: [187, 187, 187], lineWidth: 0.1 },
+      headStyles: { fillColor: [222, 222, 222], textColor: [110, 48, 48], fontStyle: "bold" },
       margin: { left: 10, right: 10 },
-      horizontalPageBreak: true,
-      horizontalPageBreakRepeat: [0],
+      didParseCell: (data: any) => {
+        const rowKind = output[data.row.index + 2]?.kind;
+        if (rowKind === "subtotal" || rowKind === "total") data.cell.styles.fontStyle = "bold";
+      },
     });
     pdf.save(`Purchase_Order_${reportType.replace(/\s+/g, "_")}_${fromDate}_to_${toDate}.pdf`);
     setExportMenuOpen(false);
