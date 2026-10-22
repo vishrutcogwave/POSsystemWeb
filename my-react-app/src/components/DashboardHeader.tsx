@@ -425,6 +425,15 @@ const DashboardHeader: React.FC = () => {
   permissionName: "Supplier Settlement",
 },
   ];
+
+  // INVENTORY REPORTS DROPDOWN ITEMS
+const inventoryReportItems = [
+  {
+    name: "Purchase Order Report",
+    icon: FileBarChart,
+    permissionName: "Purchase Order Report",
+  },
+];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
     Dashboard: "/dashboard",
@@ -484,6 +493,7 @@ const DashboardHeader: React.FC = () => {
     "Item Issue": "/purchase/itemissue",
     "Item Return": "/purchase/itemreturn",
     "Opening Stock": "/inventory/openingstock",
+    "Purchase Order Report": "/inventoryreports/purchaseorderreport",
   };
 
   const handleLogout = () => {
@@ -819,16 +829,42 @@ const DashboardHeader: React.FC = () => {
                 )}
               </div>
             )}
-            {/* 
-            <button className="flex items-center gap-2 hover:text-indigo-600">
-              <FileBarChart size={16} className="text-indigo-600" />
-              Inventory Reports
-            </button>
 
-            <button className="flex items-center gap-2 hover:text-teal-600">
-              <Wrench size={16} className="text-teal-600" />
-              Utility
-            </button> */}
+
+      {/* INVENTORY REPORTS DROPDOWN */}
+{hasMainMenuAccess("Inventory Reports") && (
+  <div className="relative">
+    <button
+      onClick={() => toggleMenu("INVENTORY_REPORTS")}
+      className="flex items-center gap-2 hover:text-indigo-600"
+    >
+      <FileBarChart size={16} className="text-indigo-600" />
+      Inventory Reports
+      <ChevronDown size={14} />
+    </button>
+
+    {activeMenu === "INVENTORY_REPORTS" && (
+      <div className="absolute left-0 mt-2 w-60 bg-white border rounded shadow-md z-50">
+        {inventoryReportItems
+          .filter((item) => hasSubMenuAccess(item.permissionName))
+          .map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={item.name}
+                onClick={() => handleNavigation(item.name)}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-indigo-50 cursor-pointer"
+              >
+                <Icon size={16} />
+                {item.name}
+              </div>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
           </div>
         </div>
 
@@ -1232,6 +1268,52 @@ const DashboardHeader: React.FC = () => {
                 )}
               </div>
             )}
+
+            {/* INVENTORY REPORTS - MOBILE */}
+{hasMainMenuAccess("Inventory Reports") && (
+  <div>
+    <button
+      onClick={() => toggleMenu("INVENTORY_REPORTS")}
+      className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+        hover:bg-indigo-50 transition-colors"
+    >
+      <span className="flex items-center gap-3">
+        <FileBarChart size={18} className="text-indigo-600 shrink-0" />
+        <span>Inventory Reports</span>
+      </span>
+
+      <ChevronDown
+        size={18}
+        className={`transition-transform ${
+          activeMenu === "INVENTORY_REPORTS" ? "rotate-180" : ""
+        }`}
+      />
+    </button>
+
+    {activeMenu === "INVENTORY_REPORTS" && (
+      <div className="ml-4 mt-1 pl-3 border-l-2 border-indigo-100 space-y-1">
+        {inventoryReportItems
+          .filter((item) => hasSubMenuAccess(item.permissionName))
+          .map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.name)}
+                className="flex items-center w-full gap-3 px-3 py-2 rounded-md
+                  text-left text-gray-700 hover:bg-indigo-50
+                  hover:text-indigo-600 transition-colors"
+              >
+                <Icon size={16} className="text-gray-500 shrink-0" />
+                <span className="truncate">{item.name}</span>
+              </button>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
           </div>
         </div>
       )}

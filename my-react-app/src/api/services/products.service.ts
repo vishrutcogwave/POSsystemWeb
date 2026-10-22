@@ -7678,3 +7678,27 @@ export const saveSuppliedSettlement = async (payload: any) => {
     throw error;
   }
 };
+export const getPurchaseOrderReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/InventoryReport/GetPurchaseOrderReport",
+    {
+      params: {
+        FromDate: fromDate,
+        ToDate: toDate,
+        Branchcode: branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};
