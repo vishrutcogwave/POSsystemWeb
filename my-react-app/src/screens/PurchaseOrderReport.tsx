@@ -7,6 +7,9 @@ import {
   FileSpreadsheet,
   FileDown,
   ChevronDown,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -37,12 +40,14 @@ const formatHeader = (key: string) => {
     grossAmount: "Gross Amount",
   };
 
-  return headers[key] ??
+  return (
+    headers[key] ??
     key
       .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase())
-      .trim();
+      .trim()
+  );
 };
 const formatAmount = (value: number) =>
   value.toLocaleString("en-IN", {
@@ -70,6 +75,8 @@ export default function PurchaseOrderReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // Fetch the report automatically when dates change.
   useEffect(() => {
@@ -348,7 +355,49 @@ export default function PurchaseOrderReport() {
         : [],
     [displayedRows],
   );
+  const sortedRows = useMemo(() => {
+    if (!sortColumn) return displayedRows;
 
+    return [...displayedRows].sort((a, b) => {
+      const aValue = a[sortColumn];
+      const bValue = b[sortColumn];
+
+      if (aValue == null || aValue === "") return 1;
+      if (bValue == null || bValue === "") return -1;
+
+      let comparison = 0;
+
+      // Sort numeric values correctly
+      const aNumber = Number(aValue);
+      const bNumber = Number(bValue);
+
+      if (
+        String(aValue).trim() !== "" &&
+        String(bValue).trim() !== "" &&
+        Number.isFinite(aNumber) &&
+        Number.isFinite(bNumber)
+      ) {
+        comparison = aNumber - bNumber;
+      } else {
+        // Sort text and dates
+        comparison = String(aValue).localeCompare(String(bValue), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [displayedRows, sortColumn, sortDirection]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection((previous) => (previous === "asc" ? "desc" : "asc"));
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
   // Detailed keeps the existing merged PO cells. Supplier Wise shows every
   // detail row without merging item or PO cells, sorted by supplier.
   const poRowSpans = useMemo(() => {
@@ -1126,9 +1175,22 @@ export default function PurchaseOrderReport() {
                     columns.map((column) => (
                       <th
                         key={column}
-                        className="whitespace-nowrap px-4 py-3 font-semibold"
+                        onClick={() => handleSort(column)}
+                        className="whitespace-nowrap px-4 py-3 font-semibold cursor-pointer select-none hover:bg-indigo-800"
                       >
-                        {formatHeader(column)}
+                        <div className="flex items-center gap-2">
+                          <span>{formatHeader(column)}</span>
+
+                          {sortColumn === column ? (
+                            sortDirection === "asc" ? (
+                              <ArrowUp size={14} />
+                            ) : (
+                              <ArrowDown size={14} />
+                            )
+                          ) : (
+                            <ArrowUpDown size={14} className="opacity-60" />
+                          )}
+                        </div>
                       </th>
                     ))
                   ) : (
@@ -1156,8 +1218,8 @@ export default function PurchaseOrderReport() {
                       {error}
                     </td>
                   </tr>
-                ) : displayedRows.length ? (
-                  displayedRows.map((row, index) => (
+                ) : sortedRows.length ? (
+                  sortedRows.map((row, index) => (
                     <tr
                       key={index}
                       className={
@@ -1240,9 +1302,3 @@ export default function PurchaseOrderReport() {
     </div>
   );
 }
-
-
-
-
-
-
