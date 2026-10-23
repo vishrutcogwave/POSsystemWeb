@@ -36,17 +36,33 @@ const getText = (value: unknown) => String(value ?? "").trim();
 
 
 
-const formatHeader = (key: string) =>
+const formatHeader = (key: string) => {
+  const headers: Record<string, string> = {
+    pItemQty: "P Item Qty",
+    poItemRate: "Po Item Rate",
+    orderBy: "Order By",
+    gsTno: "GST No",
+    cgsT_Per: "CGST %",
+    cgsT_Amount: "CGST Amount",
+    sgsT_Per: "SGST %",
+    sgsT_Amount: "SGST Amount",
+    cess_Per: "Cess %",
+    cess_Amount: "Cess Amount",
+    vaT_Per: "VAT %",
+    vaT_Amount: "VAT Amount",
+    missChargeAmount: "Misc. Charge Amount",
+    totalamount: "Total Amount",
+    totalTaxAmount: "Total Tax Amount",
+    grossAmount: "Gross Amount",
+  };
 
-  key
-
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-
-    .replace(/_/g, " ")
-
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-
+  return headers[key] ??
+    key
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+      .trim();
+};
 
 const formatAmount = (value: number) =>
 
