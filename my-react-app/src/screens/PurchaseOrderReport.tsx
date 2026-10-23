@@ -14,13 +14,12 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { getPurchaseOrderReport } from "../api/services/products.service";
+import { formatHeader } from "../utils";
 
 type ReportType = "Regular Report" | "Detailed" | "Supplier Wise" | "Item Wise";
 type ReportRow = Record<string, unknown>;
 
 const getText = (value: unknown) => String(value ?? "").trim();
-
-const formatHeader = (key: string) => {
   const headers: Record<string, string> = {
     pItemQty: "P Item Qty",
     poItemRate: "Po Item Rate",
@@ -40,15 +39,6 @@ const formatHeader = (key: string) => {
     grossAmount: "Gross Amount",
   };
 
-  return (
-    headers[key] ??
-    key
-      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase())
-      .trim()
-  );
-};
 const formatAmount = (value: number) =>
   value.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
@@ -1179,7 +1169,7 @@ export default function PurchaseOrderReport() {
                         className="whitespace-nowrap px-4 py-3 font-semibold cursor-pointer select-none hover:bg-indigo-800"
                       >
                         <div className="flex items-center gap-2">
-                          <span>{formatHeader(column)}</span>
+                          <span>{formatHeader(column,headers)}</span>
 
                           {sortColumn === column ? (
                             sortDirection === "asc" ? (
