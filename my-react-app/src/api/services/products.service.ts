@@ -7472,20 +7472,19 @@ export const createOpeningStock = async (payload: {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error creating opening stock:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
 
 export const updateOpeningStock = async (payload: {
   openingStockId: number;
@@ -7522,22 +7521,19 @@ export const updateOpeningStock = async (payload: {
           "Content-Type": "application/json",
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error updating opening stock:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
-
-
-
 
 export const getOpeningStockList = async (branchCode: string) => {
   try {
@@ -7550,41 +7546,36 @@ export const getOpeningStockList = async (branchCode: string) => {
           Authorization: `Bearer ${token}`,
           accept: "*/*",
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching opening stock list:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
 
     throw error;
   }
 };
 
-
 export const getOpenStocksList = async (
   storeId: string | number,
   branchcode: string,
 ) => {
-  const response = await api.get(
-    "/api/InventoryMaster/GetOpenStocksList",
-    {
-      params: {
-        StoreId: storeId,
-        branchcode,
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const response = await api.get("/api/InventoryMaster/GetOpenStocksList", {
+    params: {
+      StoreId: storeId,
+      branchcode,
     },
-  );
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 
   return response.data;
 };
-
 
 export const createOpenStocksMaster = async (data: any[]) => {
   const response = await api.post(
@@ -7599,7 +7590,7 @@ export const createOpenStocksMaster = async (data: any[]) => {
   );
 
   return response.data;
-};  
+};
 
 export const deleteOpenStocksDetails = async (
   storeId: string | number,
@@ -7621,29 +7612,21 @@ export const deleteOpenStocksDetails = async (
   return response.data;
 };
 
-
-
-
-
-
 export const getSuppliedBills = async (
   supplierCode: number,
   branchCode: string,
 ) => {
   try {
-    const response = await api.get(
-      "/api/InventoryPurchase/GetSuppliedbills",
-      {
-        params: {
-          SupplierCode: supplierCode,
-          branchCode,
-        },
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          accept: "*/*",
-        },
+    const response = await api.get("/api/InventoryPurchase/GetSuppliedbills", {
+      params: {
+        SupplierCode: supplierCode,
+        branchCode,
       },
-    );
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
@@ -7681,7 +7664,7 @@ export const saveSuppliedSettlement = async (payload: any) => {
 export const getPurchaseOrderReport = async (
   fromDate: string,
   toDate: string,
-  branchcode: string
+  branchcode: string,
 ) => {
   const token = localStorage.getItem("token");
 
@@ -7697,7 +7680,32 @@ export const getPurchaseOrderReport = async (
         Authorization: `Bearer ${token}`,
         accept: "*/*",
       },
-    }
+    },
+  );
+
+  return response.data;
+};
+
+export const getPurchaseApprovalReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string,
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/InventoryReport/GetPurchaseApprovalReport",
+    {
+      params: {
+        FromDate: fromDate,
+        ToDate: toDate,
+        Branchcode: branchcode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    },
   );
 
   return response.data;
