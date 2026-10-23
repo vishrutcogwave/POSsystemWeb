@@ -438,6 +438,11 @@ const inventoryReportItems = [
   icon: ShieldCheck,
   permissionName: "Purchase Order Approval Report",
 },
+  {
+    name: "Direct Purchase Report",
+    icon: FileBarChart,
+    permissionName: "Direct Purchase Report",
+  },
 ];
   // 🔥 Navigation map
   const routeMap: Record<string, string> = {
@@ -501,6 +506,7 @@ const inventoryReportItems = [
     "Purchase Order Report": "/inventoryreports/purchaseorderreport",
     "Purchase Order Approval Report":
   "/inventoryreports/purchaseorderreportapproval",
+    "Direct Purchase Report": "/inventoryreports/Directorderreport",
   };
 
   const handleLogout = () => {

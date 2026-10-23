@@ -7710,3 +7710,35 @@ export const getPurchaseApprovalReport = async (
 
   return response.data;
 };
+export const getPurchaseReport = async (
+  fromDate: string,
+  toDate: string,
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetPurchaseReport",
+      {
+        params: {
+          FromDate: fromDate,
+          ToDate: toDate,
+          Branchcode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase report:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

@@ -73,6 +73,7 @@ import KeyboardScreen from "./KeyboardScreen";
 import SupplierSettlement from "./SupplierSettlement";
 import PurchaseOrderReport from "./PurchaseOrderReport";
 import PurchaseOrderReportApproval from "./PurchaseOrderReportApproval";
+import Directorderreport from "./Directorderreport";
 
 function LandingPage() {
   const location = useLocation();
@@ -297,6 +298,10 @@ function LandingPage() {
 <Route
   path="/inventoryreports/purchaseorderreportapproval"
   element={<PurchaseOrderReportApproval />}
+/>
+<Route
+  path="/inventoryreports/Directorderreport"
+  element={<Directorderreport />}
 />
       </Routes>
     </>
