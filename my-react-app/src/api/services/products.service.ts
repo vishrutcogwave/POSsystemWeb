@@ -7713,32 +7713,51 @@ export const getPurchaseApprovalReport = async (
 export const getPurchaseReport = async (
   fromDate: string,
   toDate: string,
-  branchCode: string
+  branchCode: string,
 ) => {
   try {
     const token = localStorage.getItem("token");
 
-    const response = await api.get(
-      "/api/InventoryReport/GetPurchaseReport",
-      {
-        params: {
-          FromDate: fromDate,
-          ToDate: toDate,
-          Branchcode: branchCode,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          accept: "*/*",
-        },
-      }
-    );
+    const response = await api.get("/api/InventoryReport/GetPurchaseReport", {
+      params: {
+        FromDate: fromDate,
+        ToDate: toDate,
+        Branchcode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
 
     return response.data;
   } catch (error: any) {
     console.error(
       "Error fetching purchase report:",
-      error.response?.data || error.message
+      error.response?.data || error.message,
     );
     throw error;
   }
+};
+
+export const getGRNReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string,
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/InventoryReport/GetGRNReport", {
+    params: {
+      FromDate: fromDate,
+      ToDate: toDate,
+      Branchcode: branchcode,
+    },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      accept: "*/*",
+    },
+  });
+
+  return response.data;
 };
