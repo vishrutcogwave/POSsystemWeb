@@ -331,7 +331,7 @@ const PURCHASE_ITEMS: MenuItem[] = [
     permissionName: "Goods Received Note",
   },
   {
-    name: "Item Purchase",
+    name: "Direct Purchase",
     icon: Receipt,
     permissionName: "Item Purchase",
   },
@@ -366,7 +366,7 @@ const PURCHASE_ITEMS: MenuItem[] = [
     permissionName: "Item Issue",
   },
   {
-    name: "Item Return",
+    name: "Item Issue Return",
     icon: Receipt,
     permissionName: "Item Return",
   },

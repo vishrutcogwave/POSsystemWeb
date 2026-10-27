@@ -16,7 +16,6 @@ export type TableProps<T> = {
   data: T[];
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
-
   // ✅ add this
   search?: boolean;
 };
