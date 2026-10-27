@@ -100,6 +100,9 @@ const ItemDamageEntry: React.FC = () => {
 
   const labelClass =
     "mb-1.5 block text-xs font-semibold text-gray-600";
+   const branchCode =
+        localStorage.getItem("branch") ||
+        "";
 
   // =========================================================
   // LOAD NEXT TRANSACTION NUMBER
@@ -109,10 +112,7 @@ const ItemDamageEntry: React.FC = () => {
     try {
       setLoadingItems(true);
 
-      const branchCode =
-        localStorage.getItem("branchCode") ||
-        localStorage.getItem("branch") ||
-        "";
+      
 
       const response = await getNextIdCode({
         tableName: "ItemDamageMaster",
@@ -155,11 +155,7 @@ const ItemDamageEntry: React.FC = () => {
     try {
       setLoadingItems(true);
 
-      const branchCode =
-        localStorage.getItem("branchCode") ||
-        localStorage.getItem("branch") ||
-        "";
-
+   
       const response =
         await getInventoryItemStoreList(branchCode);
 
@@ -252,11 +248,7 @@ const ItemDamageEntry: React.FC = () => {
       // GET BRANCH CODE
       // =====================================================
 
-      const branchCode =
-        localStorage.getItem("branchCode") ||
-        localStorage.getItem("branch") ||
-        selectedItem.branch_Code ||
-        "";
+    
 
       // =====================================================
       // CALL LOAD PURCHASE DETAIL API
@@ -412,10 +404,7 @@ const ItemDamageEntry: React.FC = () => {
     try {
       setLoadingDetails(true);
 
-      const branchCode =
-        localStorage.getItem("branchCode") ||
-        localStorage.getItem("branch") ||
-        "";
+    
 
       const dNo = Number(
         formData.transactionNo || 0

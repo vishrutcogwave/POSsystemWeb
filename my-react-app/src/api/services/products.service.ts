@@ -7761,3 +7761,37 @@ export const getGRNReport = async (
 
   return response.data;
 };
+
+
+export const getPurchaseReturnReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetPurchaseReturnReport",
+      {
+        params: {
+          FromDate: fromDate,
+          ToDate: toDate,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching purchase return report:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
