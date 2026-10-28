@@ -596,7 +596,7 @@ const PurchaseReturn: React.FC = () => {
 
         prNo: Number(formData.transactionNo || 0),
 
-        prDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+      prDate: `${formData.date}T00:00:00`,
 
         supCode: Number(master?.supCode ?? 0),
 
