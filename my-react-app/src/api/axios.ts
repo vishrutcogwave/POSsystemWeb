@@ -1,6 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
+  timeout: 15000, // Stop waiting after 15 seconds
   headers: {
     "Content-Type": "application/json",
   },
@@ -30,11 +31,8 @@ api.interceptors.response.use(
 401 Unauthorized
 
 Method: ${config?.method?.toUpperCase() || "N/A"}
-
 URL: ${(config?.baseURL || "") + (config?.url || "")}
-
 Status: ${response?.status || "N/A"}
-
 Status Text: ${response?.statusText || "N/A"}
 
 Response:

@@ -106,25 +106,55 @@ const NewOrder: React.FC = () => {
   }, [selectedSubTableTable]);
   /* ---------------- FETCH PAYMENT MODES ---------------- */
 
-  const fetchRoomServiceTables = async (outletCode: number | string) => {
+//   const fetchRoomServiceTables = async (outletCode: number | string) => {
+//   try {
+//     localStorage.setItem(
+//       "roomserviceoldcode",
+//       JSON.stringify(outletCode)
+//     );
+
+//     const res = await getTableListForRoomService(
+//       outletCode,
+//       appData?.user?.branch_code || ""
+//     );
+
+//     setRoomServiceTables(res.data || []);
+//     console.log("Room Service Tables:", res);
+//   } catch (err) {
+//     console.error("Failed to fetch room service tables", err);
+//   }
+// };
+  /* ---------------- FETCH DATA ---------------- */
+  const fetchRoomServiceTables = async (
+  outletCode: number | string
+) => {
   try {
     localStorage.setItem(
       "roomserviceoldcode",
       JSON.stringify(outletCode)
     );
 
+    console.log("Calling GetTableListForRoomService...");
+
     const res = await getTableListForRoomService(
       outletCode,
       appData?.user?.branch_code || ""
     );
 
-    setRoomServiceTables(res.data || []);
-    console.log("Room Service Tables:", res);
+    console.log("Room service API response:", res);
+
+    setRoomServiceTables(res?.data || []);
   } catch (err) {
-    console.error("Failed to fetch room service tables", err);
+    console.error(
+      "GetTableListForRoomService failed or timed out:",
+      err
+    );
+
+    setRoomServiceTables([]);
   }
 };
-  /* ---------------- FETCH DATA ---------------- */
+  
+  
   const fetchData = async () => {
     
     setLoading(true);
