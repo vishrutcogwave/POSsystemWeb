@@ -7830,3 +7830,38 @@ export const getItemDamageReport = async (
     throw error;
   }
 };
+
+
+
+export const getIndentOrderReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetIndentOrderReport",
+      {
+        params: {
+          FromDate: fromDate,
+          ToDate: toDate,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching indent order report:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

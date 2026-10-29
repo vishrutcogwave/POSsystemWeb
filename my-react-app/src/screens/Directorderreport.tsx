@@ -76,7 +76,7 @@ const getToday = () => {
 };
 
 export default function Directorderreport() {
-  const [reportType, setReportType] = useState<ReportType>("Detailed");
+  const [reportType, setReportType] = useState<ReportType>("Regular Report");
   const [fromDate, setFromDate] = useState(getToday);
   const [toDate, setToDate] = useState(getToday);
   const [selectedSupplier, setSelectedSupplier] = useState("");

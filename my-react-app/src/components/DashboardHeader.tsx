@@ -346,7 +346,7 @@ const PURCHASE_ITEMS: MenuItem[] = [
     permissionName: "Purchase Return",
   },
   {
-    name: "Purchase Damage",
+    name: "Item Damage",
     icon: FileX,
     permissionName: "Purchase Damage",
   },
@@ -404,9 +404,14 @@ const INVENTORY_REPORT_ITEMS: MenuItem[] = [
     permissionName: "Purchase Return Report",
   },
   {
-    name: "Purchase Damage Report",
+    name: "Item Damage Report",
     icon: FileBarChart,
     permissionName: "Item Damage Report",
+  },
+  {
+    name: "Indent Order Report",
+    icon: FileBarChart,
+    permissionName: "Indent Order Report",
   },
 ];
 
@@ -462,7 +467,7 @@ const ROUTE_MAP: Record<string, string> = {
   "Goods Received Note": "/purchase/goodsreceivednote",
   "Direct Purchase": "/purchase/itempurchase",
   "Purchase Return": "/purchase/purchasereturn",
-  "Purchase Damage": "/purchase/purchasedamage",
+  "Item Damage": "/purchase/purchasedamage",
   "Indent Order": "/purchase/indentorder",
   "Indent Order Approval": "/purchase/indentorderapproval",
   "Item Issue": "/purchase/itemissue",
@@ -474,7 +479,8 @@ const ROUTE_MAP: Record<string, string> = {
   "Direct Purchase Report": "/inventoryreports/Directorderreport",
   "GRN Report": "/inventoryreports/grnreport",
   "Purchase Return Report": "/inventoryreports/purchasereturnreport",
-  "Purchase Damage Report": "/inventoryreports/itemdamagereport",
+  "Item Damage Report": "/inventoryreports/itemdamagereport",
+  "Indent Order Report": "/inventoryreports/indentorderreport",
 };
 
 // -------------------------------------------------------------

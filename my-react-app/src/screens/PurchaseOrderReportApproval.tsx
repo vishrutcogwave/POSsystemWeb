@@ -64,7 +64,7 @@ export default function PurchaseOrderReportApproval() {
     String(today.getDate()).padStart(2, "0"),
   ].join("-");
 
-  const [reportType, setReportType] = useState<ReportType>("Detailed");
+  const [reportType, setReportType] = useState<ReportType>("Regular Report");
 
   const [fromDate, setFromDate] = useState(formattedToday);
 

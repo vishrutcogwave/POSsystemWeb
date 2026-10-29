@@ -54,7 +54,7 @@ export default function PurchaseOrderReport() {
     String(today.getDate()).padStart(2, "0"),
   ].join("-");
 
-  const [reportType, setReportType] = useState<ReportType>("Detailed");
+  const [reportType, setReportType] = useState<ReportType>("Regular Report");
   const [fromDate, setFromDate] = useState(formattedToday);
   const [toDate, setToDate] = useState(formattedToday);
   const [selectedSupplier, setSelectedSupplier] = useState("");
