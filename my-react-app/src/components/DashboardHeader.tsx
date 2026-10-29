@@ -403,6 +403,11 @@ const INVENTORY_REPORT_ITEMS: MenuItem[] = [
     icon: FileBarChart,
     permissionName: "Purchase Return Report",
   },
+  {
+    name: "Item Damage Report",
+    icon: FileBarChart,
+    permissionName: "Item Damage Report",
+  },
 ];
 
 const ROUTE_MAP: Record<string, string> = {
@@ -469,6 +474,7 @@ const ROUTE_MAP: Record<string, string> = {
   "Direct Purchase Report": "/inventoryreports/Directorderreport",
   "GRN Report": "/inventoryreports/grnreport",
   "Purchase Return Report": "/inventoryreports/purchasereturnreport",
+  "Item Damage Report": "/inventoryreports/itemdamagereport",
 };
 
 // -------------------------------------------------------------
