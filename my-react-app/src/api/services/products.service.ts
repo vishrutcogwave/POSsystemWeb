@@ -7865,3 +7865,39 @@ export const getIndentOrderReport = async (
     throw error;
   }
 };
+
+
+
+
+export const getIndentOrderApprovalReport = async (
+  fromDate: string,
+  toDate: string,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetIndentOrderApprovalReport",
+      {
+        params: {
+          FromDate: fromDate,
+          ToDate: toDate,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching indent order approval report:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

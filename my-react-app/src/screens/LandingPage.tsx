@@ -78,6 +78,7 @@ import Grnreport from "./Grnreport";
 import Purchasereturnreport from "./Purchasereturnreport";
 import Itemdamagereport from "./Itemdamagereport";
 import Indentorderreport from "./Indentorderreport";
+import Indentorderapprovalreport from "./Indentorderapprovalreport";
 
 function LandingPage() {
   const location = useLocation();
@@ -322,6 +323,10 @@ function LandingPage() {
 <Route
   path="/inventoryreports/indentorderreport"
   element={<Indentorderreport />}
+/>
+<Route
+  path="/inventoryreports/indentorderapprovalreport"
+  element={<Indentorderapprovalreport />}
 />
       </Routes>
     </>
