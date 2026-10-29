@@ -82,7 +82,6 @@ function OrderingBoard() {
 
   const fetchRoomServiceList = async () => {
     try {
-      setKotLoading(true);
 
       const branchCode = appData?.user?.branch_code || "";
       const oltCode = JSON.parse(
@@ -97,7 +96,6 @@ function OrderingBoard() {
       console.error(error);
       // toast.error("Failed to fetch room service list");
     } finally {
-      setKotLoading(false);
     }
   };
   const fetchBillGenerationSettings = async () => {

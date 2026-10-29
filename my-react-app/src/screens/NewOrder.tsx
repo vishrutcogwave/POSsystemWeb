@@ -170,7 +170,7 @@ const NewOrder: React.FC = () => {
 const roomServiceOutlet = data.find((outlet) => outlet.oltIsRoomService);
 
 if (roomServiceOutlet) {
-  await fetchRoomServiceTables(roomServiceOutlet.oltCode);
+  void fetchRoomServiceTables(roomServiceOutlet.oltCode);
 }      const formattedTabs = data.map((outlet) => ({
         id: outlet.oltCode.toString(),
         label: outlet.oltName.trim(),

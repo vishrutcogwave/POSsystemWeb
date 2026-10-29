@@ -297,7 +297,6 @@ const oldRoom = roomList.find(
   };
   const fetchRoomServiceList = async () => {
     try {
-      setLoading(true);
 
       const branchCode = appData?.user?.branch_code || "";
       const oltCode = JSON.parse(
@@ -313,7 +312,6 @@ const oldRoom = roomList.find(
       console.error(error);
       // toast.error("Failed to fetch room service list");
     } finally {
-      setLoading(false);
     }
   };
   // ================= INITIAL =================
