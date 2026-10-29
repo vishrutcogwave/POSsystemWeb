@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  timeout: 15000, // Stop waiting after 15 seconds
+  timeout: 5000, // Stop waiting after 15 seconds
   headers: {
     "Content-Type": "application/json",
   },
