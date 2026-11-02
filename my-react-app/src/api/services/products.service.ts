@@ -7901,3 +7901,37 @@ export const getIndentOrderApprovalReport = async (
     throw error;
   }
 };
+
+
+export const getItemIssueReport = async (
+  fromDate: string,
+  toDate: string,
+  branchCode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetItemIssueReport",
+      {
+        params: {
+          FromDate: fromDate,
+          ToDate: toDate,
+          Branchcode: branchCode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching item issue report:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

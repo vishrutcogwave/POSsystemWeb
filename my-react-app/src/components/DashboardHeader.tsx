@@ -417,6 +417,11 @@ const INVENTORY_REPORT_ITEMS: MenuItem[] = [
     icon: ShieldCheck,
     permissionName: "Indent Order Approval Report",
   },
+  {
+    name: "Item Issue Report",
+    icon: FileBarChart,
+    permissionName: "Item Issue Report",
+  },
 ];
 
 const ROUTE_MAP: Record<string, string> = {
@@ -485,7 +490,8 @@ const ROUTE_MAP: Record<string, string> = {
   "Purchase Return Report": "/inventoryreports/purchasereturnreport",
   "Item Damage Report": "/inventoryreports/itemdamagereport",
   "Indent Order Report": "/inventoryreports/indentorderreport",
-  "Indent Order Approval Report" : "/inventoryreports/indentorderapprovalreport"
+  "Indent Order Approval Report" : "/inventoryreports/indentorderapprovalreport",
+  "Item Issue Report": "/inventoryreports/itemissuereport"
 };
 
 // -------------------------------------------------------------
