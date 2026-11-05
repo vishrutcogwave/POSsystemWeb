@@ -8036,3 +8036,50 @@ export const saveSplitBillDetails = async (
     throw error;
   }
 };
+
+
+export const getPrinterType = async (branchCode: string) => {
+  try {
+    const response = await api.get("/api/UtilitySetting/GetPrinterType", {
+      params: {
+        BranchCode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching printer type:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+export const saveOrUpdatePrinterType = async (
+  wayofPrinting: string,
+  printingStatus: boolean,
+  branchCode: string
+) => {
+  const response = await api.post(
+    "/api/UtilitySetting/SaveOrUpdatePrinterType",
+    null,
+    {
+      params: {
+        WayofPrinting: wayofPrinting,
+        PrintingStatus: printingStatus,
+        Branch_code: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        accept: "*/*",
+      },
+    }
+  );
+
+  return response.data;
+};

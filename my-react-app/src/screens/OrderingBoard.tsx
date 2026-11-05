@@ -22,6 +22,7 @@ import {
   getOldCart,
   getOpenDayDetails,
   getPaymentModeMaster,
+  getPrinterType,
   getSpecialInfo,
   getSubTables,
   getTableListForRoomService,
@@ -74,7 +75,41 @@ function OrderingBoard() {
   const [addonItems, setAddonItems] = useState<any[]>([]);
 
   const [selectedFood, setSelectedFood] = useState<any>(null);
+const [printerSettings, setPrinterSettings] = useState<{
+  wayofPrinting: string;
+  printingStatus: boolean;
+  branch_code: string;
+}>({
+  wayofPrinting: "Online",
+  printingStatus: false, // Default: printing allowed
+  branch_code: "",
+});
 
+const fetchPrinterType = async () => {
+  try {
+    const branchCode =
+      appData?.user?.branch_code ||
+      localStorage.getItem("branch") ||
+      "";
+
+    if (!branchCode) {
+      console.warn("Branch code not found. Default printing enabled.");
+      return;
+    }
+
+    const res = await getPrinterType(branchCode);
+
+    console.log("Printer Type Response:", res);
+
+    if (res?.success && res?.data) {
+      setPrinterSettings(res.data);
+    } else {
+      console.warn("Printer settings not found. Default printing enabled.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch printer settings. Default printing enabled:", error);
+  }
+};
   const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
 const [openSplitBill, setOpenSplitBill] = useState(false);
 const [splitBillData, setSplitBillData] = useState<any[]>([]);
@@ -345,6 +380,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
     void fetchBillGenerationSettings();
     void fetchRoomServiceList();
     void fetchOpenDayDetails();
+      void fetchPrinterType();
   }, []);
 
   const fetchSubTables = async () => {
@@ -1032,21 +1068,8 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
           instructions: item.comment ? item.comment.split(",") : [],
         })),
       });
-      if (!IsDirectBill) {
-        // const thermalKeywords = [
-        //   "pos",
-        //   "thermal",
-        //   "epson tm",
-        //   "tm-",
-        //   "xp-",
-        //   "tsp",
-        //   "58mm",
-        //   "80mm",
-        //   "receipt",
-        //   "usb printer",
-        //   "rp",
-        //   "gp",
-        // ];
+      if (!IsDirectBill && printerSettings?.printingStatus === false) {
+     
 
         // No printer mapping -> print all items to first configured printer
         if (Object.keys(printerItemMap).length === 0) {
@@ -1098,7 +1121,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
 
       /* ---------- FAST FOOD BILL PRINT ---------- */
 
-      if (tableData.fastFood === true) {
+      if (tableData.fastFood === true && printerSettings?.printingStatus === false) {
         const defaultPrinter = res.printers?.[0];
 
         const printRes = await printBill(
@@ -1114,7 +1137,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if (directbill) {
+      if (directbill && printerSettings?.printingStatus === false) {
         const defaultPrinter = res.printers?.[0];
 
         await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
@@ -1258,7 +1281,8 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
 
       const selttelbill = await settleBill(payload2);
       console.log("selttelbill", selttelbill);
-
+if(printerSettings?.printingStatus === false){
+  
       /* 🔥 PRINT KOT */
       const printers = res.printers || [];
       const foodItems = res.food || [];
@@ -1290,21 +1314,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
         })),
       });
 
-      // const thermalKeywords = [
-      //   "pos",
-      //   "thermal",
-      //   "epson tm",
-      //   "tm-",
-      //   "xp-",
-      //   "tsp",
-      //   "58mm",
-      //   "80mm",
-      //   "receipt",
-      //   "usb printer",
-      //   "rp",
-      //   "gp",
-      // ];
-
+     
       let hasError = false;
       // If no printer is configured, print everything to the default printer
       if (Object.keys(printerItemMap).length === 0) {
@@ -1360,6 +1370,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       setCart([]);
       setOpenPayment(false);
 
+}
       toast.success("FastFood Bill Printed ✅");
     } catch (err) {
       console.error(err);
@@ -1450,7 +1461,8 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       const res = await createOrder(payload);
 
       /* ---------------- PRINT SAME AS KOT ---------------- */
-
+if(printerSettings?.printingStatus === false){
+  
       const printers = res.printers || [];
       const foodItems = res.food || [];
 
@@ -1467,46 +1479,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
           printerItemMap[printer.printerName || "default"] = matchedItems;
         }
       });
-      // const generateContent = (items: any[]) => ({
-      //   title: isNC ? "CANCEL NCKOT" : "CANCEL KOT",
-      //   table: tableData?.tableNumber,
-      //   subTable: selectedSubTable || "A",
-      //   waiter: session.waiterName,
-      //   pax: session.pax,
-      //   items: items.map((item) => ({
-      //     qty: item.origQty || item.qty || 0, // ✅ IMPORTANT
-      //     name: item.food,
-      //     instructions: [],
-      //   })),
-      // });
-      // let hasError = false;
-
-      //       for (const rawPrinterName in printerItemMap) {
-      //         const items = printerItemMap[rawPrinterName];
-
-      //         // const content = generateContent(items);
-
-      //         // let printerName = rawPrinterName;
-
-      // //     if (!printerName || printerName.trim() === "") {
-      // //   printerName = "";
-      // // }
-
-      //         // const isThermal =
-      //         //   printerName.toLowerCase().includes("pos") ||
-      //         //   printerName.toLowerCase().includes("thermal");
-
-      //         // const finalData = isThermal
-      //         //   ? formatThermal(content)
-      //         //   : formatHTML(content);
-
-      //         // const result = await printKOT(printerName, finalData, isThermal);
-
-      //         // if (!result.success) {
-      //         //   hasError = true;
-      //         //   toast.error(`❌ ${printerName}: ${result.message}`);
-      //         // }
-      //       }
+    
       const generateContent = (items: any[]) => ({
         title: isNC ? "CANCEL NC KOT" : "CANCEL KOT",
         kotId: res.kotId || res.kotID || res.kotNo || "",
@@ -1582,6 +1555,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
           }
         }
       }
+}
 
       toast.success("Items voided & printed successfully ✅");
       setSelectedVoidItems([]);
@@ -1589,11 +1563,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
         navigate("/NewOrder");
       }
 
-      // if (hasError) {
-      //   toast.error("Some printers failed ❌");
-      // } else {
-      //   toast.success("Items voided & printed successfully ✅");
-      // }
+    
     } catch (err) {
       console.error("Void failed:", err);
       toast.error("Void failed ❌");
@@ -1736,7 +1706,6 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       // ✅ POST BILL
       const res = await postBill(billData);
       console.log("Bill Posted:", res);
-
       // ✅ PRINT BILL
       const printRes = await printBill(
         billData,
@@ -1748,7 +1717,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       if (!printRes?.success) {
         throw new Error(printRes?.message || "Print failed");
       }
-
+    
       toast.success("Bill Printed Successfully ✅");
 
       if (tableData.fastFood === undefined) {
@@ -2096,7 +2065,7 @@ const splitBills = response?.data || [];
 if (!Array.isArray(splitBills) || splitBills.length === 0) {
   throw new Error("No split bill details returned for printing");
 }
-
+  
 const printerIp = splitBills[0]?.printers?.[0]?.ipAddress || "";
 
 const printResult = await printSplitBill(
@@ -2112,6 +2081,7 @@ if (!printResult.success) {
 } else {
   toast.success("All split bills printed successfully!");
 }
+
     toast.success("Split Bills Saved Successfully");
 
     setOpenSplitBill(false);

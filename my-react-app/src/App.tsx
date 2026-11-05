@@ -9,9 +9,9 @@ import { AppProvider } from "./context/AppContext";
 import CursorEffect from "./components/CursorEffect";
 
 export default function App() {
-  const [printerReady, setPrinterReady] = useState(false);
-  const [printerSkipped, setPrinterSkipped] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [_printerReady, setPrinterReady] = useState(false);
+  const [printerSkipped, _setPrinterSkipped] = useState(false);
+  const [_connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -335,71 +335,18 @@ export default function App() {
   // CONNECT PRINTER BUTTON
   // ---------------------------------------
 
-  const handleConnectPrinter = () => {
-    if (connecting) {
-      return;
-    }
 
-    setConnecting(true);
-
-    console.log(
-      "🔌 Manual printer connection..."
-    );
-
-    try {
-      JSPM.JSPrintManager.start();
-
-      setTimeout(() => {
-        const status =
-          JSPM.JSPrintManager.websocket_status;
-
-        if (status === JSPM.WSStatus.Open) {
-          console.log(
-            "✅ Printer connected"
-          );
-
-          setPrinterReady(true);
-        } else {
-          console.warn(
-            "❌ Printer connection failed"
-          );
-
-          setPrinterReady(false);
-        }
-
-        setConnecting(false);
-      }, 2000);
-    } catch (error) {
-      console.error(
-        "Manual printer connection error:",
-        error
-      );
-
-      setConnecting(false);
-      setPrinterReady(false);
-    }
-  };
 
   // ---------------------------------------
   // SKIP PRINTER
   // ---------------------------------------
 
-  const handleSkipPrinter = () => {
-    console.log(
-      "⏭️ Printer setup skipped"
-    );
 
-    setPrinterSkipped(true);
-    setPrinterReady(true);
-    setConnecting(false);
-  };
 
   // ---------------------------------------
   // SHOW LANDING PAGE
   // ---------------------------------------
 
-  const showApp =
-    printerReady || printerSkipped;
 
   return (
     <>
@@ -410,37 +357,9 @@ export default function App() {
           <ItemProvider>
             <Toaster position="top-right" />
 
-            {!showApp ? (
-              <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white">
-                <div className="flex items-center gap-3">
-
-                  {/* CONNECT */}
-                  <button
-                    type="button"
-                    onClick={handleConnectPrinter}
-                    disabled={connecting}
-                    className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {connecting
-                      ? "Connecting..."
-                      : "Connect Printer"}
-                  </button>
-
-                  {/* SKIP */}
-                  <button
-                    type="button"
-                    onClick={handleSkipPrinter}
-                    disabled={connecting}
-                    className="rounded-lg border border-gray-300 bg-gray-100 px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Skip Printer
-                  </button>
-
-                </div>
-              </div>
-            ) : (
+           
               <LandingPage />
-            )}
+            
           </ItemProvider>
         </ActiveOLTProvider>
       </AppProvider>

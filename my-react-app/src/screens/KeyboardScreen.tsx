@@ -906,7 +906,7 @@ const handleKOT = async (
           );
 
           const printItems = matched.length ? matched : foodItems;
-
+           
           const result = await printKOT(
             printer.printerName || null,
             generateContent(printItems),

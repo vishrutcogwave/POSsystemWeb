@@ -16,6 +16,7 @@ import {
   getKotConfiguration,
   getKOTTimerSettings,
   getOutletList,
+  getPrinterType,
   getSMSSenderSettings,
   getTaxModeSettings,
   saveBillConfiguration,
@@ -24,6 +25,7 @@ import {
   saveOrUpdateFinancialSettings,
   saveOrUpdateHappyHoursSettings,
   saveOrUpdateKOTTimerSettings,
+  saveOrUpdatePrinterType,
   saveOrUpdateSMSSenderSettings,
   updateDiscountModeSettings,
   updateTaxModeSettings,
@@ -41,6 +43,72 @@ const [kotType, setKotType] = useState("KOT");
 const [kotConfigs, setKotConfigs] = useState<any[]>([]);
 const [reqBill, setReqBill] = useState<number>(1);
 const [billConfigLoading, setBillConfigLoading] = useState(false);
+
+const [printerLoading, setPrinterLoading] = useState(false);
+const fetchPrinterSettings = async () => {
+  try {
+    const branchCode =
+      appData?.user?.branch_code ||
+      localStorage.getItem("branch") ||
+      "";
+
+    if (!branchCode) {
+      console.warn("Branch code not found");
+      return;
+    }
+
+    const res = await getPrinterType(branchCode);
+
+    console.log("Printer Settings API:", res);
+
+    if (res?.success && res?.data) {
+      setPrinterForm({
+        wayofPrinting: res.data.wayofPrinting || "Online",
+        printingStatus: res.data.printingStatus === true,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to fetch printer settings:", error);
+  }
+};
+
+const handlePrinterSettingsSave = async () => {
+  try {
+    setPrinterLoading(true);
+
+    const branchCode = appData?.user?.branch_code;
+
+    if (!branchCode) {
+      toast.error("Branch code not found");
+      return;
+    }
+
+    const res = await saveOrUpdatePrinterType(
+      printerForm.wayofPrinting,
+      printerForm.printingStatus,
+      branchCode
+    );
+
+    if (res?.success) {
+      toast.success("Printer Settings Saved Successfully");
+      fetchPrinterSettings();
+    } else {
+      toast.error(res?.message || "Failed to save Printer Settings");
+    }
+  } catch (err: any) {
+    toast.error(
+      err?.response?.data?.message ||
+      err?.message ||
+      "Error saving Printer Settings"
+    );
+  } finally {
+    setPrinterLoading(false);
+  }
+};
+const [printerForm, setPrinterForm] = useState({
+  wayofPrinting: "Online",
+  printingStatus: false,
+});
 const fetchOutlets = async () => {
   try {
     const res = await getOutletList(appData?.user?.branch_code);
@@ -487,6 +555,7 @@ const fetchBillGenerationSettings = async () => {
      fetchOutlets();
   fetchKotConfiguration();
   fetchBillConfiguration();
+    fetchPrinterSettings();
   }, []);
 
   /* =========================
@@ -766,6 +835,67 @@ const handleKotConfigurationSave = async () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {/* ================= HAPPY HOURS ================= */}
+
+{/* ================= PRINTER SETTINGS ================= */}
+
+<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+  {/* HEADER */}
+  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+    <h2 className="font-semibold text-gray-800 text-base">
+      Printer Settings
+    </h2>
+  </div>
+
+  {/* BODY */}
+  {/* WAY OF PRINTING */}
+<div >
+  <label className="block text-sm font-medium text-gray-700 mb-3 m-2">
+    Way of Printing
+  </label>
+
+  <div className="flex flex-col gap-3 m-3">
+    {/* ONLINE */}
+    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+      <input
+        type="checkbox"
+        checked={printerForm.wayofPrinting === "Online"}
+        onChange={() =>
+          setPrinterForm({
+            wayofPrinting: "Online",
+            printingStatus: false,
+          })
+        }
+        className="w-4 h-4 accent-blue-600"
+      />
+      Online
+    </label>
+
+    {/* OFFLINE */}
+    <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+      <input
+        type="checkbox"
+        checked={printerForm.wayofPrinting === "Offline"}
+        onChange={() =>
+          setPrinterForm({
+            wayofPrinting: "Offline",
+            printingStatus: true,
+          })
+        }
+        className="w-4 h-4 accent-blue-600"
+      />
+      Offline
+    </label>
+  </div>
+</div>
+
+<button
+  onClick={handlePrinterSettingsSave}
+  disabled={printerLoading}
+  className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white py-2.5 rounded-lg font-medium transition"
+>
+  {printerLoading ? "Saving..." : "Save"}
+</button>
+</div>
 
           {/* EMPTY DIV 2 */}
 
@@ -1143,6 +1273,23 @@ const handleKotConfigurationSave = async () => {
               </button>
             </div>
           </div>
+
+
+
+
+
+          {/* ================= PRINTER SETTINGS ================= */}
+
+<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
+  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
+    <h2 className="font-semibold text-gray-800 text-base">
+      Printer Settings
+    </h2>
+  </div>
+
+ {/* WAY OF PRINTING */}
+
+</div>
 
           {/* EMPTY DIV 6 */}
 

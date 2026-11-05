@@ -31,7 +31,9 @@ type BillDropdownItem = {
   branch_Code: string;
   [key: string]: any;
 };
-
+type GroupedBill = BillDropdownItem & {
+  kotRecords: BillDropdownItem[];
+};
 type SplitItem = {
   key: string;
   itemCode: number;
@@ -57,7 +59,7 @@ export default function AfterBillSplitBill() {
   const [selectedOutletCode, setSelectedOutletCode] = useState("");
   const [posDate, setPosDate] = useState("");
   const [billList, setBillList] = useState<BillDropdownItem[]>([]);
-  const [selectedBill, setSelectedBill] = useState<BillDropdownItem | null>(null);
+const [selectedBill, setSelectedBill] = useState<GroupedBill | null>(null);
 
   const [kotData, setKotData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,18 +75,34 @@ const [_companyInfo, setCompanyInfo] = useState<any>(null);
   // Keep each original KOT detail as a separate allocation row. This ensures
   // every split food row is saved against the correct source KOT ID.
    const [taxSettings, setTaxSettings] = useState<any>(null);
+   const groupedBillList = useMemo<GroupedBill[]>(() => {
+  const grouped = new Map<string, GroupedBill>();
 
-    const fetchTaxSettings = async () => {
-      try {
-        const branch = localStorage.getItem("branch") || "";
-        const data = await getTaxSettings(branch);
-  
-        console.log("Tax Settings:", data);
-        setTaxSettings(data);
-      } catch (err) {
-        console.error("Tax fetch failed", err);
-      }
-    };
+  billList.forEach((bill) => {
+    const key = String(bill.ksmBillNo);
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        ...bill,
+        kotRecords: [bill],
+      });
+    } else {
+      grouped.get(key)!.kotRecords.push(bill);
+    }
+  });
+
+  return Array.from(grouped.values());
+}, [billList]);
+const fetchTaxSettings = useCallback(async () => {
+  try {
+    const branch = localStorage.getItem("branch") || branchCode;
+    const data = await getTaxSettings(branch);
+    console.log("Tax Settings:", data);
+    setTaxSettings(data);
+  } catch (err) {
+    console.error("Tax fetch failed", err);
+  }
+}, [branchCode]);
   const fetchCompany = useCallback(async () => {
   try {
     const branch = localStorage.getItem("branch") || branchCode;
@@ -220,8 +238,8 @@ useEffect(() => {
   void fetchOutlets();
   void fetchOpenDay();
   void fetchCompany();
-  void fetchTaxSettings()
-}, [fetchOutlets, fetchOpenDay, fetchCompany,fetchTaxSettings]);
+  void fetchTaxSettings();
+}, [fetchOutlets, fetchOpenDay, fetchCompany, fetchTaxSettings]);
 
   useEffect(() => {
     if (selectedOutletCode) {
@@ -231,61 +249,67 @@ useEffect(() => {
   }, [selectedOutletCode, posDate, fetchBills]);
 
   // Automatically fetch KOT item details whenever a bill is selected.
-  const handleBillChange = async (billId: string) => {
-    const bill = billList.find(
-      (item) => String(item.ksmId) === billId,
+const handleBillChange = async (billNo: string) => {
+  const bill =
+    groupedBillList.find(
+      (item) => String(item.ksmBillNo) === billNo
     ) || null;
 
-    setSelectedBill(bill);
-    setKotData([]);
-    setAllocations({});
-    setBillCountInput("2");
+  setSelectedBill(bill);
+  setKotData([]);
+  setAllocations({});
+  setBillCountInput("2");
 
-    if (!bill) return;
+  if (!bill) return;
 
-    const kotId = Number(bill.kotId || 0);
-    if (!kotId) {
-      toast.error("KOT ID is missing in the selected bill details");
+  try {
+    setLoadingKot(true);
+
+    // Send all KOT IDs belonging to this bill number
+    const payload = bill.kotRecords.map((kot) => ({
+      kotId: Number(kot.kotId),
+      kotNo: String(kot.kotId),
+      oltCode: Number(kot.oltCode || selectedOutletCode || 0),
+      kotTblNo: String(kot.ksmTblNo || ""),
+      subTable: String(kot.ksmsubtblno || "A"),
+      posDate: kot.ksmBillDate || "",
+      branch_code:
+        kot.branch_Code ||
+        localStorage.getItem("branch") ||
+        branchCode,
+    }));
+
+    console.log("Split Bill Multi KOT Payload:", payload);
+
+    const response = await getKOTSplitBillDetails(payload);
+
+    console.log("Split Bill API Response:", response);
+
+    if (!response?.success) {
+      toast.error(response?.message || "Failed to fetch KOT details");
       return;
     }
 
-    try {
-      setLoadingKot(true);
-      const payload = [{
-        kotId,
-        kotNo: String(kotId),
-        oltCode: Number(bill.oltCode || selectedOutletCode || 0),
-        kotTblNo: String(bill.ksmTblNo || ""),
-        subTable: String(bill.ksmsubtblno || "A"),
-        posDate: bill.ksmBillDate || "",
-        branch_code: bill.branch_Code || localStorage.getItem("branch") || branchCode,
-      }];
+    const details = response?.data?.kotMasterAndDetails || [];
 
-      console.log("Split Bill Payload:", payload);
-      const response = await getKOTSplitBillDetails(payload);
-      console.log("Split Bill API Response:", response);
-
-      if (!response?.success) {
-        toast.error(response?.message || "Failed to fetch KOT details");
-        return;
-      }
-
-      const details = response?.data?.kotMasterAndDetails || [];
-      if (!Array.isArray(details) || details.length === 0) {
-        toast.error("No items available for split bill");
-        return;
-      }
-
-      setKotData(details);
-    } catch (error: any) {
-      console.error("KOT split details error:", error);
-      toast.error(
-        error?.response?.data?.message || "Failed to fetch KOT details",
-      );
-    } finally {
-      setLoadingKot(false);
+    if (!Array.isArray(details) || details.length === 0) {
+      toast.error("No items available for split bill");
+      return;
     }
-  };
+
+    setKotData(details);
+
+  } catch (error: any) {
+    console.error("KOT split details error:", error);
+
+    toast.error(
+      error?.response?.data?.message ||
+      "Failed to fetch KOT details"
+    );
+  } finally {
+    setLoadingKot(false);
+  }
+};
 
   // Initialize allocation inputs whenever the selected bill's item list changes.
   useEffect(() => {
@@ -582,7 +606,6 @@ useEffect(() => {
     try {
       setSavingSplit(true);
       console.log("AFTER BILL SPLIT SAVE PAYLOAD:", apiPayload);
-     debugger
       const kotIds = [
   ...new Set(
     kotData
@@ -713,66 +736,36 @@ setBillList((previous) =>
         <div className="bg-white rounded-xl shadow p-4 md:p-6">
           <h2 className="text-lg font-semibold mb-4">Bill Details</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">Outlet</label>
-              <select
-                value={selectedOutletCode}
-                onChange={(event) => {
-                  setSelectedOutletCode(event.target.value);
-                  setSelectedBill(null);
-                  setBillList([]);
-                  setKotData([]);
-                  setAllocations({});
-                }}
-                disabled={loadingOutlets}
-                className="border rounded-lg px-3 py-2 text-sm bg-white"
-              >
-                <option value="">
-                  {loadingOutlets ? "Loading outlets..." : "Select Outlet"}
-                </option>
-                {outlets.map((outlet) => (
-                  <option key={String(outlet.oltCode)} value={String(outlet.oltCode)}>
-                    {outlet.oltName} ({outlet.oltCode})
-                  </option>
-                ))}
-              </select>
-            </div>
+        <div className="flex flex-col">
+  <label className="text-sm text-gray-600 mb-1">
+    Bill Number
+  </label>
 
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">POS Date</label>
-              <input
-                value={posDate}
-                readOnly
-                placeholder="POS Date"
-                className="border rounded-lg px-3 py-2 text-sm bg-gray-100"
-              />
-            </div>
+  <select
+    value={selectedBill ? String(selectedBill.ksmBillNo) : ""}
+    onChange={(event) => void handleBillChange(event.target.value)}
+    disabled={loadingBills || !selectedOutletCode || !posDate}
+    className="border rounded-lg px-3 py-2 text-sm bg-white"
+  >
+    <option value="">
+      {loadingBills
+        ? "Loading Bills..."
+        : groupedBillList.length
+          ? "Select Bill"
+          : "No Bills Available"}
+    </option>
 
-            <div className="flex flex-col">
-              <label className="text-sm text-gray-600 mb-1">Bill Number</label>
-              <select
-                value={selectedBill ? String(selectedBill.ksmId) : ""}
-                onChange={(event) => void handleBillChange(event.target.value)}
-                disabled={loadingBills || !selectedOutletCode || !posDate}
-                className="border rounded-lg px-3 py-2 text-sm bg-white"
-              >
-                <option value="">
-                  {loadingBills
-                    ? "Loading Bills..."
-                    : billList.length
-                      ? "Select Bill"
-                      : "No Bills Available"}
-                </option>
-                {billList.map((bill) => (
-                  <option key={bill.ksmId} value={String(bill.ksmId)}>
-                    Bill {bill.ksmBillNo} - Table {bill.ksmTblNo}
-                    {bill.ksmsubtblno ? ` / ${bill.ksmsubtblno}` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+    {groupedBillList.map((bill) => (
+      <option
+        key={bill.ksmBillNo}
+        value={String(bill.ksmBillNo)}
+      >
+        Bill {bill.ksmBillNo} - Table {bill.ksmTblNo}
+        {bill.ksmsubtblno ? ` / ${bill.ksmsubtblno}` : ""}
+      </option>
+    ))}
+  </select>
+</div>
 
           {errorMessage && (
             <p className="text-sm text-red-600 mt-3">{errorMessage}</p>
