@@ -652,13 +652,13 @@ const DashboardHeader: React.FC = () => {
       </div>
 
       {/* Main Menu */}
-      <div className="flex items-center justify-between gap-2 px-2 sm:px-4 lg:px-6 py-2 bg-gray-100 text-sm font-medium text-gray-800 w-full min-w-0">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-2 bg-gray-100 text-sm font-medium text-gray-800">
         {/* LEFT */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-4">
           {/* Mobile Toggle */}
           <button
             type="button"
-            className="xl:hidden shrink-0"
+            className="sm:hidden"
             onClick={(e) => {
               e.stopPropagation();
               setMobileOpen(!mobileOpen);
@@ -669,7 +669,7 @@ const DashboardHeader: React.FC = () => {
           </button>
 
           {/* Desktop Menu */}
-         <div className="hidden xl:flex items-center gap-3 whitespace-nowrap min-w-0 overflow-x-auto">
+          <div className="hidden sm:flex items-center gap-6">
             {/* DASHBOARD */}
             {hasMainMenuAccess("Dashboard") && (
               <button
@@ -973,7 +973,7 @@ const DashboardHeader: React.FC = () => {
         </div>
 
         {/* LOGOUT & LICENSE ALERT */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3">
           {showLicenseAlert && (
             <button
               type="button"
@@ -1002,7 +1002,7 @@ const DashboardHeader: React.FC = () => {
 
       {/* MOBILE MENU */}
       {mobileOpen && (
-        <div className="xl:hidden bg-white border-t shadow-md w-full">
+        <div className="sm:hidden bg-white border-t shadow-md">
           <div className="px-3 py-3 space-y-1">
             {/* DASHBOARD */}
             {hasMainMenuAccess("Dashboard") && (
