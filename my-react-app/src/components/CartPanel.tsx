@@ -35,6 +35,8 @@ onUpdateQty: (id: number, qty: number) => void;
      totalAmount:number
 
      isBillButton:boolean
+     onSplitBill: () => void;
+canSplitBill: boolean;
 };
 
 export default function CartPanel({
@@ -67,7 +69,9 @@ export default function CartPanel({
   setNcRemarks,
   instructions,
   isFastfood,
-  isBillButton
+  isBillButton,
+  canSplitBill,
+  onSplitBill
 }: CartPanelProps) {
   console.log("isBillButtonincart", isBillButton);
   const { userRights } = useAppContext();
@@ -144,7 +148,15 @@ export default function CartPanel({
           (sub: any) => sub.subMenuName === "NC -> KOT || KOT - >NC",
         ),
     );
-
+const hasSplitBillPermission =
+  hasSubMenuAccess("Split Bill") &&
+  userRights?.some(
+    (menu: any) =>
+      menu.menuName === "KOT" &&
+      menu.subMenus?.some(
+        (sub: any) => sub.subMenuName === "Split Bill",
+      ),
+  );
   return (
     <>
       <aside className="w-full lg:w-80 xl:w-80 h-full bg-white border-l flex flex-col">
@@ -413,6 +425,15 @@ export default function CartPanel({
                   {kotStatus === "NCKOT" ? "NC → KOT" : "KOT → NC"}
                 </button>
               )}
+{canSplitBill && hasSplitBillPermission  && isBillButton &&(
+  <button
+    onClick={onSplitBill}
+    disabled={kotLoading}
+    className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white py-2 rounded text-sm"
+  >
+    Split Bill
+  </button>
+)}
             </div>
           </div>
         </div>

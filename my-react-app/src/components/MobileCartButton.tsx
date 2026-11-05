@@ -34,6 +34,8 @@ onUpdateQty: (id: number, qty: number) => void;
      directbill:boolean
      totalAmount:number
      isBillButton:boolean
+     onSplitBill: () => void;
+canSplitBill: boolean;
 };
 export const MobileCartButton: React.FC<MobileCartProps> = ({
   openNcModal,
@@ -65,7 +67,9 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
   ncRemarks,
   setNcRemarks,
   onConvertion,
-  onUpdateQty
+  onUpdateQty,
+  canSplitBill,
+  onSplitBill
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -96,6 +100,8 @@ export const MobileCartButton: React.FC<MobileCartProps> = ({
             {/* Cart Panel */}
             <div className="flex-1 overflow-y-auto">
               <CartPanel
+              canSplitBill={canSplitBill}
+              onSplitBill={onSplitBill}
               isBillButton={isBillButton}
               onUpdateQty={onUpdateQty}
               totalAmount={totalAmount}

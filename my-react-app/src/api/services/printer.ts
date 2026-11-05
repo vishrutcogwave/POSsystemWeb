@@ -1578,3 +1578,84 @@ try {
 
 
 
+export const printSplitBill = async (
+  response: any,
+  companyInfo: any,
+  ipAddress: string
+) => {
+  console.log("========== PRINT SPLIT BILL ==========");
+  console.log("Split Bill Response:", response);
+
+  try {
+    if (
+      JSPM.JSPrintManager.websocket_status !==
+      JSPM.WSStatus.Open
+    ) {
+      throw new Error("JSPrintManager is not running");
+    }
+
+    // Get split bills from API response
+    const splitBills = Array.isArray(response)
+      ? response
+      : response?.data || [];
+
+    if (!splitBills.length) {
+      throw new Error("No split bills found");
+    }
+
+    const results = [];
+
+    // Print each split bill separately
+    for (const bill of splitBills) {
+      console.log(
+        `Printing Split Bill: ${bill.fnBillResponse?.billNo}`
+      );
+
+      const result = await newprintBill(
+        bill,
+        companyInfo,
+        ipAddress
+      );
+
+      results.push({
+        billNo: bill.fnBillResponse?.billNo,
+        kotId: bill.kotId,
+        table: `${bill.kotTblNo}-${bill.subTable}`,
+        grandTotal: bill.tax?.grandTotal || 0,
+        ...result
+      });
+
+      if (!result.success) {
+        console.error(
+          `Failed to print Bill ${bill.fnBillResponse?.billNo}`,
+          result.message
+        );
+      }
+    }
+
+    const allSuccess = results.every(
+      (item) => item.success
+    );
+
+    return {
+      success: allSuccess,
+      message: allSuccess
+        ? "All split bills printed successfully"
+        : "Some split bills failed to print",
+      totalBills: splitBills.length,
+      printedBills: results.filter(
+        (item) => item.success
+      ).length,
+      results
+    };
+
+  } catch (error: any) {
+    console.error("Split Bill Print Error:", error);
+
+    return {
+      success: false,
+      message: error?.message || "Split bill printing failed"
+    };
+  }
+};
+

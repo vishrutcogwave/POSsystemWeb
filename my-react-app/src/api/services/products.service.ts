@@ -7935,3 +7935,104 @@ export const getItemIssueReport = async (
     throw error;
   }
 };
+
+
+
+export const getKOTSplitBillDetails = async (
+  payload: {
+    kotId: number;
+    kotNo: string;
+    oltCode: number;
+    kotTblNo: string;
+    subTable: string;
+    posDate: string;
+    branch_code: string;
+  }[]
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/POS/GetKOTSplitBillDetails",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching KOT split bill details:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+
+
+export const getBillDropdown = async (
+  oltCode: number | string,
+  posDate: string,
+  branchCode: string
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get("/api/POS/GetBillDropdown", {
+      params: {
+        OltCode: oltCode,
+        POSDate: posDate,
+        Branchcode: branchCode,
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching bill dropdown:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+
+
+export const saveSplitBillDetails = async (
+  payload: any[],
+  multiKots: string = "1,2",
+  isMultiKOT: boolean = true,
+) => {
+  try {
+    const response = await api.post(
+      `/api/POS/SaveSplitBillDetails?MultiKots=${encodeURIComponent(multiKots)}&IsMultiKOT=${isMultiKOT}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Save Split Bill Error:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

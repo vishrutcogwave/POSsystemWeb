@@ -17,6 +17,7 @@ import {
   getDiscountModeMaster,
   getItemGroupList,
   getItemWiseAddOnDetailsList,
+  getKOTSplitBillDetails,
   getNCKOT,
   getOldCart,
   getOpenDayDetails,
@@ -28,6 +29,7 @@ import {
   getUnbillDetails,
   postBill,
   postKotToNcKot,
+  saveSplitBillDetails,
   settleBill,
   validateDay,
   // validateDay,
@@ -42,7 +44,8 @@ import PaymentModalForFastFood from "../components/PaymentModalForFastFood";
 import PaymentModal from "../components/PaymentModal";
 import { useAppContext } from "../context/AppContext";
 import AlertPopup from "../components/AlertPopup";
-import { newprintBill, printBill, printKOT } from "../api/services/printer";
+import { newprintBill, printBill, printKOT, printSplitBill } from "../api/services/printer";
+import SplitBillModal from "./SplitBillModal";
 
 /* ---------------- TYPES ---------------- */
 type Bill = {
@@ -73,7 +76,8 @@ function OrderingBoard() {
   const [selectedFood, setSelectedFood] = useState<any>(null);
 
   const [selectedAddons, setSelectedAddons] = useState<any[]>([]);
-
+const [openSplitBill, setOpenSplitBill] = useState(false);
+const [splitBillData, setSplitBillData] = useState<any[]>([]);
   const [billGenerationSettings, setBillGenerationSettings] = useState({
     billingType: "",
     subBillingType: "",
@@ -82,7 +86,6 @@ function OrderingBoard() {
 
   const fetchRoomServiceList = async () => {
     try {
-
       const branchCode = appData?.user?.branch_code || "";
       const oltCode = JSON.parse(
         localStorage.getItem("roomserviceoldcode") || "",
@@ -162,7 +165,6 @@ function OrderingBoard() {
   console.log("isBillButton", tableData.isBillButton);
   const isBillButton = tableData.isBillButton || false;
   console.log();
-  
 
   console.log(directbill, dontopenkotmodel, "tableData");
   useEffect(() => {
@@ -454,13 +456,11 @@ function OrderingBoard() {
   const totalRequestId = useRef(0);
 
   const fetchTotalAmount = async (currentCart: any[]) => {
-      const requestId = ++totalRequestId.current;
+    const requestId = ++totalRequestId.current;
     if (!session || currentCart.length === 0) {
       setTotalAmount(0);
       return;
     }
-
-  
 
     try {
       const payload = buildBillPayload(currentCart);
@@ -897,6 +897,7 @@ function OrderingBoard() {
   };
 
   const handleKOT = async () => {
+   
     if (dayDetails?.openDayResponse?.success === false) {
       setAlertMsg(
         dayDetails?.openDayResponse?.message ||
@@ -994,7 +995,7 @@ function OrderingBoard() {
         isUpdate: 0,
       },
     };
-
+ debugger
     try {
       const res = await createOrder(payload);
       console.log("KOT Created:", res);
@@ -1941,6 +1942,242 @@ function OrderingBoard() {
       toast.error("Conversion failed ❌");
     }
   };
+const handleSplitBillConfirm = async (payload: any) => {
+  debugger
+  try {
+    setKotLoading(true);
+
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = Number(localStorage.getItem("activeOltCode") || 0);
+
+    const originalKot = oldCartData?.[0] || {};
+    const now = new Date().toISOString();
+
+  const apiPayload = payload.bills.map((bill: any, billIndex: number) => {
+  const subTableLetter = String.fromCharCode(65 + billIndex);
+
+  const items = bill.items.map((item: any) => {
+    const source = item.sourceDetails?.[0] || {};
+
+    return {
+      kotId: Number(source.kotId || originalKot.kotId || 0),
+      id: Number(item.itemCode),
+      food: item.itemName,
+      code: String(item.itemCode),
+      price: Number(item.rate || 0),
+      qty: Number(item.quantity || 0),
+      comment: source.comment || "",
+      category: Number(source.catCode || 0),
+      grpCode: Number(source.grpcode || 0),
+      origQty: Number(item.quantity || 0),
+      itemDiscountAllowed: source.itemDiscountAllowed ?? true,
+    };
+  });
+
+  const subtotal = Number(bill.total || 0);
+
+  const cgst = Number((subtotal * 2.5 / 100).toFixed(2));
+  const sgst = Number((subtotal * 2.5 / 100).toFixed(2));
+
+  return {
+    afterBill: false,
+    billType: "SPLIT",
+    billCount: payload.billCount,
+    noofCount: bill.billNo,
+
+    kotId: Number(originalKot.kotId || 0),
+    kotNo: Number(originalKot.kotId || 0),
+
+    ksmId: 0,
+    ksmBillNo: "",
+
+    settledDate: now,
+    kotTblNo: payload.tableNumber || "",
+    oltCode: outlet,
+    branch_Code: branch,
+
+    billAmount: subtotal,
+    billTaxAmt: cgst + sgst,
+    billDiscount: 0,
+
+    grpCode: 0,
+    reason: "Split Bill",
+
+    cart: {
+      userCode: Number(appData?.user?.userCode || 0),
+      table: payload.tableNumber || "",
+
+      // ⭐ Dynamic subtable
+      subTable: subTableLetter,
+
+      outlet,
+      outletName: activeOltName || "",
+      waiter: Number(session?.waiterCode || 0),
+      waiterName: session?.waiterName || "",
+      pax: Number(session?.pax || 0),
+
+      food: items,
+
+      total: subtotal,
+      totQty: Number(bill.totalQty || 0),
+
+      branch,
+      type: "K",
+      ncCode: 0,
+      ncRemarks: "",
+
+      discount: 0,
+      discountIn: "amt",
+      discountType: "",
+      discountRemarks: "",
+      discountGroups: [""],
+
+      vRemarks: "",
+      mode: "ADD",
+      subBillType: "",
+      plan: tableData?.planId || "",
+      guestName: tableData?.guestName || "",
+      guestCode: tableData?.guestCode || "",
+      checkInNo: tableData?.checkinNo || "",
+      kotMobileNo: "",
+      kotMinTimer: 0,
+      taxType: taxSettings?.taxType || "normaltax",
+
+      homeDelivary: {
+        guestCode: 0,
+        titleGn1: 0,
+        guestName: "",
+        dob: now,
+        address: "",
+        city: "",
+        phone: "",
+        email: "",
+        remarks: "",
+        lastModify: now,
+        discount: 0,
+        branch_code: branch,
+        isUpdate: 0,
+      },
+    },
+  };
+});
+
+    console.log("SAVE SPLIT BILL API PAYLOAD:", apiPayload);
+    
+  // Get unique KOT IDs
+const kotIds = [
+  ...new Set(
+    oldCartData
+      .map((order: any) => Number(order.kotId))
+      .filter((id: number) => id > 0)
+  ),
+];
+
+// Convert IDs to comma-separated string
+const multiKots = kotIds.join(",");
+
+// true if multiple KOTs, false if only one
+const isMultiKOT = kotIds.length > 1;
+
+console.log("KOT IDs:", multiKots);
+console.log("Is Multi KOT:", isMultiKOT);
+
+
+   const response = await saveSplitBillDetails(
+  apiPayload,
+  multiKots,
+  isMultiKOT
+);
+
+    
+// PRINT ALL SPLIT BILLS
+const splitBills = response?.data || [];
+
+if (!Array.isArray(splitBills) || splitBills.length === 0) {
+  throw new Error("No split bill details returned for printing");
+}
+
+const printerIp = splitBills[0]?.printers?.[0]?.ipAddress || "";
+
+const printResult = await printSplitBill(
+  splitBills,
+  _companyInfo,
+  printerIp
+);
+
+console.log("SPLIT BILL PRINT RESULT:", printResult);
+
+if (!printResult.success) {
+  toast.error(printResult.message || "Split bill printing failed");
+} else {
+  toast.success("All split bills printed successfully!");
+}
+    toast.success("Split Bills Saved Successfully");
+
+    setOpenSplitBill(false);
+
+  } catch (error: any) {
+    console.error("Split Bill Save Error:", error);
+
+    toast.error(
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to save split bills",
+    );
+  } finally {
+    setKotLoading(false);
+  }
+};
+const handleSplitBill = async () => {
+  try {
+    if (!oldCartData || oldCartData.length === 0) {
+      toast.error("No existing KOT details found");
+      return;
+    }
+
+    setKotLoading(true);
+
+    const branch = localStorage.getItem("branch") || "";
+    const outlet = Number(localStorage.getItem("activeOltCode") || 0);
+
+    const payload = oldCartData.map((order: any) => ({
+      kotId: Number(order.kotId || 0),
+      kotNo: String(order.kotNo || ""),
+      oltCode: Number(order.oltCode || outlet),
+      kotTblNo: String(order.kotTblNo || tableData.tableNumber || ""),
+      subTable: String(order.subTable || selectedSubTable || "A"),
+      posDate: order.posDate || new Date().toISOString(),
+      branch_code: order.branch_code || branch,
+    }));
+
+    console.log("Split Bill Payload:", payload);
+
+    const response = await getKOTSplitBillDetails(payload);
+
+    console.log("Split Bill API Response:", response);
+
+    if (!response?.success) {
+      toast.error(response?.message || "Failed to fetch split bill details");
+      return;
+    }
+
+    const kotDetails = response?.data?.kotMasterAndDetails || [];
+
+    if (kotDetails.length === 0) {
+      toast.error("No items available for split bill");
+      return;
+    }
+
+    setSplitBillData(kotDetails);
+    setOpenSplitBill(true);
+
+  } catch (error: any) {
+    console.error("Split Bill API Error:", error);
+    toast.error("Failed to fetch split bill details");
+  } finally {
+    setKotLoading(false);
+  }
+};
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100dvh-64px)] relative">
       {/* SIDEBAR */}
@@ -2056,6 +2293,12 @@ function OrderingBoard() {
       {/* CART PANEL */}
       <div className="hidden lg:block">
         <CartPanel
+          onSplitBill={handleSplitBill}
+          canSplitBill={
+            tableData.status === "Occupied" &&
+            oldCartData.length > 0 &&
+            tableData.fastFood === undefined
+          }
           isBillButton={isBillButton && !hasNewCartItem}
           onUpdateQty={updateQty}
           totalAmount={totalAmount}
@@ -2103,9 +2346,23 @@ function OrderingBoard() {
           kotLoading={kotLoading}
         />
       </div>
+      <SplitBillModal
+  isOpen={openSplitBill}
+  onClose={() => setOpenSplitBill(false)}
+  kotData={splitBillData}
+  tableNumber={tableData?.tableNumber}
+  subTable={selectedSubTable}
+  onConfirm={handleSplitBillConfirm}
+/>
 
       {/* MOBILE CART */}
       <MobileCartButton
+      onSplitBill={handleSplitBill}
+          canSplitBill={
+            tableData.status === "Occupied" &&
+            oldCartData.length > 0 &&
+            tableData.fastFood === undefined
+          }
         isBillButton={isBillButton && !hasNewCartItem}
         totalAmount={totalAmount}
         onUpdateQty={updateQty}

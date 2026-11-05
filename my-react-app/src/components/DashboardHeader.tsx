@@ -144,7 +144,13 @@ const POS_DROPDOWN_ITEMS: MenuItem[] = [
     name: "Bill Modification",
     icon: FilePen,
     permissionName: "Bill Modification",
+    
   },
+  {
+  name: "After Bill Split Bill",
+  icon: Receipt,
+  permissionName: "After Bill Split Bill",
+},
 ];
 
 const POS_REPORT_ITEMS: MenuItem[] = [
@@ -491,7 +497,8 @@ const ROUTE_MAP: Record<string, string> = {
   "Item Damage Report": "/inventoryreports/itemdamagereport",
   "Indent Order Report": "/inventoryreports/indentorderreport",
   "Indent Order Approval Report" : "/inventoryreports/indentorderapprovalreport",
-  "Item Issue Report": "/inventoryreports/itemissuereport"
+  "Item Issue Report": "/inventoryreports/itemissuereport",
+  "After Bill Split Bill": "/pos/afterbillsplitbill",
 };
 
 // -------------------------------------------------------------
