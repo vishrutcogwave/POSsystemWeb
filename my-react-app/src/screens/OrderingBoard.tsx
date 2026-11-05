@@ -1068,7 +1068,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
           instructions: item.comment ? item.comment.split(",") : [],
         })),
       });
-      if (!IsDirectBill && printerSettings?.printingStatus === false) {
+      if (!IsDirectBill ) {
      
 
         // No printer mapping -> print all items to first configured printer
@@ -1137,7 +1137,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if (directbill && printerSettings?.printingStatus === false) {
+      if (directbill) {
         const defaultPrinter = res.printers?.[0];
 
         await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
