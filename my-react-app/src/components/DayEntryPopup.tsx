@@ -17,18 +17,9 @@ const DayEntryPopup: React.FC<Props> = ({ isOpen, onClose }) => {
 const [alertMsg, setAlertMsg] = useState("");
 const [alertType, setAlertType] = useState<"success" | "error">("success");
 const navigate=useNavigate()
-  const getCurrentDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0]; // YYYY-MM-DD
-  };
 
-  const getCurrentTime = () => {
-    const now = new Date();
-    return now.toTimeString().slice(0, 5); // HH:mm
-  };
-
-  const [date, setDate] = useState(getCurrentDate());
-  const [time, setTime] = useState(getCurrentTime());
+const [date, setDate] = useState("");
+const [time, setTime] = useState("");
   const [data, setData] = useState<any>({});
   const { appData } = useAppContext();
   const [errorpopup,seterrorpopup] = useState("")
@@ -52,9 +43,6 @@ const fetchData = async () => {
   }
 };
 const init = async () => {
-  setDate(getCurrentDate());
-  setTime(getCurrentTime());
-
   try {
     setLoading(true);
 
@@ -64,6 +52,13 @@ const init = async () => {
     );
 
     setData(res);
+
+    // Set date from API response
+    setDate(res?.shiftDate?.split("T")[0] || "");
+
+    // Set time from API response
+    setTime(res?.shiftOpenTime?.split("T")[1]?.slice(0, 5) || "");
+
   } catch (err) {
     console.error(err);
   } finally {
@@ -71,12 +66,11 @@ const init = async () => {
   }
 };
 
-  useEffect(() => {
-    if (!isOpen) return;
-
+useEffect(() => {
+  if (isOpen) {
     init();
-    fetchData();
-  }, [isOpen]);
+  }
+}, [isOpen]);
 const getISTDateTime = () => {
   const now = new Date();
 
