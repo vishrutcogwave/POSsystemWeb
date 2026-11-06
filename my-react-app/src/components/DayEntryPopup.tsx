@@ -21,7 +21,7 @@ const navigate=useNavigate()
 const [date, setDate] = useState("");
 const [time, setTime] = useState("");
   const [data, setData] = useState<any>({});
-  const { appData } = useAppContext();
+  const { appData,clearAppData } = useAppContext();
   const [errorpopup,seterrorpopup] = useState("")
   console.log("appData", appData);
 
@@ -81,42 +81,11 @@ const getISTDateTime = () => {
 };
 
 
-// Output: "2026-07-23T10:15:30"
-// Output: "2026-07-23T10:15:30Z"
-
-// const handleDayClose = async () => {
-   
-//   const shiftDate = data?.shiftDate?.split("T")[0];
-//   const today = new Date().toISOString().split("T")[0];
-
-//   console.log("date", shiftDate, today);
-
-//   // ✅ block if same or past date
-//   if (today <= shiftDate) {
-//     return;
-//   }
-
-//   try {
-//     const payload = {
-//       userId: appData?.user?.userCode,
-//       systemTime: getISODateTime(),
-//       posEntryDate: data?.shiftDate,
-//       branchCode: appData?.user?.branch_code,
-//     };
-
-//     const res = await dayClose(payload);
-
-//     setAlertMsg(res?.message || "Success");
-//     setAlertType("success");
-//     setAlertOpen(true);
-
-//     fetchData();
-//   } catch (err: any) {
-//     setAlertMsg(err?.response?.data?.message || "Something went wrong");
-//     setAlertType("error");
-//     setAlertOpen(true);
-//   }
-// };
+ const handleLogout = () => {
+    localStorage.removeItem("token");
+    clearAppData();
+    navigate("/", { replace: true });
+  };
 
 const handleDayClose = async () => {
   try {
@@ -134,9 +103,14 @@ const handleDayClose = async () => {
     setAlertMsg(res?.message || "Success");
     toast.success(res?.message )
     setAlertType("success");
+if (res.message==="Day Is Closed Successfully"){
+  handleLogout()
+
+}
 
     await fetchData();
         onClose()
+// handleLogout()
   } catch (err: any) {
     seterrorpopup(err?.response?.data?.popupStatus)
     setAlertMsg(err?.response?.data?.message || "Something went wrong");
