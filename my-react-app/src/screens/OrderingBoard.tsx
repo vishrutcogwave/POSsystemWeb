@@ -1068,7 +1068,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
           instructions: item.comment ? item.comment.split(",") : [],
         })),
       });
-      if (!IsDirectBill ) {
+      if (!IsDirectBill &&printerSettings?.printingStatus === false) {
      
 
         // No printer mapping -> print all items to first configured printer
