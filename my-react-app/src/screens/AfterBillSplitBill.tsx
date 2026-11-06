@@ -13,6 +13,7 @@ import {
 } from "../api/services/products.service";
 import { useAppContext } from "../context/AppContext";
 import { printSplitBill } from "../api/services/printer";
+import { useNavigate } from "react-router-dom";
 
 type Outlet = {
   oltCode: number | string;
@@ -54,7 +55,7 @@ const formatPOSDate = (dateValue?: string) => {
 export default function AfterBillSplitBill() {
   const { appData } = useAppContext();
   const branchCode = appData?.user?.branch_code || "";
-
+  const navigate = useNavigate();
   const [outlets, setOutlets] = useState<Outlet[]>([]);
   const [selectedOutletCode, setSelectedOutletCode] = useState("");
   const [posDate, setPosDate] = useState("");
@@ -680,7 +681,7 @@ if (!Array.isArray(splitBills) || splitBills.length === 0) {
 // =====================================
 
 toast.success("After Bill Split saved successfully");
-
+navigate("/NewOrder")
 setKotData([]);
 setAllocations({});
 setSelectedBill(null);

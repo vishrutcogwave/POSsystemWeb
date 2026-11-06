@@ -1912,7 +1912,6 @@ if(printerSettings?.printingStatus === false){
     }
   };
 const handleSplitBillConfirm = async (payload: any) => {
-  debugger
   try {
     setKotLoading(true);
 
@@ -2083,7 +2082,7 @@ if (!printResult.success) {
 }
 
     toast.success("Split Bills Saved Successfully");
-
+ navigate("/NewOrder")
     setOpenSplitBill(false);
 
   } catch (error: any) {
