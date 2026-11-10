@@ -82,6 +82,7 @@ import Indentorderapprovalreport from "./Indentorderapprovalreport";
 import Itemissuereport from "./Itemissuereport";
 import AfterBillSplitBill from "./AfterBillSplitBill";
 import ItemIssueReturnReport from "./ItemIssueReturnReport";
+import StockReport from "./StockReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -342,6 +343,10 @@ function LandingPage() {
 <Route
   path="/inventoryreports/itemissuereturnreport"
   element={<ItemIssueReturnReport />}
+/>
+<Route
+  path="/inventoryreports/stockreport"
+  element={<StockReport />}
 />
       </Routes>
     </>

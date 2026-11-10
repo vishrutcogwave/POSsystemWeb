@@ -433,6 +433,11 @@ const INVENTORY_REPORT_ITEMS: MenuItem[] = [
   icon: FileBarChart,
   permissionName: "Item Issue Return Report",
 },
+{
+  name: "Stock Report",
+  icon: FileBarChart,
+  permissionName: "Stock Report",
+},
 ];
 
 const ROUTE_MAP: Record<string, string> = {
@@ -505,6 +510,7 @@ const ROUTE_MAP: Record<string, string> = {
   "Item Issue Report": "/inventoryreports/itemissuereport",
   "Item Issue Return Report": "/inventoryreports/itemissuereturnreport",
   "After Bill Split Bill": "/pos/afterbillsplitbill",
+  "Stock Report": "/inventoryreports/stockreport",
 };
 
 // -------------------------------------------------------------

@@ -8119,3 +8119,40 @@ export const getItemIssueReturnReport = async (
     throw error;
   }
 };
+
+
+
+
+export const getStockReport = async (payload: {
+  itemCode: number;
+  selectedType: string;
+  catCode: number;
+  depCode: number;
+  fromDate: string;
+  toDate: string;
+  branchCode: string;
+}) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.post(
+      "/api/InventoryReport/GetStockReport",
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          accept: "*/*",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching stock report:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

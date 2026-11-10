@@ -397,7 +397,7 @@ const hasSplitBillPermission =
                   onClick={onKOT}
                   className="bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm"
                 >
-                  {directbill ? "BILL" : "KOT"}
+                  {directbill || isFastfood === true  ? "BILL" : "KOT"}
                 </button>
               )}
               {hasVoidPermission &&!directbill && isFastfood === undefined && (
