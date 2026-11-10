@@ -428,6 +428,11 @@ const INVENTORY_REPORT_ITEMS: MenuItem[] = [
     icon: FileBarChart,
     permissionName: "Item Issue Report",
   },
+  {
+  name: "Item Issue Return Report",
+  icon: FileBarChart,
+  permissionName: "Item Issue Return Report",
+},
 ];
 
 const ROUTE_MAP: Record<string, string> = {
@@ -498,6 +503,7 @@ const ROUTE_MAP: Record<string, string> = {
   "Indent Order Report": "/inventoryreports/indentorderreport",
   "Indent Order Approval Report" : "/inventoryreports/indentorderapprovalreport",
   "Item Issue Report": "/inventoryreports/itemissuereport",
+  "Item Issue Return Report": "/inventoryreports/itemissuereturnreport",
   "After Bill Split Bill": "/pos/afterbillsplitbill",
 };
 

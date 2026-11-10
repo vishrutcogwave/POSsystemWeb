@@ -81,6 +81,7 @@ import Indentorderreport from "./Indentorderreport";
 import Indentorderapprovalreport from "./Indentorderapprovalreport";
 import Itemissuereport from "./Itemissuereport";
 import AfterBillSplitBill from "./AfterBillSplitBill";
+import ItemIssueReturnReport from "./ItemIssueReturnReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -337,6 +338,10 @@ function LandingPage() {
 <Route
   path="/pos/afterbillsplitbill"
   element={<AfterBillSplitBill />}
+/>
+<Route
+  path="/inventoryreports/itemissuereturnreport"
+  element={<ItemIssueReturnReport />}
 />
       </Routes>
     </>
