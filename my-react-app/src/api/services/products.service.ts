@@ -8156,3 +8156,36 @@ export const getStockReport = async (payload: {
     throw error;
   }
 };
+
+
+
+export const getSupplierPaymentReport = async (
+  supCode: number | string,
+  branchcode: string,
+) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const response = await api.get(
+      "/api/InventoryReport/GetSupplierPaymentReport",
+      {
+        params: {
+          SupCode: supCode,
+          Branchcode: branchcode,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          accept: "*/*",
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching supplier payment report:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};

@@ -1137,17 +1137,22 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if (directbill && printerSettings?.printingStatus === false) {
-        const defaultPrinter = res.printers?.[0];
+     if (directbill) {
+  if (printerSettings?.printingStatus === false) {
+    const defaultPrinter = res.printers?.[0];
 
-        await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
-        setKotLoading(false);
-        setOpenUnsettledPayment(true);
-        if (isNC) {
-          navigate("/NewOrder");
-        }
-        handleUnsettledSubTable(res?.fnBillResponse);
-      }
+    await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
+  }
+
+  setKotLoading(false);
+  setOpenUnsettledPayment(true);
+
+  if (isNC) {
+    navigate("/NewOrder");
+  }
+
+  handleUnsettledSubTable(res?.fnBillResponse);
+}
       console.log("inside the kot isNC", isNC);
 
       if (tableData.fastFood === undefined && !directbill) {
