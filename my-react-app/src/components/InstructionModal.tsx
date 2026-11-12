@@ -109,6 +109,7 @@ useEffect(() => {
           type="text"
           placeholder="Other instructions..."
           value={custom}
+          maxLength={30}
           onChange={(e) => setCustom(e.target.value)}
           className="w-full border rounded px-3 py-2 text-sm"
         />

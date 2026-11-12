@@ -14,6 +14,7 @@ import {
   getStockReport,
   getInventoryItemCategoryList,
   getStoreMasterList,
+  getInventoryItemStoreList,
 } from "../api/services/products.service";
 
 import { formatHeader } from "../utils";
@@ -35,6 +36,15 @@ const getRows = (response: any): ReportRow[] => {
   return candidates.find(Array.isArray) || [];
 };
 
+
+type InventoryItem = {
+  itemCode: number;
+  itemName: string;
+  catCode: number;
+  storeid: string;
+  unitName: string;
+  itemRate: number;
+};
 export default function StockReport() {
   const today = new Date();
 
@@ -65,28 +75,53 @@ export default function StockReport() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+const [items, setItems] = useState<InventoryItem[]>([]);
   // Load Category and Store dropdowns
-  useEffect(() => {
-    const fetchDropdowns = async () => {
-      try {
-        const branchCode = localStorage.getItem("branch") || "";
+ useEffect(() => {
+  const fetchDropdowns = async () => {
+    try {
+      const branchCode = localStorage.getItem("branch") || "";
 
-        const [categoryResponse, storeResponse] = await Promise.all([
-          getInventoryItemCategoryList(branchCode),
-          getStoreMasterList(branchCode),
-        ]);
+      const [
+        categoryResponse,
+        storeResponse,
+        itemResponse,
+      ] = await Promise.all([
+        getInventoryItemCategoryList(branchCode),
+        getStoreMasterList(branchCode),
+        getInventoryItemStoreList(branchCode),
+      ]);
 
-        setCategories(categoryResponse?.data ?? []);
-        setStores(storeResponse?.data ?? []);
-      } catch (err) {
-        console.error("Failed to load stock report dropdowns:", err);
-      }
-    };
+      setCategories(categoryResponse?.data ?? []);
+      setStores(storeResponse?.data ?? []);
+      setItems(itemResponse?.data ?? []);
 
-    fetchDropdowns();
-  }, []);
+    } catch (err) {
+      console.error("Failed to load stock report dropdowns:", err);
+    }
+  };
 
+  fetchDropdowns();
+}, []);
+
+
+
+const filteredItems = useMemo(() => {
+  return items.filter((item) => {
+    const categoryMatch =
+      !selectedCategory ||
+      String(item.catCode) === selectedCategory;
+
+    const storeMatch =
+      !selectedStore ||
+      String(item.storeid || "")
+        .split(",")
+        .map((id) => id.trim())
+        .includes(selectedStore);
+
+    return categoryMatch && storeMatch;
+  });
+}, [items, selectedCategory, selectedStore]);
   // Fetch Stock Report
   const handleGetReport = async () => {
     if (!fromDate || !toDate) {
@@ -110,10 +145,10 @@ export default function StockReport() {
         return;
       }
 
-      if (!itemCode || Number(itemCode) <= 0) {
-        setError("Please enter a valid Item Code.");
-        return;
-      }
+    if (!itemCode || Number(itemCode) <= 0) {
+  setError("Please select a valid Item.");
+  return;
+}
     }
 
     try {
@@ -494,19 +529,26 @@ export default function StockReport() {
                   </div>
 
                   {/* Item Code */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">
-                      Item Code
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={itemCode}
-                      onChange={(e) => setItemCode(e.target.value)}
-                      placeholder="Enter Item Code"
-                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
-                    />
-                  </div>
+              {/* Item Code */}
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1">
+    Item Code
+  </label>
+
+  <select
+    value={itemCode}
+    onChange={(e) => setItemCode(e.target.value)}
+    className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+  >
+    <option value="">Select Item</option>
+
+    {filteredItems.map((item) => (
+      <option key={item.itemCode} value={item.itemCode}>
+        {item.itemCode} - {item.itemName}
+      </option>
+    ))}
+  </select>
+</div>
                 </>
               )}
 

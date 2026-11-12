@@ -659,7 +659,7 @@ const DashboardHeader: React.FC = () => {
         </span>
 
         <span className="text-[9px] sm:text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md shrink-0 tracking-wide">
-         Local Version 3.0
+          Version 5
         </span>
       </div>
 

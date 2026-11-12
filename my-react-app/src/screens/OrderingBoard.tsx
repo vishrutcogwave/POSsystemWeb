@@ -1137,7 +1137,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
       setSession(null);
       setSelectedNcCode(null);
       setNcRemarks("");
-      if (directbill) {
+      if (directbill && printerSettings?.printingStatus === false) {
         const defaultPrinter = res.printers?.[0];
 
         await newprintBill(res, _companyInfo, defaultPrinter?.ipAddress || "");
@@ -1707,6 +1707,7 @@ if(printerSettings?.printingStatus === false){
       const res = await postBill(billData);
       console.log("Bill Posted:", res);
       // ✅ PRINT BILL
+      if(printerSettings?.printingStatus === false){
       const printRes = await printBill(
         billData,
         res,
@@ -1717,7 +1718,7 @@ if(printerSettings?.printingStatus === false){
       if (!printRes?.success) {
         throw new Error(printRes?.message || "Print failed");
       }
-    
+      }
       toast.success("Bill Printed Successfully ✅");
 
       if (tableData.fastFood === undefined) {
@@ -2067,6 +2068,8 @@ if (!Array.isArray(splitBills) || splitBills.length === 0) {
   
 const printerIp = splitBills[0]?.printers?.[0]?.ipAddress || "";
 
+if(printerSettings?.printingStatus === false){
+
 const printResult = await printSplitBill(
   splitBills,
   _companyInfo,
@@ -2079,7 +2082,7 @@ if (!printResult.success) {
   toast.error(printResult.message || "Split bill printing failed");
 } else {
   toast.success("All split bills printed successfully!");
-}
+}}
 
     toast.success("Split Bills Saved Successfully");
  navigate("/NewOrder")

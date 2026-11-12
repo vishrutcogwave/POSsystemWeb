@@ -1280,18 +1280,9 @@ const handleKotConfigurationSave = async () => {
 
           {/* ================= PRINTER SETTINGS ================= */}
 
-<div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
-  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-    <h2 className="font-semibold text-gray-800 text-base">
-      Printer Settings
-    </h2>
-  </div>
 
- {/* WAY OF PRINTING */}
 
-</div>
-
-          {/* EMPTY DIV 6 */}
+        
 
           <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200">
             {/* HEADER */}
