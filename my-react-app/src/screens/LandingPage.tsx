@@ -83,6 +83,7 @@ import Itemissuereport from "./Itemissuereport";
 import AfterBillSplitBill from "./AfterBillSplitBill";
 import ItemIssueReturnReport from "./ItemIssueReturnReport";
 import StockReport from "./StockReport";
+import SupplierPaymentReport from "./SupplierPaymentReport";
 
 function LandingPage() {
   const location = useLocation();
@@ -347,6 +348,10 @@ function LandingPage() {
 <Route
   path="/inventoryreports/stockreport"
   element={<StockReport />}
+/>
+<Route
+  path="/inventoryreports/supplierpaymentreport"
+  element={<SupplierPaymentReport />}
 />
       </Routes>
     </>

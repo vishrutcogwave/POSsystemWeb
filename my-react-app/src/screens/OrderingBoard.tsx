@@ -229,6 +229,15 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
   const [subTables, setSubTables] = useState<any[]>([]);
   const [pastItems, setPastItems] = useState<CartItem[]>([]);
   const [selectedSubTable, setSelectedSubTable] = useState<string>("");
+  const selectedSubTableData = subTables.find(
+  (item: any) =>
+    item.subTable?.trim().toUpperCase() ===
+    selectedSubTable?.trim().toUpperCase()
+);
+
+const showBillButton =
+  selectedSubTableData?.tableStatus === "Occupied" &&
+  !hasNewCartItem;
   const [kot, setKot] = useState<Bill[]>([]);
   const [activeBillId, setActiveBillId] = useState<number | null>(null);
   const [openSessionModal, setOpenSessionModal] = useState(false);
@@ -2276,7 +2285,7 @@ const handleSplitBill = async () => {
             oldCartData.length > 0 &&
             tableData.fastFood === undefined
           }
-          isBillButton={isBillButton && !hasNewCartItem}
+         isBillButton={showBillButton}
           onUpdateQty={updateQty}
           totalAmount={totalAmount}
           directbill={directbill}
@@ -2340,7 +2349,7 @@ const handleSplitBill = async () => {
             oldCartData.length > 0 &&
             tableData.fastFood === undefined
           }
-        isBillButton={isBillButton && !hasNewCartItem}
+        isBillButton={showBillButton}
         totalAmount={totalAmount}
         onUpdateQty={updateQty}
         directbill={directbill}
@@ -2423,13 +2432,17 @@ const handleSplitBill = async () => {
         onUnsettledClick={handleUnsettledSubTable}
         bills={subTables}
         onClose={() => navigate("/NewOrder")}
-        onSelectBill={async (sub) => {
-          console.log("subbbb", sub);
+       onSelectBill={async (sub) => {
+  setSelectedSubTable(sub);
 
-          setSelectedSubTable(sub);
-          await fetchOldCart(sub);
-          setOpenKOTModal(false);
-        }}
+  setHasNewCartItem(false);
+  setCart([]);
+  setPastItems([]);
+
+  await fetchOldCart(sub);
+
+  setOpenKOTModal(false);
+}}
         onNewBill={() => {
           const next = getNextSubTable(subTables); // generate next letter
           setSelectedSubTable(next);
