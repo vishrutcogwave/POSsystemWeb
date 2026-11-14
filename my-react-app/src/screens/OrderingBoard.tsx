@@ -198,7 +198,7 @@ const [splitBillData, setSplitBillData] = useState<any[]>([]);
   const dontopenkotmodel = tableData.isDirectPaxandStw ?? false;
   const IsDirectBill = tableData.isDirectBill ?? false;
   console.log("isBillButton", tableData.isBillButton);
-  const isBillButton = tableData.isBillButton || false;
+  // const isBillButton = tableData.isBillButton || false;
   console.log();
 
   console.log(directbill, dontopenkotmodel, "tableData");
