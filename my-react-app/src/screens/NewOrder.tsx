@@ -282,7 +282,6 @@ if (roomServiceOutlet) {
     if (!selectedTab) return;
 
     const isFastFood =
-      selectedTab.id === "7" ||
       selectedTab.label.toUpperCase().includes("FAST");
 
     // 🔥 FASTFOOD → DIRECT REDIRECT (no active tab)
