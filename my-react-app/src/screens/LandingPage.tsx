@@ -84,6 +84,7 @@ import AfterBillSplitBill from "./AfterBillSplitBill";
 import ItemIssueReturnReport from "./ItemIssueReturnReport";
 import StockReport from "./StockReport";
 import SupplierPaymentReport from "./SupplierPaymentReport";
+import Estimation from "./estimation";
 
 function LandingPage() {
   const location = useLocation();
@@ -142,6 +143,7 @@ function LandingPage() {
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/NewOrder" element={<NewOrder />} />
         <Route path="/OrderingBoard" element={<OrderingBoard />} />
+        <Route path="/estimation" element={<Estimation />} />
         <Route path="/pos/dailysales" element={<Dailysales />} />
         <Route path="/pos/itemsales" element={<Itemsales />} />
         <Route path="/pos/chancesheet" element={<Chancesheet />} />

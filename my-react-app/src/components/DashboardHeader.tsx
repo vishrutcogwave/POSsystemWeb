@@ -305,6 +305,11 @@ const SUB_MASTER_ITEMS: MenuItem[] = [
     icon: Package,
     permissionName: "Outlet Items Details",
   },
+  {
+    name: "Estimation",
+    icon: Package,
+    permissionName: "Estimation",
+  },
 ];
 
 const UTILITY_ITEMS: MenuItem[] = [
@@ -464,6 +469,7 @@ const ROUTE_MAP: Record<string, string> = {
   "Department Master": "/master/departmentmaster",
   "Outlet Master": "/master/outletmaster",
   "Outlet Items Details": "/submaster/outletitemsdetails",
+  Estimation: "/estimation",
   "Item Master": "/master/itemmaster",
   "Unit Master": "/master/unitmaster",
   "Group Master": "/master/groupmaster",

@@ -236,6 +236,84 @@ export const getItemGroupList = async (branchcode: string) => {
   return response.data;
 };
 
+export const searchPOSItemsDropdown = async (
+  branchCode: string,
+  grpCode: number,
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get(
+    "/api/Estimation/SearchPOSItemsDropdown",
+    {
+      params: { BranchCode: branchCode, GrpCode: grpCode },
+      headers: {
+        Accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return response.data;
+};
+
+export const searchInventryItems = async (
+  branchCode: string,
+  itemName: string,
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/Estimation/SearchInventryItems", {
+    params: { BranchCode: branchCode, ItemName: itemName },
+    headers: {
+      Accept: "*/*",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+export const saveEstimation = async (payload: {
+  itemCode: number;
+  branchCode: string;
+  rows: {
+    proCode: number;
+    rawItemName: string;
+    qty: number;
+    rate: number;
+    value: number;
+  }[];
+}) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.post("/api/Estimation/save", payload, {
+    headers: {
+      Accept: "*/*",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
+export const getEstimationList = async (
+  itemCode: number,
+  branchCode: string,
+) => {
+  const token = localStorage.getItem("token");
+
+  const response = await api.get("/api/Estimation/GetEstimationList", {
+    params: { itemCode, branchCode },
+    headers: {
+      Accept: "*/*",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
+
 export const getDailySalesReport = async (
   fromdate: string,
   todate: string,
