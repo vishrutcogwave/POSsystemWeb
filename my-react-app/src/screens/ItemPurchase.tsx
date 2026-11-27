@@ -86,6 +86,9 @@ const ItemPurchase: React.FC = () => {
     directIssue: false,
     store: null as Store | null,
   });
+const toISOStringWithoutDateShift = (date: string): string => {
+  return `${date}T00:00:00.000Z`;
+};
 
   /* =========================
       MASTER DATA
@@ -642,7 +645,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 
     result.setDate(result.getDate() + Number(days || 0));
 
-    return result.toISOString().split("T")[0];
+   return `${result.getFullYear()}-${String(result.getMonth() + 1).padStart(2, "0")}-${String(result.getDate()).padStart(2, "0")}`;
   };
 
   /* =========================
@@ -1029,10 +1032,9 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 
         // ✅ Selected conversion name
         mainUnit: item.unitConversion || "",
-        expiryDate: item.expiryDate
-          ? new Date(`${item.expiryDate}T00:00:00`).toISOString()
-          : new Date(`${formData.date}T00:00:00`).toISOString(),
-
+      expiryDate: toISOStringWithoutDateShift(
+  item.expiryDate || formData.date
+),
         trowQty: Number(item.qty || 0),
       }));
 
@@ -1113,7 +1115,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 
         unitCode: Number(item?.unitCode ?? 0),
 
-        expiryDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+       expiryDate: toISOStringWithoutDateShift(formData.date),
 
         trowQty: Number(item?.receivedQty ?? item?.poItemSuplyQty ?? 0),
       }));
@@ -1165,7 +1167,7 @@ const [showPrintPreview, setShowPrintPreview] = useState(false);
 
       poNo: Number(formData.transactionNo || 0),
 
-      pDate: new Date(`${formData.date}T00:00:00`).toISOString(),
+     pDate: toISOStringWithoutDateShift(formData.date),
 
       supCode: formData.directPurchase
         ? 0

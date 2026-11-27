@@ -447,13 +447,14 @@ const PurchaseReturn: React.FC = () => {
       return;
     }
 
-    const invalidItem = items.some((item) => Number(item.returnQty || 0) <= 0);
+ const returnItems = items.filter(
+  (item) => Number(item.returnQty || 0) > 0
+);
 
-    if (invalidItem) {
-      toast.error("Please enter Return Qty for the items.");
-      return;
-    }
-
+if (returnItems.length === 0) {
+  toast.error("Please enter Return Qty for at least one item.");
+  return;
+}
     if (!purchaseReturnCalculation) {
       toast.error("Please calculate the purchase return before saving.");
       return;
@@ -479,53 +480,52 @@ const PurchaseReturn: React.FC = () => {
        DETAILS
     ===================================================== */
 
-      const details = items
-        .filter((item) => Number(item.returnQty || 0) > 0)
-        .map((item) => ({
-          rno: 0,
+  
+const details = returnItems.map((item) => ({
+  rno: 0,
 
-          prNo: Number(formData.transactionNo || 0),
+  prNo: Number(formData.transactionNo || 0),
 
-          pNo: Number(formData.purchaseNo || 0),
+  pNo: Number(formData.purchaseNo || 0),
 
-          itemCode: Number(item.code || 0),
+  itemCode: Number(item.code || 0),
 
-          prItemQty: Number(item.returnQty || 0),
+  prItemQty: Number(item.returnQty || 0),
 
-          prItemRate: Number(item.rate || 0),
+  prItemRate: Number(item.rate || 0),
 
-          prniQty: Number(item.returnQty || 0),
+  prniQty: Number(item.returnQty || 0),
 
-          branch_Code: branchCode,
+  branch_Code: branchCode,
 
-          pReturnQty: Number(item.returnQty || 0),
+  pReturnQty: Number(item.returnQty || 0),
 
-          praQty: Math.max(
-            0,
-            Number(item.qty || 0) - Number(item.returnQty || 0),
-          ),
+  praQty: Math.max(
+    0,
+    Number(item.qty || 0) - Number(item.returnQty || 0)
+  ),
 
-          mainUnit: item.mainUnit || "",
+  mainUnit: item.mainUnit || "",
 
-          mainUnitConverstion: item.mainUnitConverstion || "",
+  mainUnitConverstion: item.mainUnitConverstion || "",
 
-          itemName: item.name || "",
+  itemName: item.name || "",
 
-          total: Number(item.returnQty || 0) * Number(item.rate || 0),
+  total: Number(item.returnQty || 0) * Number(item.rate || 0),
 
-          remainingQty: Math.max(
-            0,
-            Number(item.qty || 0) - Number(item.returnQty || 0),
-          ),
+  remainingQty: Math.max(
+    0,
+    Number(item.qty || 0) - Number(item.returnQty || 0)
+  ),
 
-          taxCode: Number((item as any).taxCode || 0),
+  taxCode: (item as any).taxCode || 0,
 
-          taxName: (item as any).taxName || "",
+  taxName: (item as any).taxName || "",
 
-          unitCode: Number(item.unitCode || 0),
+  unitCode: Number(item.unitCode || 0),
 
-          unit: item.unit || "",
-        }));
+  unit: item.unit || "",
+}));
 
       /* =====================================================
        TAX DETAILS

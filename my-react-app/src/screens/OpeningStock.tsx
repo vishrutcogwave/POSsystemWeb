@@ -51,9 +51,14 @@ export default function OpeningStock() {
   const { appData } = useAppContext();
   const branchCode = String(appData?.user?.branch_code ?? "");
   const userCode = String(appData?.user?.userCode ?? "");
-  const [stockDate, setStockDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+const [stockDate, setStockDate] = useState(() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+});
   const [data, setData] = useState<OpeningStockItem[]>([]);
   const [originalData, setOriginalData] = useState<OpeningStockItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -274,7 +279,7 @@ const res = await deleteOpenStocksDetails(
   }, [data, search]);
 
   const handleSave = async () => {
-    debugger;
+   debugger
     if (!branchCode) {
       toast.error("Branch code is missing");
       return;
@@ -304,7 +309,7 @@ const res = await deleteOpenStocksDetails(
 
         deptCode: item.deptCode,
         branch_Code: branchCode,
-        stockDate: new Date(`${stockDate}T00:00:00`).toISOString(),
+     stockDate: `${stockDate}T00:00:00`,
         openingQty: toNumber(item.openingQty),
         unitCode: item.unitCode,
         unitName: item.unitName,

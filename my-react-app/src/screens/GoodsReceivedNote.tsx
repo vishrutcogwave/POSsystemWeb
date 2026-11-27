@@ -123,9 +123,14 @@ const GoodsReceivedNote: React.FC = () => {
 
   const [grnNo, setGrnNo] = useState("");
   const [billNo, setBillNo] = useState("");
-  const [grnDate, setGrnDate] = useState(
-    new Date().toISOString().split("T")[0],
-  );
+const [grnDate, setGrnDate] = useState(() => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+});
   const [confirmedBy, setConfirmedBy] = useState("");
   const [inspectedBy, setInspectedBy] = useState("");
 
@@ -182,11 +187,25 @@ const fetchNextGRNNo = async () => {
       maximumFractionDigits: 2,
     });
 
-  const formatDate = (value?: string) => {
-    if (!value) return "";
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "" : date.toISOString().split("T")[0];
-  };
+
+const formatDate = (value?: string) => {
+  if (!value) return "";
+
+  // Handle date-only values without timezone conversion
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
   const getSupplierName = (supCode?: number) =>
     suppliers.find((x) => Number(x.supCode) === Number(supCode))?.supName ||
@@ -796,7 +815,7 @@ const handleSaveGRN = async () => {
 
       grnNo: grnNo.trim(),
 
-      grnDate: new Date(`${grnDate}T00:00:00`).toISOString(),
+    grnDate: `${grnDate}T00:00:00`,
 
       grnTime: now.toTimeString().split(" ")[0],
 
@@ -1060,7 +1079,8 @@ const handleSaveGRN = async () => {
                 <div>
                   <label className={labelClass}>Order No.</label>
 
-                 <Select
+
+<Select
   value={
     poNumbers
       .map((po) => ({
@@ -1077,18 +1097,29 @@ const handleSaveGRN = async () => {
   isDisabled={loading}
   isSearchable
   isClearable
-  placeholder={loading ? "Loading..." : "Search Order No."}
+  placeholder="Search Order No."
   noOptionsMessage={() => "No Order No. found"}
   className="text-sm"
   classNamePrefix="order-no"
+  menuPortalTarget={document.body}
+  menuPosition="fixed"
   styles={{
     control: (base) => ({
       ...base,
       minHeight: "40px",
       height: "40px",
     }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 99999,
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 99999,
+    }),
   }}
 />
+
                 </div>
 
                 {/* PO Date */}

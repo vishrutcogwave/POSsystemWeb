@@ -187,6 +187,22 @@ export default function PrinterSettings() {
     );
   };
 
+  const isAllSelected =
+  categories.length > 0 &&
+  categories.every((cat) =>
+    selectedCategories.includes(cat.catCode)
+  );
+
+const handleSelectAllCategories = () => {
+  if (isAllSelected) {
+    setSelectedCategories([]);
+  } else {
+    setSelectedCategories(
+      categories.map((cat) => cat.catCode)
+    );
+  }
+};
+
   const handleSaveCartGroup = async () => {
     try {
       const selectedNames = categories
@@ -491,55 +507,82 @@ export default function PrinterSettings() {
             </table>
           </div>
         </div>
-        {showCategoryPopup && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl w-[500px] max-w-[95vw] p-5">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Select Categories</h3>
+  {showCategoryPopup && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl w-[500px] max-w-[95vw] p-5">
 
-                <button
-                  onClick={() => setShowCategoryPopup(false)}
-                  className="text-red-500 text-xl"
-                >
-                  ✕
-                </button>
-              </div>
+      {/* Popup Header */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">
+          Select Categories
+        </h3>
 
-              <div className="max-h-[350px] overflow-y-auto border rounded-lg p-3">
-                {categories.map((cat) => (
-                  <label
-                    key={cat.catCode}
-                    className="flex items-center gap-3 py-2 border-b"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedCategories.includes(cat.catCode)}
-                      onChange={() => handleCategoryToggle(cat.catCode)}
-                    />
+        <button
+          onClick={() => setShowCategoryPopup(false)}
+          className="text-red-500 text-xl"
+        >
+          ✕
+        </button>
+      </div>
 
-                    <span>{cat.catName}</span>
-                  </label>
-                ))}
-              </div>
+      {/* Select All / Deselect All */}
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-sm font-medium text-gray-600">
+          {selectedCategories.length} of {categories.length} selected
+        </span>
 
-              <div className="flex justify-end gap-2 mt-4">
-                <button
-                  onClick={() => setShowCategoryPopup(false)}
-                  className="px-4 py-2 border rounded-lg"
-                >
-                  Cancel
-                </button>
+        <button
+          type="button"
+          onClick={handleSelectAllCategories}
+          disabled={categories.length === 0}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            isAllSelected
+              ? "bg-red-100 text-red-600 hover:bg-red-200"
+              : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+          } disabled:opacity-50`}
+        >
+          {isAllSelected ? "Deselect All" : "Select All"}
+        </button>
+      </div>
 
-                <button
-                  onClick={handleSaveCartGroup}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Category List */}
+      <div className="max-h-[350px] overflow-y-auto border rounded-lg p-3">
+        {categories.map((cat) => (
+          <label
+            key={cat.catCode}
+            className="flex items-center gap-3 py-2 border-b cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={selectedCategories.includes(cat.catCode)}
+              onChange={() => handleCategoryToggle(cat.catCode)}
+              className="w-4 h-4 accent-blue-600 cursor-pointer"
+            />
+
+            <span>{cat.catName}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-end gap-2 mt-4">
+        <button
+          onClick={() => setShowCategoryPopup(false)}
+          className="px-4 py-2 border rounded-lg"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={handleSaveCartGroup}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </>
   );
